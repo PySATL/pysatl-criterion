@@ -1,3 +1,4 @@
+import pytest as pytest
 from criterion.goodness_of_fit import AbstractGoodnessOfFitTestStatistic
 
 
