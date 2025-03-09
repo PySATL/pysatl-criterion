@@ -30,9 +30,7 @@ class AbstractWeibullTestStatistic(AbstractGoodnessOfFitTestStatistic, ABC):
         return f"WEIBULL_{AbstractGoodnessOfFitTestStatistic.code()}"
 
 
-class MinToshiyukiWeibullTestStatistic(
-    AbstractWeibullTestStatistic, MinToshiyukiTestStatistic
-):
+class MinToshiyukiWeibullTestStatistic(AbstractWeibullTestStatistic, MinToshiyukiTestStatistic):
     @staticmethod
     @override
     def code():
@@ -75,9 +73,7 @@ class LillieforsWiebullTest(AbstractWeibullTestStatistic, LillieforsTest):
         return super().execute_statistic(rvs, cdf_vals)
 
 
-class CrammerVonMisesWeibullTest(
-    AbstractWeibullTestStatistic, CrammerVonMisesTestStatistic
-):
+class CrammerVonMisesWeibullTest(AbstractWeibullTestStatistic, CrammerVonMisesTestStatistic):
     @staticmethod
     @override
     def code():
@@ -234,10 +230,7 @@ class REJGTestStatistic(AbstractWeibullTestStatistic):
         def f1(toto, vect):
             if toto != 0:
                 f1 = np.sum(vect) / len(vect)
-                f1 -= (
-                    np.sum(vect * np.exp(-vect * toto)) / np.sum(np.exp(-vect * toto))
-                    - 1 / toto
-                )
+                f1 -= np.sum(vect * np.exp(-vect * toto)) / np.sum(np.exp(-vect * toto)) - 1 / toto
             else:
                 f1 = 100
             return abs(f1)
@@ -288,9 +281,7 @@ class WeibullNormalizeSpaceTestStatistic(AbstractWeibullTestStatistic):
             d2_Q_r = d_Q_r / q_r - d_Q_r * d_Q_r
             d3_Q_r = d2_Q_r / q_r + d_Q_r / (q_r * q_r) - 2 * (d_Q_r * d2_Q_r)
             d4_Q_r = d3_Q_r / q_r + 2 * d2_Q_r / (q_r * q_r)
-            d4_Q_r += 2 * d_Q_r / (q_r * q_r * q_r) - 2 * (
-                d2_Q_r * d2_Q_r + d_Q_r * d3_Q_r
-            )
+            d4_Q_r += 2 * d_Q_r / (q_r * q_r * q_r) - 2 * (d2_Q_r * d2_Q_r + d_Q_r * d3_Q_r)
             res[i] = Q_r + (p_r * q_r / (2 * (n + 2))) * d2_Q_r
             res[i] += (
                 q_r
@@ -338,10 +329,7 @@ class WeibullNormalizeSpaceTestStatistic(AbstractWeibullTestStatistic):
                 raise ValueError("the test is only applied for right censoring")
             l1 = m // 2
             # l2 = m - l1 - 1
-            S = np.sum(
-                (A[(l1 + 1) : m] - A[l1 : (m - 1)])
-                / (X[(l1 + 1) : m] - X[l1 : (m - 1)])
-            )
+            S = np.sum((A[(l1 + 1) : m] - A[l1 : (m - 1)]) / (X[(l1 + 1) : m] - X[l1 : (m - 1)]))
             S = S / np.sum((A[1:m] - A[: (m - 1)]) / (X[1:m] - X[: (m - 1)]))
             NS_statistic = S
 
@@ -433,10 +421,7 @@ class WPPWeibullTestStatistic(AbstractWeibullTestStatistic):
         def f1(toto, vect):
             if toto != 0:
                 f1 = np.sum(vect) / len(vect)
-                f1 -= (
-                    np.sum(vect * np.exp(-vect * toto)) / np.sum(np.exp(-vect * toto))
-                    - 1 / toto
-                )
+                f1 -= np.sum(vect * np.exp(-vect * toto)) / np.sum(np.exp(-vect * toto)) - 1 / toto
             else:
                 f1 = 100
             return abs(f1)
@@ -462,9 +447,7 @@ class WPPWeibullTestStatistic(AbstractWeibullTestStatistic):
         WPP_statistic = 0
         if type_ == OKWeibullTestStatistic.code():
             a = interval[:-1]
-            Sig = np.sum((2 * np.concatenate((a, [n])) - 1 - n) * y) / (
-                np.log(2) * (n - 1)
-            )
+            Sig = np.sum((2 * np.concatenate((a, [n])) - 1 - n) * y) / (np.log(2) * (n - 1))
             w = np.log((n + 1) / (n - a + 1))
             Wi = np.concatenate((w, [n - np.sum(w)]))
             Wn = w * (1 + np.log(w)) - 1
@@ -648,15 +631,10 @@ class MDTest(AbstractWeibullTestStatistic):
         F_0 = generate_weibull_cdf(rvs_sorted, a=self.a, k=self.k)
 
         term1 = np.sum(
-            [
-                (emp_cdf[i - 1] - 1) ** 2 * (np.log(F_0[i]) - np.log(F_0[i - 1]))
-                for i in range(1, n)
-            ]
+            [(emp_cdf[i - 1] - 1) ** 2 * (np.log(F_0[i]) - np.log(F_0[i - 1])) for i in range(1, n)]
         )
 
-        term2 = np.sum(
-            [(emp_cdf[i - 1] - 1) * (F_0[i] - F_0[i - 1]) for i in range(1, n)]
-        )
+        term2 = np.sum([(emp_cdf[i - 1] - 1) * (F_0[i] - F_0[i - 1]) for i in range(1, n)])
 
         MD_statistic = n * (term1 + 2 * term2 + 0.5)
 
@@ -735,10 +713,7 @@ class KullbackLeiblerStatistic(AbstractWeibullTestStatistic):
 
         H_mn = np.mean(
             [
-                np.log(
-                    (n / (2 * m))
-                    * (log_rvs[min(n - 1, i + m)] - log_rvs[max(0, i - m)])
-                )
+                np.log((n / (2 * m)) * (log_rvs[min(n - 1, i + m)] - log_rvs[max(0, i - m)]))
                 for i in range(n)
             ]
         )
@@ -775,8 +750,7 @@ class LTStatistic(AbstractWeibullTestStatistic):
         col_sums = np.sum(exp_matrix, axis=0)
 
         lt_sum = np.sum(
-            np.exp(-np.exp(a * t_values) + a * t_values)
-            * (gamma(1 - t_values) - col_sums / n) ** 2
+            np.exp(-np.exp(a * t_values) + a * t_values) * (gamma(1 - t_values) - col_sums / n) ** 2
         )
 
         LT_stat = n * lt_sum

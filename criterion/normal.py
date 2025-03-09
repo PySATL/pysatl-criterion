@@ -26,9 +26,7 @@ class AbstractNormalityTestStatistic(AbstractGoodnessOfFitTestStatistic, ABC):
         return (
             "NORMALITY"
             + "_"
-            + super(
-                AbstractGoodnessOfFitTestStatistic, AbstractGoodnessOfFitTestStatistic
-            ).code()
+            + super(AbstractGoodnessOfFitTestStatistic, AbstractGoodnessOfFitTestStatistic).code()
         )
 
 
@@ -47,18 +45,14 @@ class KSNormalityTest(AbstractNormalityTestStatistic, KSTestStatistic):
         return (
             "KS"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         rvs = np.sort(rvs)
         cdf_vals = scipy_stats.norm.cdf(rvs)
-        return KSTestStatistic.execute_statistic(
-            self, rvs, cdf_vals
-        )  # TODO: should test it
+        return KSTestStatistic.execute_statistic(self, rvs, cdf_vals)  # TODO: should test it
 
 
 """""
@@ -90,9 +84,7 @@ class ADNormalityTest(AbstractNormalityTestStatistic, ADTestStatistic):
         return (
             "AD"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -106,9 +98,7 @@ class ADNormalityTest(AbstractNormalityTestStatistic, ADTestStatistic):
         return super().execute_statistic(rvs, log_cdf=logcdf, log_sf=logsf, w=w)
 
     @override
-    def calculate_critical_value(
-        self, rvs_size, sl, count=500_000
-    ):  # TODO: check test correctness
+    def calculate_critical_value(self, rvs_size, sl, count=500_000):  # TODO: check test correctness
         # sig = [0.15, 0.10, 0.05, 0.025, 0.01].index(alpha)
         # critical = np.around(_Avals_norm / (1.0 + 4.0 / rvs_size - 25.0 / rvs_size / rvs_size), 3)
         # print(critical[sig])
@@ -123,9 +113,7 @@ class SWNormalityTest(AbstractNormalityTestStatistic):
         return (
             "SW"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -147,9 +135,7 @@ class SWNormalityTest(AbstractNormalityTestStatistic):
             sqrt = np.sqrt(0.5)
             return np.array([sqrt, 0, -sqrt])
 
-        m = np.array(
-            [scipy_stats.norm.ppf((i - 3 / 8) / (n + 0.25)) for i in range(1, n + 1)]
-        )
+        m = np.array([scipy_stats.norm.ppf((i - 3 / 8) / (n + 0.25)) for i in range(1, n + 1)])
 
         m2 = m**2
         term = np.sqrt(m2.sum())
@@ -175,9 +161,7 @@ class SWNormalityTest(AbstractNormalityTestStatistic):
         if n > 5:
             wn1 = np.polyval(p2, u)
             w2 = -wn1
-            phi = (m2.sum() - 2 * m[-1] ** 2 - 2 * m[-2] ** 2) / (
-                1 - 2 * wn**2 - 2 * wn1**2
-            )
+            phi = (m2.sum() - 2 * m[-1] ** 2 - 2 * m[-2] ** 2) / (1 - 2 * wn**2 - 2 * wn1**2)
             phi_sqrt = np.sqrt(phi)
             result = np.array([m[k] / phi_sqrt for k in range(2, n - 2)])
             return np.concatenate([[w1, w2], result, [wn1, wn]])
@@ -190,9 +174,7 @@ class CVMNormalityTest(AbstractNormalityTestStatistic):
         return (
             "CVM"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -254,9 +236,7 @@ class JBNormalityTest(AbstractNormalityTestStatistic):
         return (
             "JB"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -284,9 +264,7 @@ class SkewNormalityTest(AbstractNormalityTestStatistic):
         return (
             "SKEW"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -301,8 +279,7 @@ class SkewNormalityTest(AbstractNormalityTestStatistic):
         n = len(a)
         if n < 8:
             raise ValueError(
-                "skew test is not valid with less than 8 samples; %i samples were given."
-                % int(n)
+                "skew test is not valid with less than 8 samples; %i samples were given." % int(n)
             )
         b2 = scipy_stats.skew(a, axis=0)
         y = b2 * math.sqrt(((n + 1) * (n + 3)) / (6.0 * (n - 2)))
@@ -329,9 +306,7 @@ class KurtosisNormalityTest(AbstractNormalityTestStatistic):
         return (
             "KURTOSIS"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -368,9 +343,7 @@ class KurtosisNormalityTest(AbstractNormalityTestStatistic):
             * np.sqrt((6.0 * (n + 3) * (n + 5)) / (n * (n - 2) * (n - 3)))
         )
         # [1]_ Eq. 3:
-        a = 6.0 + 8.0 / sqrt_beta1 * (
-            2.0 / sqrt_beta1 + np.sqrt(1 + 4.0 / (sqrt_beta1**2))
-        )
+        a = 6.0 + 8.0 / sqrt_beta1 * (2.0 / sqrt_beta1 + np.sqrt(1 + 4.0 / (sqrt_beta1**2)))
         term1 = 1 - 2 / (9.0 * a)
         denom = 1 + x * np.sqrt(2 / (a - 4.0))
         term2 = np.sign(denom) * np.where(
@@ -393,9 +366,7 @@ class DAPNormalityTest(SkewNormalityTest, KurtosisNormalityTest):
         return (
             "DAP"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -417,9 +388,7 @@ class FilliNormalityTest(AbstractNormalityTestStatistic):
         return (
             "Filli"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -458,9 +427,7 @@ class LooneyGulledgeNormalityTest(AbstractNormalityTestStatistic):
         return (
             "LG"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -586,9 +553,7 @@ class SFNormalityTest(AbstractNormalityTestStatistic):
         return (
             "SF"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -613,9 +578,7 @@ class EPNormalityTest(AbstractNormalityTestStatistic):
         return (
             "EP"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -625,9 +588,7 @@ class EPNormalityTest(AbstractNormalityTestStatistic):
         x_mean = np.mean(x)
         m2 = np.var(x, ddof=0)
 
-        a = np.sqrt(2) * np.sum(
-            [np.exp(-((x[i] - x_mean) ** 2) / (4 * m2)) for i in range(n)]
-        )
+        a = np.sqrt(2) * np.sum([np.exp(-((x[i] - x_mean) ** 2) / (4 * m2)) for i in range(n)])
         b = 0
         for k in range(1, n):
             b = b + np.sum(np.exp(-((x[:k] - x[k]) ** 2) / (2 * m2)))
@@ -643,9 +604,7 @@ class Hosking2NormalityTest(AbstractNormalityTestStatistic):
         return (
             "HOSKING2"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -702,9 +661,7 @@ class Hosking1NormalityTest(AbstractNormalityTestStatistic):
         return (
             "HOSKING1"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -722,9 +679,7 @@ class Hosking1NormalityTest(AbstractNormalityTestStatistic):
             tmp2 = tmp1 * (n - 2)
             tmp3 = tmp2 * (n - 3)
             b0 = sum(x_tmp[:3]) + sum(x_tmp[3:])
-            b1 = (
-                1.0 * x_tmp[1] + 2.0 * x_tmp[2] + sum(i * x_tmp[i] for i in range(3, n))
-            )
+            b1 = 1.0 * x_tmp[1] + 2.0 * x_tmp[2] + sum(i * x_tmp[i] for i in range(3, n))
             b2 = 2.0 * x_tmp[2] + sum((i * (i - 1)) * x_tmp[i] for i in range(3, n))
             b3 = sum((i * (i - 1) * (i - 2)) * x_tmp[i] for i in range(3, n))
             b0 /= n
@@ -761,9 +716,7 @@ class Hosking3NormalityTest(AbstractNormalityTestStatistic):
         return (
             "HOSKING3"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -825,9 +778,7 @@ class Hosking4NormalityTest(AbstractNormalityTestStatistic):
         return (
             "HOSKING4"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -889,9 +840,7 @@ class ZhangWuCNormalityTest(AbstractNormalityTestStatistic):
         return (
             "ZWC"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -908,10 +857,7 @@ class ZhangWuCNormalityTest(AbstractNormalityTestStatistic):
             phiz.sort()
             stat_zc = 0.0
             for i in range(1, n + 1):
-                stat_zc += (
-                    np.log((1.0 / phiz[i - 1] - 1.0) / ((n - 0.5) / (i - 0.75) - 1.0))
-                    ** 2
-                )
+                stat_zc += np.log((1.0 / phiz[i - 1] - 1.0) / ((n - 0.5) / (i - 0.75) - 1.0)) ** 2
             return stat_zc
 
 
@@ -922,9 +868,7 @@ class ZhangWuANormalityTest(AbstractNormalityTestStatistic):
         return (
             "ZWA"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -941,9 +885,9 @@ class ZhangWuANormalityTest(AbstractNormalityTestStatistic):
             phiz.sort()
             stat_za = 0.0
             for i in range(1, n + 1):
-                stat_za += np.log(phiz[i - 1]) / ((n - i) + 0.5) + np.log(
-                    1.0 - phiz[i - 1]
-                ) / (i - 0.5)
+                stat_za += np.log(phiz[i - 1]) / ((n - i) + 0.5) + np.log(1.0 - phiz[i - 1]) / (
+                    i - 0.5
+                )
             stat_za = -stat_za
             stat_za = 10.0 * stat_za - 32.0
             return stat_za
@@ -956,9 +900,7 @@ class GlenLeemisBarrNormalityTest(AbstractNormalityTestStatistic):
         return (
             "GLB"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -978,9 +920,9 @@ class GlenLeemisBarrNormalityTest(AbstractNormalityTestStatistic):
             phiz.sort()
             stat_ps = 0
             for i in range(1, n + 1):
-                stat_ps += (2 * n + 1 - 2 * i) * np.log(phiz[i - 1]) + (
-                    2 * i - 1
-                ) * np.log(1 - phiz[i - 1])
+                stat_ps += (2 * n + 1 - 2 * i) * np.log(phiz[i - 1]) + (2 * i - 1) * np.log(
+                    1 - phiz[i - 1]
+                )
             return -n - stat_ps / n
 
 
@@ -991,9 +933,7 @@ class DoornikHansenNormalityTest(AbstractNormalityTestStatistic):
         return (
             "DH"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -1017,13 +957,7 @@ class DoornikHansenNormalityTest(AbstractNormalityTestStatistic):
 
     @staticmethod
     def skewness_to_z1(skew, n):
-        b = (
-            3
-            * ((n**2) + 27 * n - 70)
-            * (n + 1)
-            * (n + 3)
-            / ((n - 2) * (n + 5) * (n + 7) * (n + 9))
-        )
+        b = 3 * ((n**2) + 27 * n - 70) * (n + 1) * (n + 3) / ((n - 2) * (n + 5) * (n + 7) * (n + 9))
         w2 = -1 + math.sqrt(2 * (b - 1))
         d = 1 / math.sqrt(math.log(math.sqrt(w2)))
         y = skew * math.sqrt((n + 1) * (n + 3) / (6 * (n - 2)))
@@ -1057,9 +991,7 @@ class RobustJarqueBeraNormalityTest(AbstractNormalityTestStatistic):
         return (
             "RJB"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -1082,9 +1014,7 @@ class BontempsMeddahi1NormalityTest(AbstractNormalityTestStatistic):
         return (
             "BM1"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -1125,9 +1055,7 @@ class BontempsMeddahi2NormalityTest(AbstractNormalityTestStatistic):
         return (
             "BM2"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -1160,9 +1088,7 @@ class BonettSeierNormalityTest(AbstractNormalityTestStatistic):
         return (
             "BS"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -1201,9 +1127,7 @@ class MartinezIglewiczNormalityTest(AbstractNormalityTestStatistic):
         return (
             "MI"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -1248,9 +1172,7 @@ class CabanaCabana1NormalityTest(AbstractNormalityTestStatistic):
         return (
             "CC1"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -1264,18 +1186,16 @@ class CabanaCabana1NormalityTest(AbstractNormalityTestStatistic):
         if n > 3:
             z_data = (x - np.mean(x)) / np.std(x, ddof=1)
             mean_h3 = np.sum(z_data**3 - 3 * z_data) / (np.sqrt(6) * np.sqrt(n))
-            mean_h4 = np.sum(z_data**4 - 6 * z_data**2 + 3) / (
-                2 * np.sqrt(6) * np.sqrt(n)
-            )
+            mean_h4 = np.sum(z_data**4 - 6 * z_data**2 + 3) / (2 * np.sqrt(6) * np.sqrt(n))
             mean_h5 = np.sum(z_data**5 - 10 * z_data**3 + 15 * z_data) / (
                 2 * np.sqrt(30) * np.sqrt(n)
             )
             mean_h6 = np.sum(z_data**6 - 15 * z_data**4 + 45 * z_data**2 - 15) / (
                 12 * np.sqrt(5) * np.sqrt(n)
             )
-            mean_h7 = np.sum(
-                z_data**7 - 21 * z_data**5 + 105 * z_data**3 - 105 * z_data
-            ) / (12 * np.sqrt(35) * np.sqrt(n))
+            mean_h7 = np.sum(z_data**7 - 21 * z_data**5 + 105 * z_data**3 - 105 * z_data) / (
+                12 * np.sqrt(35) * np.sqrt(n)
+            )
             mean_h8 = np.sum(
                 z_data**8 - 28 * z_data**6 + 210 * z_data**4 - 420 * z_data**2 + 105
             ) / (24 * np.sqrt(70) * np.sqrt(n))
@@ -1302,9 +1222,7 @@ class CabanaCabana2NormalityTest(AbstractNormalityTestStatistic):
         return (
             "CC2"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -1346,9 +1264,9 @@ class CabanaCabana2NormalityTest(AbstractNormalityTestStatistic):
                 h4[i] = (math.pow(z[i], 4.0) - 6.0 * math.pow(z[i], 2.0) + 3.0) / (
                     2.0 * np.sqrt(6.0)
                 )
-                h5[i] = (
-                    math.pow(z[i], 5.0) - 10.0 * math.pow(z[i], 3.0) + 15.0 * z[i]
-                ) / (2.0 * np.sqrt(30.0))
+                h5[i] = (math.pow(z[i], 5.0) - 10.0 * math.pow(z[i], 3.0) + 15.0 * z[i]) / (
+                    2.0 * np.sqrt(30.0)
+                )
                 h6[i] = (
                     math.pow(z[i], 6.0)
                     - 15.0 * math.pow(z[i], 4.0)
@@ -1407,9 +1325,7 @@ class ChenShapiroNormalityTest(AbstractNormalityTestStatistic):
         return (
             "CS"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -1424,12 +1340,8 @@ class ChenShapiroNormalityTest(AbstractNormalityTestStatistic):
             xs = np.sort(x)
             # mean_x = np.mean(x)
             var_x = np.var(x, ddof=1)
-            m = scipy_stats.norm.ppf(
-                np.arange(1, n + 1) / (n + 0.25) - 0.375 / (n + 0.25)
-            )
-            stat_cs = np.sum((xs[1:] - xs[:-1]) / (m[1:] - m[:-1])) / (
-                (n - 1) * np.sqrt(var_x)
-            )
+            m = scipy_stats.norm.ppf(np.arange(1, n + 1) / (n + 0.25) - 0.375 / (n + 0.25))
+            stat_cs = np.sum((xs[1:] - xs[:-1]) / (m[1:] - m[:-1])) / ((n - 1) * np.sqrt(var_x))
             stat_cs = np.sqrt(n) * (1.0 - stat_cs)
             return stat_cs
 
@@ -1441,9 +1353,7 @@ class ZhangQNormalityTest(AbstractNormalityTestStatistic):
         return (
             "ZQ"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -1473,9 +1383,7 @@ class ZhangQNormalityTest(AbstractNormalityTestStatistic):
             b[3] = 1.0 / ((n - 4) * (u[3] - u[7]))
             b[n - 4] = -b[3]
             for i in range(5, n - 3):
-                b[i - 1] = (
-                    1.0 / (u[i - 1] - u[i + 3]) - 1.0 / (u[i - 5] - u[i - 1])
-                ) / (n - 4)
+                b[i - 1] = (1.0 / (u[i - 1] - u[i + 3]) - 1.0 / (u[i - 5] - u[i - 1])) / (n - 4)
             q1 = np.dot(a, xs)
             q2 = np.dot(b, xs)
             stat_q = np.log(q1 / q2)
@@ -1489,9 +1397,7 @@ class CoinNormalityTest(AbstractNormalityTestStatistic):
         return (
             "COIN"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -1548,9 +1454,7 @@ class CoinNormalityTest(AbstractNormalityTestStatistic):
                 term4 += a[i] ** 3 * z[i]
                 term6 += a[i] ** 6
 
-            stat_beta32 = (
-                (term1 * term2 - term3 * term4) / (term1 * term1 - term3 * term6)
-            ) ** 2
+            stat_beta32 = ((term1 * term2 - term3 * term4) / (term1 * term1 - term3 * term6)) ** 2
             return stat_beta32
 
     @staticmethod
@@ -1624,11 +1528,7 @@ class DagostinoNormalityTest(AbstractNormalityTestStatistic):
     @override
     def code():
         return (
-            "D"
-            + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            "D" + "_" + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -1652,9 +1552,7 @@ class ZhangQStarNormalityTest(AbstractNormalityTestStatistic):
         return (
             "ZQS"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -1664,9 +1562,7 @@ class ZhangQStarNormalityTest(AbstractNormalityTestStatistic):
         if n > 3:
             # Computation of the value of the test statistic
             xs = np.sort(rvs)
-            u = scipy_stats.norm.ppf(
-                np.arange(1, n + 1) / (n + 0.25) - 0.375 / (n + 0.25)
-            )
+            u = scipy_stats.norm.ppf(np.arange(1, n + 1) / (n + 0.25) - 0.375 / (n + 0.25))
 
             a = np.zeros(n)
             a[1:] = 1 / ((n - 1) * (u[1:] - u[0]))
@@ -1747,9 +1643,7 @@ class SWRGNormalityTest(AbstractNormalityTestStatistic):
         return (
             "SWRG"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -1783,9 +1677,7 @@ class GMGNormalityTest(AbstractNormalityTestStatistic):
         return (
             "GMG"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -1803,9 +1695,7 @@ class GMGNormalityTest(AbstractNormalityTestStatistic):
             var_x = 0.0
             mean_x = 0.0
             jn = 0.0
-            pi = 4.0 * math.atan(
-                1.0
-            )  # or use pi = M_PI, where M_PI is defined in math.h
+            pi = 4.0 * math.atan(1.0)  # or use pi = M_PI, where M_PI is defined in math.h
 
             # calculate sample mean
             for i in range(n):
@@ -1852,9 +1742,7 @@ class BHSNormalityTest(AbstractNormalityTestStatistic):
         return (
             "BHS"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -1926,9 +1814,7 @@ class BHSNormalityTest(AbstractNormalityTestStatistic):
         x = [0.0] * (n + 1)
         for i in range(n):
             zi = z[i]
-            x[i + 1] = -(
-                large if zi == float("inf") else (-large if zi == -float("inf") else zi)
-            )
+            x[i + 1] = -(large if zi == float("inf") else (-large if zi == -float("inf") else zi))
 
         x[1:] = sorted(x[1:])  # full sort
 
@@ -1951,9 +1837,7 @@ class BHSNormalityTest(AbstractNormalityTestStatistic):
             return med_c
         # else: median is not at the border
         if trace_lev:
-            print(
-                f"mc_C_d(z[1:{n}], trace_lev={trace_lev}): Median = {-x_med} (not at the border)"
-            )
+            print(f"mc_C_d(z[1:{n}], trace_lev={trace_lev}): Median = {-x_med} (not at the border)")
 
         # center x[] wrt median --> such that then median(x[1:n]) == 0
         for i in range(1, n + 1):
@@ -1973,9 +1857,7 @@ class BHSNormalityTest(AbstractNormalityTestStatistic):
         while j <= n and x[j] > x_eps:  # test relative to x_med
             j += 1
         if trace_lev >= 2:
-            print(
-                f"   x1[] := {{x | x_j > x_eps = {x_eps}}}    has {j - 1} (='j-1') entries"
-            )
+            print(f"   x1[] := {{x | x_j > x_eps = {x_eps}}}    has {j - 1} (='j-1') entries")
         i = 1
         x2 = x[j - 1 :]  # pointer -- corresponding to x2[i] = x[j]
         while j <= n and x[j] > -x_eps:  # test relative to x_med
@@ -2058,8 +1940,7 @@ class BHSNormalityTest(AbstractNormalityTestStatistic):
             for i in range(h2, 0, -1):
                 while (
                     j <= h1
-                    and self.h_kern(x[j], x2[i - 1], j, i, h1 + 1, eps[1]) - trial
-                    > eps_trial
+                    and self.h_kern(x[j], x2[i - 1], j, i, h1 + 1, eps[1]) - trial > eps_trial
                 ):
                     j += 1
                 p[i] = j - 1
@@ -2070,8 +1951,7 @@ class BHSNormalityTest(AbstractNormalityTestStatistic):
             for i in range(1, h2 + 1):
                 while (
                     j >= 1
-                    and trial - self.h_kern(x[j], x2[i - 1], j, i, h1 + 1, eps[1])
-                    > eps_trial
+                    and trial - self.h_kern(x[j], x2[i - 1], j, i, h1 + 1, eps[1]) > eps_trial
                 ):
                     j -= 1
                 q[i] = j + 1
@@ -2110,9 +1990,7 @@ class BHSNormalityTest(AbstractNormalityTestStatistic):
                 is_found = knew <= sum_q  # i.e. sum_p < knew <= sum_q
 
                 if trace_lev >= 3:
-                    print(
-                        "; s_p < kn ?<=? s_q: {}".format("TRUE" if is_found else "no")
-                    )
+                    print("; s_p < kn ?<=? s_q: {}".format("TRUE" if is_found else "no"))
                 if is_found:
                     med_c = trial
                 else:  # knew > sum_q
@@ -2124,9 +2002,7 @@ class BHSNormalityTest(AbstractNormalityTestStatistic):
 
         converged = is_found or (nr - nl + neq <= n)
         if not converged:
-            print(
-                f"maximal number of iterations ({iter_[0]} =? {it}) reached prematurely"
-            )
+            print(f"maximal number of iterations ({iter_[0]} =? {it}) reached prematurely")
             # still:
             med_c = trial
 
@@ -2205,9 +2081,7 @@ class SpiegelhalterNormalityTest(AbstractNormalityTestStatistic):
         return (
             "SH"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -2258,9 +2132,7 @@ class DesgagneLafayeNormalityTest(AbstractNormalityTestStatistic):
         return (
             "DLDMZEPD"
             + "_"
-            + super(
-                AbstractNormalityTestStatistic, AbstractNormalityTestStatistic
-            ).code()
+            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
         )
 
     @override
@@ -2299,18 +2171,14 @@ class DesgagneLafayeNormalityTest(AbstractNormalityTestStatistic):
             # Formula given in our paper p. 170
             rn = n * (
                 (r1 * 1259.04213344 - r2 * 32040.69569026 + r3 * 85065.77739473) * r1
-                + (-r1 * 32040.6956903 + r2 * 918649.9005906 - r3 * 2425883.3443201)
-                * r2
-                + (r1 * 85065.7773947 - r2 * 2425883.3443201 + r3 * 6407749.8211208)
-                * r3
+                + (-r1 * 32040.6956903 + r2 * 918649.9005906 - r3 * 2425883.3443201) * r2
+                + (r1 * 85065.7773947 - r2 * 2425883.3443201 + r3 * 6407749.8211208) * r3
             )
 
             return rn  # Here is the test statistic value
 
 
-class GraphEdgesNumberNormTest(
-    AbstractNormalityTestStatistic, GraphEdgesNumberTestStatistic
-):
+class GraphEdgesNumberNormTest(AbstractNormalityTestStatistic, GraphEdgesNumberTestStatistic):
     @staticmethod
     @override
     def code():
@@ -2326,9 +2194,7 @@ class GraphEdgesNumberNormTest(
         return parent_code / np.var(rvs)
 
 
-class GraphMaxDegreeNormTest(
-    AbstractNormalityTestStatistic, GraphMaxDegreeTestStatistic
-):
+class GraphMaxDegreeNormTest(AbstractNormalityTestStatistic, GraphMaxDegreeTestStatistic):
     @staticmethod
     @override
     def code():

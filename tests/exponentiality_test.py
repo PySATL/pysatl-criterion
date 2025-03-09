@@ -34,9 +34,7 @@ from criterion.exponent import (
 
 
 def test_abstract_exponentiality_criterion_code():
-    assert (
-        "EXPONENTIALITY_GOODNESS_OF_FIT" == AbstractExponentialityTestStatistic.code()
-    )
+    assert "EXPONENTIALITY_GOODNESS_OF_FIT" == AbstractExponentialityTestStatistic.code()
 
 
 # TODO: actual test (7; 10)

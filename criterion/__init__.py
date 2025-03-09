@@ -103,6 +103,7 @@ from criterion.weibull import (
     WPPWeibullTestStatistic,
 )
 
+
 __all__ = [
     "AbstractTestStatistic",
     "ADTestStatistic",
