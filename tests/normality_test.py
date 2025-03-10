@@ -117,8 +117,9 @@ def test_ks_normality_criterion(data, result):
     statistic = KSNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_ks_normality_criterion_code():
-    assert 'KS_NORMALITY_GOODNESS_OF_FIT' == KSNormalityTest().code()
+    assert "KS_NORMALITY_GOODNESS_OF_FIT" == KSNormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -160,8 +161,9 @@ def test_ad_normality_criterion(data, result):
     statistic = ADNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_ad_normality_criterion_code():
-    assert 'AD_NORMALITY_GOODNESS_OF_FIT' == ADNormalityTest().code()
+    assert "AD_NORMALITY_GOODNESS_OF_FIT" == ADNormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -202,8 +204,9 @@ def test_bhs_normality_criterion(data, result):
     statistic = BHSNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_bhs_normality_criterion_code():
-    assert 'BHS_NORMALITY_GOODNESS_OF_FIT' == BHSNormalityTest().code()
+    assert "BHS_NORMALITY_GOODNESS_OF_FIT" == BHSNormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -242,8 +245,9 @@ def test_bonett_seier_normality_criterion(data, result):
     statistic = BonettSeierNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_bonett_seier_normality_criterion_code():
-    assert 'BS_NORMALITY_GOODNESS_OF_FIT' == BonettSeierNormalityTest().code()
+    assert "BS_NORMALITY_GOODNESS_OF_FIT" == BonettSeierNormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -282,8 +286,9 @@ def test_bontemps_meddahi1_normality_criterion(data, result):
     statistic = BontempsMeddahi1NormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_bontemps_meddahi1_normality_criterion_code():
-    assert 'BM1_NORMALITY_GOODNESS_OF_FIT' == BontempsMeddahi1NormalityTest().code()
+    assert "BM1_NORMALITY_GOODNESS_OF_FIT" == BontempsMeddahi1NormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -322,8 +327,9 @@ def test_bontemps_meddahi2_normality_criterion(data, result):
     statistic = BontempsMeddahi2NormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_bontemps_meddahi2_normality_criterion_code():
-    assert 'BM2_NORMALITY_GOODNESS_OF_FIT' == BontempsMeddahi2NormalityTest().code()
+    assert "BM2_NORMALITY_GOODNESS_OF_FIT" == BontempsMeddahi2NormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -362,8 +368,9 @@ def test_cabana_cabana_1_normality_criterion(data, result):
     statistic = CabanaCabana1NormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_cabana_cabana_1_normality_criterion_code():
-    assert 'CC1_NORMALITY_GOODNESS_OF_FIT' == CabanaCabana1NormalityTest().code()
+    assert "CC1_NORMALITY_GOODNESS_OF_FIT" == CabanaCabana1NormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -402,8 +409,9 @@ def test_cabana_cabana_2_normality_criterion(data, result):
     statistic = CabanaCabana2NormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_cabana_cabana_2_normality_criterion_code():
-    assert 'CC2_NORMALITY_GOODNESS_OF_FIT' == CabanaCabana2NormalityTest().code()
+    assert "CC2_NORMALITY_GOODNESS_OF_FIT" == CabanaCabana2NormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -442,8 +450,9 @@ def test_chen_shapiro_normality_criterion(data, result):
     statistic = ChenShapiroNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_chen_shapiro_normality_criterion_code():
-    assert 'CS_NORMALITY_GOODNESS_OF_FIT' == ChenShapiroNormalityTest().code()
+    assert "CS_NORMALITY_GOODNESS_OF_FIT" == ChenShapiroNormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -482,8 +491,9 @@ def test_coin_normality_criterion(data, result):
     statistic = CoinNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_coin_normality_criterion_code():
-    assert 'COIN_NORMALITY_GOODNESS_OF_FIT' == CoinNormalityTest().code()
+    assert "COIN_NORMALITY_GOODNESS_OF_FIT" == CoinNormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -522,8 +532,9 @@ def test_dagostino_normality_criterion(data, result):
     statistic = DagostinoNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_dagostino_normality_criterion_code():
-    assert 'D_NORMALITY_GOODNESS_OF_FIT' == DagostinoNormalityTest().code()
+    assert "D_NORMALITY_GOODNESS_OF_FIT" == DagostinoNormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -537,8 +548,9 @@ def test_dap_normality_criterion(data, result):
     statistic = DAPNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_dap_normality_criterion_code():
-    assert 'DAP_NORMALITY_GOODNESS_OF_FIT' == DAPNormalityTest().code()
+    assert "DAP_NORMALITY_GOODNESS_OF_FIT" == DAPNormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -577,8 +589,9 @@ def test_desgagne_lafaye_normality_criterion(data, result):
     statistic = DesgagneLafayeNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_desgagne_lafaye_normality_criterion_code():
-    assert 'DLDMZEPD_NORMALITY_GOODNESS_OF_FIT' == DesgagneLafayeNormalityTest().code()
+    assert "DLDMZEPD_NORMALITY_GOODNESS_OF_FIT" == DesgagneLafayeNormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -621,8 +634,9 @@ def test_doornik_hansen_normality_criterion(data, result):
     statistic = DoornikHansenNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_doornik_hansen_normality_criterion_code():
-    assert 'DH_NORMALITY_GOODNESS_OF_FIT' == DoornikHansenNormalityTest().code()
+    assert "DH_NORMALITY_GOODNESS_OF_FIT" == DoornikHansenNormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -668,8 +682,9 @@ def test_ep_normality_criterion(data, result):
     statistic = EPNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_ep_normality_criterion_code():
-    assert 'EP_NORMALITY_GOODNESS_OF_FIT' == EPNormalityTest().code()
+    assert "EP_NORMALITY_GOODNESS_OF_FIT" == EPNormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -682,8 +697,9 @@ def test_filli_normality_criterion(data, result):
     statistic = FilliNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_filli_normality_criterion_code():
-    assert 'FILLI_NORMALITY_GOODNESS_OF_FIT' == FilliNormalityTest().code()
+    assert "FILLI_NORMALITY_GOODNESS_OF_FIT" == FilliNormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -722,8 +738,9 @@ def test_glen_leemis_barr_normality_criterion(data, result):
     statistic = GlenLeemisBarrNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_glen_leemis_barr_normality_criterion_code():
-    assert 'GLB_NORMALITY_GOODNESS_OF_FIT' == GlenLeemisBarrNormalityTest().code()
+    assert "GLB_NORMALITY_GOODNESS_OF_FIT" == GlenLeemisBarrNormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -762,8 +779,9 @@ def test_gmg_normality_criterion(data, result):
     statistic = GMGNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_gmg_normality_criterion_code():
-    assert 'GMG_NORMALITY_GOODNESS_OF_FIT' == GMGNormalityTest().code()
+    assert "GMG_NORMALITY_GOODNESS_OF_FIT" == GMGNormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -780,8 +798,9 @@ def test_graph_edges_number_normality_criterion(data, result):
     statistic = GraphEdgesNumberNormTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_graph_edges_number_normality_criterion_code():
-    assert 'EdgesNumber_NORMALITY_GOODNESS_OF_FIT' == GraphEdgesNumberNormTest().code()
+    assert "EdgesNumber_NORMALITY_GOODNESS_OF_FIT" == GraphEdgesNumberNormTest().code()
 
 
 @pytest.mark.parametrize(
@@ -795,8 +814,9 @@ def test_graph_max_degree_normality_criterion(data, result):
     statistic = GraphMaxDegreeNormTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_graph_max_degree_normality_criterion_code():
-    assert 'MaxDegree_NORMALITY_GOODNESS_OF_FIT' == GraphMaxDegreeNormTest().code()
+    assert "MaxDegree_NORMALITY_GOODNESS_OF_FIT" == GraphMaxDegreeNormTest().code()
 
 
 @pytest.mark.parametrize(
@@ -835,8 +855,9 @@ def test_hosking_1normality_criterion(data, result):
     statistic = Hosking1NormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_hosking_1normality_criterion_code():
-    assert 'HOSKING1_NORMALITY_GOODNESS_OF_FIT' == Hosking1NormalityTest().code()
+    assert "HOSKING1_NORMALITY_GOODNESS_OF_FIT" == Hosking1NormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -875,8 +896,9 @@ def test_hosking_2_normality_criterion(data, result):
     statistic = Hosking2NormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_hosking_2_normality_criterion_code():
-    assert 'HOSKING2_NORMALITY_GOODNESS_OF_FIT' == Hosking2NormalityTest().code()
+    assert "HOSKING2_NORMALITY_GOODNESS_OF_FIT" == Hosking2NormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -916,8 +938,9 @@ def test_hosking_3_normality_criterion(data, result):
     statistic = Hosking3NormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_hosking_3_normality_criterion_code():
-    assert 'HOSKING3_NORMALITY_GOODNESS_OF_FIT' == Hosking3NormalityTest().code()
+    assert "HOSKING3_NORMALITY_GOODNESS_OF_FIT" == Hosking3NormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -960,8 +983,10 @@ def test_hosking_4_normality_criterion(data, result):
     statistic = Hosking4NormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_hosking_4_normality_criterion_code():
-    assert 'HOSKING4_NORMALITY_GOODNESS_OF_FIT' == Hosking4NormalityTest().code()
+    assert "HOSKING4_NORMALITY_GOODNESS_OF_FIT" == Hosking4NormalityTest().code()
+
 
 @pytest.mark.parametrize(
     ("data", "result"),
@@ -988,8 +1013,10 @@ def test_jb_normality_criterion(data, result):
     statistic = JBNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_jb_normality_criterion_code():
-    assert 'JB_NORMALITY_GOODNESS_OF_FIT' == JBNormalityTest().code()
+    assert "JB_NORMALITY_GOODNESS_OF_FIT" == JBNormalityTest().code()
+
 
 @pytest.mark.parametrize(
     ("data", "result"),
@@ -1001,8 +1028,9 @@ def test_kurtosis_normality_criterion(data, result):
     statistic = KurtosisNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_kurtosis_normality_criterion_code():
-    assert 'KURTOSIS_NORMALITY_GOODNESS_OF_FIT' == KurtosisNormalityTest().code()
+    assert "KURTOSIS_NORMALITY_GOODNESS_OF_FIT" == KurtosisNormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -1015,8 +1043,9 @@ def test_looney_gulledge_normality_criterion(data, result):
     statistic = LooneyGulledgeNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_looney_gulledge_normality_criterion_code():
-    assert 'LG_NORMALITY_GOODNESS_OF_FIT' == LooneyGulledgeNormalityTest().code()
+    assert "LG_NORMALITY_GOODNESS_OF_FIT" == LooneyGulledgeNormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -1056,8 +1085,9 @@ def test_lilliefors_normality_criterion(data, result):
     statistic = LillieforsNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_lilliefors_normality_criterion_code():
-    assert 'LILLIE_NORMALITY_GOODNESS_OF_FIT' == LillieforsNormalityTest().code()
+    assert "LILLIE_NORMALITY_GOODNESS_OF_FIT" == LillieforsNormalityTest().code()
 
 
 @pytest.mark.parametrize(
@@ -1096,8 +1126,10 @@ def test_martinez_iglewicz_normality_criterion(data, result):
     statistic = MartinezIglewiczNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_martinez_iglewicz_normality_criterion_code():
-    assert 'MI_NORMALITY_GOODNESS_OF_FIT' == MartinezIglewiczNormalityTest().code()
+    assert "MI_NORMALITY_GOODNESS_OF_FIT" == MartinezIglewiczNormalityTest().code()
+
 
 @pytest.mark.parametrize(
     ("data", "result"),
@@ -1110,8 +1142,10 @@ def test_ryan_joiner_normality_criterion(data, result):
     statistic = RyanJoinerNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_ryan_joiner_normality_criterion_code():
-    assert 'RJ_NORMALITY_GOODNESS_OF_FIT' == RyanJoinerNormalityTest().code()
+    assert "RJ_NORMALITY_GOODNESS_OF_FIT" == RyanJoinerNormalityTest().code()
+
 
 @pytest.mark.parametrize(
     ("data", "result"),
@@ -1149,8 +1183,10 @@ def test_robust_jarque_bera_normality_criterion(data, result):
     statistic = RobustJarqueBeraNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_robust_jarque_bera_normality_criterion_code():
-    assert 'RJB_NORMALITY_GOODNESS_OF_FIT' == RobustJarqueBeraNormalityTest().code()
+    assert "RJB_NORMALITY_GOODNESS_OF_FIT" == RobustJarqueBeraNormalityTest().code()
+
 
 @pytest.mark.parametrize(
     ("data", "result"),
@@ -1176,8 +1212,10 @@ def test_sf_normality_criterion(data, result):
     statistic = SFNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_sf_normality_criterion_code():
-    assert 'SF_NORMALITY_GOODNESS_OF_FIT' == SFNormalityTest().code()
+    assert "SF_NORMALITY_GOODNESS_OF_FIT" == SFNormalityTest().code()
+
 
 @pytest.mark.parametrize(
     ("data", "result"),
@@ -1189,8 +1227,10 @@ def test_skew_normality_criterion(data, result):
     statistic = SkewNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_skew_normality_criterion_code():
-    assert 'SKEW_NORMALITY_GOODNESS_OF_FIT' == SkewNormalityTest().code()
+    assert "SKEW_NORMALITY_GOODNESS_OF_FIT" == SkewNormalityTest().code()
+
 
 @pytest.mark.parametrize(
     ("data", "result"),
@@ -1228,8 +1268,10 @@ def test_spiegelhalter_normality_criterion(data, result):
     statistic = SpiegelhalterNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_spiegelhalter_normality_criterion_code():
-    assert 'SH_NORMALITY_GOODNESS_OF_FIT' == SpiegelhalterNormalityTest().code()
+    assert "SH_NORMALITY_GOODNESS_OF_FIT" == SpiegelhalterNormalityTest().code()
+
 
 @pytest.mark.parametrize(
     ("data", "result"),
@@ -1244,8 +1286,10 @@ def test_sw_normality_criterion(data, result):
     statistic = SWNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_sw_normality_criterion_code():
-    assert 'SW_NORMALITY_GOODNESS_OF_FIT' == SWNormalityTest().code()
+    assert "SW_NORMALITY_GOODNESS_OF_FIT" == SWNormalityTest().code()
+
 
 """
 @pytest.mark.parametrize(
@@ -1299,8 +1343,10 @@ def test_swrg_normality_criterion(data, result):
     statistic = SWRGNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_swrg_normality_criterion_code():
-    assert 'SWRG_NORMALITY_GOODNESS_OF_FIT' == SWRGNormalityTest().code()
+    assert "SWRG_NORMALITY_GOODNESS_OF_FIT" == SWRGNormalityTest().code()
+
 
 @pytest.mark.parametrize(
     ("data", "result"),
@@ -1342,8 +1388,10 @@ def test_zhang_q_normality_criterion(data, result):
     statistic = ZhangQNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_zhang_q_normality_criterion_code():
-    assert 'ZQ_NORMALITY_GOODNESS_OF_FIT' == ZhangQNormalityTest().code()
+    assert "ZQ_NORMALITY_GOODNESS_OF_FIT" == ZhangQNormalityTest().code()
+
 
 @pytest.mark.parametrize(
     ("data", "result"),
@@ -1385,8 +1433,10 @@ def test_zhang_q_tar_normality_criterion(data, result):
     statistic = ZhangQStarNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_zhang_q_tar_normality_criterion_code():
-    assert 'ZQS_NORMALITY_GOODNESS_OF_FIT' == ZhangQStarNormalityTest().code()
+    assert "ZQS_NORMALITY_GOODNESS_OF_FIT" == ZhangQStarNormalityTest().code()
+
 
 @pytest.mark.parametrize(
     ("data", "result"),
@@ -1425,8 +1475,10 @@ def test_zhang_wu_a_normality_criterion(data, result):
     statistic = ZhangWuANormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_zhang_wu_a_normality_criterion_code():
-    assert 'ZWA_NORMALITY_GOODNESS_OF_FIT' == ZhangWuANormalityTest().code()
+    assert "ZWA_NORMALITY_GOODNESS_OF_FIT" == ZhangWuANormalityTest().code()
+
 
 @pytest.mark.parametrize(
     ("data", "result"),
@@ -1464,5 +1516,6 @@ def test_zhang_wu_c_normality_criterion(data, result):
     statistic = ZhangWuCNormalityTest().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
+
 def test_zhang_wu_c_normality_criterion_code():
-    assert 'ZWC_NORMALITY_GOODNESS_OF_FIT' == ZhangWuCNormalityTest().code()
+    assert "ZWC_NORMALITY_GOODNESS_OF_FIT" == ZhangWuCNormalityTest().code()
