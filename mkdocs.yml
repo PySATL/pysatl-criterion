@@ -6,7 +6,10 @@ edit_uri: edit/main/docs/
 use_directory_urls: True
 nav:
     - Home: index.md
-    - Home: epps_pulley_exp_criterion.md
+    - Criteria:
+        - Goodness-of-fit:
+            - Exponentiality:
+                - Epps and Pulley: epps_pulley_exp_criterion.md
 theme:
   name: material
   logo: "images/logo.jpeg"
