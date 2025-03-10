@@ -11,9 +11,6 @@ class AbstractGoodnessOfFitTestStatistic(AbstractTestStatistic, ABC):
     def code():
         return "GOODNESS_OF_FIT"
 
-    def _generate(self, size):
-        raise NotImplementedError("Method is not implemented")
-
     # TODO: separate abstract class for testing?
     def test(self, rvs, alpha):
         statistic = self.execute_statistic(rvs)

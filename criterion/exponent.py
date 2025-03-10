@@ -3,9 +3,10 @@ from abc import ABC
 
 import numpy as np
 import scipy.special as scipy_special
+import scipy.stats as scipy_stats
 from typing_extensions import override
 
-from core import expon
+from criterion import KSTestStatistic
 from criterion.goodness_of_fit import AbstractGoodnessOfFitTestStatistic
 from criterion.graph_goodness_of_fit import (
     GraphEdgesNumberTestStatistic,
@@ -21,10 +22,6 @@ class AbstractExponentialityTestStatistic(AbstractGoodnessOfFitTestStatistic, AB
     @override
     def code():
         return f"EXPONENTIALITY_{AbstractGoodnessOfFitTestStatistic.code()}"
-
-    @override
-    def _generate(self, size):
-        return expon.generate_expon(size, self.lam)
 
 
 class EPTestExp(AbstractExponentialityTestStatistic):
@@ -56,7 +53,12 @@ class EPTestExp(AbstractExponentialityTestStatistic):
         return ep
 
 
-class KSTestExp(AbstractExponentialityTestStatistic):
+class KSTestExp(AbstractExponentialityTestStatistic, KSTestStatistic):
+    def __init__(self, alternative="two-sided", lam=1):
+        super().__init__()
+        self.alternative = alternative
+        self.lam = lam
+
     @staticmethod
     @override
     def code():
@@ -78,16 +80,9 @@ class KSTestExp(AbstractExponentialityTestStatistic):
             The test statistic.
         """
 
-        n = len(rvs)
-        y = rvs / np.mean(rvs)
-        z = np.sort(1 - np.exp(-y))
-        j1 = np.arange(1, n + 1) / n
-        m1 = np.max(j1 - z)
-        j2 = (np.arange(0, n) + 1) / n
-        m2 = np.max(z - j2)
-        ks = max(m1, m2)  # TODO: fix mistype
-
-        return ks
+        rvs = np.sort(rvs)
+        cdf_vals = scipy_stats.expon.cdf(rvs)
+        return KSTestStatistic.execute_statistic(self, rvs, cdf_vals)
 
 
 class AHSTestExp(AbstractExponentialityTestStatistic):

@@ -60,15 +60,6 @@ class KSTestStatistic(AbstractTestStatistic, ABC):
             D = d_minus
             # d_location = d_minus_location
             # d_sign = -1
-
-        """if self.mode == "exact":
-            prob = scipy_stats.distributions.kstwo.sf(D, n)
-        elif self.mode == "asymp":
-            #prob = scipy_stats.distributions.kstwobign.sf(D * np.sqrt(n))
-        else:
-            # mode == 'approx'
-            #prob = 2 * scipy_stats.distributions.ksone.sf(D, n)
-        #prob = np.clip(prob, 0, 1)"""
         return D
 
     @override
