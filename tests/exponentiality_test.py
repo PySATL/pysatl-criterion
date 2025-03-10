@@ -335,7 +335,7 @@ def test_km_exponentiality_criterion_code():
     ],
 )
 def test_ks_exponentiality_criterion(data, result):
-    kstest(data, 'expon')
+    kstest(data, "expon")
     statistic = KSTestExp().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
