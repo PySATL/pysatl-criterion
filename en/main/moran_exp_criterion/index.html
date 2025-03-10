@@ -10,26 +10,28 @@
       
       
       
-        <link rel="canonical" href="https://pysatl.github.io/pysatl-criterion/en/stable/">
+        <link rel="canonical" href="https://pysatl.github.io/pysatl-criterion/en/stable/moran_exp_criterion/">
       
       
+        <link rel="prev" href="../lorenz_exp_criterion/">
       
-        <link rel="next" href="epps_pulley_exp_criterion/">
+      
+        <link rel="next" href="../pietra_exp_criterion/">
       
       
-      <link rel="icon" href="images/logo.jpeg">
+      <link rel="icon" href="../images/logo.jpeg">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.44">
     
     
       
-        <title>PySATL</title>
+        <title>Moran - PySATL</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.0253249f.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.0253249f.min.css">
       
         
-        <link rel="stylesheet" href="assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -48,9 +50,9 @@
       
     
     
-      <link rel="stylesheet" href="stylesheets/ft.extra.css">
+      <link rel="stylesheet" href="../stylesheets/ft.extra.css">
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -76,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#pysatl-criterion" class="md-skip">
+        <a href="#moran-test-for-exponentiality" class="md-skip">
           Skip to content
         </a>
       
@@ -96,9 +98,9 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="." title="PySATL" class="md-header__button md-logo" aria-label="PySATL" data-md-component="logo">
+    <a href=".." title="PySATL" class="md-header__button md-logo" aria-label="PySATL" data-md-component="logo">
       
-  <img src="images/logo.jpeg" alt="logo">
+  <img src="../images/logo.jpeg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -115,7 +117,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Home
+              Moran
             
           </span>
         </div>
@@ -235,9 +237,9 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="." title="PySATL" class="md-nav__button md-logo" aria-label="PySATL" data-md-component="logo">
+    <a href=".." title="PySATL" class="md-nav__button md-logo" aria-label="PySATL" data-md-component="logo">
       
-  <img src="images/logo.jpeg" alt="logo">
+  <img src="../images/logo.jpeg" alt="logo">
 
     </a>
     PySATL
@@ -261,19 +263,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="." class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -282,7 +275,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -291,17 +283,19 @@
       
   
   
+    
   
   
+  
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
           <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
@@ -315,7 +309,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             Criteria
@@ -326,17 +320,19 @@
                 
   
   
+    
   
   
+  
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1" checked>
         
           
           <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="0">
@@ -350,7 +346,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2_1">
             <span class="md-nav__icon md-icon"></span>
             Goodness-of-fit
@@ -361,17 +357,19 @@
                 
   
   
+    
   
   
+  
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1_1" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1_1" checked>
         
           
           <label class="md-nav__link" for="__nav_2_1_1" id="__nav_2_1_1_label" tabindex="0">
@@ -385,7 +383,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_1_1_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_1_1_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2_1_1">
             <span class="md-nav__icon md-icon"></span>
             Exponentiality
@@ -399,7 +397,7 @@
   
   
     <li class="md-nav__item">
-      <a href="epps_pulley_exp_criterion/" class="md-nav__link">
+      <a href="../epps_pulley_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -420,7 +418,7 @@
   
   
     <li class="md-nav__item">
-      <a href="kolmogorov_smirnov_exp_criterion/" class="md-nav__link">
+      <a href="../kolmogorov_smirnov_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -441,7 +439,7 @@
   
   
     <li class="md-nav__item">
-      <a href="wong_wong_exp_criterion/" class="md-nav__link">
+      <a href="../wong_wong_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -462,7 +460,7 @@
   
   
     <li class="md-nav__item">
-      <a href="we_exp_criterion/" class="md-nav__link">
+      <a href="../we_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -483,7 +481,7 @@
   
   
     <li class="md-nav__item">
-      <a href="ahsanullah_exp_criterion/" class="md-nav__link">
+      <a href="../ahsanullah_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -504,7 +502,7 @@
   
   
     <li class="md-nav__item">
-      <a href="atkinson_exp_criterion/" class="md-nav__link">
+      <a href="../atkinson_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -525,7 +523,7 @@
   
   
     <li class="md-nav__item">
-      <a href="cox_oakes_exp_criterion/" class="md-nav__link">
+      <a href="../cox_oakes_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -546,7 +544,7 @@
   
   
     <li class="md-nav__item">
-      <a href="cvm_exp_criterion/" class="md-nav__link">
+      <a href="../cvm_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -567,7 +565,7 @@
   
   
     <li class="md-nav__item">
-      <a href="deshpande_exp_criterion/" class="md-nav__link">
+      <a href="../deshpande_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -588,7 +586,7 @@
   
   
     <li class="md-nav__item">
-      <a href="epstein_exp_criterion/" class="md-nav__link">
+      <a href="../epstein_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -609,7 +607,7 @@
   
   
     <li class="md-nav__item">
-      <a href="frozini_exp_criterion/" class="md-nav__link">
+      <a href="../frozini_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -630,7 +628,7 @@
   
   
     <li class="md-nav__item">
-      <a href="gini_exp_criterion/" class="md-nav__link">
+      <a href="../gini_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -651,7 +649,7 @@
   
   
     <li class="md-nav__item">
-      <a href="gnedenko_exp_criterion/" class="md-nav__link">
+      <a href="../gnedenko_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -672,7 +670,7 @@
   
   
     <li class="md-nav__item">
-      <a href="harris_exp_criterion/" class="md-nav__link">
+      <a href="../harris_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -693,7 +691,7 @@
   
   
     <li class="md-nav__item">
-      <a href="hegazy1_exp_criterion/" class="md-nav__link">
+      <a href="../hegazy1_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -714,7 +712,7 @@
   
   
     <li class="md-nav__item">
-      <a href="hegazy2_exp_criterion/" class="md-nav__link">
+      <a href="../hegazy2_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -735,7 +733,7 @@
   
   
     <li class="md-nav__item">
-      <a href="holander_proshan_exp_criterion/" class="md-nav__link">
+      <a href="../holander_proshan_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -756,7 +754,7 @@
   
   
     <li class="md-nav__item">
-      <a href="kimber_michael_exp_criterion/" class="md-nav__link">
+      <a href="../kimber_michael_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -777,7 +775,7 @@
   
   
     <li class="md-nav__item">
-      <a href="kochar_exp_criterion/" class="md-nav__link">
+      <a href="../kochar_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -798,7 +796,7 @@
   
   
     <li class="md-nav__item">
-      <a href="lorenz_exp_criterion/" class="md-nav__link">
+      <a href="../lorenz_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -816,10 +814,30 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="moran_exp_criterion/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Moran
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -828,6 +846,89 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#description" class="md-nav__link">
+    <span class="md-ellipsis">
+      Description
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Usage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#arguments" class="md-nav__link">
+    <span class="md-ellipsis">
+      Arguments
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#details" class="md-nav__link">
+    <span class="md-ellipsis">
+      Details
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authors" class="md-nav__link">
+    <span class="md-ellipsis">
+      Author(s)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      References
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -840,7 +941,7 @@
   
   
     <li class="md-nav__item">
-      <a href="pietra_exp_criterion/" class="md-nav__link">
+      <a href="../pietra_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -861,7 +962,7 @@
   
   
     <li class="md-nav__item">
-      <a href="shapiro_wilk_exp_criterion/" class="md-nav__link">
+      <a href="../shapiro_wilk_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -882,7 +983,7 @@
   
   
     <li class="md-nav__item">
-      <a href="rossberg_exp_criterion/" class="md-nav__link">
+      <a href="../rossberg_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -903,7 +1004,7 @@
   
   
     <li class="md-nav__item">
-      <a href="graph_edges_number_exp_criterion/" class="md-nav__link">
+      <a href="../graph_edges_number_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -924,7 +1025,7 @@
   
   
     <li class="md-nav__item">
-      <a href="graph_max_degree_exp_criterion/" class="md-nav__link">
+      <a href="../graph_max_degree_exp_criterion/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -983,6 +1084,77 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#description" class="md-nav__link">
+    <span class="md-ellipsis">
+      Description
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Usage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#arguments" class="md-nav__link">
+    <span class="md-ellipsis">
+      Arguments
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#details" class="md-nav__link">
+    <span class="md-ellipsis">
+      Details
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authors" class="md-nav__link">
+    <span class="md-ellipsis">
+      Author(s)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      References
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
       </div>
     </div>
@@ -999,7 +1171,15 @@
   
 
 
-<h1 id="pysatl-criterion">PySATL Criterion<a class="headerlink" href="#pysatl-criterion" title="Permanent link">&para;</a></h1>
+<h1 id="moran-test-for-exponentiality">Moran test for exponentiality<a class="headerlink" href="#moran-test-for-exponentiality" title="Permanent link">&para;</a></h1>
+<h2 id="description">Description<a class="headerlink" href="#description" title="Permanent link">&para;</a></h2>
+<h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h2>
+<h2 id="arguments">Arguments<a class="headerlink" href="#arguments" title="Permanent link">&para;</a></h2>
+<h2 id="details">Details<a class="headerlink" href="#details" title="Permanent link">&para;</a></h2>
+<h2 id="authors">Author(s)<a class="headerlink" href="#authors" title="Permanent link">&para;</a></h2>
+<p>Lev Golofastov</p>
+<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
 
 
 
@@ -1035,15 +1215,31 @@
       
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
+          
+          <a href="../lorenz_exp_criterion/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Lorenz">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Lorenz
+              </div>
+            </div>
+          </a>
+        
         
           
-          <a href="epps_pulley_exp_criterion/" class="md-footer__link md-footer__link--next" aria-label="Next: Epps and Pulley">
+          <a href="../pietra_exp_criterion/" class="md-footer__link md-footer__link--next" aria-label="Next: Pietra">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Epps and Pulley
+                Pietra
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -1084,12 +1280,12 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": ".", "features": ["content.code.annotate", "search.share", "content.code.copy", "navigation.top", "navigation.footer"], "search": "assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": ["content.code.annotate", "search.share", "content.code.copy", "navigation.top", "navigation.footer"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
     
     
-      <script src="assets/javascripts/bundle.83f73b43.min.js"></script>
+      <script src="../assets/javascripts/bundle.83f73b43.min.js"></script>
       
-        <script src="javascripts/config.js"></script>
+        <script src="../javascripts/config.js"></script>
       
         <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
       
