@@ -1,1 +1,2 @@
-# statistic-test
+# PySATL Criterion
+
