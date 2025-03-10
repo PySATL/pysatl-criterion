@@ -23,11 +23,7 @@ class AbstractNormalityTestStatistic(AbstractGoodnessOfFitTestStatistic, ABC):
     @staticmethod
     @override
     def code():
-        return (
-            "NORMALITY"
-            + "_"
-            + super(AbstractGoodnessOfFitTestStatistic, AbstractGoodnessOfFitTestStatistic).code()
-        )
+        return f"NORMALITY_{AbstractGoodnessOfFitTestStatistic.code()}"
 
 
 class KSNormalityTest(AbstractNormalityTestStatistic, KSTestStatistic):
@@ -42,11 +38,7 @@ class KSNormalityTest(AbstractNormalityTestStatistic, KSTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "KS"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"KS_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -81,11 +73,7 @@ class ADNormalityTest(AbstractNormalityTestStatistic, ADTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "AD"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"AD_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -110,11 +98,7 @@ class SWNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "SW"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"SW_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -194,7 +178,7 @@ class LillieforsNormalityTest(AbstractNormalityTestStatistic, LillieforsTest):
     @staticmethod
     @override
     def code():
-        return "LILLIE" + "_" + super(AbstractNormalityTestStatistic).code()
+        return f"LILLIE_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -233,11 +217,7 @@ class JBNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "JB"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"JB_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -261,11 +241,7 @@ class SkewNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "SKEW"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"SKEW_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -303,11 +279,7 @@ class KurtosisNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "KURTOSIS"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"KURTOSIS_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -363,11 +335,7 @@ class DAPNormalityTest(SkewNormalityTest, KurtosisNormalityTest):
     @staticmethod
     @override
     def code():
-        return (
-            "DAP"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"DAP_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -385,11 +353,7 @@ class FilliNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "Filli"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"FILLI_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -424,11 +388,7 @@ class LooneyGulledgeNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "LG"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"LG_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -489,7 +449,7 @@ class RyanJoinerNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return "RJ" + "_" + super(AbstractNormalityTestStatistic).code()
+        return f"RJ_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -550,11 +510,7 @@ class SFNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "SF"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"SF_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -575,11 +531,7 @@ class EPNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "EP"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"EP_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -601,11 +553,7 @@ class Hosking2NormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "HOSKING2"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"HOSKING2_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -658,11 +606,7 @@ class Hosking1NormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "HOSKING1"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"HOSKING1_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -713,11 +657,7 @@ class Hosking3NormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "HOSKING3"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"HOSKING3_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -775,11 +715,7 @@ class Hosking4NormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "HOSKING4"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"HOSKING4_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -837,11 +773,7 @@ class ZhangWuCNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "ZWC"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"ZWC_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -865,11 +797,7 @@ class ZhangWuANormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "ZWA"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"ZWA_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -897,11 +825,7 @@ class GlenLeemisBarrNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "GLB"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"GLB_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -930,11 +854,7 @@ class DoornikHansenNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "DH"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"DH_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -988,11 +908,7 @@ class RobustJarqueBeraNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "RJB"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"RJB_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1011,11 +927,7 @@ class BontempsMeddahi1NormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "BM1"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"BM1_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1052,11 +964,7 @@ class BontempsMeddahi2NormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "BM2"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"BM2_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1085,11 +993,7 @@ class BonettSeierNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "BS"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"BS_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1124,11 +1028,7 @@ class MartinezIglewiczNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "MI"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"MI_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1169,11 +1069,7 @@ class CabanaCabana1NormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "CC1"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"CC1_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1219,11 +1115,7 @@ class CabanaCabana2NormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "CC2"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"CC2_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1322,11 +1214,7 @@ class ChenShapiroNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "CS"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"CS_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1350,11 +1238,7 @@ class ZhangQNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "ZQ"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"ZQ_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1394,11 +1278,7 @@ class CoinNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "COIN"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"COIN_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1527,9 +1407,7 @@ class DagostinoNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "D" + "_" + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"D_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1549,11 +1427,7 @@ class ZhangQStarNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "ZQS"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"ZQS_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1640,11 +1514,7 @@ class SWRGNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "SWRG"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"SWRG_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1674,11 +1544,7 @@ class GMGNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "GMG"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"GMG_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1739,11 +1605,7 @@ class BHSNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "BHS"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"BHS_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2078,11 +1940,7 @@ class SpiegelhalterNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     @override
     def code():
-        return (
-            "SH"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"SH_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2129,11 +1987,7 @@ class SpiegelhalterNormalityTest(AbstractNormalityTestStatistic):
 class DesgagneLafayeNormalityTest(AbstractNormalityTestStatistic):
     @staticmethod
     def code():
-        return (
-            "DLDMZEPD"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
-        )
+        return f"DLDMZEPD_{AbstractNormalityTestStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2182,9 +2036,7 @@ class GraphEdgesNumberNormTest(AbstractNormalityTestStatistic, GraphEdgesNumberT
     @staticmethod
     @override
     def code():
-        super_class = AbstractNormalityTestStatistic
-        parent_code = super(super_class, super_class).code()
-        return f"EdgesNumber_{parent_code}"
+        return f"EdgesNumber_{AbstractNormalityTestStatistic.code()}"
 
     @staticmethod
     @override
@@ -2198,9 +2050,7 @@ class GraphMaxDegreeNormTest(AbstractNormalityTestStatistic, GraphMaxDegreeTestS
     @staticmethod
     @override
     def code():
-        super_class = AbstractNormalityTestStatistic
-        parent_code = super(super_class, super_class).code()
-        return f"MaxDegree_{parent_code}"
+        return f"MaxDegree_{AbstractNormalityTestStatistic.code()}"
 
     @staticmethod
     @override
