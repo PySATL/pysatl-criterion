@@ -10,24 +10,24 @@
       
       
       
-        <link rel="canonical" href="https://pysatl.github.io/pysatl-criterion/en/stable/">
+        <link rel="canonical" href="https://pysatl.github.io/pysatl-criterion/en/stable/epps_pulley_exp_criterion/">
       
       
       
       
-      <link rel="icon" href="images/logo.jpeg">
+      <link rel="icon" href="../images/logo.jpeg">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.44">
     
     
       
-        <title>PySATL</title>
+        <title>Test for exponentiality of Epps and Pulley - PySATL</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.0253249f.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.0253249f.min.css">
       
         
-        <link rel="stylesheet" href="assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -46,9 +46,9 @@
       
     
     
-      <link rel="stylesheet" href="stylesheets/ft.extra.css">
+      <link rel="stylesheet" href="../stylesheets/ft.extra.css">
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#pysatl-criterion" class="md-skip">
+        <a href="#test-for-exponentiality-of-epps-and-pulley" class="md-skip">
           Skip to content
         </a>
       
@@ -94,9 +94,9 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="." title="PySATL" class="md-header__button md-logo" aria-label="PySATL" data-md-component="logo">
+    <a href=".." title="PySATL" class="md-header__button md-logo" aria-label="PySATL" data-md-component="logo">
       
-  <img src="images/logo.jpeg" alt="logo">
+  <img src="../images/logo.jpeg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -113,7 +113,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Home
+              Test for exponentiality of Epps and Pulley
             
           </span>
         </div>
@@ -233,9 +233,9 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="." title="PySATL" class="md-nav__button md-logo" aria-label="PySATL" data-md-component="logo">
+    <a href=".." title="PySATL" class="md-nav__button md-logo" aria-label="PySATL" data-md-component="logo">
       
-  <img src="images/logo.jpeg" alt="logo">
+  <img src="../images/logo.jpeg" alt="logo">
 
     </a>
     PySATL
@@ -259,19 +259,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="." class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -280,7 +271,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -307,6 +297,77 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#description" class="md-nav__link">
+    <span class="md-ellipsis">
+      Description
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Usage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#arguments" class="md-nav__link">
+    <span class="md-ellipsis">
+      Arguments
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#details" class="md-nav__link">
+    <span class="md-ellipsis">
+      Details
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authors" class="md-nav__link">
+    <span class="md-ellipsis">
+      Author(s)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      References
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
       </div>
     </div>
@@ -323,7 +384,34 @@
   
 
 
-<h1 id="pysatl-criterion">PySATL Criterion<a class="headerlink" href="#pysatl-criterion" title="Permanent link">&para;</a></h1>
+<h1 id="test-for-exponentiality-of-epps-and-pulley">Test for exponentiality of Epps and Pulley<a class="headerlink" href="#test-for-exponentiality-of-epps-and-pulley" title="Permanent link">&para;</a></h1>
+<h2 id="description">Description<a class="headerlink" href="#description" title="Permanent link">&para;</a></h2>
+<p>Performs Epps and Pulley test for the composite hypothesis of exponentiality, see e.g. Henze and Meintanis (2005, Sec. 2.8.1).
+The Epps and Pulley test is a statistical hypothesis test used to assess the composite hypothesis of exponentiality. This test is designed to determine whether a given sample of data is consistent with an exponential distribution, which is a common assumption in various fields such as reliability engineering, survival analysis, and queuing theory.</p>
+<p>Composite Hypothesis of Exponentiality
+The composite hypothesis of exponentiality refers to the null hypothesis that the data comes from an exponential distribution with an unspecified rate parameter 
+λ. Unlike a simple hypothesis, where the parameter λ is known, the composite hypothesis allows λ to be any positive value, making the test more flexible and widely applicable.</p>
+<p>Test Statistic
+The Epps and Pulley test statistic is based on the empirical characteristic function (ECF) of the data. The characteristic function of the exponential distribution has a specific form, and the test compares the ECF of the sample to the theoretical characteristic function of the exponential distribution. The test statistic measures the discrepancy between these two functions.</p>
+<p>Calculate the Test Statistic: The test statistic is derived from the integrated squared difference between the ECF and the theoretical characteristic function of the standard exponential distribution.</p>
+<p>Limitations
+The test may require large sample sizes to achieve high power.</p>
+<p>The computation of the test statistic can be more complex compared to simpler tests like the Kolmogorov-Smirnov test.</p>
+<h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h2>
+<h2 id="arguments">Arguments<a class="headerlink" href="#arguments" title="Permanent link">&para;</a></h2>
+<h2 id="details">Details<a class="headerlink" href="#details" title="Permanent link">&para;</a></h2>
+<p>The Epps and Pulley test is a test for the composite hypothesis of exponentiality. The test statistic is</p>
+<p>.. math::
+   :nowrap:</p>
+<p>\begin{eqnarray}
+     EP_n = (48n)^{&frac12;} \left \frac{1}{n} \sum_{j=1}^{n} exp(-Y_j) -\frac{1}{2} \right
+   \end{eqnarray}</p>
+<p>where Y_j=X_j/\overline{X}. EP_n is asymptotically standard normal (see, e.g., Henze and Meintanis (2005, Sec. 2.8.1).</p>
+<h2 id="authors">Author(s)<a class="headerlink" href="#authors" title="Permanent link">&para;</a></h2>
+<p>Lev Golofastov</p>
+<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<p>Henze, N. and Meintanis, S.G. (2005): Recent and classical tests for exponentiality: a partial review with comparisons. — Metrika, vol. 61, pp. 29–45.</p>
+<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
 
 
 
@@ -386,12 +474,12 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": ".", "features": ["content.code.annotate", "search.share", "content.code.copy", "navigation.top", "navigation.footer"], "search": "assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": ["content.code.annotate", "search.share", "content.code.copy", "navigation.top", "navigation.footer"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
     
     
-      <script src="assets/javascripts/bundle.83f73b43.min.js"></script>
+      <script src="../assets/javascripts/bundle.83f73b43.min.js"></script>
       
-        <script src="javascripts/config.js"></script>
+        <script src="../javascripts/config.js"></script>
       
         <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
       
