@@ -8,8 +8,8 @@ nav:
     - Home: index.md
 theme:
   name: material
-  logo: "images/logo.png"
-  favicon: "images/logo.png"
+  logo: "images/logo.jpeg"
+  favicon: "images/logo.jpeg"
   custom_dir: "docs/overrides"
   features:
     - content.code.annotate
