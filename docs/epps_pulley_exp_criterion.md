@@ -25,9 +25,10 @@ The computation of the test statistic can be more complex compared to simpler te
 ## Details
 
 The Epps and Pulley test is a test for the composite hypothesis of exponentiality. The test statistic is
-$$EP_n = (48n)^{1/2} [ \frac{1}{n} \sum_{j=1}^{n} exp(-Y_j) -\frac{1}{2} ]$$
 
-where $Y_j=X_j/\overline{X}$. EP_n is asymptotically standard normal (see, e.g., Henze and Meintanis (2005, Sec. 2.8.1).
+$$ EP_n = (48n)^{1/2} [ \frac{1}{n} \sum_{j=1}^{n} exp(-Y_j) -\frac{1}{2} ] $$
+
+where $Y_j=X_j/\overline{X}$. $EP_n$ is asymptotically standard normal (see, e.g., Henze and Meintanis (2005, Sec. 2.8.1).
 
 ## Author(s)
 Lev Golofastov
