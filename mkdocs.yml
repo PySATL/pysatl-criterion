@@ -8,6 +8,11 @@ nav:
     - Home: index.md
     - Criteria:
         - Goodness-of-fit:
+            - Normality:
+                - Cramer-von Mises: cvm_normality_criterion.md
+            - Weibullness:
+                - Cramer-von Mises: cvm_weibull_criterion.md
+                - Min Toshiyuki: min_toshiyuki_weibull_criterion.md
             - Exponentiality:
                 - Epps and Pulley: epps_pulley_exp_criterion.md
                 - Kolmogorov-Smirnov: kolmogorov_smirnov_exp_criterion.md
