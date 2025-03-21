@@ -1,4 +1,4 @@
-from criterion.common import (
+from pysatl.criterion.common import (
     ADStatistic,
     Chi2Statistic,
     CrammerVonMisesStatistic,
@@ -6,7 +6,7 @@ from criterion.common import (
     LillieforsTest,
     MinToshiyukiStatistic,
 )
-from criterion.exponent import (
+from pysatl.criterion.exponent import (
     AbstractExponentialityGofStatistic,
     AhsanullahExponentialityGofStatistic,
     AtkinsonExponentialityGofStatistic,
@@ -33,50 +33,8 @@ from criterion.exponent import (
     WeExponentialityGofStatistic,
     WongWongExponentialityGofStatistic,
 )
-from criterion.models import AbstractStatistic
-from criterion.normal import (
-    AbstractNormalityGofStatistic,
-    AndersonDarlingNormalityGofStatistic,
-    BHSNormalityGofStatistic,
-    BonettSeierNormalityGofStatistic,
-    BontempsMeddahi1NormalityGofStatistic,
-    BontempsMeddahi2NormalityGofStatistic,
-    CabanaCabana1NormalityGofStatistic,
-    CabanaCabana2NormalityGofStatistic,
-    ChenShapiroNormalityGofStatistic,
-    CoinNormalityGofStatistic,
-    CramerVonMiseNormalityGofStatistic,
-    DagostinoNormalityGofStatistic,
-    DAPNormalityGofStatistic,
-    DesgagneLafayeNormalityGofStatistic,
-    DoornikHansenNormalityGofStatistic,
-    EppsPulleyNormalityGofStatistic,
-    FilliNormalityGofStatistic,
-    GlenLeemisBarrNormalityGofStatistic,
-    GMGNormalityGofStatistic,
-    Hosking1NormalityGofStatistic,
-    Hosking2NormalityGofStatistic,
-    Hosking3NormalityGofStatistic,
-    Hosking4NormalityGofStatistic,
-    JBNormalityGofStatistic,
-    KolmogorovSmirnovNormalityGofStatistic,
-    KurtosisNormalityGofStatistic,
-    LillieforsNormalityGofStatistic,
-    LooneyGulledgeNormalityGofStatistic,
-    MartinezIglewiczNormalityGofStatistic,
-    RobustJarqueBeraNormalityGofStatistic,
-    RyanJoinerNormalityGofStatistic,
-    SFNormalityGofStatistic,
-    ShapiroWilkNormalityGofStatistic,
-    SkewNormalityGofStatistic,
-    SpiegelhalterNormalityGofStatistic,
-    SWRGNormalityGofStatistic,
-    ZhangQNormalityGofStatistic,
-    ZhangQStarNormalityGofStatistic,
-    ZhangWuANormalityGofStatistic,
-    ZhangWuCNormalityGofStatistic,
-)
-from criterion.weibull import (
+from pysatl.criterion.models import AbstractStatistic
+from pysatl.criterion.weibull import (
     AbstractWeibullGofStatistic,
     AndersonDarlingWeibullGofStatistic,
     Chi2PearsonWeibullGofStatistic,

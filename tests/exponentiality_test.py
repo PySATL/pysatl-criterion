@@ -1,7 +1,6 @@
 import pytest as pytest
-from scipy.stats import kstest
 
-from criterion import (
+from pysatl.criterion import (
     AhsanullahExponentialityGofStatistic,
     AtkinsonExponentialityGofStatistic,
     HarrisExponentialityGofStatistic,
@@ -19,7 +18,7 @@ from criterion import (
     WeExponentialityGofStatistic,
     WongWongExponentialityGofStatistic,
 )
-from criterion.exponent import (
+from pysatl.criterion.exponent import (
     AbstractExponentialityGofStatistic,
     CoxOakesExponentialityGofStatistic,
     CramerVonMisesExponentialityGofStatistic,
@@ -337,7 +336,6 @@ def test_km_exponentiality_criterion_code():
     ],
 )
 def test_ks_exponentiality_criterion(data, result):
-    kstest(data, "expon")
     statistic = KolmogorovSmirnovExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 

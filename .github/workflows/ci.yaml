@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  build:
+  build-linux:
 
     runs-on: ubuntu-latest
     strategy:
@@ -67,3 +67,47 @@ jobs:
       - name: Run Ruff format check
         run: |
           ruff format --check
+
+      - name: Mypy
+        run: |
+          mypy pysatl tests
+
+  pre-commit:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - uses: pre-commit/action@v3.0.1
+
+  build:
+    name: "Build"
+    needs: [ build-linux, pre-commit ]
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Build distribution
+      run: |
+        pip install -U build
+        python -m build --sdist --wheel
+
+    - name: Upload artifacts 📦
+      uses: actions/upload-artifact@v4
+      with:
+        name: pysatl-criterion-build
+        path: |
+          dist
+        retention-days: 10

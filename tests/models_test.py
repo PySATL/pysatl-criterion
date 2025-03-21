@@ -1,6 +1,6 @@
 import pytest
 
-from criterion import AbstractStatistic
+from pysatl.criterion import AbstractStatistic
 
 
 def test_abstract_test_criterion_code():
