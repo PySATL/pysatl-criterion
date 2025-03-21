@@ -3,7 +3,8 @@ name: Build Documentation
 on:
   push:
     branches:
-      - main
+      - stable
+      - develop
   release:
     types: [published]
 

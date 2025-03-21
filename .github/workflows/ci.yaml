@@ -3,7 +3,8 @@ name: PySATL CI
 on:
   push:
     branches:
-      - main
+      - stable
+      - develop
   release:
     types: [ published ]
   pull_request:
