@@ -2,40 +2,40 @@ import pytest as pytest
 from scipy.stats import kstest
 
 from criterion import (
-    AHSTestExp,
-    ATKTestExp,
-    HG1TestExp,
-    HG2TestExp,
-    HMTestExp,
-    HPTestExp,
-    KCTestExp,
-    KMTestExp,
-    KSTestExp,
-    LZTestExp,
-    MNTestExp,
-    PTTestExp,
-    RSTestExp,
-    SWTestExp,
-    WETestExp,
-    WWTestExp,
+    AhsanullahExponentialityGofStatistic,
+    AtkinsonExponentialityGofStatistic,
+    HarrisExponentialityGofStatistic,
+    HegazyGreen1ExponentialityGofStatistic,
+    HegazyGreen2ExponentialityGofStatistic,
+    HollanderProshanExponentialityGofStatistic,
+    KimberMichaelExponentialityGofStatistic,
+    KocharExponentialityGofStatistic,
+    KolmogorovSmirnovExponentialityGofStatistic,
+    LorenzExponentialityGofStatistic,
+    MoranExponentialityGofStatistic,
+    PietraExponentialityGofStatistic,
+    RossbergExponentialityGofStatistic,
+    ShapiroWilkExponentialityGofStatistic,
+    WeExponentialityGofStatistic,
+    WongWongExponentialityGofStatistic,
 )
 from criterion.exponent import (
-    AbstractExponentialityTestStatistic,
-    COTestExp,
-    CVMTestExp,
-    DSPTestExp,
-    EPSTestExp,
-    EPTestExp,
-    FZTestExp,
-    GDTestExp,
-    GiniTestExp,
-    GraphEdgesNumberExpTest,
-    GraphMaxDegreeExpTest,
+    AbstractExponentialityGofStatistic,
+    CoxOakesExponentialityGofStatistic,
+    CramerVonMisesExponentialityGofStatistic,
+    DeshpandeExponentialityGofStatistic,
+    EppsPulleyExponentialityGofStatistic,
+    EpsteinExponentialityGofStatistic,
+    FroziniExponentialityGofStatistic,
+    GiniExponentialityGofStatistic,
+    GnedenkoExponentialityGofStatistic,
+    GraphEdgesNumberExponentialityGofStatistic,
+    GraphMaxDegreeExponentialityGofStatistic,
 )
 
 
 def test_abstract_exponentiality_criterion_code():
-    assert "EXPONENTIALITY_GOODNESS_OF_FIT" == AbstractExponentialityTestStatistic.code()
+    assert "EXPONENTIALITY_GOODNESS_OF_FIT" == AbstractExponentialityGofStatistic.code()
 
 
 @pytest.mark.parametrize(
@@ -47,12 +47,12 @@ def test_abstract_exponentiality_criterion_code():
     ],
 )
 def test_ahs_exponentiality_criterion(data, result):
-    statistic = AHSTestExp().execute_statistic(data)
+    statistic = AhsanullahExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_ahs_exponentiality_criterion_code():
-    assert "AHS_EXPONENTIALITY_GOODNESS_OF_FIT" == AHSTestExp().code()
+    assert "AHS_EXPONENTIALITY_GOODNESS_OF_FIT" == AhsanullahExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -63,12 +63,12 @@ def test_ahs_exponentiality_criterion_code():
     ],
 )
 def test_atk_exponentiality_criterion(data, result):
-    statistic = ATKTestExp().execute_statistic(data)
+    statistic = AtkinsonExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_atk_exponentiality_criterion_code():
-    assert "ATK_EXPONENTIALITY_GOODNESS_OF_FIT" == ATKTestExp().code()
+    assert "ATK_EXPONENTIALITY_GOODNESS_OF_FIT" == AtkinsonExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -79,12 +79,12 @@ def test_atk_exponentiality_criterion_code():
     ],
 )
 def test_co_exponentiality_criterion(data, result):
-    statistic = COTestExp().execute_statistic(data)
+    statistic = CoxOakesExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_co_exponentiality_criterion_code():
-    assert "CO_EXPONENTIALITY_GOODNESS_OF_FIT" == COTestExp().code()
+    assert "CO_EXPONENTIALITY_GOODNESS_OF_FIT" == CoxOakesExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -95,12 +95,12 @@ def test_co_exponentiality_criterion_code():
     ],
 )
 def test_cvm_exponentiality_criterion(data, result):
-    statistic = CVMTestExp().execute_statistic(data)
+    statistic = CramerVonMisesExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_cvm_exponentiality_criterion_code():
-    assert "CVM_EXPONENTIALITY_GOODNESS_OF_FIT" == CVMTestExp().code()
+    assert "CVM_EXPONENTIALITY_GOODNESS_OF_FIT" == CramerVonMisesExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -111,12 +111,12 @@ def test_cvm_exponentiality_criterion_code():
     ],
 )
 def test_dsp_exponentiality_criterion(data, result):
-    statistic = DSPTestExp().execute_statistic(data)
+    statistic = DeshpandeExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_dsp_exponentiality_criterion_code():
-    assert "DSP_EXPONENTIALITY_GOODNESS_OF_FIT" == DSPTestExp().code()
+    assert "DSP_EXPONENTIALITY_GOODNESS_OF_FIT" == DeshpandeExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -127,12 +127,12 @@ def test_dsp_exponentiality_criterion_code():
     ],
 )
 def test_ep_exponentiality_criterion(data, result):
-    statistic = EPTestExp().execute_statistic(data)
+    statistic = EppsPulleyExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_ep_exponentiality_criterion_code():
-    assert "EP_EXPONENTIALITY_GOODNESS_OF_FIT" == EPTestExp().code()
+    assert "EP_EXPONENTIALITY_GOODNESS_OF_FIT" == EppsPulleyExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -143,12 +143,12 @@ def test_ep_exponentiality_criterion_code():
     ],
 )
 def test_eps_exponentiality_criterion(data, result):
-    statistic = EPSTestExp().execute_statistic(data)
+    statistic = EpsteinExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_eps_exponentiality_criterion_code():
-    assert "EPS_EXPONENTIALITY_GOODNESS_OF_FIT" == EPSTestExp().code()
+    assert "EPS_EXPONENTIALITY_GOODNESS_OF_FIT" == EpsteinExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -159,12 +159,12 @@ def test_eps_exponentiality_criterion_code():
     ],
 )
 def test_fz_exponentiality_criterion(data, result):
-    statistic = FZTestExp().execute_statistic(data)
+    statistic = FroziniExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_fz_exponentiality_criterion_code():
-    assert "FZ_EXPONENTIALITY_GOODNESS_OF_FIT" == FZTestExp().code()
+    assert "FZ_EXPONENTIALITY_GOODNESS_OF_FIT" == FroziniExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -175,12 +175,12 @@ def test_fz_exponentiality_criterion_code():
     ],
 )
 def test_gdt_exponentiality_criterion(data, result):
-    statistic = GDTestExp().execute_statistic(data)
+    statistic = GnedenkoExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_gdt_exponentiality_criterion_code():
-    assert "GD_EXPONENTIALITY_GOODNESS_OF_FIT" == GDTestExp().code()
+    assert "GD_EXPONENTIALITY_GOODNESS_OF_FIT" == GnedenkoExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -191,12 +191,12 @@ def test_gdt_exponentiality_criterion_code():
     ],
 )
 def test_gini_exponentiality_criterion(data, result):
-    statistic = GiniTestExp().execute_statistic(data)
+    statistic = GiniExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_gini_exponentiality_criterion_code():
-    assert "GINI_EXPONENTIALITY_GOODNESS_OF_FIT" == GiniTestExp().code()
+    assert "GINI_EXPONENTIALITY_GOODNESS_OF_FIT" == GiniExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -207,12 +207,12 @@ def test_gini_exponentiality_criterion_code():
     ],
 )
 def test_graph_edges_number_exponentiality_criterion(data, result):
-    statistic = GraphEdgesNumberExpTest().execute_statistic(data)
+    statistic = GraphEdgesNumberExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_graph_edges_number_exponentiality_criterion_code():
-    assert "EdgesNumber_GOODNESS_OF_FIT" == GraphEdgesNumberExpTest().code()
+    assert "EdgesNumber_GOODNESS_OF_FIT" == GraphEdgesNumberExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -223,12 +223,12 @@ def test_graph_edges_number_exponentiality_criterion_code():
     ],
 )
 def test_graph_max_degree_exponentiality_criterion(data, result):
-    statistic = GraphMaxDegreeExpTest().execute_statistic(data)
+    statistic = GraphMaxDegreeExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_graph_max_degree_exponentiality_criterion_code():
-    assert "MaxDegree_GOODNESS_OF_FIT" == GraphMaxDegreeExpTest().code()
+    assert "MaxDegree_GOODNESS_OF_FIT" == GraphMaxDegreeExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -239,12 +239,12 @@ def test_graph_max_degree_exponentiality_criterion_code():
     ],
 )
 def test_hg1_exponentiality_criterion(data, result):
-    statistic = HG1TestExp().execute_statistic(data)
+    statistic = HegazyGreen1ExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_hg1_exponentiality_criterion_code():
-    assert "HG1_EXPONENTIALITY_GOODNESS_OF_FIT" == HG1TestExp().code()
+    assert "HG1_EXPONENTIALITY_GOODNESS_OF_FIT" == HegazyGreen1ExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -255,12 +255,12 @@ def test_hg1_exponentiality_criterion_code():
     ],
 )
 def test_hg2_exponentiality_criterion(data, result):
-    statistic = HG2TestExp().execute_statistic(data)
+    statistic = HegazyGreen2ExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_hg2_exponentiality_criterion_code():
-    assert "HG2_EXPONENTIALITY_GOODNESS_OF_FIT" == HG2TestExp().code()
+    assert "HG2_EXPONENTIALITY_GOODNESS_OF_FIT" == HegazyGreen2ExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -271,12 +271,12 @@ def test_hg2_exponentiality_criterion_code():
     ],
 )
 def test_hm_exponentiality_criterion(data, result):
-    statistic = HMTestExp().execute_statistic(data)
+    statistic = HarrisExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_hm_exponentiality_criterion_code():
-    assert "HM_EXPONENTIALITY_GOODNESS_OF_FIT" == HMTestExp().code()
+    assert "HM_EXPONENTIALITY_GOODNESS_OF_FIT" == HarrisExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -287,12 +287,14 @@ def test_hm_exponentiality_criterion_code():
     ],
 )
 def test_hp_exponentiality_criterion(data, result):
-    statistic = HPTestExp().execute_statistic(data)
+    statistic = HollanderProshanExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_hp_exponentiality_criterion_code():
-    assert "HP_EXPONENTIALITY_GOODNESS_OF_FIT" == HPTestExp().code()
+    assert (
+        "HP_EXPONENTIALITY_GOODNESS_OF_FIT" == HollanderProshanExponentialityGofStatistic().code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -303,12 +305,12 @@ def test_hp_exponentiality_criterion_code():
     ],
 )
 def test_kc_exponentiality_criterion(data, result):
-    statistic = KCTestExp().execute_statistic(data)
+    statistic = KocharExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_kc_exponentiality_criterion_code():
-    assert "KC_EXPONENTIALITY_GOODNESS_OF_FIT" == KCTestExp().code()
+    assert "KC_EXPONENTIALITY_GOODNESS_OF_FIT" == KocharExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -319,12 +321,12 @@ def test_kc_exponentiality_criterion_code():
     ],
 )
 def test_km_exponentiality_criterion(data, result):
-    statistic = KMTestExp().execute_statistic(data)
+    statistic = KimberMichaelExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_km_exponentiality_criterion_code():
-    assert "KM_EXPONENTIALITY_GOODNESS_OF_FIT" == KMTestExp().code()
+    assert "KM_EXPONENTIALITY_GOODNESS_OF_FIT" == KimberMichaelExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -336,12 +338,14 @@ def test_km_exponentiality_criterion_code():
 )
 def test_ks_exponentiality_criterion(data, result):
     kstest(data, "expon")
-    statistic = KSTestExp().execute_statistic(data)
+    statistic = KolmogorovSmirnovExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_ks_exponentiality_criterion_code():
-    assert "KS_EXPONENTIALITY_GOODNESS_OF_FIT" == KSTestExp().code()
+    assert (
+        "KS_EXPONENTIALITY_GOODNESS_OF_FIT" == KolmogorovSmirnovExponentialityGofStatistic().code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -352,12 +356,12 @@ def test_ks_exponentiality_criterion_code():
     ],
 )
 def test_lz_exponentiality_criterion(data, result):
-    statistic = LZTestExp().execute_statistic(data)
+    statistic = LorenzExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_lz_exponentiality_criterion_code():
-    assert "LZ_EXPONENTIALITY_GOODNESS_OF_FIT" == LZTestExp().code()
+    assert "LZ_EXPONENTIALITY_GOODNESS_OF_FIT" == LorenzExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -368,12 +372,12 @@ def test_lz_exponentiality_criterion_code():
     ],
 )
 def test_mn_exponentiality_criterion(data, result):
-    statistic = MNTestExp().execute_statistic(data)
+    statistic = MoranExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_mn_exponentiality_criterion_code():
-    assert "MN_EXPONENTIALITY_GOODNESS_OF_FIT" == MNTestExp().code()
+    assert "MN_EXPONENTIALITY_GOODNESS_OF_FIT" == MoranExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -384,12 +388,12 @@ def test_mn_exponentiality_criterion_code():
     ],
 )
 def test_pt_exponentiality_criterion(data, result):
-    statistic = PTTestExp().execute_statistic(data)
+    statistic = PietraExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_pt_exponentiality_criterion_code():
-    assert "PT_EXPONENTIALITY_GOODNESS_OF_FIT" == PTTestExp().code()
+    assert "PT_EXPONENTIALITY_GOODNESS_OF_FIT" == PietraExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -400,12 +404,12 @@ def test_pt_exponentiality_criterion_code():
     ],
 )
 def test_rs_exponentiality_criterion(data, result):
-    statistic = RSTestExp().execute_statistic(data)
+    statistic = RossbergExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_rs_exponentiality_criterion_code():
-    assert "RS_EXPONENTIALITY_GOODNESS_OF_FIT" == RSTestExp().code()
+    assert "RS_EXPONENTIALITY_GOODNESS_OF_FIT" == RossbergExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -416,12 +420,12 @@ def test_rs_exponentiality_criterion_code():
     ],
 )
 def test_sw_exponentiality_criterion(data, result):
-    statistic = SWTestExp().execute_statistic(data)
+    statistic = ShapiroWilkExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_sw_exponentiality_criterion_code():
-    assert "SW_EXPONENTIALITY_GOODNESS_OF_FIT" == SWTestExp().code()
+    assert "SW_EXPONENTIALITY_GOODNESS_OF_FIT" == ShapiroWilkExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -432,12 +436,12 @@ def test_sw_exponentiality_criterion_code():
     ],
 )
 def test_we_exponentiality_criterion(data, result):
-    statistic = WETestExp().execute_statistic(data)
+    statistic = WeExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, abs=0.01)
 
 
 def test_we_exponentiality_criterion_code():
-    assert "WE_EXPONENTIALITY_GOODNESS_OF_FIT" == WETestExp().code()
+    assert "WE_EXPONENTIALITY_GOODNESS_OF_FIT" == WeExponentialityGofStatistic().code()
 
 
 @pytest.mark.parametrize(
@@ -448,9 +452,9 @@ def test_we_exponentiality_criterion_code():
     ],
 )
 def test_ww_exponentiality_criterion(data, result):
-    statistic = WWTestExp().execute_statistic(data)
+    statistic = WongWongExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_ww_exponentiality_criterion_code():
-    assert "WW_EXPONENTIALITY_GOODNESS_OF_FIT" == WWTestExp().code()
+    assert "WW_EXPONENTIALITY_GOODNESS_OF_FIT" == WongWongExponentialityGofStatistic().code()
