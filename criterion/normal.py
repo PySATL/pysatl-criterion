@@ -6,15 +6,15 @@ import pandas as pd
 import scipy.stats as scipy_stats
 from typing_extensions import override
 
-from criterion.common import ADTestStatistic, KSTestStatistic, LillieforsTest
-from criterion.goodness_of_fit import AbstractGoodnessOfFitTestStatistic
+from criterion.common import ADStatistic, KSStatistic, LillieforsTest
+from criterion.goodness_of_fit import AbstractGoodnessOfFitStatistic
 from criterion.graph_goodness_of_fit import (
     GraphEdgesNumberTestStatistic,
     GraphMaxDegreeTestStatistic,
 )
 
 
-class AbstractNormalityTestStatistic(AbstractGoodnessOfFitTestStatistic, ABC):
+class AbstractNormalityTestStatistic(AbstractGoodnessOfFitStatistic, ABC):
     @override
     def __init__(self, mean=0, var=1):
         self.mean = mean
@@ -23,14 +23,14 @@ class AbstractNormalityTestStatistic(AbstractGoodnessOfFitTestStatistic, ABC):
     @staticmethod
     @override
     def code():
-        return f"NORMALITY_{AbstractGoodnessOfFitTestStatistic.code()}"
+        return f"NORMALITY_{AbstractGoodnessOfFitStatistic.code()}"
 
 
-class KSNormalityTest(AbstractNormalityTestStatistic, KSTestStatistic):
+class KSNormalityTest(AbstractNormalityTestStatistic, KSStatistic):
     @override
     def __init__(self, alternative="two-sided", mode="auto", mean=0, var=1):
         AbstractNormalityTestStatistic.__init__(self)
-        KSTestStatistic.__init__(self, alternative, mode)
+        KSStatistic.__init__(self, alternative, mode)
 
         self.mean = mean
         self.var = var
@@ -44,7 +44,7 @@ class KSNormalityTest(AbstractNormalityTestStatistic, KSTestStatistic):
     def execute_statistic(self, rvs, **kwargs):
         rvs = np.sort(rvs)
         cdf_vals = scipy_stats.norm.cdf(rvs)
-        return KSTestStatistic.execute_statistic(self, rvs, cdf_vals)  # TODO: should test it
+        return KSStatistic.execute_statistic(self, rvs, cdf_vals)  # TODO: should test it
 
 
 """""
@@ -69,7 +69,7 @@ class ChiSquareTest(AbstractNormalityTestStatistic):  # TODO: check test correct
 """ ""
 
 
-class ADNormalityTest(AbstractNormalityTestStatistic, ADTestStatistic):
+class ADNormalityTest(AbstractNormalityTestStatistic, ADStatistic):
     @staticmethod
     @override
     def code():

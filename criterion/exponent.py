@@ -6,22 +6,22 @@ import scipy.special as scipy_special
 import scipy.stats as scipy_stats
 from typing_extensions import override
 
-from criterion import KSTestStatistic
-from criterion.goodness_of_fit import AbstractGoodnessOfFitTestStatistic
+from criterion import KSStatistic
+from criterion.goodness_of_fit import AbstractGoodnessOfFitStatistic
 from criterion.graph_goodness_of_fit import (
     GraphEdgesNumberTestStatistic,
     GraphMaxDegreeTestStatistic,
 )
 
 
-class AbstractExponentialityTestStatistic(AbstractGoodnessOfFitTestStatistic, ABC):
+class AbstractExponentialityTestStatistic(AbstractGoodnessOfFitStatistic, ABC):
     def __init__(self, lam=1):
         self.lam = lam
 
     @staticmethod
     @override
     def code():
-        return f"EXPONENTIALITY_{AbstractGoodnessOfFitTestStatistic.code()}"
+        return f"EXPONENTIALITY_{AbstractGoodnessOfFitStatistic.code()}"
 
 
 class EPTestExp(AbstractExponentialityTestStatistic):
@@ -53,7 +53,7 @@ class EPTestExp(AbstractExponentialityTestStatistic):
         return ep
 
 
-class KSTestExp(AbstractExponentialityTestStatistic, KSTestStatistic):
+class KSTestExp(AbstractExponentialityTestStatistic, KSStatistic):
     def __init__(self, alternative="two-sided", lam=1):
         super().__init__()
         self.alternative = alternative
@@ -82,7 +82,7 @@ class KSTestExp(AbstractExponentialityTestStatistic, KSTestStatistic):
 
         rvs = np.sort(rvs)
         cdf_vals = scipy_stats.expon.cdf(rvs)
-        return KSTestStatistic.execute_statistic(self, rvs, cdf_vals)
+        return KSStatistic.execute_statistic(self, rvs, cdf_vals)
 
 
 class AHSTestExp(AbstractExponentialityTestStatistic):

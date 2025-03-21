@@ -4,10 +4,10 @@ from typing import Union
 from numpy import float64
 from typing_extensions import override
 
-from criterion.goodness_of_fit import AbstractGoodnessOfFitTestStatistic
+from criterion.goodness_of_fit import AbstractGoodnessOfFitStatistic
 
 
-class AbstractGraphTestStatistic(AbstractGoodnessOfFitTestStatistic, ABC):
+class AbstractGraphTestStatistic(AbstractGoodnessOfFitStatistic, ABC):
     @override
     def execute_statistic(self, rvs, **kwargs) -> Union[float, float64]:
         dist = self._compute_dist(rvs)

@@ -4,14 +4,14 @@ from typing import Optional, Tuple, Union
 from numpy import float64
 
 
-class AbstractTestStatistic(ABC):
+class AbstractStatistic(ABC):
     two_tailed: bool = False
 
     @staticmethod
     @abstractmethod
     def code() -> str:
         """
-        Generate code for test statistic.
+        Generate unique code for test statistic.
         """
         raise NotImplementedError("Method is not implemented")
 
