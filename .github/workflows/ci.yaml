@@ -45,7 +45,7 @@ jobs:
           poetry run mypy pysatl tests
 
       - name: Run tests
-        run: pytest --random-order
+        run: poetry pytest --random-order
 
       - name: Tests with Coveralls
         if: (runner.os == 'Linux' && matrix.python-version == '3.12')
