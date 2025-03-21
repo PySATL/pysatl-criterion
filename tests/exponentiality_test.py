@@ -1,6 +1,6 @@
 import pytest as pytest
 
-from pysatl.criterion import (
+from pysatl_criterion import (
     AhsanullahExponentialityGofStatistic,
     AtkinsonExponentialityGofStatistic,
     HarrisExponentialityGofStatistic,
@@ -18,7 +18,7 @@ from pysatl.criterion import (
     WeExponentialityGofStatistic,
     WongWongExponentialityGofStatistic,
 )
-from pysatl.criterion.exponent import (
+from pysatl_criterion.exponent import (
     AbstractExponentialityGofStatistic,
     CoxOakesExponentialityGofStatistic,
     CramerVonMisesExponentialityGofStatistic,

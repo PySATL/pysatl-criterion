@@ -1,6 +1,6 @@
 [project]
 name = "pysatl-criterion"
-version = "0.0.1-alpha"
+version = "0.0.2-alpha"
 description = "Package with statistic criteria for PySATL"
 authors = [
     {name = "PySATL Team", email = "pysatl@yahoo.com"},

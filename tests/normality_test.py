@@ -1,6 +1,6 @@
 import pytest as pytest
 
-from pysatl.criterion.normal import (
+from pysatl_criterion.normal import (
     AndersonDarlingNormalityGofStatistic,
     BHSNormalityGofStatistic,
     BonettSeierNormalityGofStatistic,

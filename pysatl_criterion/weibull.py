@@ -7,8 +7,8 @@ from scipy.special import gamma
 from scipy.stats import distributions
 from typing_extensions import override
 
-from pysatl.core.weibull import generate_weibull_cdf
-from pysatl.criterion.common import (
+from pysatl_criterion.weibull import generate_weibull_cdf
+from pysatl_criterion.common import (
     ADStatistic,
     Chi2Statistic,
     CrammerVonMisesStatistic,
@@ -16,7 +16,7 @@ from pysatl.criterion.common import (
     LillieforsTest,
     MinToshiyukiStatistic,
 )
-from pysatl.criterion.goodness_of_fit import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.goodness_of_fit import AbstractGoodnessOfFitStatistic
 
 
 class AbstractWeibullGofStatistic(AbstractGoodnessOfFitStatistic, ABC):

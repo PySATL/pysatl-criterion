@@ -1,4 +1,4 @@
-from pysatl.criterion.goodness_of_fit import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.goodness_of_fit import AbstractGoodnessOfFitStatistic
 
 
 def test_gof_criterion_code():

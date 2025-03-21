@@ -4,7 +4,7 @@ from typing import Union
 from numpy import float64
 from typing_extensions import override
 
-from pysatl.criterion.goodness_of_fit import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.goodness_of_fit import AbstractGoodnessOfFitStatistic
 
 
 class AbstractGraphTestStatistic(AbstractGoodnessOfFitStatistic, ABC):
