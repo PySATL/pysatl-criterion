@@ -5,10 +5,10 @@ import scipy.stats as scipy_stats
 from scipy import special
 from typing_extensions import override
 
-from criterion.models import AbstractTestStatistic
+from criterion.models import AbstractStatistic
 
 
-class KSTestStatistic(AbstractTestStatistic, ABC):
+class KSStatistic(AbstractStatistic, ABC):
     def __init__(self, alternative="two-sided", mode="auto"):
         self.alternative = alternative
         if mode == "auto":  # Always select exact
@@ -40,18 +40,18 @@ class KSTestStatistic(AbstractTestStatistic, ABC):
         cdf_vals
         """
 
-        d_minus, _ = KSTestStatistic.__compute_dminus(cdf_vals, rvs)
+        d_minus, _ = KSStatistic.__compute_dminus(cdf_vals, rvs)
 
         if self.alternative == "greater":
-            d_plus, d_location = KSTestStatistic.__compute_dplus(cdf_vals, rvs)
+            d_plus, d_location = KSStatistic.__compute_dplus(cdf_vals, rvs)
             return d_plus
         if self.alternative == "less":
-            d_minus, d_location = KSTestStatistic.__compute_dminus(cdf_vals, rvs)
+            d_minus, d_location = KSStatistic.__compute_dminus(cdf_vals, rvs)
             return d_minus
 
         # alternative == 'two-sided':
-        d_plus, d_plus_location = KSTestStatistic.__compute_dplus(cdf_vals, rvs)
-        d_minus, d_minus_location = KSTestStatistic.__compute_dminus(cdf_vals, rvs)
+        d_plus, d_plus_location = KSStatistic.__compute_dplus(cdf_vals, rvs)
+        d_minus, d_minus_location = KSStatistic.__compute_dminus(cdf_vals, rvs)
         if d_plus > d_minus:
             D = d_plus
             # d_location = d_plus_location
@@ -83,7 +83,7 @@ class KSTestStatistic(AbstractTestStatistic, ABC):
         return d_minus[a_max], loc_max
 
 
-class ADTestStatistic(AbstractTestStatistic):
+class ADStatistic(AbstractStatistic):
     @staticmethod
     @override
     def code():
@@ -107,7 +107,7 @@ class ADTestStatistic(AbstractTestStatistic):
         return A2
 
 
-class LillieforsTest(KSTestStatistic, ABC):
+class LillieforsTest(KSStatistic, ABC):
     alternative = "two-sided"
     mode = "auto"
 
@@ -116,7 +116,7 @@ class LillieforsTest(KSTestStatistic, ABC):
         return super().execute_statistic(z, cdf_vals)
 
 
-class CrammerVonMisesTestStatistic(AbstractTestStatistic, ABC):
+class CrammerVonMisesStatistic(AbstractStatistic, ABC):
     @staticmethod
     @override
     def code():
@@ -132,7 +132,7 @@ class CrammerVonMisesTestStatistic(AbstractTestStatistic, ABC):
         return w
 
 
-class Chi2TestStatistic(AbstractTestStatistic, ABC):
+class Chi2Statistic(AbstractStatistic, ABC):
     @staticmethod
     def _m_sum(a, *, axis, preserve_mask, xp):
         if np.ma.isMaskedArray(a):
@@ -167,7 +167,7 @@ class Chi2TestStatistic(AbstractTestStatistic, ABC):
         return scipy_stats.distributions.chi2.ppf(1 - sl, rvs_size - 1)
 
 
-class MinToshiyukiTestStatistic(AbstractTestStatistic, ABC):
+class MinToshiyukiStatistic(AbstractStatistic, ABC):
     @override
     def execute_statistic(self, cdf_vals):
         n = len(cdf_vals)
