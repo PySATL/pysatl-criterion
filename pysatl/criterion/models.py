@@ -31,9 +31,7 @@ class AbstractStatistic(ABC):
         """
         return None
 
-    def calculate_two_tailed_critical_values(
-        self, rvs_size: int, sl
-    ) -> tuple[float, float] | None:
+    def calculate_two_tailed_critical_values(self, rvs_size: int, sl) -> tuple[float, float] | None:
         """
         Calculate two-tailed critical values for test statistics
         :param rvs_size: rvs size
