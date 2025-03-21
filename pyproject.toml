@@ -24,9 +24,9 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "pysatl"
+name = "pysatl_criterion"
 packages = [
-    { include = "pysatl" },
+    { include = "pysatl_criterion" },
 ]
 package-mode = true
 
