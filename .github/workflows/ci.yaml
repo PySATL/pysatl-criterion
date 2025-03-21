@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+  release:
+    types: [ published ]
   pull_request:
 
 jobs:
@@ -12,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: [ "3.10", "3.11", "3.12" ]
 
     steps:
       - uses: actions/checkout@v4
@@ -42,8 +44,8 @@ jobs:
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.coverallsToken }}
         run: |
-            # Allow failure for coveralls
-            coveralls || true
+          # Allow failure for coveralls
+          coveralls || true
 
       - name: Check for repository changes
         run: |
@@ -75,14 +77,14 @@ jobs:
   pre-commit:
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v4
-      with:
-        persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
-    - uses: actions/setup-python@v5
-      with:
-        python-version: "3.12"
-    - uses: pre-commit/action@v3.0.1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: pre-commit/action@v3.0.1
 
   build:
     name: "Build"
@@ -90,24 +92,50 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.12"
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-    - name: Build distribution
-      run: |
-        pip install -U build
-        python -m build --sdist --wheel
+      - name: Build distribution
+        run: |
+          pip install -U build
+          python -m build --sdist --wheel
 
-    - name: Upload artifacts 📦
-      uses: actions/upload-artifact@v4
-      with:
-        name: pysatl-criterion-build
-        path: |
-          dist
-        retention-days: 10
+      - name: Upload artifacts 📦
+        uses: actions/upload-artifact@v4
+        with:
+          name: pysatl-criterion-build
+          path: |
+            dist
+          retention-days: 10
+
+  deploy-pypi:
+    name: "Publish Python 🐍 distribution 📦 to PyPI"
+    needs: [ build ]
+    runs-on: ubuntu-22.04
+    if: (github.event_name == 'release')
+    environment:
+      name: pypi
+      url: https://pypi.org/p/pysatl-criterion
+    permissions:
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Download artifact  📦
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pysatl*-build
+          path: dist
+          merge-multiple: true
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.12.4
