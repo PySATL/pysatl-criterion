@@ -1,6 +1,6 @@
 import pytest
 
-from criterion import (
+from pysatl.criterion import (
     AndersonDarlingWeibullGofStatistic,
     CrammerVonMisesWeibullGofStatistic,
     KolmogorovSmirnovWeibullGofStatistic,

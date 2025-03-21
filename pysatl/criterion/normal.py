@@ -6,9 +6,9 @@ import pandas as pd
 import scipy.stats as scipy_stats
 from typing_extensions import override
 
-from criterion.common import ADStatistic, KSStatistic, LillieforsTest
-from criterion.goodness_of_fit import AbstractGoodnessOfFitStatistic
-from criterion.graph_goodness_of_fit import (
+from pysatl.criterion.common import ADStatistic, KSStatistic, LillieforsTest
+from pysatl.criterion.goodness_of_fit import AbstractGoodnessOfFitStatistic
+from pysatl.criterion.graph_goodness_of_fit import (
     GraphEdgesNumberTestStatistic,
     GraphMaxDegreeTestStatistic,
 )

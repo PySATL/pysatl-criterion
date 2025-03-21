@@ -65,6 +65,15 @@ extend-ignore = [
   "NPY002",  # Numpy legacy random generator
 ]
 
+[tool.mypy]
+ignore_missing_imports = true
+namespace_packages = false
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true
+
 [tool.ruff.lint.mccabe]
 max-complexity = 12
 
