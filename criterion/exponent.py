@@ -14,7 +14,7 @@ from criterion.graph_goodness_of_fit import (
 )
 
 
-class AbstractExponentialityTestStatistic(AbstractGoodnessOfFitStatistic, ABC):
+class AbstractExponentialityGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     def __init__(self, lam=1):
         self.lam = lam
 
@@ -24,11 +24,11 @@ class AbstractExponentialityTestStatistic(AbstractGoodnessOfFitStatistic, ABC):
         return f"EXPONENTIALITY_{AbstractGoodnessOfFitStatistic.code()}"
 
 
-class EPTestExp(AbstractExponentialityTestStatistic):
+class EppsPulleyExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"EP_{AbstractExponentialityTestStatistic.code()}"
+        return f"EP_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -53,7 +53,7 @@ class EPTestExp(AbstractExponentialityTestStatistic):
         return ep
 
 
-class KSTestExp(AbstractExponentialityTestStatistic, KSStatistic):
+class KolmogorovSmirnovExponentialityGofStatistic(AbstractExponentialityGofStatistic, KSStatistic):
     def __init__(self, alternative="two-sided", lam=1):
         super().__init__()
         self.alternative = alternative
@@ -62,7 +62,7 @@ class KSTestExp(AbstractExponentialityTestStatistic, KSStatistic):
     @staticmethod
     @override
     def code():
-        return f"KS_{AbstractExponentialityTestStatistic.code()}"
+        return f"KS_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -85,11 +85,11 @@ class KSTestExp(AbstractExponentialityTestStatistic, KSStatistic):
         return KSStatistic.execute_statistic(self, rvs, cdf_vals)
 
 
-class AHSTestExp(AbstractExponentialityTestStatistic):
+class AhsanullahExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"AHS_{AbstractExponentialityTestStatistic.code()}"
+        return f"AHS_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -123,11 +123,11 @@ class AHSTestExp(AbstractExponentialityTestStatistic):
         return a
 
 
-class ATKTestExp(AbstractExponentialityTestStatistic):
+class AtkinsonExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"ATK_{AbstractExponentialityTestStatistic.code()}"
+        return f"ATK_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, p=0.99):
@@ -156,11 +156,11 @@ class ATKTestExp(AbstractExponentialityTestStatistic):
         return atk
 
 
-class COTestExp(AbstractExponentialityTestStatistic):
+class CoxOakesExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"CO_{AbstractExponentialityTestStatistic.code()}"
+        return f"CO_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -187,11 +187,11 @@ class COTestExp(AbstractExponentialityTestStatistic):
         return co
 
 
-class CVMTestExp(AbstractExponentialityTestStatistic):
+class CramerVonMisesExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"CVM_{AbstractExponentialityTestStatistic.code()}"
+        return f"CVM_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -219,11 +219,11 @@ class CVMTestExp(AbstractExponentialityTestStatistic):
         return cvm
 
 
-class DSPTestExp(AbstractExponentialityTestStatistic):
+class DeshpandeExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"DSP_{AbstractExponentialityTestStatistic.code()}"
+        return f"DSP_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, b=0.44):
@@ -254,11 +254,11 @@ class DSPTestExp(AbstractExponentialityTestStatistic):
         return des
 
 
-class EPSTestExp(AbstractExponentialityTestStatistic):
+class EpsteinExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"EPS_{AbstractExponentialityTestStatistic.code()}"
+        return f"EPS_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -285,11 +285,11 @@ class EPSTestExp(AbstractExponentialityTestStatistic):
         return eps
 
 
-class FZTestExp(AbstractExponentialityTestStatistic):
+class FroziniExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"FZ_{AbstractExponentialityTestStatistic.code()}"
+        return f"FZ_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -318,11 +318,11 @@ class FZTestExp(AbstractExponentialityTestStatistic):
         return froz
 
 
-class GiniTestExp(AbstractExponentialityTestStatistic):
+class GiniExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"GINI_{AbstractExponentialityTestStatistic.code()}"
+        return f"GINI_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -351,11 +351,11 @@ class GiniTestExp(AbstractExponentialityTestStatistic):
         return gini
 
 
-class GDTestExp(AbstractExponentialityTestStatistic):
+class GnedenkoExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"GD_{AbstractExponentialityTestStatistic.code()}"
+        return f"GD_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, r=None):
@@ -385,11 +385,11 @@ class GDTestExp(AbstractExponentialityTestStatistic):
         return gd
 
 
-class HMTestExp(AbstractExponentialityTestStatistic):
+class HarrisExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"HM_{AbstractExponentialityTestStatistic.code()}"
+        return f"HM_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, r=None):
@@ -419,11 +419,11 @@ class HMTestExp(AbstractExponentialityTestStatistic):
         return hm
 
 
-class HG1TestExp(AbstractExponentialityTestStatistic):
+class HegazyGreen1ExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"HG1_{AbstractExponentialityTestStatistic.code()}"
+        return f"HG1_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -449,11 +449,11 @@ class HG1TestExp(AbstractExponentialityTestStatistic):
         return hg
 
 
-class HPTestExp(AbstractExponentialityTestStatistic):
+class HollanderProshanExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"HP_{AbstractExponentialityTestStatistic.code()}"
+        return f"HP_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -483,11 +483,11 @@ class HPTestExp(AbstractExponentialityTestStatistic):
         return hp
 
 
-class KMTestExp(AbstractExponentialityTestStatistic):
+class KimberMichaelExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"KM_{AbstractExponentialityTestStatistic.code()}"
+        return f"KM_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -515,11 +515,11 @@ class KMTestExp(AbstractExponentialityTestStatistic):
         return km
 
 
-class KCTestExp(AbstractExponentialityTestStatistic):
+class KocharExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"KC_{AbstractExponentialityTestStatistic.code()}"
+        return f"KC_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -546,11 +546,11 @@ class KCTestExp(AbstractExponentialityTestStatistic):
         return kc
 
 
-class LZTestExp(AbstractExponentialityTestStatistic):
+class LorenzExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"LZ_{AbstractExponentialityTestStatistic.code()}"
+        return f"LZ_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, p=0.5):
@@ -577,11 +577,11 @@ class LZTestExp(AbstractExponentialityTestStatistic):
         return lz
 
 
-class MNTestExp(AbstractExponentialityTestStatistic):
+class MoranExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"MN_{AbstractExponentialityTestStatistic.code()}"
+        return f"MN_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -606,11 +606,11 @@ class MNTestExp(AbstractExponentialityTestStatistic):
         return mn
 
 
-class PTTestExp(AbstractExponentialityTestStatistic):
+class PietraExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"PT_{AbstractExponentialityTestStatistic.code()}"
+        return f"PT_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -635,11 +635,11 @@ class PTTestExp(AbstractExponentialityTestStatistic):
         return pt
 
 
-class SWTestExp(AbstractExponentialityTestStatistic):
+class ShapiroWilkExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"SW_{AbstractExponentialityTestStatistic.code()}"
+        return f"SW_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -665,11 +665,11 @@ class SWTestExp(AbstractExponentialityTestStatistic):
         return sw
 
 
-class RSTestExp(AbstractExponentialityTestStatistic):
+class RossbergExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"RS_{AbstractExponentialityTestStatistic.code()}"
+        return f"RS_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -720,11 +720,11 @@ class RSTestExp(AbstractExponentialityTestStatistic):
         return rs
 
 
-class WETestExp(AbstractExponentialityTestStatistic):
+class WeExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"WE_{AbstractExponentialityTestStatistic.code()}"
+        return f"WE_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -750,11 +750,11 @@ class WETestExp(AbstractExponentialityTestStatistic):
         return we
 
 
-class WWTestExp(AbstractExponentialityTestStatistic):
+class WongWongExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"WW_{AbstractExponentialityTestStatistic.code()}"
+        return f"WW_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -778,11 +778,11 @@ class WWTestExp(AbstractExponentialityTestStatistic):
         return ww
 
 
-class HG2TestExp(AbstractExponentialityTestStatistic):
+class HegazyGreen2ExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"HG2_{AbstractExponentialityTestStatistic.code()}"
+        return f"HG2_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -808,22 +808,23 @@ class HG2TestExp(AbstractExponentialityTestStatistic):
         return hg
 
 
-class GraphEdgesNumberExpTest(AbstractExponentialityTestStatistic, GraphEdgesNumberTestStatistic):
+class GraphEdgesNumberExponentialityGofStatistic(
+    AbstractExponentialityGofStatistic, GraphEdgesNumberTestStatistic
+):
     @staticmethod
     @override
     def code():
-        super_class = AbstractExponentialityTestStatistic
+        super_class = AbstractExponentialityGofStatistic
         parent_code = super(super_class, super_class).code()
         return f"EdgesNumber_{parent_code}"
 
 
-class GraphMaxDegreeExpTest(AbstractExponentialityTestStatistic, GraphMaxDegreeTestStatistic):
+class GraphMaxDegreeExponentialityGofStatistic(
+    AbstractExponentialityGofStatistic, GraphMaxDegreeTestStatistic
+):
     @staticmethod
     @override
     def code():
-        super_class = AbstractExponentialityTestStatistic
+        super_class = AbstractExponentialityGofStatistic
         parent_code = super(super_class, super_class).code()
         return f"MaxDegree_{parent_code}"
-
-
-# TODO: check all mistype warnings

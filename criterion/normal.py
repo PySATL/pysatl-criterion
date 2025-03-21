@@ -14,7 +14,7 @@ from criterion.graph_goodness_of_fit import (
 )
 
 
-class AbstractNormalityTestStatistic(AbstractGoodnessOfFitStatistic, ABC):
+class AbstractNormalityGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     @override
     def __init__(self, mean=0, var=1):
         self.mean = mean
@@ -26,10 +26,10 @@ class AbstractNormalityTestStatistic(AbstractGoodnessOfFitStatistic, ABC):
         return f"NORMALITY_{AbstractGoodnessOfFitStatistic.code()}"
 
 
-class KSNormalityTest(AbstractNormalityTestStatistic, KSStatistic):
+class KolmogorovSmirnovNormalityGofStatistic(AbstractNormalityGofStatistic, KSStatistic):
     @override
     def __init__(self, alternative="two-sided", mode="auto", mean=0, var=1):
-        AbstractNormalityTestStatistic.__init__(self)
+        AbstractNormalityGofStatistic.__init__(self)
         KSStatistic.__init__(self, alternative, mode)
 
         self.mean = mean
@@ -38,13 +38,13 @@ class KSNormalityTest(AbstractNormalityTestStatistic, KSStatistic):
     @staticmethod
     @override
     def code():
-        return f"KS_{AbstractNormalityTestStatistic.code()}"
+        return f"KS_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         rvs = np.sort(rvs)
         cdf_vals = scipy_stats.norm.cdf(rvs)
-        return KSStatistic.execute_statistic(self, rvs, cdf_vals)  # TODO: should test it
+        return KSStatistic.execute_statistic(self, rvs, cdf_vals)
 
 
 """""
@@ -69,11 +69,11 @@ class ChiSquareTest(AbstractNormalityTestStatistic):  # TODO: check test correct
 """ ""
 
 
-class ADNormalityTest(AbstractNormalityTestStatistic, ADStatistic):
+class AndersonDarlingNormalityGofStatistic(AbstractNormalityGofStatistic, ADStatistic):
     @staticmethod
     @override
     def code():
-        return f"AD_{AbstractNormalityTestStatistic.code()}"
+        return f"AD_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -94,11 +94,11 @@ class ADNormalityTest(AbstractNormalityTestStatistic, ADStatistic):
         raise NotImplementedError("Not implemented")
 
 
-class SWNormalityTest(AbstractNormalityTestStatistic):
+class ShapiroWilkNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"SW_{AbstractNormalityTestStatistic.code()}"
+        return f"SW_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -151,14 +151,12 @@ class SWNormalityTest(AbstractNormalityTestStatistic):
             return np.concatenate([[w1, w2], result, [wn1, wn]])
 
 
-class CVMNormalityTest(AbstractNormalityTestStatistic):
+class CramerVonMiseNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
         return (
-            "CVM"
-            + "_"
-            + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic).code()
+            "CVM" + "_" + super(AbstractNormalityGofStatistic, AbstractNormalityGofStatistic).code()
         )
 
     @override
@@ -174,11 +172,11 @@ class CVMNormalityTest(AbstractNormalityTestStatistic):
         return cm
 
 
-class LillieforsNormalityTest(AbstractNormalityTestStatistic, LillieforsTest):
+class LillieforsNormalityGofStatistic(AbstractNormalityGofStatistic, LillieforsTest):
     @staticmethod
     @override
     def code():
-        return f"LILLIE_{AbstractNormalityTestStatistic.code()}"
+        return f"LILLIE_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -213,11 +211,11 @@ class DANormalityTest(AbstractNormalityTestStatistic):  # TODO: check for correc
 """
 
 
-class JBNormalityTest(AbstractNormalityTestStatistic):
+class JBNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"JB_{AbstractNormalityTestStatistic.code()}"
+        return f"JB_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -237,11 +235,11 @@ class JBNormalityTest(AbstractNormalityTestStatistic):
         return statistic
 
 
-class SkewNormalityTest(AbstractNormalityTestStatistic):
+class SkewNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"SKEW_{AbstractNormalityTestStatistic.code()}"
+        return f"SKEW_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -275,11 +273,11 @@ class SkewNormalityTest(AbstractNormalityTestStatistic):
         return z
 
 
-class KurtosisNormalityTest(AbstractNormalityTestStatistic):
+class KurtosisNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"KURTOSIS_{AbstractNormalityTestStatistic.code()}"
+        return f"KURTOSIS_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -331,11 +329,11 @@ class KurtosisNormalityTest(AbstractNormalityTestStatistic):
         return z
 
 
-class DAPNormalityTest(SkewNormalityTest, KurtosisNormalityTest):
+class DAPNormalityGofStatistic(SkewNormalityGofStatistic, KurtosisNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"DAP_{AbstractNormalityTestStatistic.code()}"
+        return f"DAP_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -349,11 +347,11 @@ class DAPNormalityTest(SkewNormalityTest, KurtosisNormalityTest):
 
 
 # https://github.com/puzzle-in-a-mug/normtest
-class FilliNormalityTest(AbstractNormalityTestStatistic):
+class FilliNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"FILLI_{AbstractNormalityTestStatistic.code()}"
+        return f"FILLI_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -384,11 +382,11 @@ class FilliNormalityTest(AbstractNormalityTestStatistic):
 
 
 # https://github.com/puzzle-in-a-mug/normtest
-class LooneyGulledgeNormalityTest(AbstractNormalityTestStatistic):
+class LooneyGulledgeNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"LG_{AbstractNormalityTestStatistic.code()}"
+        return f"LG_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -413,13 +411,13 @@ class LooneyGulledgeNormalityTest(AbstractNormalityTestStatistic):
             df = pd.DataFrame({"x_data": x_data})
             # getting mi values
             df["Rank"] = np.arange(1, df.shape[0] + 1)
-            df["Ui"] = LooneyGulledgeNormalityTest._order_statistic(
+            df["Ui"] = LooneyGulledgeNormalityGofStatistic._order_statistic(
                 sample_size=x_data.size,
             )
             df["Mi"] = df.groupby(["x_data"])["Ui"].transform("mean")
             normal_ordered = scipy_stats.norm.ppf(df["Mi"])
         else:
-            ordered = LooneyGulledgeNormalityTest._order_statistic(
+            ordered = LooneyGulledgeNormalityGofStatistic._order_statistic(
                 sample_size=x_data.size,
             )
             normal_ordered = scipy_stats.norm.ppf(ordered)
@@ -439,17 +437,17 @@ class LooneyGulledgeNormalityTest(AbstractNormalityTestStatistic):
 
 
 # https://github.com/puzzle-in-a-mug/normtest
-class RyanJoinerNormalityTest(AbstractNormalityTestStatistic):
+class RyanJoinerNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def __init__(self, weighted=False, cte_alpha="3/8"):
-        super(AbstractNormalityTestStatistic).__init__()
+        super(AbstractNormalityGofStatistic).__init__()
         self.weighted = weighted
         self.cte_alpha = cte_alpha
 
     @staticmethod
     @override
     def code():
-        return f"RJ_{AbstractNormalityTestStatistic.code()}"
+        return f"RJ_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -506,11 +504,11 @@ class RyanJoinerNormalityTest(AbstractNormalityTestStatistic):
         return (i - cte_alpha) / (sample_size - 2 * cte_alpha + 1)
 
 
-class SFNormalityTest(AbstractNormalityTestStatistic):
+class SFNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"SF_{AbstractNormalityTestStatistic.code()}"
+        return f"SF_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -527,11 +525,11 @@ class SFNormalityTest(AbstractNormalityTestStatistic):
 
 
 # https://habr.com/ru/articles/685582/
-class EPNormalityTest(AbstractNormalityTestStatistic):
+class EppsPulleyNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"EP_{AbstractNormalityTestStatistic.code()}"
+        return f"EP_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -549,11 +547,11 @@ class EPNormalityTest(AbstractNormalityTestStatistic):
         return t
 
 
-class Hosking2NormalityTest(AbstractNormalityTestStatistic):
+class Hosking2NormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"HOSKING2_{AbstractNormalityTestStatistic.code()}"
+        return f"HOSKING2_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -602,11 +600,11 @@ class Hosking2NormalityTest(AbstractNormalityTestStatistic):
         return res
 
 
-class Hosking1NormalityTest(AbstractNormalityTestStatistic):
+class Hosking1NormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"HOSKING1_{AbstractNormalityTestStatistic.code()}"
+        return f"HOSKING1_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -653,11 +651,11 @@ class Hosking1NormalityTest(AbstractNormalityTestStatistic):
             return stat_tl_mom
 
 
-class Hosking3NormalityTest(AbstractNormalityTestStatistic):
+class Hosking3NormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"HOSKING3_{AbstractNormalityTestStatistic.code()}"
+        return f"HOSKING3_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -711,11 +709,11 @@ class Hosking3NormalityTest(AbstractNormalityTestStatistic):
         return res
 
 
-class Hosking4NormalityTest(AbstractNormalityTestStatistic):
+class Hosking4NormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"HOSKING4_{AbstractNormalityTestStatistic.code()}"
+        return f"HOSKING4_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -769,11 +767,11 @@ class Hosking4NormalityTest(AbstractNormalityTestStatistic):
         return res
 
 
-class ZhangWuCNormalityTest(AbstractNormalityTestStatistic):
+class ZhangWuCNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"ZWC_{AbstractNormalityTestStatistic.code()}"
+        return f"ZWC_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -793,11 +791,11 @@ class ZhangWuCNormalityTest(AbstractNormalityTestStatistic):
             return stat_zc
 
 
-class ZhangWuANormalityTest(AbstractNormalityTestStatistic):
+class ZhangWuANormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"ZWA_{AbstractNormalityTestStatistic.code()}"
+        return f"ZWA_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -821,11 +819,11 @@ class ZhangWuANormalityTest(AbstractNormalityTestStatistic):
             return stat_za
 
 
-class GlenLeemisBarrNormalityTest(AbstractNormalityTestStatistic):
+class GlenLeemisBarrNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"GLB_{AbstractNormalityTestStatistic.code()}"
+        return f"GLB_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -850,11 +848,11 @@ class GlenLeemisBarrNormalityTest(AbstractNormalityTestStatistic):
             return -n - stat_ps / n
 
 
-class DoornikHansenNormalityTest(AbstractNormalityTestStatistic):
+class DoornikHansenNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"DH_{AbstractNormalityTestStatistic.code()}"
+        return f"DH_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -904,11 +902,11 @@ class DoornikHansenNormalityTest(AbstractNormalityTestStatistic):
         return z
 
 
-class RobustJarqueBeraNormalityTest(AbstractNormalityTestStatistic):
+class RobustJarqueBeraNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"RJB_{AbstractNormalityTestStatistic.code()}"
+        return f"RJB_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -923,11 +921,11 @@ class RobustJarqueBeraNormalityTest(AbstractNormalityTestStatistic):
         return rjb
 
 
-class BontempsMeddahi1NormalityTest(AbstractNormalityTestStatistic):
+class BontempsMeddahi1NormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"BM1_{AbstractNormalityTestStatistic.code()}"
+        return f"BM1_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -960,11 +958,11 @@ class BontempsMeddahi1NormalityTest(AbstractNormalityTestStatistic):
             return stat_bm34
 
 
-class BontempsMeddahi2NormalityTest(AbstractNormalityTestStatistic):
+class BontempsMeddahi2NormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"BM2_{AbstractNormalityTestStatistic.code()}"
+        return f"BM2_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -989,11 +987,11 @@ class BontempsMeddahi2NormalityTest(AbstractNormalityTestStatistic):
             return stat_bm36
 
 
-class BonettSeierNormalityTest(AbstractNormalityTestStatistic):
+class BonettSeierNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"BS_{AbstractNormalityTestStatistic.code()}"
+        return f"BS_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1024,11 +1022,11 @@ class BonettSeierNormalityTest(AbstractNormalityTestStatistic):
             return stat_tw
 
 
-class MartinezIglewiczNormalityTest(AbstractNormalityTestStatistic):
+class MartinezIglewiczNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"MI_{AbstractNormalityTestStatistic.code()}"
+        return f"MI_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1065,11 +1063,11 @@ class MartinezIglewiczNormalityTest(AbstractNormalityTestStatistic):
             return stat_in
 
 
-class CabanaCabana1NormalityTest(AbstractNormalityTestStatistic):
+class CabanaCabana1NormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"CC1_{AbstractNormalityTestStatistic.code()}"
+        return f"CC1_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1111,11 +1109,11 @@ class CabanaCabana1NormalityTest(AbstractNormalityTestStatistic):
             return stat_tsl
 
 
-class CabanaCabana2NormalityTest(AbstractNormalityTestStatistic):
+class CabanaCabana2NormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"CC2_{AbstractNormalityTestStatistic.code()}"
+        return f"CC2_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1210,11 +1208,11 @@ class CabanaCabana2NormalityTest(AbstractNormalityTestStatistic):
             return stat_tkl
 
 
-class ChenShapiroNormalityTest(AbstractNormalityTestStatistic):
+class ChenShapiroNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"CS_{AbstractNormalityTestStatistic.code()}"
+        return f"CS_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1234,11 +1232,11 @@ class ChenShapiroNormalityTest(AbstractNormalityTestStatistic):
             return stat_cs
 
 
-class ZhangQNormalityTest(AbstractNormalityTestStatistic):
+class ZhangQNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"ZQ_{AbstractNormalityTestStatistic.code()}"
+        return f"ZQ_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1274,11 +1272,11 @@ class ZhangQNormalityTest(AbstractNormalityTestStatistic):
             return stat_q
 
 
-class CoinNormalityTest(AbstractNormalityTestStatistic):
+class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"COIN_{AbstractNormalityTestStatistic.code()}"
+        return f"COIN_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1403,11 +1401,11 @@ class CoinNormalityTest(AbstractNormalityTestStatistic):
         return
 
 
-class DagostinoNormalityTest(AbstractNormalityTestStatistic):
+class DagostinoNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"D_{AbstractNormalityTestStatistic.code()}"
+        return f"D_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1423,11 +1421,11 @@ class DagostinoNormalityTest(AbstractNormalityTestStatistic):
             return stat_da  # Here is the test statistic value
 
 
-class ZhangQStarNormalityTest(AbstractNormalityTestStatistic):
+class ZhangQStarNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"ZQS_{AbstractNormalityTestStatistic.code()}"
+        return f"ZQS_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1510,11 +1508,11 @@ class ZhangQQStarNormalityTest(AbstractNormalityTestStatistic):  # TODO: check f
 """
 
 
-class SWRGNormalityTest(AbstractNormalityTestStatistic):
+class SWRGNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"SWRG_{AbstractNormalityTestStatistic.code()}"
+        return f"SWRG_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1540,11 +1538,11 @@ class SWRGNormalityTest(AbstractNormalityTestStatistic):
             return stat_wrg  # Here is the test statistic value
 
 
-class GMGNormalityTest(AbstractNormalityTestStatistic):
+class GMGNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"GMG_{AbstractNormalityTestStatistic.code()}"
+        return f"GMG_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1601,11 +1599,11 @@ a robust measure of skewness, Computational Statistics, Vol. 23, Issue 3, pp. 42
 """
 
 
-class BHSNormalityTest(AbstractNormalityTestStatistic):
+class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"BHS_{AbstractNormalityTestStatistic.code()}"
+        return f"BHS_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1936,11 +1934,11 @@ class BHSNormalityTest(AbstractNormalityTestStatistic):
                 w[i] = w_cand[i]
 
 
-class SpiegelhalterNormalityTest(AbstractNormalityTestStatistic):
+class SpiegelhalterNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def code():
-        return f"SH_{AbstractNormalityTestStatistic.code()}"
+        return f"SH_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1984,10 +1982,10 @@ class SpiegelhalterNormalityTest(AbstractNormalityTestStatistic):
             return stat_sp  # Here is the test statistic value
 
 
-class DesgagneLafayeNormalityTest(AbstractNormalityTestStatistic):
+class DesgagneLafayeNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     def code():
-        return f"DLDMZEPD_{AbstractNormalityTestStatistic.code()}"
+        return f"DLDMZEPD_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2032,11 +2030,13 @@ class DesgagneLafayeNormalityTest(AbstractNormalityTestStatistic):
             return rn  # Here is the test statistic value
 
 
-class GraphEdgesNumberNormTest(AbstractNormalityTestStatistic, GraphEdgesNumberTestStatistic):
+class GraphEdgesNumberNormalityGofStatistic(
+    AbstractNormalityGofStatistic, GraphEdgesNumberTestStatistic
+):
     @staticmethod
     @override
     def code():
-        return f"EdgesNumber_{AbstractNormalityTestStatistic.code()}"
+        return f"EdgesNumber_{AbstractNormalityGofStatistic.code()}"
 
     @staticmethod
     @override
@@ -2046,11 +2046,13 @@ class GraphEdgesNumberNormTest(AbstractNormalityTestStatistic, GraphEdgesNumberT
         return parent_code / np.var(rvs)
 
 
-class GraphMaxDegreeNormTest(AbstractNormalityTestStatistic, GraphMaxDegreeTestStatistic):
+class GraphMaxDegreeNormalityGofStatistic(
+    AbstractNormalityGofStatistic, GraphMaxDegreeTestStatistic
+):
     @staticmethod
     @override
     def code():
-        return f"MaxDegree_{AbstractNormalityTestStatistic.code()}"
+        return f"MaxDegree_{AbstractNormalityGofStatistic.code()}"
 
     @staticmethod
     @override
@@ -2058,7 +2060,3 @@ class GraphMaxDegreeNormTest(AbstractNormalityTestStatistic, GraphMaxDegreeTestS
         super_class = GraphEdgesNumberTestStatistic
         parent_code = super(super_class, super_class)._compute_dist(rvs)
         return parent_code / np.var(rvs)
-
-
-# TODO: fix all weak warnings
-# TODO: check tests
