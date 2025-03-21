@@ -156,7 +156,6 @@ def test_ks_normality_criterion_code():
         ),
     ],
 )
-@pytest.mark.skip(reason="no way of currently testing this")
 def test_ad_normality_criterion(data, result):
     statistic = AndersonDarlingNormalityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
