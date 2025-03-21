@@ -529,7 +529,7 @@ class SPPWeibullGofStatistic(WPPWeibullGofStatistic):
 
 class MahdiDoostparastWeibullGofStatistic(AbstractWeibullGofStatistic):
     """title:
-    25 Oct 2011 Goodness-of-ﬁt tests for weibull populations onthe basis of records
+    25 Oct 2011 Goodness-of-ﬁt tests for weibull populations on the basis of records
     Mahdi Doostparast
     Department of Statistics, School of Mathematical Sciences,Ferdowsi University of Mashhad
     P. O. Box 91775-1159, Mashhad, Iran"""
@@ -586,7 +586,8 @@ class LiaoShimokawaWeibullGofStatistic(AbstractWeibullGofStatistic):
     https://www.researchgate.net/profile/Min-Liao-8/publication
     /243043005_A_new_goodness-of-fit_test_for_Type-I_extreme-value_and_2-parameter_Weibull_distributions_with_estimated_parameters/
     links/57b77e2708ae14f440ba3487/
-    A-new-goodness-of-fit-test-for-Type-I-extreme-value-and-2-parameter-Weibull-distributions-with-estimated-parameters.pdf"""
+    A-new-goodness-of-fit-test-for-Type-I-extreme-value-and
+    -2-parameter-Weibull-distributions-with-estimated-parameters.pdf"""
 
     @staticmethod
     @override

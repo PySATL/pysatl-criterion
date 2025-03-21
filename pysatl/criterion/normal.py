@@ -1336,7 +1336,7 @@ class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
             return stat_beta32
 
     @staticmethod
-    def correc(i, n):
+    def correct(i, n):
         c1 = [9.5, 28.7, 1.9, 0.0, -7.0, -6.2, -1.6]
         c2 = [-6195.0, -9569.0, -6728.0, -17614.0, -8278.0, -3570.0, 1075.0]
         c3 = [93380.0, 175160.0, 410400.0, 2157600.0, 2.376e6, 2.065e6, 2.065e6]
@@ -1386,14 +1386,14 @@ class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
             ai = i + 1
             e1 = (ai - eps[i]) / (an + gam[i])
             e2 = e1 ** lam[i]
-            s[i] = e1 + e2 * (dl1[i] + e2 * dl2[i]) / an - self.correc(i + 1, n)
+            s[i] = e1 + e2 * (dl1[i] + e2 * dl2[i]) / an - self.correct(i + 1, n)
 
         if n2[0] > k:
             for i in range(3, n2[0]):
                 ai = i + 1
                 e1 = (ai - eps[3]) / (an + gam[3])
                 e2 = e1 ** (lam[3] + bb / (ai + d))
-                s[i] = e1 + e2 * (dl1[3] + e2 * dl2[3]) / an - self.correc(i + 1, n)
+                s[i] = e1 + e2 * (dl1[3] + e2 * dl2[3]) / an - self.correct(i + 1, n)
 
         for i in range(n2[0]):
             s[i] = -scipy_stats.norm.ppf(s[i], 0.0, 1.0)
