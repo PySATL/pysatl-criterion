@@ -103,6 +103,7 @@ jobs:
 
       - name: Build distribution
         run: |
+          pip install poetry==2.1.1
           poetry build
 
       - name: Upload artifacts 📦
