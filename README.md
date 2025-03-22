@@ -94,6 +94,29 @@ Issues labeled [good first issue](https://github.com/PySATL/pysatl-criterion/lab
 - [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 - [virtualenv](https://virtualenv.pypa.io/en/stable/installation.html) (Recommended)
 
+
+## Development
+
+Install requirements
+
+```bash
+poetry install --with dev
+```
+
+## Pre-commit
+
+Install pre-commit hooks:
+
+```shell
+poetry run pre-commit install
+```
+
+Starting manually:
+
+```shell
+poetry run pre-commit run --all-files --color always --verbose --show-diff-on-failure
+```
+
 ## License
 
 This project is licensed under the terms of the **MIT** license. See the [LICENSE](LICENSE) for more information.
