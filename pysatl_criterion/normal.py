@@ -804,7 +804,7 @@ class ZhangWuANormalityGofStatistic(AbstractNormalityGofStatistic):
         if n > 3:
             phiz = np.zeros(n)
             mean_x = np.mean(rvs)
-            var_x = np.var(rvs)
+            var_x = np.var(rvs, ddof=1)
             sd_x = np.sqrt(var_x)
             for i in range(n):
                 phiz[i] = scipy_stats.norm.cdf((rvs[i] - mean_x) / sd_x)

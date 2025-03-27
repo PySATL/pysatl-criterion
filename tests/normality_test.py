@@ -1469,7 +1469,6 @@ def test_zhang_q_tar_normality_criterion_code():
         ),
     ],
 )
-@pytest.mark.skip(reason="no way of currently testing this")
 def test_zhang_wu_a_normality_criterion(data, result):
     statistic = ZhangWuANormalityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
