@@ -82,7 +82,7 @@ class AndersonDarlingNormalityGofStatistic(AbstractNormalityGofStatistic, ADStat
         xbar = np.mean(rvs, axis=0)
         w = (y - xbar) / s
         logcdf = scipy_stats.distributions.norm.logcdf(w)
-        logsf = scipy_stats.distributions.norm.logsf
+        logsf = scipy_stats.distributions.norm.logsf(w)
         return super().execute_statistic(rvs, log_cdf=logcdf, log_sf=logsf, w=w)
 
     @override
