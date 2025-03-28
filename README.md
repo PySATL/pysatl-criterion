@@ -1,83 +1,122 @@
-# statistic-test
+# PySATL Criterion
 
-[![Freqtrade CI](https://github.com/PySATL/pysatl-experiment/workflows/PySATL%20CI/badge.svg)](https://github.com/PySATL/pysatl-experiment/actions)
-[![Coverage Status](https://coveralls.io/repos/github/PySATL/pysatl-experiment/badge.svg?branch=main)](https://coveralls.io/github/PySATL/pysatl-experiment?branch=main)
-[![Documentation](https://readthedocs.org/projects/pysatl-experiment/badge)](https://pysatl-experiment.readthedocs.io)
+[![Pysatl_criterion CI](https://github.com/PySATL/pysatl-criterion/workflows/PySATL%20CI/badge.svg)](https://github.com/PySATL/pysatl-criterion/actions)
+[![Coverage Status](https://coveralls.io/repos/github/PySATL/pysatl-criterion/badge.svg?branch=main)](https://coveralls.io/github/PySATL/pysatl-criterion?branch=main)
+[![Documentation](https://readthedocs.org/projects/pysatl-criterion/badge)](https://pysatl-criterion.readthedocs.io)
 
-This is a test framework for goodness-of-fit statistic tests.
+This repository contains a collection of Python scripts and modules for performing various statistical tests. These tests are designed to help you analyze data, make inferences, and draw conclusions based on statistical methods. The repository is organized to be easy to use, modular, and extensible.
 
-## Architecture
+## Installation
+To use this repository, you need to have Python 3.9 or later installed on your system. You can install the required dependencies by following these steps:
 
-Framework consists of 5 modules
+Clone the repository:
 
-1. Core module - provides distributions, cdf, pdf etc.
-2. Persistence module - provides different stores to store data.
-3. Experiment module - provides pipeline for experiment and default components for pipeline.
-4. Expert system module - provides expert system for goodness-of-fit testing.
-5. Tests module - provides different goodness-of-fit tests.
+```bash
+git clone https://github.com/PySATL/pysatl-criterion.git
+```
 
-### Experiment architecture
+Install dependencies:
 
-![PYSATL architecture](pysatl_flow.png "PYSATL architecture")
+```bash
+poetry install
+```
+You're all set! You can now import and use the statistical tests in your Python scripts.
 
-## Default components
+## PySATL Criterion module usage example:
 
-### Generators
+```python
+# import needed criterion from pysatl_criterion
+from pysatl_criterion.normal import KolmogorovSmirnovNormalityGofStatistic
 
-### Storages
-***CriticalValueSqLiteStore*** - store critical values and target distributions in SQLite.  
-***CriticalValueFileStore*** - store critical values and target distributions in JSON and CSV.  
-***RvsSqLiteStore*** - store generated rvs in SQLite. 
-***RvsFileStore*** - store generated rvs in CSV.  
-***PowerResultSqLiteStore*** - store PowerCalculationWorker result in SQLite
 
-### Workers
+# make a criterion object
+criterion = KolmogorovSmirnovNormalityGofStatistic(mean=0, var=1)
 
-PowerCalculationWorker - calculates goodness-of-fit test power
+# initialize test data
+x = [0.1, 0.7, 0.5, 0.3]
 
-### Report builders
+# then run algorithm
+statistic = criterion.execute_statistic(x)
 
-## Goodness-of-fit tests
+# print the results
+print(f"Statistic result: {statistic}")
+# output:
+# Statistic result: 0.539827837277029
+```
 
-### Weibull distribution
+## Documentation
+We invite you to read the bot documentation to ensure you understand how the PySATL Criterion lib is working.
 
-| №  | Test                                           | Status |
-|----|------------------------------------------------|--------|
-| 1  | Anderson–Darling                               | Done   |
-| 2  | Chi square                                     | Done   |
-| 3  | Kolmogorov–Smirnov                             | Done   |
-| 4  | Lilliefors                                     | Done   |
-| 5  | Cramér–von Mises                               | Done   |
-| 6  | Min-Toshiyuki                                  | Done   |
-| 7  | Smith and Brian                                | Done   |
-| 8  | Ozturk and Korukoglu                           | Done   |
-| 9  | Tiku-Singh                                     | Done   |
-| 10 | Lockhart-O'Reilly-Stephens                     | Done   |
-| 11 | Mann-Scheuer-Fertig                            | Done   |
-| 12 | Evans, Johnson and Green                       | Done   |
-| 13 | Skewness                                       | Done   |
-| 14 | Kurtosis                                       | Done   |
-| 15 | Statistic based on stabilized probability plot | Done   |
-| 16 | Test statistic of Shapiro Wilk                 | Done   |
+Please find the complete documentation on the [PySATL Criterion website](https://pysatl-criterion.readthedocs.io/en/latest/).
 
-### Exponential distribution
+## Support
+### [Bugs / Issues](https://github.com/PySATL/pysatl-criterion/issues?q=is%3Aissue)
 
-| Test                 | Second Header |
-|----------------------|---------------|
-| Ozturk and Korukoglu | Content Cell  |
-| Jackson              | Content Cell  |
-| Lewis                | Content Cell  |
+If you discover a bug in the PySATL criterion lib, please
+[search the issue tracker](https://github.com/PySATL/pysatl-criterion/issues?q=is%3Aissue)
+first. If it hasn't been reported, please
+[create a new issue](https://github.com/PySATL/pysatl-criterion/issues/new/choose) and
+ensure you follow the template guide so that the team can assist you as
+quickly as possible.
 
-### Normal distribution
+For every [issue](https://github.com/PySATL/pysatl-criterion/issues/new/choose) created, kindly follow up and mark satisfaction or reminder to close issue when equilibrium ground is reached.
 
-| Test               | Second Header |
-|--------------------|---------------|
-| Anderson–Darling   | Content Cell  |
-| Kolmogorov–Smirnov | Content Cell  |
-| Chi square         | Content Cell  |
-| skewness           | Content Cell  |
-| kurtosis           | Content Cell  |
+--Maintain github's [community policy](https://docs.github.com/en/site-policy/github-terms/github-community-code-of-conduct)--
 
-## Configuration
+### [Feature Requests](https://github.com/PySATL/pysatl-criterion/labels/enhancement)
 
-### Configuration example
+Have you a great idea to improve the bot you want to share? Please,
+first search if this feature was not [already discussed](https://github.com/PySATL/pysatl-criterion/labels/enhancement).
+If it hasn't been requested, please
+[create a new request](https://github.com/PySATL/pysatl-criterion/issues/new/choose)
+and ensure you follow the template guide so that it does not get lost
+in the bug reports.
+
+### [Pull Requests](https://github.com/PySATL/pysatl-criterion/pulls)
+
+Feel like the PySATL criterion lib is missing a feature? We welcome your pull requests!
+
+Please read the
+[Contributing document](https://github.com/PySATL/pysatl-criterion/blob/develop/CONTRIBUTING.md)
+to understand the requirements before sending your pull-requests.
+
+Coding is not a necessity to contribute - maybe start with improving the documentation?
+Issues labeled [good first issue](https://github.com/PySATL/pysatl-criterion/labels/good%20first%20issue) can be good first contributions, and will help get you familiar with the codebase.
+
+**Note** before starting any major new feature work, *please open an issue describing what you are planning to do*. This will ensure that interested parties can give valuable feedback on the feature, and let others know that you are working on it.
+
+**Important:** Always create your PR against the `develop` branch, not `stable`.
+
+
+## Software requirements
+- [Python >= 3.9](http://docs.python-guide.org/en/latest/starting/installation/)
+- [poetry](https://python-poetry.org/docs/)
+- [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+- [virtualenv](https://virtualenv.pypa.io/en/stable/installation.html) (Recommended)
+
+
+## Development
+
+Install requirements
+
+```bash
+poetry install --with dev
+```
+
+## Pre-commit
+
+Install pre-commit hooks:
+
+```shell
+poetry run pre-commit install
+```
+
+Starting manually:
+
+```shell
+poetry run pre-commit run --all-files --color always --verbose --show-diff-on-failure
+```
+
+## License
+
+This project is licensed under the terms of the **MIT** license. See the [LICENSE](LICENSE) for more information.

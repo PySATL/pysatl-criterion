@@ -4,46 +4,64 @@ on:
   push:
     branches:
       - main
+  release:
+    types: [ published ]
   pull_request:
 
 jobs:
-  build:
+  build-linux:
 
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: [ "3.10", "3.11", "3.12" ]
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install Poetry
+        run: pip install poetry==2.1.1
+
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
 
-      - name: Install dependencies
+      - name: Install dependencies with Poetry
+        run: poetry install --with dev
+
+      - name: Run Ruff lint
+        run: poetry run ruff check --output-format=github
+
+      - name: Check formatting with Ruff
+        run: poetry run ruff format --check
+
+      - name: Mypy
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
+          poetry run mypy pysatl_criterion tests
 
       - name: Run tests
-        run: pytest --random-order
+        run: poetry run pytest --random-order
 
       - name: Tests with Coveralls
         if: (runner.os == 'Linux' && matrix.python-version == '3.12')
         run: |
-          pytest --random-order --cov=stattest --cov-config=.coveragerc
+          poetry run pytest --random-order --cov=pysatl_criterion --cov-config=.coveragerc
 
       - name: Coveralls
         if: (runner.os == 'Linux' && matrix.python-version == '3.12')
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.coverallsToken }}
         run: |
-            # Allow failure for coveralls
-            coveralls || true
+          # Allow failure for coveralls
+          coveralls || true
+
+      - name: Remove poetry.lock before checking for changes
+        run: rm -f poetry.lock
 
       - name: Check for repository changes
         run: |
@@ -56,14 +74,68 @@ jobs:
             echo "Repository is clean, no changes detected."
           fi
 
-      - name: Sort imports (isort)
-        run: |
-          isort --check .
+  pre-commit:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
-      - name: Run Ruff
-        run: |
-          ruff check --output-format=github
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: pre-commit/action@v3.0.1
 
-      - name: Run Ruff format check
+  build:
+    name: "Build"
+    needs: [ build-linux, pre-commit ]
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build distribution
         run: |
-          ruff format --check
+          pip install poetry==2.1.1
+          poetry build
+
+      - name: Upload artifacts 📦
+        uses: actions/upload-artifact@v4
+        with:
+          name: pysatl-criterion-build
+          path: |
+            dist
+          retention-days: 10
+
+  deploy-pypi:
+    name: "Publish Python 🐍 distribution 📦 to PyPI"
+    needs: [ build ]
+    runs-on: ubuntu-22.04
+    if: (github.event_name == 'release')
+    environment:
+      name: pypi
+      url: https://pypi.org/p/pysatl-criterion
+    permissions:
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Download artifact  📦
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pysatl*-build
+          path: dist
+          merge-multiple: true
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.12.4

@@ -1,15 +1,44 @@
 site_name: PySATL
-site_url: !ENV [READTHEDOCS_CANONICAL_URL, 'https://pysatl.github.io/pysatl-experiment/en/']
+site_url: !ENV [READTHEDOCS_CANONICAL_URL, 'https://pysatl.github.io/pysatl-criterion/en/']
 site_description: PySATL is a free and open source statistics lib written in Python, designed to support all major researcher demands
-repo_url: https://github.com/PySATL/pysatl-experiment
+repo_url: https://github.com/PySATL/pysatl-criterion
 edit_uri: edit/main/docs/
 use_directory_urls: True
 nav:
     - Home: index.md
+    - Criteria:
+        - Goodness-of-fit:
+            - Exponentiality:
+                - Epps and Pulley: epps_pulley_exp_criterion.md
+                - Kolmogorov-Smirnov: kolmogorov_smirnov_exp_criterion.md
+                - Wong and Wong: wong_wong_exp_criterion.md
+                - WE: we_exp_criterion.md
+                - Ahsanullah: ahsanullah_exp_criterion.md
+                - Atkinson: atkinson_exp_criterion.md
+                - Cox and Oakes: cox_oakes_exp_criterion.md
+                - Cramer-von Mises: cvm_exp_criterion.md
+                - Deshpande: deshpande_exp_criterion.md
+                - Epstein: epstein_exp_criterion.md
+                - Frozini: frozini_exp_criterion.md
+                - Gini: gini_exp_criterion.md
+                - Gnedenko: gnedenko_exp_criterion.md
+                - Harris: harris_exp_criterion.md
+                - Hegazy1: hegazy1_exp_criterion.md
+                - Hegazy2: hegazy2_exp_criterion.md
+                - Holander-Proshan: holander_proshan_exp_criterion.md
+                - Kimber-Michael: kimber_michael_exp_criterion.md
+                - Kochar: kochar_exp_criterion.md
+                - Lorenz: lorenz_exp_criterion.md
+                - Moran: moran_exp_criterion.md
+                - Pietra: pietra_exp_criterion.md
+                - Shapiro-Wilk: shapiro_wilk_exp_criterion.md
+                - Rossberg: rossberg_exp_criterion.md
+                - Graph edges number: graph_edges_number_exp_criterion.md
+                - Graph max degree: graph_max_degree_exp_criterion.md
 theme:
   name: material
-  logo: "images/logo.png"
-  favicon: "images/logo.png"
+  logo: "images/logo.jpeg"
+  favicon: "images/logo.jpeg"
   custom_dir: "docs/overrides"
   features:
     - content.code.annotate

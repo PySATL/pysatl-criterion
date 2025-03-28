@@ -6,7 +6,7 @@ Feel like our lib is missing a feature? We welcome your pull requests!
 
 Few pointers for contributions:
 
-- Create your PR against the `main` branch, not `release`.
+- Create your PR against the `develop` branch, not `stable`.
 - New features need to contain unit tests, must conform to PEP8 (max-line-length = 100) and should be documented with the introduction PR.
 - PR's can be declared as `[WIP]` - which signify Work in Progress Pull Requests (which are not finished).
 
@@ -61,7 +61,7 @@ you can manually run pre-commit with `pre-commit run -a`.
 #### Run mypy
 
 ``` bash
-mypy statistic-test
+mypy pysatl_criterion
 ```
 
 ### 4. Ensure formatting is correct
@@ -122,6 +122,6 @@ Contributors may be given commit privileges. Preference will be given to those w
 3. Access to resources for cross-platform development and testing.
 4. Time to devote to the project regularly.
 
-Being a Committer does not grant write permission on `main` or `release` for security reasons.
+Being a Committer does not grant write permission on `develop` or `stable` for security reasons.
 
 After being Committer for some time, a Committer may be named Core Committer and given full repository access.
