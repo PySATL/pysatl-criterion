@@ -1,4 +1,5 @@
 import pytest
+from numpy import nan
 
 from pysatl_criterion import (
     AndersonDarlingWeibullGofStatistic,
