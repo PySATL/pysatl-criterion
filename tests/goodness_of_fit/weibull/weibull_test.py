@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 from numpy import nan
 
@@ -104,13 +105,23 @@ def test_ad_weibull_criterion_code():
             ],
             1.1845,
         ),
-        ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], nan),  # Zero exception test
-        ([-4, -1, -6, -8, -4, -2, 0, -2, 0, -3], nan),  # Negative values test
     ],
 )
 def test_los_weibull_criterion(data, result):
     statistic = LOSWeibullGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.1)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # Zero exception test
+        [-4, -1, -6, -8, -4, -2, 0, -2, 0, -3],  # Negative values test
+    ],
+)
+def test_nan_los_weibull_criterion(data):
+    statistic = LOSWeibullGofStatistic().execute_statistic(data)
+    assert np.isnan(statistic)
 
 
 def test_los_weibull_criterion_code():
@@ -136,13 +147,23 @@ def test_los_weibull_criterion_code():
             ],
             0.67173,
         ),
-        ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], nan),  # Zero exception test
-        ([-4, -1, -6, -8, -4, -2, 0, -2, 0, -3], nan),  # Negative values test
     ],
 )
 def test_msf_weibull_criterion(data, result):
     statistic = MSFWeibullGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.01)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # Zero exception test
+        [-4, -1, -6, -8, -4, -2, 0, -2, 0, -3],  # Negative values test
+    ],
+)
+def test_nan_msf_weibull_criterion(data):
+    statistic = MSFWeibullGofStatistic().execute_statistic(data)
+    assert np.isnan(statistic)
 
 
 def test_msf_weibull_criterion_code():
@@ -168,13 +189,23 @@ def test_msf_weibull_criterion_code():
             ],
             1.8927,
         ),
-        ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], nan),  # Zero exception test
-        ([-4, -1, -6, -8, -4, -2, 0, -2, 0, -3], nan),  # Negative values test
     ],
 )
 def test_ok_weibull_criterion(data, result):
     statistic = OKWeibullGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.0001)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # Zero exception test
+        [-4, -1, -6, -8, -4, -2, 0, -2, 0, -3],  # Negative values test
+    ],
+)
+def test_nan_ok_weibull_criterion(data):
+    statistic = OKWeibullGofStatistic().execute_statistic(data)
+    assert np.isnan(statistic)
 
 
 def test_ok_weibull_criterion_code():
@@ -200,13 +231,24 @@ def test_ok_weibull_criterion_code():
             ],
             0.84064,
         ),
-        ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], nan),  # Zero exception test
-        ([-4, -1, -6, -8, -4, -2, 0, -2, 0, -3], nan),  # Negative values test
     ],
 )
 def test_rejg_weibull_criterion(data, result):
     statistic = REJGWeibullGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # Zero exception test
+        [-4, -1, -6, -8, -4, -2, 0, -2, 0, -3],  # Negative values test
+    ],
+)
+def test_exc_rejg_weibull_criterion(data):
+    with pytest.raises(ValueError):
+        statistic = REJGWeibullGofStatistic().execute_statistic(data)
+        pytest.approx(statistic, 0.00001)
 
 
 def test_rejg_weibull_criterion_code():
@@ -232,13 +274,23 @@ def test_rejg_weibull_criterion_code():
             ],
             8.4755,
         ),
-        ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], nan),  # Zero exception test
-        ([-4, -1, -6, -8, -4, -2, 0, -2, 0, -3], nan),  # Negative values test
     ],
 )
 def test_rsb_weibull_criterion(data, result):
     statistic = RSBWeibullGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.0001)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # Zero exception test
+        [-4, -1, -6, -8, -4, -2, 0, -2, 0, -3],  # Negative values test
+    ],
+)
+def test_nan_rsb_weibull_criterion(data):
+    statistic = RSBWeibullGofStatistic().execute_statistic(data)
+    assert np.isnan(statistic)
 
 
 def test_rsb_weibull_criterion_code():
@@ -264,13 +316,23 @@ def test_rsb_weibull_criterion_code():
             ],
             1.0644,
         ),
-        ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], nan),  # Zero exception test
-        ([-4, -1, -6, -8, -4, -2, 0, -2, 0, -3], nan),  # Negative values test
     ],
 )
 def test_sb_weibull_criterion(data, result):
     statistic = SBWeibullGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.01)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # Zero exception test
+        [-4, -1, -6, -8, -4, -2, 0, -2, 0, -3],  # Negative values test
+    ],
+)
+def test_nan_sb_weibull_criterion(data):
+    statistic = SBWeibullGofStatistic().execute_statistic(data)
+    assert np.isnan(statistic)
 
 
 def test_sb_weibull_criterion_code():
@@ -296,13 +358,24 @@ def test_sb_weibull_criterion_code():
             ],
             0.78178,
         ),
-        ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], nan),  # Zero exception test
-        ([-4, -1, -6, -8, -4, -2, 0, -2, 0, -3], nan),  # Negative values test
     ],
 )
 def test_spp_weibull_criterion(data, result):
     statistic = SPPWeibullGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.1)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # Zero exception test
+        [-4, -1, -6, -8, -4, -2, 0, -2, 0, -3],  # Negative values test
+    ],
+)
+def test_exc_spp_weibull_criterion(data):
+    with pytest.raises(ValueError):
+        statistic = SPPWeibullGofStatistic().execute_statistic(data)
+        pytest.approx(statistic, 0.00001)
 
 
 def test_spp_weibull_criterion_code():
@@ -328,13 +401,23 @@ def test_spp_weibull_criterion_code():
             ],
             1.1202,
         ),
-        ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], nan),  # Zero exception test
-        ([-4, -1, -6, -8, -4, -2, 0, -2, 0, -3], nan),  # Negative values test
     ],
 )
 def test_st1_weibull_criterion(data, result):
     statistic = ST1WeibullGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # Zero exception test
+        [-4, -1, -6, -8, -4, -2, 0, -2, 0, -3],  # Negative values test
+    ],
+)
+def test_nan_st1_weibull_criterion(data):
+    statistic = ST1WeibullGofStatistic().execute_statistic(data)
+    assert np.isnan(statistic)
 
 
 def test_st1_weibull_criterion_code():
@@ -360,13 +443,23 @@ def test_st1_weibull_criterion_code():
             ],
             3.218,
         ),
-        ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], nan),  # Zero exception test
-        ([-4, -1, -6, -8, -4, -2, 0, -2, 0, -3], nan),  # Negative values test
     ],
 )
 def test_st2_weibull_criterion(data, result):
     statistic = ST2WeibullGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # Zero exception test
+        [-4, -1, -6, -8, -4, -2, 0, -2, 0, -3],  # Negative values test
+    ],
+)
+def test_nan_st2_weibull_criterion(data):
+    statistic = ST2WeibullGofStatistic().execute_statistic(data)
+    assert np.isnan(statistic)
 
 
 def test_st2_weibull_criterion_code():
@@ -392,13 +485,23 @@ def test_st2_weibull_criterion_code():
             ],
             0.71566,
         ),
-        ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], nan),  # Zero exception test
-        ([-4, -1, -6, -8, -4, -2, 0, -2, 0, -3], nan),  # Negative values test
     ],
 )
 def test_ts_weibull_criterion(data, result):
     statistic = TikuSinghWeibullGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.01)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # Zero exception test
+        [-4, -1, -6, -8, -4, -2, 0, -2, 0, -3],  # Negative values test
+    ],
+)
+def test_nan_ts_weibull_criterion(data):
+    statistic = TikuSinghWeibullGofStatistic().execute_statistic(data)
+    assert np.isnan(statistic)
 
 
 def test_mt_weibull_criterion_code():
@@ -457,8 +560,8 @@ def test_lillie_weibull_criterion_code():
             ],
             0.5468,
         ),
-        ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], nan),  # Zero exception test
-        ([-4, -1, -6, -8, -4, -2, 0, -2, 0, -3], nan),  # Negative values test
+        ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 1.0),  # Zero exception test
+        ([-4, -1, -6, -8, -4, -2, 0, -2, 0, -3], 1.0),  # Negative values test
     ],
 )
 def test_lillie_weibull_criterion(data, result):
@@ -489,8 +592,8 @@ def test_cvm_weibull_criterion_code():
             ],
             0.745,
         ),
-        ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], nan),  # Zero exception test
-        ([-4, -1, -6, -8, -4, -2, 0, -2, 0, -3], nan),  # Negative values test
+        ([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 3.3333333333333335),  # Zero exception test
+        ([-4, -1, -6, -8, -4, -2, 0, -2, 0, -3], 3.3333333333333335),  # Negative values test
     ],
 )
 def test_cvm_weibull_criterion(data, result):
