@@ -82,7 +82,7 @@ class AndersonDarlingNormalityGofStatistic(AbstractNormalityGofStatistic, ADStat
         xbar = np.mean(rvs, axis=0)
         w = (y - xbar) / s
         logcdf = scipy_stats.distributions.norm.logcdf(w)
-        logsf = scipy_stats.distributions.norm.logsf
+        logsf = scipy_stats.distributions.norm.logsf(w)
         return super().execute_statistic(rvs, log_cdf=logcdf, log_sf=logsf, w=w)
 
     @override
@@ -804,7 +804,7 @@ class ZhangWuANormalityGofStatistic(AbstractNormalityGofStatistic):
         if n > 3:
             phiz = np.zeros(n)
             mean_x = np.mean(rvs)
-            var_x = np.var(rvs)
+            var_x = np.var(rvs, ddof=1)
             sd_x = np.sqrt(var_x)
             for i in range(n):
                 phiz[i] = scipy_stats.norm.cdf((rvs[i] - mean_x) / sd_x)
