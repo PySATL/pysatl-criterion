@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 
 import numpy as np
 from numpy import histogram
@@ -7,7 +7,8 @@ from scipy.special import gamma
 from scipy.stats import distributions
 from typing_extensions import override
 
-from pysatl_criterion.common import (
+from pysatl_criterion.core.weibull import generate_weibull_cdf
+from pysatl_criterion.gof.common import (
     ADStatistic,
     Chi2Statistic,
     CrammerVonMisesStatistic,
@@ -15,8 +16,7 @@ from pysatl_criterion.common import (
     LillieforsTest,
     MinToshiyukiStatistic,
 )
-from pysatl_criterion.core.weibull import generate_weibull_cdf
-from pysatl_criterion.goodness_of_fit import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.gof.goodness_of_fit import AbstractGoodnessOfFitStatistic
 
 
 class AbstractWeibullGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
@@ -38,7 +38,7 @@ class MinToshiyukiWeibullGofStatistic(AbstractWeibullGofStatistic, MinToshiyukiS
         return f"MT_{AbstractWeibullGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs):
+    def execute_statistic(self, rvs, **kwargs):
         rvs = np.sort(rvs)
         cdf_vals = generate_weibull_cdf(rvs, a=self.a, k=self.k)
         return super().execute_statistic(cdf_vals)
@@ -80,10 +80,11 @@ class CrammerVonMisesWeibullGofStatistic(AbstractWeibullGofStatistic, CrammerVon
     def code():
         return f"CVM_{AbstractWeibullGofStatistic.code()}"
 
+    @override
     def execute_statistic(self, rvs):
         rvs_sorted = np.sort(rvs)
         cdf_vals = generate_weibull_cdf(rvs_sorted, a=self.a, k=self.k)
-        return super().execute_statistic(rvs, cdf_vals)
+        return super()._execute_statistic(rvs, cdf_vals)
 
 
 class AndersonDarlingWeibullGofStatistic(AbstractWeibullGofStatistic, ADStatistic):
@@ -222,7 +223,7 @@ class RSBWeibullGofStatistic(AbstractWeibullGofStatistic):
         return WPP_statistic
 
 
-class NormalizeSpaceWeibullGofStatistic(AbstractWeibullGofStatistic):
+class NormalizeSpaceWeibullGofStatistic(AbstractWeibullGofStatistic, ABC):
     @staticmethod
     def GoFNS(t, n, m):
         res = np.zeros(m)
@@ -244,7 +245,7 @@ class NormalizeSpaceWeibullGofStatistic(AbstractWeibullGofStatistic):
             )
         return res
 
-    @override
+    @abstractmethod
     def execute_statistic(self, rvs, type_):
         m = len(rvs)
         s = 0  # can be defined
@@ -362,7 +363,7 @@ class MSFWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
         return super().execute_statistic(rvs, self.code())
 
 
-class WPPWeibullGofStatistic(AbstractWeibullGofStatistic):
+class WPPWeibullGofStatistic(AbstractWeibullGofStatistic, ABC):
     @staticmethod
     def MLEst(x):
         if np.min(x) <= 0:
@@ -390,7 +391,7 @@ class WPPWeibullGofStatistic(AbstractWeibullGofStatistic):
     # Family of the test statistics based on the probability plot and
     # shapiro-Wilk type tests
     @staticmethod
-    @override
+    @abstractmethod
     def execute_statistic(x, type_):
         n = len(x)
         lv = np.log(x)
@@ -645,12 +646,13 @@ class KullbackLeiblerWeibullGofStatistic(AbstractWeibullGofStatistic):
         return KL_statistic
 
 
-class LaplaceTransformWeibullGofStatistic(AbstractWeibullGofStatistic):
+class LaplaceTransformWeibullGofStatistic(AbstractWeibullGofStatistic, ABC):
     """
     Family of the test statistics based on the Laplace transform
     Recommended to use for small data
     """
 
+    @abstractmethod
     def execute_statistic(self, rvs, m=100, a=-5, _type="LT3_WEIBULL"):
         n = len(rvs)
 

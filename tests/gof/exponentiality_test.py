@@ -18,7 +18,7 @@ from pysatl_criterion import (
     WeExponentialityGofStatistic,
     WongWongExponentialityGofStatistic,
 )
-from pysatl_criterion.exponent import (
+from pysatl_criterion.gof.exponent import (
     AbstractExponentialityGofStatistic,
     CoxOakesExponentialityGofStatistic,
     CramerVonMisesExponentialityGofStatistic,

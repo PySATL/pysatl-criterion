@@ -5,10 +5,11 @@ import scipy.stats as scipy_stats
 from scipy import special
 from typing_extensions import override
 
-from pysatl_criterion.models import AbstractStatistic
+from pysatl_criterion.gof.goodness_of_fit import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.model import IStatistic
 
 
-class KSStatistic(AbstractStatistic, ABC):
+class KSStatistic(AbstractGoodnessOfFitStatistic, ABC):
     def __init__(self, alternative="two-sided", mode="auto"):
         self.alternative = alternative
         if mode == "auto":  # Always select exact
@@ -62,10 +63,6 @@ class KSStatistic(AbstractStatistic, ABC):
             # d_sign = -1
         return D
 
-    @override
-    def calculate_critical_value(self, rvs_size, sl):
-        return scipy_stats.distributions.kstwo.ppf(1 - sl, rvs_size)
-
     @staticmethod
     def __compute_dplus(cdf_vals, rvs):
         n = len(cdf_vals)
@@ -83,7 +80,7 @@ class KSStatistic(AbstractStatistic, ABC):
         return d_minus[a_max], loc_max
 
 
-class ADStatistic(AbstractStatistic):
+class ADStatistic(IStatistic):
     @staticmethod
     @override
     def code():
@@ -116,14 +113,13 @@ class LillieforsTest(KSStatistic, ABC):
         return super().execute_statistic(z, cdf_vals)
 
 
-class CrammerVonMisesStatistic(AbstractStatistic, ABC):
+class CrammerVonMisesStatistic(IStatistic, ABC):
     @staticmethod
     @override
     def code():
         return "CVM"
 
-    @override
-    def execute_statistic(self, rvs, cdf_vals):
+    def _execute_statistic(self, rvs, cdf_vals):
         n = len(rvs)
 
         u = (2 * np.arange(1, n + 1) - 1) / (2 * n)
@@ -132,7 +128,7 @@ class CrammerVonMisesStatistic(AbstractStatistic, ABC):
         return w
 
 
-class Chi2Statistic(AbstractStatistic, ABC):
+class Chi2Statistic(IStatistic, ABC):
     @staticmethod
     def _m_sum(a, *, axis, preserve_mask, xp):
         if np.ma.isMaskedArray(a):
@@ -167,7 +163,7 @@ class Chi2Statistic(AbstractStatistic, ABC):
         return scipy_stats.distributions.chi2.ppf(1 - sl, rvs_size - 1)
 
 
-class MinToshiyukiStatistic(AbstractStatistic, ABC):
+class MinToshiyukiStatistic(IStatistic, ABC):
     @override
     def execute_statistic(self, cdf_vals):
         n = len(cdf_vals)

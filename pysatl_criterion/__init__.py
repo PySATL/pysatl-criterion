@@ -1,4 +1,4 @@
-from pysatl_criterion.common import (
+from pysatl_criterion.gof.common import (
     ADStatistic,
     Chi2Statistic,
     CrammerVonMisesStatistic,
@@ -6,7 +6,7 @@ from pysatl_criterion.common import (
     LillieforsTest,
     MinToshiyukiStatistic,
 )
-from pysatl_criterion.exponent import (
+from pysatl_criterion.gof.exponent import (
     AbstractExponentialityGofStatistic,
     AhsanullahExponentialityGofStatistic,
     AtkinsonExponentialityGofStatistic,
@@ -33,8 +33,8 @@ from pysatl_criterion.exponent import (
     WeExponentialityGofStatistic,
     WongWongExponentialityGofStatistic,
 )
-from pysatl_criterion.models import AbstractStatistic
-from pysatl_criterion.weibull import (
+from pysatl_criterion.model import IStatistic
+from pysatl_criterion.gof.weibull import (
     AbstractWeibullGofStatistic,
     AndersonDarlingWeibullGofStatistic,
     Chi2PearsonWeibullGofStatistic,
@@ -59,7 +59,7 @@ from pysatl_criterion.weibull import (
 
 
 __all__ = [
-    "AbstractStatistic",
+    "IStatistic",
     "ADStatistic",
     "Chi2Statistic",
     "CrammerVonMisesStatistic",
