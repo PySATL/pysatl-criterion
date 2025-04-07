@@ -24,6 +24,7 @@ You're all set! You can now import and use the statistical tests in your Python 
 
 ## PySATL Criterion module usage example:
 
+Statistic usage example
 ```python
 # import needed criterion from pysatl_criterion
 from pysatl_criterion.gof.normal import KolmogorovSmirnovNormalityGofStatistic
@@ -41,6 +42,33 @@ statistic = criterion.execute_statistic(x)
 print(f"Statistic result: {statistic}")
 # output:
 # Statistic result: 0.539827837277029
+```
+
+Criterion usage example
+```python
+# import needed criterion from pysatl_criterion
+from pysatl_criterion.criterion import UniformityCriterion
+from pysatl_criterion.hypothesis import DistributionUniformHypothesis, HypothesisType
+from pysatl_criterion.uniformity.uniformity import KolmogorovSmirnovUniformityStatistic
+
+# define hypothesis
+hypothesis = DistributionUniformHypothesis(HypothesisType.TWO_SIDED)
+# define statistic
+statistic = KolmogorovSmirnovUniformityStatistic()
+# define criterion
+criterion = UniformityCriterion(statistic, hypothesis)
+
+# initialize test data
+x = [0.1, 0.7, 0.5, 0.3]
+y = [0.2, 0.5, 0.7, 0.8]
+
+# then run algorithm
+result = criterion.test(0.05, x, y)
+
+# print the results
+print(result)
+# output:
+# CriterionResult(statistic=np.float64(0.25), result=np.False_, critical_value=(0.26875, 0.98125), statistic_code='KS_UNIFORMITY')
 ```
 
 ## Documentation
