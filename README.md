@@ -77,7 +77,7 @@ in the bug reports.
 Feel like the PySATL criterion lib is missing a feature? We welcome your pull requests!
 
 Please read the
-[Contributing document](https://github.com/PySATL/pysatl-criterion/blob/develop/CONTRIBUTING.md)
+[Contributing document](https://github.com/PySATL/pysatl-criterion/blob/main/CONTRIBUTING.md)
 to understand the requirements before sending your pull-requests.
 
 Coding is not a necessity to contribute - maybe start with improving the documentation?
