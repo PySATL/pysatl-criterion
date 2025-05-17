@@ -18,6 +18,8 @@ from pysatl_criterion.normal import (
     FilliNormalityGofStatistic,
     GlenLeemisBarrNormalityGofStatistic,
     GMGNormalityGofStatistic,
+    GraphAverageDegreeNormalityGofStatistic,
+    GraphConnectedComponentsNormalityGofStatistic,
     GraphEdgesNumberNormalityGofStatistic,
     GraphMaxDegreeNormalityGofStatistic,
     Hosking1NormalityGofStatistic,
@@ -817,6 +819,44 @@ def test_graph_max_degree_normality_criterion(data, result):
 
 def test_graph_max_degree_normality_criterion_code():
     assert "MaxDegree_NORMALITY_GOODNESS_OF_FIT" == GraphMaxDegreeNormalityGofStatistic().code()
+
+
+@pytest.mark.parametrize(
+    ("data", "result"),
+    [
+        ([0.713, 0.644, 2.625, 0.740, 0.501, 0.185, 0.982, 1.028, 1.152, 0.267], 5.8),
+        ([0.039, 3.036, 0.626, 1.107, 0.139, 1.629, 0.050, 0.118, 0.978, 2.699], 1.4),
+    ],
+)
+def test_mean_vertex_degree_criterion(data, result):
+    statistic = GraphAverageDegreeNormalityGofStatistic().execute_statistic(data)
+    assert result == pytest.approx(statistic, 0.00001)
+
+
+def test_mean_vertex_degree_criterion_code():
+    assert (
+        "AverageDegree_NORMALITY_GOODNESS_OF_FIT"
+        == GraphAverageDegreeNormalityGofStatistic().code()
+    )
+
+
+@pytest.mark.parametrize(
+    ("data", "result"),
+    [
+        ([0.713, 0.644, 2.625, 0.740, 0.501, 0.185, 0.982, 1.028, 1.152, 0.267], 2),
+        ([0.039, 3.036, 0.626, 1.107, 0.139, 1.629, 0.050, 0.118, 0.978, 2.699], 6),
+    ],
+)
+def test_number_of_components_criterion(data, result):
+    statistic = GraphConnectedComponentsNormalityGofStatistic().execute_statistic(data)
+    assert result == pytest.approx(statistic, 0.00001)
+
+
+def test_number_of_components_criterion_code():
+    assert (
+        "ConnectedComponents_NORMALITY_GOODNESS_OF_FIT"
+        == GraphConnectedComponentsNormalityGofStatistic().code()
+    )
 
 
 @pytest.mark.parametrize(
