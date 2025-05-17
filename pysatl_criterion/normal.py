@@ -9,6 +9,8 @@ from typing_extensions import override
 from pysatl_criterion.common import ADStatistic, KSStatistic, LillieforsTest
 from pysatl_criterion.goodness_of_fit import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.graph_goodness_of_fit import (
+    GraphAverageDegreeTestStatistic,
+    GraphConnectedComponentsTestStatistic,
     GraphEdgesNumberTestStatistic,
     GraphMaxDegreeTestStatistic,
 )
@@ -2060,3 +2062,35 @@ class GraphMaxDegreeNormalityGofStatistic(
         super_class = GraphEdgesNumberTestStatistic
         parent_code = super(super_class, super_class)._compute_dist(rvs)
         return parent_code / np.var(rvs)
+
+
+class GraphAverageDegreeNormalityGofStatistic(
+    AbstractNormalityGofStatistic, GraphAverageDegreeTestStatistic
+):
+    @staticmethod
+    @override
+    def code():
+        return f"AverageDegree_{AbstractNormalityGofStatistic.code()}"
+
+    @staticmethod
+    @override
+    def _compute_dist(rvs):
+        super_class = GraphAverageDegreeTestStatistic
+        parent_dist = super(super_class, super_class)._compute_dist(rvs)
+        return parent_dist / np.var(rvs)
+
+
+class GraphConnectedComponentsNormalityGofStatistic(
+    AbstractNormalityGofStatistic, GraphConnectedComponentsTestStatistic
+):
+    @staticmethod
+    @override
+    def code():
+        return f"ConnectedComponents_{AbstractNormalityGofStatistic.code()}"
+
+    @staticmethod
+    @override
+    def _compute_dist(rvs):
+        super_class = GraphConnectedComponentsTestStatistic
+        parent_dist = super(super_class, super_class)._compute_dist(rvs)
+        return parent_dist / np.var(rvs)
