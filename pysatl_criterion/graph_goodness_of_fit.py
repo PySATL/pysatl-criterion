@@ -1,6 +1,7 @@
 from abc import ABC
 from typing import Union
 
+import numpy as np
 from numpy import float64
 from typing_extensions import override
 
@@ -50,3 +51,33 @@ class GraphMaxDegreeTestStatistic(AbstractGraphTestStatistic, ABC):
     @override
     def get_graph_stat(graph):
         return max(map(len, graph))
+
+
+class GraphAverageDegreeTestStatistic(AbstractGraphTestStatistic, ABC):
+    @staticmethod
+    @override
+    def get_graph_stat(graph):
+        degrees = list(map(len, graph))
+        return np.mean(degrees) if degrees != 0 else 0.0
+
+
+class GraphConnectedComponentsTestStatistic(AbstractGraphTestStatistic, ABC):
+    @staticmethod
+    @override
+    def get_graph_stat(graph):
+        visited = set()
+        components = 0
+
+        def dfs(node):
+            stack = [node]
+            while stack:
+                v = stack.pop()
+                if v not in visited:
+                    visited.add(v)
+                    stack.extend(neighbor for neighbor in graph[v] if neighbor not in visited)
+
+        for node in range(len(graph)):
+            if node not in visited:
+                dfs(node)
+                components += 1
+        return components

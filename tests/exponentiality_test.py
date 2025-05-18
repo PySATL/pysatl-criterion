@@ -28,6 +28,8 @@ from pysatl_criterion.exponent import (
     FroziniExponentialityGofStatistic,
     GiniExponentialityGofStatistic,
     GnedenkoExponentialityGofStatistic,
+    GraphAverageDegreeExponentialityGofStatistic,
+    GraphConnectedComponentsExponentialityGofStatistic,
     GraphEdgesNumberExponentialityGofStatistic,
     GraphMaxDegreeExponentialityGofStatistic,
 )
@@ -201,7 +203,42 @@ def test_gini_exponentiality_criterion_code():
 @pytest.mark.parametrize(
     ("data", "result"),
     [
-        ([0.713, 0.644, 2.625, 0.740, 0.501, 0.185, 0.982, 1.028, 1.152, 0.267], 12),
+        ([0.713, 0.644, 2.625, 0.740, 0.501, 0.185, 0.982, 1.028, 1.152, 0.267], 2.6),
+        ([0.039, 3.036, 0.626, 1.107, 0.139, 1.629, 0.050, 0.118, 0.978, 2.699], 1.4),
+    ],
+)
+def test_mean_vertex_degree_criterion(data, result):
+    statistic = GraphAverageDegreeExponentialityGofStatistic().execute_statistic(data)
+    assert result == pytest.approx(statistic, 0.00001)
+
+
+def test_mean_vertex_degree_criterion_code():
+    assert "AverageDegree_GOODNESS_OF_FIT" == GraphAverageDegreeExponentialityGofStatistic().code()
+
+
+@pytest.mark.parametrize(
+    ("data", "result"),
+    [
+        ([0.713, 0.644, 2.625, 0.740, 0.501, 0.185, 0.982, 1.028, 1.152, 0.267], 2),
+        ([0.039, 3.036, 0.626, 1.107, 0.139, 1.629, 0.050, 0.118, 0.978, 2.699], 6),
+    ],
+)
+def test_number_of_components_criterion(data, result):
+    statistic = GraphConnectedComponentsExponentialityGofStatistic().execute_statistic(data)
+    assert result == pytest.approx(statistic, 0.00001)
+
+
+def test_number_of_components_criterion_code():
+    assert (
+        "ConnectedComponents_GOODNESS_OF_FIT"
+        == GraphConnectedComponentsExponentialityGofStatistic().code()
+    )
+
+
+@pytest.mark.parametrize(
+    ("data", "result"),
+    [
+        ([0.713, 0.644, 2.625, 0.740, 0.501, 0.185, 0.982, 1.028, 1.152, 0.267], 13),
         ([0.039, 3.036, 0.626, 1.107, 0.139, 1.629, 0.050, 0.118, 0.978, 2.699], 7),
     ],
 )
