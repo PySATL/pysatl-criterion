@@ -34,20 +34,48 @@ from pysatl_criterion.statistics.exponent import (
     WongWongExponentialityGofStatistic,
 )
 from pysatl_criterion.statistics.models import AbstractStatistic
-from pysatl_criterion.statistics.normal import LillieforsNormalityGofStatistic, AbstractNormalityGofStatistic, \
-    AndersonDarlingNormalityGofStatistic, BHSNormalityGofStatistic, BonettSeierNormalityGofStatistic, \
-    BontempsMeddahi1NormalityGofStatistic, BontempsMeddahi2NormalityGofStatistic, CabanaCabana1NormalityGofStatistic, \
-    CabanaCabana2NormalityGofStatistic, ChenShapiroNormalityGofStatistic, CoinNormalityGofStatistic, \
-    CramerVonMiseNormalityGofStatistic, DagostinoNormalityGofStatistic, DAPNormalityGofStatistic, \
-    DesgagneLafayeNormalityGofStatistic, DoornikHansenNormalityGofStatistic, EppsPulleyNormalityGofStatistic, \
-    FilliNormalityGofStatistic, GlenLeemisBarrNormalityGofStatistic, GMGNormalityGofStatistic, \
-    Hosking1NormalityGofStatistic, Hosking2NormalityGofStatistic, Hosking3NormalityGofStatistic, \
-    Hosking4NormalityGofStatistic, JBNormalityGofStatistic, KolmogorovSmirnovNormalityGofStatistic, \
-    KurtosisNormalityGofStatistic, LooneyGulledgeNormalityGofStatistic, MartinezIglewiczNormalityGofStatistic, \
-    RobustJarqueBeraNormalityGofStatistic, RyanJoinerNormalityGofStatistic, SFNormalityGofStatistic, \
-    SkewNormalityGofStatistic, SpiegelhalterNormalityGofStatistic, ShapiroWilkNormalityGofStatistic, \
-    SWRGNormalityGofStatistic, ZhangQStarNormalityGofStatistic, ZhangQNormalityGofStatistic, \
-    ZhangWuCNormalityGofStatistic, ZhangWuANormalityGofStatistic
+from pysatl_criterion.statistics.normal import (
+    AbstractNormalityGofStatistic,
+    AndersonDarlingNormalityGofStatistic,
+    BHSNormalityGofStatistic,
+    BonettSeierNormalityGofStatistic,
+    BontempsMeddahi1NormalityGofStatistic,
+    BontempsMeddahi2NormalityGofStatistic,
+    CabanaCabana1NormalityGofStatistic,
+    CabanaCabana2NormalityGofStatistic,
+    ChenShapiroNormalityGofStatistic,
+    CoinNormalityGofStatistic,
+    CramerVonMiseNormalityGofStatistic,
+    DagostinoNormalityGofStatistic,
+    DAPNormalityGofStatistic,
+    DesgagneLafayeNormalityGofStatistic,
+    DoornikHansenNormalityGofStatistic,
+    EppsPulleyNormalityGofStatistic,
+    FilliNormalityGofStatistic,
+    GlenLeemisBarrNormalityGofStatistic,
+    GMGNormalityGofStatistic,
+    Hosking1NormalityGofStatistic,
+    Hosking2NormalityGofStatistic,
+    Hosking3NormalityGofStatistic,
+    Hosking4NormalityGofStatistic,
+    JBNormalityGofStatistic,
+    KolmogorovSmirnovNormalityGofStatistic,
+    KurtosisNormalityGofStatistic,
+    LillieforsNormalityGofStatistic,
+    LooneyGulledgeNormalityGofStatistic,
+    MartinezIglewiczNormalityGofStatistic,
+    RobustJarqueBeraNormalityGofStatistic,
+    RyanJoinerNormalityGofStatistic,
+    SFNormalityGofStatistic,
+    ShapiroWilkNormalityGofStatistic,
+    SkewNormalityGofStatistic,
+    SpiegelhalterNormalityGofStatistic,
+    SWRGNormalityGofStatistic,
+    ZhangQNormalityGofStatistic,
+    ZhangQStarNormalityGofStatistic,
+    ZhangWuANormalityGofStatistic,
+    ZhangWuCNormalityGofStatistic,
+)
 from pysatl_criterion.statistics.weibull import (
     AbstractWeibullGofStatistic,
     AndersonDarlingWeibullGofStatistic,

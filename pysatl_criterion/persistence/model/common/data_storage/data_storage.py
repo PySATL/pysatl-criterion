@@ -9,19 +9,24 @@ class DataModel:
     """
     Data model for data storage.
     """
+
     pass
+
 
 @dataclass
 class DataQuery:
     """
     Query for data storage.
     """
+
     pass
+
 
 class IDataStorage(IStorage, Protocol):
     """
     Data storage interface.
     """
+
     def get_data(self, query: DataQuery) -> DataModel:
         """
         Get data from data storage.

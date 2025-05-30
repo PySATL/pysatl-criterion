@@ -1,27 +1,32 @@
-from dataclasses import dataclass
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+
 
 @dataclass
 class LimitDistributionModel:
     """
     Limit distribution model for storage.
     """
+
     experiment_id: int
     criterion_code: str
-    criterion_parameters: [float]
+    criterion_parameters: list[float]
     sample_size: int
     monte_carlo_count: int
-    results_statistics: [float]
+    results_statistics: list[float]
+
 
 @dataclass
 class LimitDistributionQuery:
     """
     Query for limit distribution storage.
     """
+
     criterion_code: str
-    criterion_parameters: [float]
+    criterion_parameters: list[float]
     sample_size: int
     monte_carlo_count: int
+
 
 class ILimitDistributionStorage(ABC):
     @abstractmethod

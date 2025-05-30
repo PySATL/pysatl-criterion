@@ -1,8 +1,21 @@
 import pytest as pytest
 
 from pysatl_criterion import (
+    AbstractExponentialityGofStatistic,
     AhsanullahExponentialityGofStatistic,
     AtkinsonExponentialityGofStatistic,
+    CoxOakesExponentialityGofStatistic,
+    CramerVonMisesExponentialityGofStatistic,
+    DeshpandeExponentialityGofStatistic,
+    EppsPulleyExponentialityGofStatistic,
+    EpsteinExponentialityGofStatistic,
+    FroziniExponentialityGofStatistic,
+    GiniExponentialityGofStatistic,
+    GnedenkoExponentialityGofStatistic,
+    GraphAverageDegreeExponentialityGofStatistic,
+    GraphConnectedComponentsExponentialityGofStatistic,
+    GraphEdgesNumberExponentialityGofStatistic,
+    GraphMaxDegreeExponentialityGofStatistic,
     HarrisExponentialityGofStatistic,
     HegazyGreen1ExponentialityGofStatistic,
     HegazyGreen2ExponentialityGofStatistic,
@@ -17,21 +30,6 @@ from pysatl_criterion import (
     ShapiroWilkExponentialityGofStatistic,
     WeExponentialityGofStatistic,
     WongWongExponentialityGofStatistic,
-)
-from pysatl_criterion import (
-    AbstractExponentialityGofStatistic,
-    CoxOakesExponentialityGofStatistic,
-    CramerVonMisesExponentialityGofStatistic,
-    DeshpandeExponentialityGofStatistic,
-    EppsPulleyExponentialityGofStatistic,
-    EpsteinExponentialityGofStatistic,
-    FroziniExponentialityGofStatistic,
-    GiniExponentialityGofStatistic,
-    GnedenkoExponentialityGofStatistic,
-    GraphAverageDegreeExponentialityGofStatistic,
-    GraphConnectedComponentsExponentialityGofStatistic,
-    GraphEdgesNumberExponentialityGofStatistic,
-    GraphMaxDegreeExponentialityGofStatistic,
 )
 
 
