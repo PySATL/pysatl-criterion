@@ -26,8 +26,7 @@ You're all set! You can now import and use the statistical tests in your Python 
 
 ```python
 # import needed criterion from pysatl_criterion
-from pysatl_criterion.normal import KolmogorovSmirnovNormalityGofStatistic
-
+from pysatl_criterion import KolmogorovSmirnovNormalityGofStatistic
 
 # make a criterion object
 criterion = KolmogorovSmirnovNormalityGofStatistic(mean=0, var=1)
