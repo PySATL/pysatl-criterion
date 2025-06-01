@@ -6,13 +6,7 @@ class IStorage(Protocol):
     Storage interface.
     """
 
-    def migrate(self):
-        """
-        Migrate storage.
-        """
-        pass
-
-    def init(self):
+    def init(self) -> None:
         """
         Initialize storage.
         """

@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
+from pysatl_criterion.persistence.model.common.data_storage.data_storage import DataModel, DataQuery
+
 
 @dataclass
-class LimitDistributionModel:
+class LimitDistributionModel(DataModel):
     """
     Limit distribution model for storage.
     """
@@ -17,7 +19,7 @@ class LimitDistributionModel:
 
 
 @dataclass
-class LimitDistributionQuery:
+class LimitDistributionQuery(DataQuery):
     """
     Query for limit distribution storage.
     """
