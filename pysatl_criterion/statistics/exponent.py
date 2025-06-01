@@ -6,9 +6,9 @@ import scipy.special as scipy_special
 import scipy.stats as scipy_stats
 from typing_extensions import override
 
-from pysatl_criterion import KSStatistic
-from pysatl_criterion.goodness_of_fit import AbstractGoodnessOfFitStatistic
-from pysatl_criterion.graph_goodness_of_fit import (
+from pysatl_criterion.statistics.common import KSStatistic
+from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.graph_goodness_of_fit import (
     GraphAverageDegreeTestStatistic,
     GraphConnectedComponentsTestStatistic,
     GraphEdgesNumberTestStatistic,
