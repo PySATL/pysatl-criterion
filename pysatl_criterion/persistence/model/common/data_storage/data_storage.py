@@ -1,7 +1,17 @@
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, TypeVar
 
-from pysatl_criterion.persistence.model.common.storage import IStorage
+
+class IStorage(Protocol):
+    """
+    Storage interface.
+    """
+
+    def init(self) -> None:
+        """
+        Initialize storage.
+        """
+        pass
 
 
 @dataclass
@@ -22,12 +32,16 @@ class DataQuery:
     pass
 
 
-class IDataStorage(IStorage, Protocol):
+M = TypeVar("M", bound=DataModel)
+Q = TypeVar("Q", contravariant=True, bound=DataQuery)
+
+
+class IDataStorage(IStorage, Protocol[M, Q]):
     """
     Data storage interface.
     """
 
-    def get_data(self, query: DataQuery) -> DataModel:
+    def get_data(self, query: Q) -> M:
         """
         Get data from data storage.
 
@@ -37,7 +51,7 @@ class IDataStorage(IStorage, Protocol):
         """
         pass
 
-    def insert_data(self, data: DataModel) -> None:
+    def insert_data(self, data: M) -> None:
         """
         Insert data to data storage.
 

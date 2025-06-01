@@ -1,15 +1,15 @@
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Protocol
 
-from pysatl_criterion.persistence.model.common.data_storage.data_storage import DataModel, DataQuery
+from pysatl_criterion.persistence.model.common.data_storage.data_storage import (
+    DataModel,
+    DataQuery,
+    IDataStorage,
+)
 
 
 @dataclass
 class LimitDistributionModel(DataModel):
-    """
-    Limit distribution model for storage.
-    """
-
     experiment_id: int
     criterion_code: str
     criterion_parameters: list[float]
@@ -20,35 +20,17 @@ class LimitDistributionModel(DataModel):
 
 @dataclass
 class LimitDistributionQuery(DataQuery):
-    """
-    Query for limit distribution storage.
-    """
-
     criterion_code: str
     criterion_parameters: list[float]
     sample_size: int
     monte_carlo_count: int
 
 
-class ILimitDistributionStorage(ABC):
-    @abstractmethod
-    def get_data(self, query: LimitDistributionQuery) -> LimitDistributionModel:
-        """
-        Get limit distribution from storage.
+class ILimitDistributionStorage(
+    IDataStorage[LimitDistributionModel, LimitDistributionQuery], Protocol
+):
+    """
+    Limit distribution storage interface.
+    """
 
-        :param query: query for storage
-
-        :return: limit distribution
-        """
-        pass
-
-    @abstractmethod
-    def insert_data(self, data: LimitDistributionModel) -> None:
-        """
-        Insert limit distribution to storage.
-
-        :param data: data to insert
-
-        :return: None
-        """
-        pass
+    pass
