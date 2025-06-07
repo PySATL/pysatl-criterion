@@ -293,8 +293,7 @@ class KurtosisNormalityGofStatistic(AbstractNormalityGofStatistic):
         n = len(a)
         if n < 5:
             raise ValueError(
-                f"kurtosistest requires at least 5 observations; {int(n)} observations"
-                " were given."
+                f"kurtosistest requires at least 5 observations; {int(n)} observations were given."
             )
         # if n < 20:
         #    warnings.warn("kurtosistest only valid for n>=20 ... continuing "
