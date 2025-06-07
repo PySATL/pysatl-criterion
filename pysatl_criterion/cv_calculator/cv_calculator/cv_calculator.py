@@ -1,8 +1,10 @@
 import numpy as np
 import scipy.stats as scipy_stats
 
-from pysatl_criterion.persistence.model.limit_distribution.limit_distribution import ILimitDistributionStorage, \
-    CriticalValueQuery
+from pysatl_criterion.persistence.model.limit_distribution.limit_distribution import (
+    CriticalValueQuery,
+    ILimitDistributionStorage,
+)
 
 
 class CVCalculator:
@@ -11,6 +13,7 @@ class CVCalculator:
 
     :param limit_distribution_storage: limit distribution storage
     """
+
     def __init__(self, limit_distribution_storage: ILimitDistributionStorage):
         self.limit_distribution_storage = limit_distribution_storage
 
@@ -29,7 +32,9 @@ class CVCalculator:
 
         limit_distribution_from_db = self.limit_distribution_storage.get_data_for_cv(query)
         if limit_distribution_from_db is None:
-            raise ValueError("Limit distribution for given criterion and sample size does not exist.")
+            raise ValueError(
+                "Limit distribution for given criterion and sample size does not exist."
+            )
 
         statistics_values = limit_distribution_from_db.results_statistics
 
@@ -40,10 +45,7 @@ class CVCalculator:
         return critical_value
 
     def calculate_two_tailed_critical_values(
-            self,
-            criterion_code: str,
-            sample_size: int,
-            sl: float
+        self, criterion_code: str, sample_size: int, sl: float
     ) -> tuple[float, float]:
         """
         Calculate critical values for two-tailed criterion.
@@ -59,7 +61,9 @@ class CVCalculator:
 
         limit_distribution_from_db = self.limit_distribution_storage.get_data_for_cv(query)
         if limit_distribution_from_db is None:
-            raise ValueError("Limit distribution for given criterion and sample size does not exist.")
+            raise ValueError(
+                "Limit distribution for given criterion and sample size does not exist."
+            )
 
         statistics_values = limit_distribution_from_db.results_statistics
 

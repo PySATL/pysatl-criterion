@@ -1,5 +1,9 @@
-from pysatl_criterion.persistence.model.limit_distribution.limit_distribution import LimitDistributionQuery, \
-    LimitDistributionModel, ILimitDistributionStorage, CriticalValueQuery
+from pysatl_criterion.persistence.model.limit_distribution.limit_distribution import (
+    CriticalValueQuery,
+    ILimitDistributionStorage,
+    LimitDistributionModel,
+    LimitDistributionQuery,
+)
 
 
 class SQLiteLimitDistributionStorage(ILimitDistributionStorage):

@@ -1,5 +1,7 @@
 from pysatl_criterion.cv_calculator.cv_calculator.cv_calculator import CVCalculator
-from pysatl_criterion.persistence.limit_distribution.sqlite.sqlite import SQLiteLimitDistributionStorage
+from pysatl_criterion.persistence.limit_distribution.sqlite.sqlite import (
+    SQLiteLimitDistributionStorage,
+)
 from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
 
 
@@ -10,11 +12,12 @@ class GoodnessOfFitTest:
     :param statistics: statistics.
     :param significance_level: significance level.
     """
+
     def __init__(
-            self,
-            statistics: AbstractGoodnessOfFitStatistic,
-            significance_level: float,
-            db_connection_string: str = "sqlite:///limit_distributions.sqlite",
+        self,
+        statistics: AbstractGoodnessOfFitStatistic,
+        significance_level: float,
+        db_connection_string: str = "sqlite:///limit_distributions.sqlite",
     ):
         self.statistics = statistics
         self.significance_level = significance_level
@@ -38,8 +41,10 @@ class GoodnessOfFitTest:
         criterion_code = self.statistics.code()
         statistics_value = self.statistics.execute_statistic(data)
         if self.statistics.two_tailed:
-            critical_value_left, critical_value_right = cv_calculator.calculate_two_tailed_critical_values(
-                criterion_code, data_size, self.significance_level
+            critical_value_left, critical_value_right = (
+                cv_calculator.calculate_two_tailed_critical_values(
+                    criterion_code, data_size, self.significance_level
+                )
             )
             if critical_value_left <= statistics_value <= critical_value_right:
                 return True
