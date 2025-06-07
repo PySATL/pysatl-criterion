@@ -255,7 +255,7 @@ class SkewNormalityGofStatistic(AbstractNormalityGofStatistic):
         n = len(a)
         if n < 8:
             raise ValueError(
-                "skew test is not valid with less than 8 samples; %i samples were given." % int(n)
+                f"skew test is not valid with less than 8 samples; {int(n)} samples were given."
             )
         b2 = scipy_stats.skew(a, axis=0)
         y = b2 * math.sqrt(((n + 1) * (n + 3)) / (6.0 * (n - 2)))
@@ -293,8 +293,8 @@ class KurtosisNormalityGofStatistic(AbstractNormalityGofStatistic):
         n = len(a)
         if n < 5:
             raise ValueError(
-                "kurtosistest requires at least 5 observations; %i observations"
-                " were given." % int(n)
+                f"kurtosistest requires at least 5 observations; {int(n)} observations"
+                " were given."
             )
         # if n < 20:
         #    warnings.warn("kurtosistest only valid for n>=20 ... continuing "
