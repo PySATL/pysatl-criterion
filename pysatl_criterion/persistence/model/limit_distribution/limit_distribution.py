@@ -26,6 +26,12 @@ class LimitDistributionQuery(DataQuery):
     monte_carlo_count: int
 
 
+@dataclass
+class CriticalValueQuery(DataQuery):
+    criterion_code: str
+    sample_size: int
+
+
 class ILimitDistributionStorage(
     IDataStorage[LimitDistributionModel, LimitDistributionQuery], Protocol
 ):
@@ -33,4 +39,13 @@ class ILimitDistributionStorage(
     Limit distribution storage interface.
     """
 
-    pass
+    def get_data_for_cv(self, query: CriticalValueQuery) -> LimitDistributionModel | None:
+        """
+        Get limit distribution data for critical value calculation.
+
+        :param query: calculation parameters.
+
+        :return: limit distribution data.
+        """
+
+        pass

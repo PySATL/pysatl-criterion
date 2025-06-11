@@ -41,7 +41,7 @@ class IDataStorage(IStorage, Protocol[M, Q]):
     Data storage interface.
     """
 
-    def get_data(self, query: Q) -> M:
+    def get_data(self, query: Q) -> M | None:
         """
         Get data from data storage.
 
@@ -60,3 +60,12 @@ class IDataStorage(IStorage, Protocol[M, Q]):
         :return: None
         """
         pass
+
+    def delete_data(self, query: Q) -> None:
+        """
+        Delete data from data storage.
+
+        :param query: data to delete
+
+        :return: None
+        """
