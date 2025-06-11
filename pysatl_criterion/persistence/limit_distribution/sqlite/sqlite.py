@@ -3,8 +3,12 @@ import sqlite3
 from pathlib import Path
 from sqlite3 import Connection
 
-from pysatl_criterion.persistence.model.limit_distribution.limit_distribution import LimitDistributionModel, \
-    LimitDistributionQuery, CriticalValueQuery, ILimitDistributionStorage
+from pysatl_criterion.persistence.model.limit_distribution.limit_distribution import (
+    CriticalValueQuery,
+    ILimitDistributionStorage,
+    LimitDistributionModel,
+    LimitDistributionQuery,
+)
 
 
 class SQLiteLimitDistributionStorage(ILimitDistributionStorage):
@@ -37,13 +41,15 @@ class SQLiteLimitDistributionStorage(ILimitDistributionStorage):
                 sample_size INTEGER NOT NULL,
                 monte_carlo_count INTEGER NOT NULL,
                 results_statistics TEXT NOT NULL,
-                UNIQUE(experiment_id, criterion_code, criterion_parameters, sample_size, monte_carlo_count)
+                UNIQUE(
+                experiment_id, criterion_code, criterion_parameters, sample_size, monte_carlo_count
+                )
             )
             """)
 
             # Index for critical value queries
             self.conn.execute("""
-            CREATE INDEX IF NOT EXISTS idx_cv_queries 
+            CREATE INDEX IF NOT EXISTS idx_cv_queries
             ON limit_distributions (criterion_code, sample_size)
             """)
 
@@ -85,28 +91,29 @@ class SQLiteLimitDistributionStorage(ILimitDistributionStorage):
         values = list(row_data.values())
 
         with conn:
-            conn.execute(f"""
+            conn.execute(
+                f"""
                 INSERT OR REPLACE INTO limit_distributions ({columns})
                 VALUES ({placeholders})
-            """, values)
+            """,
+                values,
+            )
 
     def get_data(self, query: LimitDistributionQuery) -> LimitDistributionModel | None:
         """Get specific limit distribution data."""
         conn = self._get_connection()
         params_json = json.dumps(query.criterion_parameters)
 
-        cursor = conn.execute("""
+        cursor = conn.execute(
+            """
             SELECT * FROM limit_distributions
             WHERE criterion_code = ?
             AND criterion_parameters = ?
             AND sample_size = ?
             AND monte_carlo_count = ?
-        """, (
-            query.criterion_code,
-            params_json,
-            query.sample_size,
-            query.monte_carlo_count
-        ))
+        """,
+            (query.criterion_code, params_json, query.sample_size, query.monte_carlo_count),
+        )
 
         row = cursor.fetchone()
         if not row:
@@ -121,37 +128,36 @@ class SQLiteLimitDistributionStorage(ILimitDistributionStorage):
         params_json = json.dumps(query.criterion_parameters)
 
         with conn:
-            conn.execute("""
+            conn.execute(
+                """
                 DELETE FROM limit_distributions
                 WHERE criterion_code = ?
                 AND criterion_parameters = ?
                 AND sample_size = ?
                 AND monte_carlo_count = ?
-            """, (
-                query.criterion_code,
-                params_json,
-                query.sample_size,
-                query.monte_carlo_count
-            ))
+            """,
+                (query.criterion_code, params_json, query.sample_size, query.monte_carlo_count),
+            )
 
     def get_data_for_cv(self, query: CriticalValueQuery) -> LimitDistributionModel | None:
         """
         Get limit distribution data for critical value calculation.
 
-        Returns the most complete dataset (highest monte_carlo_count) for the criterion and sample size.
+        Returns the most complete dataset (highest monte_carlo_count)
+        for the criterion and sample size.
         """
         conn = self._get_connection()
 
-        cursor = conn.execute("""
+        cursor = conn.execute(
+            """
             SELECT * FROM limit_distributions
             WHERE criterion_code = ?
             AND sample_size = ?
             ORDER BY monte_carlo_count DESC
             LIMIT 1
-        """, (
-            query.criterion_code,
-            query.sample_size
-        ))
+        """,
+            (query.criterion_code, query.sample_size),
+        )
 
         row = cursor.fetchone()
         if not row:
