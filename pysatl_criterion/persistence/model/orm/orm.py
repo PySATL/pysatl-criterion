@@ -1,21 +1,19 @@
 import json
 
-from pysatl_criterion.persistence.model.limit_distribution.limit_distribution import LimitDistributionModel
+from sqlalchemy import PrimaryKeyConstraint, Text
+from sqlalchemy.orm import Mapped, declarative_base, mapped_column
 
-from sqlalchemy.orm import declarative_base, Mapped, mapped_column
-
-from sqlalchemy import (
-    Text,
-    UniqueConstraint,
+from pysatl_criterion.persistence.model.limit_distribution.limit_distribution import (
+    LimitDistributionModel,
 )
+
 
 Base = declarative_base()
 
 
-class LimitDistributionORM(Base):
-    __tablename__ = 'limit_distributions'
+class LimitDistributionORM(Base):  # type: ignore
+    __tablename__ = "limit_distributions"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     experiment_id: Mapped[int]
     criterion_code: Mapped[str] = mapped_column(Text)
     criterion_parameters: Mapped[str] = mapped_column(Text)
@@ -24,7 +22,7 @@ class LimitDistributionORM(Base):
     results_statistics: Mapped[str] = mapped_column(Text)
 
     __table_args__ = (
-        UniqueConstraint(
+        PrimaryKeyConstraint(
             "experiment_id",
             "criterion_code",
             "criterion_parameters",

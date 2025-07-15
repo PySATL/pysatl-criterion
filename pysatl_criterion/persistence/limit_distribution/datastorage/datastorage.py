@@ -1,20 +1,14 @@
 import json
 
-from sqlalchemy import (
-    create_engine,
-    select,
-    desc,
-)
-
+from sqlalchemy import create_engine, desc, select
 from sqlalchemy.orm import sessionmaker
 
 from pysatl_criterion.persistence.model.limit_distribution.limit_distribution import (
+    CriticalValueQuery,
     ILimitDistributionStorage,
     LimitDistributionModel,
     LimitDistributionQuery,
-    CriticalValueQuery,
 )
-
 from pysatl_criterion.persistence.model.orm.orm import Base, LimitDistributionORM
 
 
@@ -82,11 +76,13 @@ class SQLAlchemyLimitDistributionStorage(ILimitDistributionStorage):
 
     def get_data_for_cv(self, query: CriticalValueQuery) -> LimitDistributionModel | None:
         """
-        Retrieve limit distribution data for critical value calculation based on the provided query parameters.
+        Retrieve limit distribution data for critical value calculation \
+        based on the provided query parameters.
 
         :param query: CriticalValueQuery instance containing the search criteria.
 
-        :return: LimitDistributionModel instance with the highest monte_carlo_count for the given criterion_code and sample_size,
+        :return: LimitDistributionModel instance with the highest monte_carlo_count \
+        for the given criterion_code and sample_size,
         """
         with self.Session() as session:
             stmt = (
