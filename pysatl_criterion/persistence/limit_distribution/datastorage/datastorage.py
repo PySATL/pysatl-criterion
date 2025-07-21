@@ -23,7 +23,6 @@ class SQLAlchemyLimitDistributionStorage(ILimitDistributionStorage):
 
     def init(self) -> None:
         """Create all tables."""
-        # Base.metadata.drop_all(self.engine)
         Base.metadata.create_all(self.engine)
 
     def insert_data(self, data: LimitDistributionModel) -> None:
