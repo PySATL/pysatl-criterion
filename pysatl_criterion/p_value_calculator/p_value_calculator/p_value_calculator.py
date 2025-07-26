@@ -6,6 +6,7 @@ from pysatl_criterion.persistence.limit_distribution.sqlite.sqlite import (
 from pysatl_criterion.persistence.model.limit_distribution.limit_distribution import (
     CriticalValueQuery,
 )
+from pysatl_criterion.statistics.models import HypothesisType
 
 
 class PValueCalculator:
@@ -23,7 +24,7 @@ class PValueCalculator:
         criterion_code: str,
         sample_size: int,
         statistics_value: float,
-        two_tailed: bool,
+        alternative: HypothesisType = HypothesisType.RIGHT,
     ) -> float:
         """
         Calculate p-value.
@@ -31,7 +32,7 @@ class PValueCalculator:
         :param criterion_code: criterion code
         :param sample_size: sample size
         :param statistics_value: statistics value
-        :param two_tailed: whether two-tailed
+        :param alternative: test alternative
 
         :return: p-value
         """
@@ -50,8 +51,11 @@ class PValueCalculator:
 
         cdf_value = ecdf.cdf.evaluate(statistics_value)
 
-        if two_tailed:
-            p_value = 2.0 * min(cdf_value, 1.0 - cdf_value)
+        if alternative == HypothesisType.RIGHT:
+            return 1.0 - cdf_value
+        elif alternative == HypothesisType.TWO_SIDED:
+            return 2.0 * min(cdf_value, 1.0 - cdf_value)
+        elif alternative == HypothesisType.LEFT:
+            return cdf_value
         else:
-            p_value = 1.0 - cdf_value
-        return p_value
+            raise ValueError("Unknown alternative")

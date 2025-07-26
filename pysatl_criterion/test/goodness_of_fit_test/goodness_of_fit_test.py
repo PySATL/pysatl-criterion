@@ -6,6 +6,7 @@ from pysatl_criterion.persistence.limit_distribution.sqlite.sqlite import (
     SQLiteLimitDistributionStorage,
 )
 from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.models import HypothesisType
 
 
 class GoodnessOfFitTest:
@@ -15,6 +16,7 @@ class GoodnessOfFitTest:
     :param statistics: statistics.
     :param significance_level: significance level.
     :param test_method: test method either 'critical_value' or 'p_value'.
+    :param alternative: test alternative.
 
     """
 
@@ -24,11 +26,13 @@ class GoodnessOfFitTest:
         significance_level: float,
         db_connection_string: str = "sqlite:///limit_distributions.sqlite",
         test_method: str = "critical_value",
+        alternative: HypothesisType = HypothesisType.RIGHT,
     ):
         self.statistics = statistics
         self.significance_level = significance_level
         self.db_connection_string = db_connection_string
         self.test_method = test_method
+        self.alternative = alternative
 
     def test(self, data: list[float]) -> bool:
         """
@@ -49,28 +53,22 @@ class GoodnessOfFitTest:
         if self.test_method == "critical_value":
             cv_calculator = CVCalculator(limit_distribution_storage)
 
-            if self.statistics.two_tailed:
-                critical_value_left, critical_value_right = (
-                    cv_calculator.calculate_two_tailed_critical_values(
-                        criterion_code, data_size, self.significance_level
-                    )
-                )
-                if critical_value_left <= statistics_value <= critical_value_right:
-                    return True
-                else:
-                    return False
-            else:
-                critical_value = cv_calculator.calculate_critical_value(
-                    criterion_code, data_size, self.significance_level
-                )
-                if statistics_value <= critical_value:
-                    return True
-                else:
-                    return False
+            critical_values = cv_calculator.calculate_critical_value(
+                criterion_code,
+                data_size,
+                self.significance_level,
+                self.alternative,
+            )
+            return self.alternative.check_hypothesis(statistics_value, critical_values)
 
-        else:
+        elif self.test_method == "p_value":
             p_value_calculator = PValueCalculator(limit_distribution_storage)
             p_value = p_value_calculator.calculate_p_value(
-                criterion_code, data_size, statistics_value, two_tailed=self.statistics.two_tailed
+                criterion_code,
+                data_size,
+                statistics_value,
+                self.alternative,
             )
             return p_value >= self.significance_level
+        else:
+            raise ValueError("Invalid test method.")
