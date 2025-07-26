@@ -41,7 +41,7 @@ class IDataStorage(IStorage, Protocol[M, Q]):
     Data storage interface.
     """
 
-    def get_data(self, query: Q) -> M:
+    def get_data(self, query: Q) -> M | None:
         """
         Get data from data storage.
 

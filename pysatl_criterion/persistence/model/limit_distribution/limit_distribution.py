@@ -39,7 +39,7 @@ class ILimitDistributionStorage(
     Limit distribution storage interface.
     """
 
-    def get_data_for_cv(self, query: CriticalValueQuery) -> LimitDistributionModel:
+    def get_data_for_cv(self, query: CriticalValueQuery) -> LimitDistributionModel | None:
         """
         Get limit distribution data for critical value calculation.
 
