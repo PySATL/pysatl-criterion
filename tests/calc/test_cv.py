@@ -46,7 +46,7 @@ def test_calc_critical_value_two_tailed():
     mock_storage.get_data_for_cv.return_value = mock_distribution
     calculator = CVCalculator(limit_distribution_storage=mock_storage)
     critical_value = calculator.calculate_critical_value(
-        criterion_code="any_code", sample_size=100, sl=0.05, alternative=HypothesisType.TWO_SIDED
+        criterion_code="any_code", sample_size=100, sl=0.05, alternative=HypothesisType.TWO_TAILED
     )
     values = (2.475, 96.525)
     assert critical_value == pytest.approx(values)

@@ -11,7 +11,7 @@ class HypothesisType(Enum):
 
     RIGHT = auto()
     LEFT = auto()
-    TWO_SIDED = auto()
+    TWO_TAILED = auto()
 
     def check_hypothesis(
         self,
@@ -30,7 +30,7 @@ class HypothesisType(Enum):
             return statistic_value <= cv
         if self == HypothesisType.LEFT:
             return statistic_value >= cv
-        if self == HypothesisType.TWO_SIDED:
+        if self == HypothesisType.TWO_TAILED:
             if not isinstance(cv, tuple):
                 raise TypeError("For a TWO_SIDED hypothesis, 'cv' must be a tuple of two floats.")
             left_cv, right_cv = cv

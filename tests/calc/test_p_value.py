@@ -59,7 +59,7 @@ def test_calc_p_value_two_tailed():
         criterion_code="any_code",
         sample_size=100,
         statistics_value=89.5,
-        alternative=HypothesisType.TWO_SIDED,
+        alternative=HypothesisType.TWO_TAILED,
     )
 
     assert p_value == pytest.approx(0.2)

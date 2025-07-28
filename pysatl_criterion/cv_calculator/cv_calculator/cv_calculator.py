@@ -52,7 +52,7 @@ class CVCalculator:
             return float(np.quantile(ecdf.cdf.quantiles, q=1 - sl))
         elif alternative == HypothesisType.LEFT:
             return float(np.quantile(ecdf.cdf.quantiles, q=sl))
-        elif alternative == HypothesisType.TWO_SIDED:
+        elif alternative == HypothesisType.TWO_TAILED:
             left = float(np.quantile(ecdf.cdf.quantiles, q=sl / 2))
             right = float(np.quantile(ecdf.cdf.quantiles, q=1 - sl / 2))
             return left, right

@@ -53,7 +53,7 @@ class PValueCalculator:
 
         if alternative == HypothesisType.RIGHT:
             return 1.0 - cdf_value
-        elif alternative == HypothesisType.TWO_SIDED:
+        elif alternative == HypothesisType.TWO_TAILED:
             return 2.0 * min(cdf_value, 1.0 - cdf_value)
         elif alternative == HypothesisType.LEFT:
             return cdf_value
