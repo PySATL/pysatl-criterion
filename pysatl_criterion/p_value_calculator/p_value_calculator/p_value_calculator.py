@@ -1,60 +1,61 @@
-import numpy as np
 import scipy.stats as scipy_stats
 
+from pysatl_criterion.persistence.limit_distribution.sqlite.sqlite import (
+    SQLiteLimitDistributionStorage,
+)
 from pysatl_criterion.persistence.model.limit_distribution.limit_distribution import (
     CriticalValueQuery,
-    ILimitDistributionStorage,
 )
 from pysatl_criterion.statistics.models import HypothesisType
 
 
-class CVCalculator:
+class PValueCalculator:
     """
-    Critical value calculator.
+    P-value calculator.
 
     :param limit_distribution_storage: limit distribution storage
     """
 
-    def __init__(self, limit_distribution_storage: ILimitDistributionStorage):
+    def __init__(self, limit_distribution_storage: SQLiteLimitDistributionStorage):
         self.limit_distribution_storage = limit_distribution_storage
 
-    def calculate_critical_value(
+    def calculate_p_value(
         self,
         criterion_code: str,
         sample_size: int,
-        sl: float,
+        statistics_value: float,
         alternative: HypothesisType = HypothesisType.RIGHT,
-    ) -> float | tuple[float, float]:
+    ) -> float:
         """
-        Calculate critical value for given criterion.
+        Calculate p-value.
 
-        :param criterion_code: criterion code.
-        :param sample_size: sample size.
-        :param sl: significance level.
+        :param criterion_code: criterion code
+        :param sample_size: sample size
+        :param statistics_value: statistics value
         :param alternative: test alternative
 
-        :return: critical value.
+        :return: p-value
         """
 
         query = CriticalValueQuery(criterion_code=criterion_code, sample_size=sample_size)
-
         limit_distribution_from_db = self.limit_distribution_storage.get_data_for_cv(query)
+
         if limit_distribution_from_db is None:
             raise ValueError(
                 "Limit distribution for given criterion and sample size does not exist."
             )
 
-        statistics_values = limit_distribution_from_db.results_statistics
+        simulation_results = limit_distribution_from_db.results_statistics
 
-        ecdf = scipy_stats.ecdf(statistics_values)
+        ecdf = scipy_stats.ecdf(simulation_results)
+
+        cdf_value = ecdf.cdf.evaluate(statistics_value)
 
         if alternative == HypothesisType.RIGHT:
-            return float(np.quantile(ecdf.cdf.quantiles, q=1 - sl))
-        elif alternative == HypothesisType.LEFT:
-            return float(np.quantile(ecdf.cdf.quantiles, q=sl))
+            return 1.0 - cdf_value
         elif alternative == HypothesisType.TWO_TAILED:
-            left = float(np.quantile(ecdf.cdf.quantiles, q=sl / 2))
-            right = float(np.quantile(ecdf.cdf.quantiles, q=1 - sl / 2))
-            return left, right
+            return 2.0 * min(cdf_value, 1.0 - cdf_value)
+        elif alternative == HypothesisType.LEFT:
+            return cdf_value
         else:
-            raise ValueError("Unknown alternative.")
+            raise ValueError("Unknown alternative")
