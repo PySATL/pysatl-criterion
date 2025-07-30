@@ -1,6 +1,4 @@
-from pysatl_criterion.multiple_testing.abstract_multiple_testing import (
-    AbstractMultipleTesting,
-)
+from pysatl_criterion.multiple_testing.abstract_multiple_testing import AbstractMultipleTesting
 
 
 class BonferroniMultipleTesting(AbstractMultipleTesting):

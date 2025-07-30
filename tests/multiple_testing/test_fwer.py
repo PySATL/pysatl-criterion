@@ -1,9 +1,6 @@
 import pytest as pytest
 
-from pysatl_criterion.multiple_testing import (
-    BonferroniMultipleTesting,
-    SidakMultipleTesting,
-)
+from pysatl_criterion.multiple_testing import BonferroniMultipleTesting, SidakMultipleTesting
 
 
 METHODS = [BonferroniMultipleTesting, SidakMultipleTesting]
