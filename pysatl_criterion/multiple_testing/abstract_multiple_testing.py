@@ -12,9 +12,7 @@ class AbstractMultipleTesting(ABC):
             raise ValueError("All p-values must be in range [0,1].")
 
     @classmethod
-    def test(
-        cls, p_values: list[float], threshold: float = 0.05
-    ) -> tuple[list[bool], list[float]]:
+    def test(cls, p_values: list[float], threshold: float = 0.05) -> tuple[list[bool], list[float]]:
         """
         Perform multiple testing correction and return both rejection decisions
         and adjusted p-values.
