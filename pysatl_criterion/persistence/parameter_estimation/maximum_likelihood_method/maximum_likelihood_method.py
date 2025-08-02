@@ -4,7 +4,7 @@ import function_for_maximum_likelihood_method
 import inspect
 
 def findMaxProbabilityFunction(data):
-    functions = [func for name, func in inspect.getmembers(function_for_maximum_likelihood_method, inspect.isfunction)]
+    functions = [f for _, f in inspect.getmembers(function_for_maximum_likelihood_method, inspect.isfunction)]
 
     max_func = None
     max_probability = 0

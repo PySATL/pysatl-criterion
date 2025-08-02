@@ -1,4 +1,4 @@
-from math import sqrt, exp, pi, log, gamma, comb, factorial
+from math import sqrt, exp, pi, log, comb, factorial
 import numpy as np
 from scipy.optimize import root_scalar, minimize_scalar
 from scipy.special import gammaln
@@ -77,7 +77,10 @@ def likelihoodFunctionForLognormalDistribution(dataArray):
 
     log_likelihood = 0
     for x in dataArray:
-        prob_density = (1 / (x * sqrt(2 * pi * variance_log))) * exp(- ((log(x) - mean_log) ** 2) / (2 * variance_log))
+        prob_density = (
+                (1 / (x * sqrt(2 * pi * variance_log)))
+                * exp(-((log(x) - mean_log) ** 2) / (2 * variance_log))
+        )
         log_likelihood += log(prob_density)
 
     likelihood = exp(log_likelihood)
@@ -93,11 +96,11 @@ def likelihoodFunctionForExponentialDistribution(dataArray):
         return 0
 
     n = len(dataArray)
-    l =  n / sum(dataArray)
+    lam =  n / sum(dataArray)
 
     log_likelihood = 0
     for x in dataArray:
-        prob_density = l * exp(-l * x)
+        prob_density = lam * exp(-lam * x)
         log_likelihood += log(prob_density)
 
     likelihood = exp(log_likelihood)
@@ -143,7 +146,9 @@ def likelihoodFunctionForGammaDistribution(dataArray):
 
 #7.Beta distribution
 def likelihoodFunctionForBetaDistribution(dataArray):
-    if len(dataArray) == 0 or np.any((dataArray <= 0) | (dataArray >= 1)) or np.all(dataArray == dataArray[0]):
+    if (len(dataArray) == 0
+            or np.any((dataArray <= 0) | (dataArray >= 1))
+            or np.all(dataArray == dataArray[0])):
         return 0
 
     alpha, beta_param, loc, scale = beta.fit(dataArray, floc=0, fscale=1)
