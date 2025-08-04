@@ -1,6 +1,4 @@
 from abc import ABC, abstractmethod
-
-
 class AbstractMultipleTesting(ABC):
     @staticmethod
     def _validate_p_values(p_values: list[float]) -> None:
@@ -34,6 +32,6 @@ class AbstractMultipleTesting(ABC):
         """
         Compute adjusted p-values for multiple testing correction.
         :param p_values: List of raw p-values for hypothesis testing
-        :return: List of adjusted p-values after multiple testing correction
+	:return: List of adjusted p-values after multiple testing correction
         """
         raise NotImplementedError("Method is not implemented")
