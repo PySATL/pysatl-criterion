@@ -3,4 +3,8 @@ from pysatl_criterion.multiple_testing.fwer import (
     SidakMultipleTesting,
 )
 
-__all__ = ["BonferroniMultipleTesting", "SidakMultipleTesting"]
+
+__all__ = [
+    "BonferroniMultipleTesting",
+    "SidakMultipleTesting",
+]
