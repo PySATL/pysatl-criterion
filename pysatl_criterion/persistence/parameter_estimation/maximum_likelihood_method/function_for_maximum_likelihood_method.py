@@ -8,33 +8,34 @@ from scipy.stats import beta, cauchy, chi2, f, gamma, rayleigh, t
 
 # Continuous distributions:
 
-#1.Uniform continuous distribution
-#2.Normal distribution
-#3.Lognormal distribution
-#4.Exponential distribution
-#5.Weibull distribution
-#6.Gamma distribution
-#7.Beta distribution
-#8.Cauchy distribution
-#9.Chi-square distribution
-#10.Student distribution (t-distribution)
-#11.phisher distribution
-#12.Rayleigh distribution
-#13.Wigner distribution
-#14.Pareto distribution
-#15.Laplace distribution
+# 1.Uniform continuous distribution
+# 2.Normal distribution
+# 3.Lognormal distribution
+# 4.Exponential distribution
+# 5.Weibull distribution
+# 6.Gamma distribution
+# 7.Beta distribution
+# 8.Cauchy distribution
+# 9.Chi-square distribution
+# 10.Student distribution (t-distribution)
+# 11.phisher distribution
+# 12.Rayleigh distribution
+# 13.Wigner distribution
+# 14.Pareto distribution
+# 15.Laplace distribution
 
-#Discrete distributions:
+# Discrete distributions:
 
-#1.Discrete uniform distribution
-#2.Bernoulli distribution
-#3.Binomial distribution
-#4.Poisson distribution
-#5.Geometric distribution
+# 1.Discrete uniform distribution
+# 2.Bernoulli distribution
+# 3.Binomial distribution
+# 4.Poisson distribution
+# 5.Geometric distribution
 
 # Continuous distributions:
 
-#1.Uniform continuous distribution
+
+# 1.Uniform continuous distribution
 def likelihoodFunctionForUniformContinuousDistribution(dataArray):
     a = np.min(dataArray)
     b = np.max(dataArray)
@@ -47,6 +48,7 @@ def likelihoodFunctionForUniformContinuousDistribution(dataArray):
 
     return likelihood
 
+
 # 2.Normal distribution
 def likelihoodFunctionForNormalDistribution(dataArray):
     n = len(dataArray)
@@ -58,14 +60,17 @@ def likelihoodFunctionForNormalDistribution(dataArray):
 
     log_likelihood = 0
     for x in dataArray:
-        prob_density = (1 / sqrt(2 * pi * variance)) * exp(- ((x - mean) ** 2) / (2 * variance))
+        prob_density = (1 / sqrt(2 * pi * variance)) * exp(
+            -((x - mean) ** 2) / (2 * variance)
+        )
         log_likelihood += log(prob_density)
 
     likelihood = exp(log_likelihood)
 
     return likelihood
 
-#3.Lognormal distribution
+
+# 3.Lognormal distribution
 def likelihoodFunctionForLognormalDistribution(dataArray):
     n = len(dataArray)
     if any(x <= 0 for x in dataArray):
@@ -79,15 +84,15 @@ def likelihoodFunctionForLognormalDistribution(dataArray):
 
     log_likelihood = 0
     for x in dataArray:
-        prob_density = (
-                (1 / (x * sqrt(2 * pi * variance_log)))
-                * exp(-((log(x) - mean_log) ** 2) / (2 * variance_log))
+        prob_density = (1 / (x * sqrt(2 * pi * variance_log))) * exp(
+            -((log(x) - mean_log) ** 2) / (2 * variance_log)
         )
         log_likelihood += log(prob_density)
 
     likelihood = exp(log_likelihood)
 
     return likelihood
+
 
 # 4. Exponential distribution
 def likelihoodFunctionForExponentialDistribution(dataArray):
@@ -98,7 +103,7 @@ def likelihoodFunctionForExponentialDistribution(dataArray):
         return 0
 
     n = len(dataArray)
-    lam =  n / sum(dataArray)
+    lam = n / sum(dataArray)
 
     log_likelihood = 0
     for x in dataArray:
@@ -109,15 +114,16 @@ def likelihoodFunctionForExponentialDistribution(dataArray):
 
     return likelihood
 
+
 # 5.Weibull distribution
 def likelihoodFunctionForWeibullDistribution(dataArray):
     if np.any(dataArray <= 0):
-       return 0
+        return 0
 
     A = np.mean(np.log(dataArray))
 
     def g(k):
-        xk = dataArray ** k
+        xk = dataArray**k
         C = np.log(np.mean(xk))
         B = np.sum(xk * np.log(dataArray)) / np.sum(xk)
         return (1 - C) / k + A - B
@@ -125,15 +131,18 @@ def likelihoodFunctionForWeibullDistribution(dataArray):
     if g(0.1) * g(10) > 0:
         return 0
 
-    res = root_scalar(g, bracket=[0.1, 10], method='bisect')
+    res = root_scalar(g, bracket=[0.1, 10], method="bisect")
     k = res.root
 
-    lam = (np.mean(dataArray ** k)) ** (1 / k)
-    likelihood = np.prod((k / lam) * (dataArray / lam)**(k - 1) * np.exp(-(dataArray / lam)**k))
+    lam = (np.mean(dataArray**k)) ** (1 / k)
+    likelihood = np.prod(
+        (k / lam) * (dataArray / lam) ** (k - 1) * np.exp(-((dataArray / lam) ** k))
+    )
 
     return likelihood
 
-#6.Gamma distribution
+
+# 6.Gamma distribution
 def likelihoodFunctionForGammaDistribution(dataArray):
     if np.any(dataArray <= 0) or np.all(dataArray == dataArray[0]):
         return 0
@@ -146,11 +155,14 @@ def likelihoodFunctionForGammaDistribution(dataArray):
 
     return likelihood
 
-#7.Beta distribution
+
+# 7.Beta distribution
 def likelihoodFunctionForBetaDistribution(dataArray):
-    if (len(dataArray) == 0
-            or np.any((dataArray <= 0) | (dataArray >= 1))
-            or np.all(dataArray == dataArray[0])):
+    if (
+        len(dataArray) == 0
+        or np.any((dataArray <= 0) | (dataArray >= 1))
+        or np.all(dataArray == dataArray[0])
+    ):
         return 0
 
     alpha, beta_param, loc, scale = beta.fit(dataArray, floc=0, fscale=1)
@@ -158,16 +170,17 @@ def likelihoodFunctionForBetaDistribution(dataArray):
     n = len(dataArray)
 
     log_likelihood = (
-            n * (gammaln(alpha + beta_param) - gammaln(alpha) - gammaln(beta_param)) +
-            (alpha - 1) * np.sum(np.log(dataArray)) +
-            (beta_param - 1) * np.sum(np.log(1 - dataArray))
+        n * (gammaln(alpha + beta_param) - gammaln(alpha) - gammaln(beta_param))
+        + (alpha - 1) * np.sum(np.log(dataArray))
+        + (beta_param - 1) * np.sum(np.log(1 - dataArray))
     )
 
     likelihood = exp(log_likelihood)
 
     return likelihood
 
-#8.Cauchy distribution
+
+# 8.Cauchy distribution
 def likelihoodFunctionForCauchyDistribution(dataArray):
     if np.all(dataArray == dataArray[0]):
         return 0
@@ -182,11 +195,12 @@ def likelihoodFunctionForCauchyDistribution(dataArray):
     try:
         likelihood = np.exp(log_likelihood)
     except OverflowError:
-        likelihood = float('inf')
+        likelihood = float("inf")
 
     return likelihood
 
-#9.Chi-square distribution
+
+# 9.Chi-square distribution
 def likelihoodFunctionForChiSquared(dataArray):
     if np.any(np.array(dataArray) <= 0):
         return 0
@@ -199,7 +213,8 @@ def likelihoodFunctionForChiSquared(dataArray):
 
     return likelihood
 
-#10.Student distribution (t-distribution)
+
+# 10.Student distribution (t-distribution)
 def likelihoodFunctionForTDistribution(dataArray):
     if np.all(dataArray == dataArray[0]):
         return 0
@@ -209,7 +224,8 @@ def likelihoodFunctionForTDistribution(dataArray):
 
     return np.exp(log_likelihood)
 
-#11.Phisher distribution
+
+# 11.Phisher distribution
 def likelihoodFunctionForFisherDistribution(dataArray):
     if np.any(dataArray <= 0) or np.all(dataArray == dataArray[0]):
         return 0
@@ -219,7 +235,8 @@ def likelihoodFunctionForFisherDistribution(dataArray):
 
     return np.exp(log_likelihood)
 
-#12.Rayleigh distribution
+
+# 12.Rayleigh distribution
 def likelihoodFunctionForRayleighDistribution(dataArray):
     if np.any(dataArray < 0):
         return 0
@@ -230,7 +247,8 @@ def likelihoodFunctionForRayleighDistribution(dataArray):
     log_likelihood = np.sum(rayleigh.logpdf(dataArray, loc=0, scale=scale))
     return np.exp(log_likelihood)
 
-#13.Wigner distribution
+
+# 13.Wigner distribution
 def likelihoodFunctionForWignerDistribution(dataArray):
     if np.all(dataArray == dataArray[0]):
         return 0
@@ -244,9 +262,7 @@ def likelihoodFunctionForWignerDistribution(dataArray):
         return -(n * log(2 / (pi * R**2)) + 0.5 * np.sum(np.log(R**2 - dataArray**2)))
 
     result = minimize_scalar(
-        neg_log_likelihood,
-        bounds=(max_abs_x + 1e-6, max_abs_x + 10),
-        method='bounded'
+        neg_log_likelihood, bounds=(max_abs_x + 1e-6, max_abs_x + 10), method="bounded"
     )
 
     if not result.success:
@@ -254,7 +270,8 @@ def likelihoodFunctionForWignerDistribution(dataArray):
 
     return exp(-result.fun)
 
-#14.Pareto distribution
+
+# 14.Pareto distribution
 def likelihoodFunctionForParetoDistribution(dataArray):
     if np.any(dataArray <= 0):
         return 0
@@ -271,14 +288,15 @@ def likelihoodFunctionForParetoDistribution(dataArray):
     alpha = n / sum_log_ratios
 
     log_likelihood = (
-            n * np.log(alpha) +
-            n * alpha * np.log(x_m) -
-            (alpha + 1) * np.sum(np.log(dataArray))
+        n * np.log(alpha)
+        + n * alpha * np.log(x_m)
+        - (alpha + 1) * np.sum(np.log(dataArray))
     )
 
     return exp(log_likelihood)
 
-#15.Laplace distribution
+
+# 15.Laplace distribution
 def likelihoodFunctionForLaplaceDistribution(dataArray):
     n = len(dataArray)
     mu = np.median(dataArray)
@@ -291,9 +309,11 @@ def likelihoodFunctionForLaplaceDistribution(dataArray):
 
     return likelihood
 
-#Discrete distributions:
 
-#1.Discrete uniform distribution
+# Discrete distributions:
+
+
+# 1.Discrete uniform distribution
 def likelihoodFunctionForDiscreteUniformDistribution(dataArray):
     a = np.min(dataArray)
     b = np.max(dataArray)
@@ -305,7 +325,8 @@ def likelihoodFunctionForDiscreteUniformDistribution(dataArray):
 
     return likelihood
 
-#2.Bernoulli distribution
+
+# 2.Bernoulli distribution
 def likelihoodFunctionForBernoulliDistribution(dataArray):
     if not np.all(np.isin(dataArray, [0, 1])):
         return 0
@@ -322,7 +343,8 @@ def likelihoodFunctionForBernoulliDistribution(dataArray):
 
     return likelihood
 
-#3.Binomial distribution
+
+# 3.Binomial distribution
 def likelihoodFunctionForBinomialDistribution(dataArray, n):
     if np.any((dataArray < 0) | (dataArray > n) | (~np.equal(np.mod(dataArray, 1), 0))):
         return 0
@@ -338,14 +360,14 @@ def likelihoodFunctionForBinomialDistribution(dataArray, n):
         else:
             return 0
 
-    log_likelihood = np.sum([
-        log(comb(n, x)) + x * log(p) + (n - x) * log(1 - p)
-        for x in dataArray
-    ])
+    log_likelihood = np.sum(
+        [log(comb(n, x)) + x * log(p) + (n - x) * log(1 - p) for x in dataArray]
+    )
 
     return exp(log_likelihood)
 
-#4.Poisson distribution
+
+# 4.Poisson distribution
 def likelihoodFunctionForPoissonDistribution(dataArray):
     if np.any(dataArray < 0) or not np.all(np.floor(dataArray) == dataArray):
         return 0
@@ -358,7 +380,8 @@ def likelihoodFunctionForPoissonDistribution(dataArray):
 
     return likelihood
 
-#5.Geometric distribution
+
+# 5.Geometric distribution
 def likelihoodFunctionForGeometricDistribution(dataArray):
     if np.any(dataArray < 1) or not np.all(np.floor(dataArray) == dataArray):
         return 0

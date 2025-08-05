@@ -6,9 +6,9 @@ import numpy as np
 
 def findMaxProbabilityFunction(data):
     functions = [
-        f for _, f in inspect.getmembers(
-            function_for_maximum_likelihood_method,
-            inspect.isfunction
+        f
+        for _, f in inspect.getmembers(
+            function_for_maximum_likelihood_method, inspect.isfunction
         )
     ]
 
@@ -22,6 +22,7 @@ def findMaxProbabilityFunction(data):
             max_func = func
 
     return max_func
+
 
 def findResultOfLikelihoodFunction(data):
     data_array = np.array(data)
