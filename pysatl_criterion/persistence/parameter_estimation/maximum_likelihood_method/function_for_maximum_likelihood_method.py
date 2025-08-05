@@ -1,8 +1,9 @@
-from math import sqrt, exp, pi, log, comb, factorial
+from math import comb, exp, factorial, log, pi, sqrt
+
 import numpy as np
-from scipy.optimize import root_scalar, minimize_scalar
+from scipy.optimize import minimize_scalar, root_scalar
 from scipy.special import gammaln
-from scipy.stats import gamma, beta, cauchy, chi2, t, f, rayleigh
+from scipy.stats import beta, cauchy, chi2, f, gamma, rayleigh, t
 
 # Continuous distributions:
 
