@@ -60,9 +60,7 @@ def likelihoodFunctionForNormalDistribution(dataArray):
 
     log_likelihood = 0
     for x in dataArray:
-        prob_density = (1 / sqrt(2 * pi * variance)) * exp(
-            -((x - mean) ** 2) / (2 * variance)
-        )
+        prob_density = (1 / sqrt(2 * pi * variance)) * exp(-((x - mean) ** 2) / (2 * variance))
         log_likelihood += log(prob_density)
 
     likelihood = exp(log_likelihood)
@@ -288,9 +286,7 @@ def likelihoodFunctionForParetoDistribution(dataArray):
     alpha = n / sum_log_ratios
 
     log_likelihood = (
-        n * np.log(alpha)
-        + n * alpha * np.log(x_m)
-        - (alpha + 1) * np.sum(np.log(dataArray))
+        n * np.log(alpha) + n * alpha * np.log(x_m) - (alpha + 1) * np.sum(np.log(dataArray))
     )
 
     return exp(log_likelihood)
