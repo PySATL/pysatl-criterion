@@ -5,6 +5,7 @@ from scipy.optimize import minimize_scalar, root_scalar
 from scipy.special import gammaln
 from scipy.stats import beta, cauchy, chi2, f, gamma, rayleigh, t
 
+
 # Continuous distributions:
 
 #1.Uniform continuous distribution

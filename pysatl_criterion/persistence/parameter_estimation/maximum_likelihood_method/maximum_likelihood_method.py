@@ -1,7 +1,8 @@
 import inspect
 
-import numpy as np
 import function_for_maximum_likelihood_method
+import numpy as np
+
 
 def findMaxProbabilityFunction(data):
     functions = [
