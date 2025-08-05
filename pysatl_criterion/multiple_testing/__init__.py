@@ -1,7 +1,4 @@
-from pysatl_criterion.multiple_testing.fwer import (
-    BonferroniMultipleTesting,
-    SidakMultipleTesting,
-)
+from pysatl_criterion.multiple_testing.fwer import BonferroniMultipleTesting, SidakMultipleTesting
 
 
 __all__ = [
