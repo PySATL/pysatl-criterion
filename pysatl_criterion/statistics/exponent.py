@@ -9,9 +9,12 @@ from typing_extensions import override
 from pysatl_criterion.statistics.common import KSStatistic
 from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.graph_goodness_of_fit import (
+    AbstractGraphTestStatistic,
     GraphAverageDegreeTestStatistic,
+    GraphCliqueNumberTestStatistic,
     GraphConnectedComponentsTestStatistic,
     GraphEdgesNumberTestStatistic,
+    GraphIndependenceNumberTestStatistic,
     GraphMaxDegreeTestStatistic,
 )
 
@@ -810,73 +813,78 @@ class HegazyGreen2ExponentialityGofStatistic(AbstractExponentialityGofStatistic)
         return hg
 
 
-class GraphEdgesNumberExponentialityGofStatistic(
-    AbstractExponentialityGofStatistic, GraphEdgesNumberTestStatistic
+class AbstractGraphExponentialityGofStatistic(
+    AbstractExponentialityGofStatistic, AbstractGraphTestStatistic
 ):
     @staticmethod
     @override
     def code():
-        super_class = AbstractExponentialityGofStatistic
-        parent_code = super(super_class, super_class).code()
-        return f"EdgesNumber_{parent_code}"
+        parent_code = AbstractExponentialityGofStatistic.code()
+        return f"GRAPH_{parent_code}"
 
     @staticmethod
     @override
     def _compute_dist(rvs):
-        super_class = GraphEdgesNumberTestStatistic
-        parent_code = super(super_class, super_class)._compute_dist(rvs)
-        return parent_code / np.mean(rvs)
+        base_dist = AbstractGraphTestStatistic._compute_dist(rvs)
+        mean = np.mean(rvs)
+        return base_dist / mean if mean != 0 else base_dist
+
+
+class GraphEdgesNumberExponentialityGofStatistic(
+    AbstractGraphExponentialityGofStatistic, GraphEdgesNumberTestStatistic
+):
+    @staticmethod
+    @override
+    def code():
+        parent_code = AbstractGraphExponentialityGofStatistic.code()
+        return f"{GraphEdgesNumberExponentialityGofStatistic.get_stat_name()}_{parent_code}"
 
 
 class GraphMaxDegreeExponentialityGofStatistic(
-    AbstractExponentialityGofStatistic, GraphMaxDegreeTestStatistic
+    AbstractGraphExponentialityGofStatistic, GraphMaxDegreeTestStatistic
 ):
     @staticmethod
     @override
     def code():
-        super_class = AbstractExponentialityGofStatistic
-        parent_code = super(super_class, super_class).code()
-        return f"MaxDegree_{parent_code}"
-
-    @staticmethod
-    @override
-    def _compute_dist(rvs):
-        super_class = GraphMaxDegreeTestStatistic
-        parent_code = super(super_class, super_class)._compute_dist(rvs)
-        return parent_code / np.mean(rvs)
+        parent_code = AbstractGraphExponentialityGofStatistic.code()
+        return f"{GraphMaxDegreeExponentialityGofStatistic.get_stat_name()}_{parent_code}"
 
 
 class GraphAverageDegreeExponentialityGofStatistic(
-    AbstractExponentialityGofStatistic, GraphAverageDegreeTestStatistic
+    AbstractGraphExponentialityGofStatistic, GraphAverageDegreeTestStatistic
 ):
     @staticmethod
     @override
     def code():
-        super_class = AbstractExponentialityGofStatistic
-        parent_code = super(super_class, super_class).code()
-        return f"AverageDegree_{parent_code}"
-
-    @staticmethod
-    @override
-    def _compute_dist(rvs):
-        super_class = GraphAverageDegreeTestStatistic
-        parent_dist = super(super_class, super_class)._compute_dist(rvs)
-        return parent_dist / np.mean(rvs)
+        parent_code = AbstractGraphExponentialityGofStatistic.code()
+        return f"{GraphAverageDegreeExponentialityGofStatistic.get_stat_name()}_{parent_code}"
 
 
 class GraphConnectedComponentsExponentialityGofStatistic(
-    AbstractExponentialityGofStatistic, GraphConnectedComponentsTestStatistic
+    AbstractGraphExponentialityGofStatistic, GraphConnectedComponentsTestStatistic
 ):
     @staticmethod
     @override
     def code():
-        super_class = AbstractExponentialityGofStatistic
-        parent_code = super(super_class, super_class).code()
-        return f"ConnectedComponents_{parent_code}"
+        parent_code = AbstractGraphExponentialityGofStatistic.code()
+        return f"{GraphConnectedComponentsExponentialityGofStatistic.get_stat_name()}_{parent_code}"
 
+
+class GraphCliqueNumberExponentialityGofStatistic(
+    AbstractGraphExponentialityGofStatistic, GraphCliqueNumberTestStatistic
+):
     @staticmethod
     @override
-    def _compute_dist(rvs):
-        super_class = GraphConnectedComponentsTestStatistic
-        parent_dist = super(super_class, super_class)._compute_dist(rvs)
-        return parent_dist / np.mean(rvs)
+    def code():
+        parent_code = AbstractGraphExponentialityGofStatistic.code()
+        return f"{GraphCliqueNumberExponentialityGofStatistic.get_stat_name()}_{parent_code}"
+
+
+class GraphIndependenceNumberExponentialityGofStatistic(
+    AbstractGraphExponentialityGofStatistic, GraphIndependenceNumberTestStatistic
+):
+    @staticmethod
+    @override
+    def code():
+        parent_code = AbstractGraphExponentialityGofStatistic.code()
+        return f"{GraphIndependenceNumberExponentialityGofStatistic.get_stat_name()}_{parent_code}"
