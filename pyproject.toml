@@ -12,7 +12,8 @@ dependencies = [
     "numpy>=1.25.1",
     "scipy>=1.11.2",
     "pandas>=2.2.1",
-    "typing-extensions>=4.12.2"
+    "typing-extensions>=4.12.2",
+    "setuptools (>=80.9.0,<81.0.0)"
 ]
 
 [project.urls]
@@ -48,6 +49,8 @@ pytest-mock = "3.14.0"
 pre-commit = "4.0.1"
 mypy = "1.15.0"
 sqlalchemy = "2.0.41"
+black = "^25.1.0"
+flake8 = "^7.3.0"
 
 [tool.isort]
 line_length = 100
