@@ -9,9 +9,12 @@ from typing_extensions import override
 from pysatl_criterion.statistics.common import ADStatistic, KSStatistic, LillieforsTest
 from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.graph_goodness_of_fit import (
+    AbstractGraphTestStatistic,
     GraphAverageDegreeTestStatistic,
+    GraphCliqueNumberTestStatistic,
     GraphConnectedComponentsTestStatistic,
     GraphEdgesNumberTestStatistic,
+    GraphIndependenceNumberTestStatistic,
     GraphMaxDegreeTestStatistic,
 )
 
@@ -2031,65 +2034,76 @@ class DesgagneLafayeNormalityGofStatistic(AbstractNormalityGofStatistic):
             return rn  # Here is the test statistic value
 
 
-class GraphEdgesNumberNormalityGofStatistic(
-    AbstractNormalityGofStatistic, GraphEdgesNumberTestStatistic
-):
+class AbstractGraphNormalityGofStatistic(AbstractNormalityGofStatistic, AbstractGraphTestStatistic):
     @staticmethod
     @override
     def code():
-        return f"EdgesNumber_{AbstractNormalityGofStatistic.code()}"
+        parent_code = AbstractNormalityGofStatistic.code()
+        return f"GRAPH_{parent_code}"
 
     @staticmethod
     @override
     def _compute_dist(rvs):
-        super_class = GraphEdgesNumberTestStatistic
-        parent_code = super(super_class, super_class)._compute_dist(rvs)
-        return parent_code / np.var(rvs)
+        base_dist = AbstractGraphTestStatistic._compute_dist(rvs)
+        variance = np.var(rvs)
+        return base_dist / variance if variance != 0 else base_dist
+
+
+class GraphEdgesNumberNormalityGofStatistic(
+    AbstractGraphNormalityGofStatistic, GraphEdgesNumberTestStatistic
+):
+    @staticmethod
+    @override
+    def code():
+        parent_code = AbstractGraphNormalityGofStatistic.code()
+        return f"{GraphEdgesNumberNormalityGofStatistic.get_stat_name()}_{parent_code}"
 
 
 class GraphMaxDegreeNormalityGofStatistic(
-    AbstractNormalityGofStatistic, GraphMaxDegreeTestStatistic
+    AbstractGraphNormalityGofStatistic, GraphMaxDegreeTestStatistic
 ):
     @staticmethod
     @override
     def code():
-        return f"MaxDegree_{AbstractNormalityGofStatistic.code()}"
-
-    @staticmethod
-    @override
-    def _compute_dist(rvs):
-        super_class = GraphEdgesNumberTestStatistic
-        parent_code = super(super_class, super_class)._compute_dist(rvs)
-        return parent_code / np.var(rvs)
+        parent_code = AbstractGraphNormalityGofStatistic.code()
+        return f"{GraphMaxDegreeNormalityGofStatistic.get_stat_name()}_{parent_code}"
 
 
 class GraphAverageDegreeNormalityGofStatistic(
-    AbstractNormalityGofStatistic, GraphAverageDegreeTestStatistic
+    AbstractGraphNormalityGofStatistic, GraphAverageDegreeTestStatistic
 ):
     @staticmethod
     @override
     def code():
-        return f"AverageDegree_{AbstractNormalityGofStatistic.code()}"
-
-    @staticmethod
-    @override
-    def _compute_dist(rvs):
-        super_class = GraphAverageDegreeTestStatistic
-        parent_dist = super(super_class, super_class)._compute_dist(rvs)
-        return parent_dist / np.var(rvs)
+        parent_code = AbstractGraphNormalityGofStatistic.code()
+        return f"{GraphAverageDegreeNormalityGofStatistic.get_stat_name()}_{parent_code}"
 
 
 class GraphConnectedComponentsNormalityGofStatistic(
-    AbstractNormalityGofStatistic, GraphConnectedComponentsTestStatistic
+    AbstractGraphNormalityGofStatistic, GraphConnectedComponentsTestStatistic
 ):
     @staticmethod
     @override
     def code():
-        return f"ConnectedComponents_{AbstractNormalityGofStatistic.code()}"
+        parent_code = AbstractGraphNormalityGofStatistic.code()
+        return f"{GraphConnectedComponentsNormalityGofStatistic.get_stat_name()}_{parent_code}"
 
+
+class GraphCliqueNumberNormalityGofStatistic(
+    AbstractGraphNormalityGofStatistic, GraphCliqueNumberTestStatistic
+):
     @staticmethod
     @override
-    def _compute_dist(rvs):
-        super_class = GraphConnectedComponentsTestStatistic
-        parent_dist = super(super_class, super_class)._compute_dist(rvs)
-        return parent_dist / np.var(rvs)
+    def code():
+        parent_code = AbstractGraphNormalityGofStatistic.code()
+        return f"{GraphCliqueNumberNormalityGofStatistic.get_stat_name()}_{parent_code}"
+
+
+class GraphIndependenceNumberNormalityGofStatistic(
+    AbstractGraphNormalityGofStatistic, GraphIndependenceNumberTestStatistic
+):
+    @staticmethod
+    @override
+    def code():
+        parent_code = AbstractGraphNormalityGofStatistic.code()
+        return f"{GraphIndependenceNumberNormalityGofStatistic.get_stat_name()}_{parent_code}"

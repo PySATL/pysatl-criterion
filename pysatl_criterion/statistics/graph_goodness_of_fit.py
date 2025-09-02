@@ -1,5 +1,4 @@
 from abc import ABC
-from typing import Union
 
 import numpy as np
 from numpy import float64
@@ -10,12 +9,20 @@ from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitSta
 
 class AbstractGraphTestStatistic(AbstractGoodnessOfFitStatistic, ABC):
     @override
-    def execute_statistic(self, rvs, **kwargs) -> Union[float, float64]:
+    def execute_statistic(self, rvs, **kwargs) -> float | float64:
         dist = self._compute_dist(rvs)
 
         adjacency_list = self._make_adjacency_list(rvs, dist)
         statistic = self.get_graph_stat(adjacency_list)
         return statistic
+
+    @staticmethod
+    def get_stat_name() -> str:
+        raise NotImplementedError("Method is not implemented")
+
+    @staticmethod
+    def get_graph_stat(graph: list[list[int]]) -> float:
+        raise NotImplementedError("Method is not implemented")
 
     @staticmethod
     def _make_adjacency_list(rvs, dist: float) -> list[list[int]]:
@@ -31,40 +38,51 @@ class AbstractGraphTestStatistic(AbstractGoodnessOfFitStatistic, ABC):
         return adjacency_list
 
     @staticmethod
-    def _compute_dist(rvs):  # TODO (normalize for different distributions)
+    def _compute_dist(rvs: list[float]) -> float:  # TODO (normalize for different distributions)
         return (max(rvs) - min(rvs)) / 10
 
-    @staticmethod
-    def get_graph_stat(graph: list[list[int]]):
-        raise NotImplementedError("Method is not implemented")
 
-
-class GraphEdgesNumberTestStatistic(AbstractGraphTestStatistic, ABC):
+class GraphEdgesNumberTestStatistic(AbstractGraphTestStatistic):
     @staticmethod
     @override
-    def get_graph_stat(graph):
+    def get_graph_stat(graph: list[list[int]]) -> float:
         return sum(map(len, graph)) // 2
 
-
-class GraphMaxDegreeTestStatistic(AbstractGraphTestStatistic, ABC):
     @staticmethod
     @override
-    def get_graph_stat(graph):
+    def get_stat_name() -> str:
+        return "EDGESNUMBER"
+
+
+class GraphMaxDegreeTestStatistic(AbstractGraphTestStatistic):
+    @staticmethod
+    @override
+    def get_graph_stat(graph: list[list[int]]) -> float:
         return max(map(len, graph))
 
-
-class GraphAverageDegreeTestStatistic(AbstractGraphTestStatistic, ABC):
     @staticmethod
     @override
-    def get_graph_stat(graph):
+    def get_stat_name() -> str:
+        return "MAXDEGREE"
+
+
+class GraphAverageDegreeTestStatistic(AbstractGraphTestStatistic):
+    @staticmethod
+    @override
+    def get_graph_stat(graph: list[list[int]]) -> float:
         degrees = list(map(len, graph))
-        return np.mean(degrees) if degrees != 0 else 0.0
+        return float(np.mean(degrees)) if degrees != 0 else 0.0
 
-
-class GraphConnectedComponentsTestStatistic(AbstractGraphTestStatistic, ABC):
     @staticmethod
     @override
-    def get_graph_stat(graph):
+    def get_stat_name() -> str:
+        return "AVGDEGREE"
+
+
+class GraphConnectedComponentsTestStatistic(AbstractGraphTestStatistic):
+    @staticmethod
+    @override
+    def get_graph_stat(graph) -> float:
         visited = set()
         components = 0
 
@@ -81,3 +99,57 @@ class GraphConnectedComponentsTestStatistic(AbstractGraphTestStatistic, ABC):
                 dfs(node)
                 components += 1
         return components
+
+    @staticmethod
+    @override
+    def get_stat_name() -> str:
+        return "CONNECTEDCOMPONENTS"
+
+
+class GraphCliqueNumberTestStatistic(AbstractGraphTestStatistic):
+    @override
+    def execute_statistic(self, rvs, **kwargs) -> float | float64:
+        dist = self._compute_dist(rvs)
+        rvs.sort()
+
+        right_border = 0
+        clique_number = 0
+        for left_border in range(len(rvs)):
+            while right_border < len(rvs) and rvs[left_border] + dist > rvs[right_border]:
+                right_border += 1
+            if right_border == len(rvs):
+                clique_number = max(clique_number, right_border - left_border + 1)
+                break
+            clique_number = max(clique_number, right_border - left_border)
+        return clique_number
+
+    @staticmethod
+    @override
+    def get_stat_name() -> str:
+        return "CLIQUENUMBER"
+
+
+class GraphIndependenceNumberTestStatistic(AbstractGraphTestStatistic):
+    @override
+    def execute_statistic(self, rvs, **kwargs) -> float | float64:
+        if not rvs:
+            return 0
+
+        dist = self._compute_dist(rvs)
+        rvs.sort()
+
+        stat = 1
+        last_chosen_position = rvs[0]
+
+        for i in range(1, len(rvs)):
+            current_point = rvs[i]
+            if current_point >= last_chosen_position + dist:
+                stat += 1
+                last_chosen_position = current_point
+
+        return stat
+
+    @staticmethod
+    @override
+    def get_stat_name() -> str:
+        return "INDEPENDENCENUMBER"

@@ -13,8 +13,10 @@ from pysatl_criterion.statistics.exponent import (
     GiniExponentialityGofStatistic,
     GnedenkoExponentialityGofStatistic,
     GraphAverageDegreeExponentialityGofStatistic,
+    GraphCliqueNumberExponentialityGofStatistic,
     GraphConnectedComponentsExponentialityGofStatistic,
     GraphEdgesNumberExponentialityGofStatistic,
+    GraphIndependenceNumberExponentialityGofStatistic,
     GraphMaxDegreeExponentialityGofStatistic,
     HarrisExponentialityGofStatistic,
     HegazyGreen1ExponentialityGofStatistic,
@@ -211,7 +213,10 @@ def test_mean_vertex_degree_criterion(data, result):
 
 
 def test_mean_vertex_degree_criterion_code():
-    assert "AverageDegree_GOODNESS_OF_FIT" == GraphAverageDegreeExponentialityGofStatistic().code()
+    assert (
+        "AVGDEGREE_GRAPH_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == GraphAverageDegreeExponentialityGofStatistic().code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -228,7 +233,7 @@ def test_number_of_components_criterion(data, result):
 
 def test_number_of_components_criterion_code():
     assert (
-        "ConnectedComponents_GOODNESS_OF_FIT"
+        "CONNECTEDCOMPONENTS_GRAPH_EXPONENTIALITY_GOODNESS_OF_FIT"
         == GraphConnectedComponentsExponentialityGofStatistic().code()
     )
 
@@ -246,7 +251,10 @@ def test_graph_edges_number_exponentiality_criterion(data, result):
 
 
 def test_graph_edges_number_exponentiality_criterion_code():
-    assert "EdgesNumber_GOODNESS_OF_FIT" == GraphEdgesNumberExponentialityGofStatistic().code()
+    assert (
+        "EDGESNUMBER_GRAPH_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == GraphEdgesNumberExponentialityGofStatistic().code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -262,7 +270,48 @@ def test_graph_max_degree_exponentiality_criterion(data, result):
 
 
 def test_graph_max_degree_exponentiality_criterion_code():
-    assert "MaxDegree_GOODNESS_OF_FIT" == GraphMaxDegreeExponentialityGofStatistic().code()
+    assert (
+        "MAXDEGREE_GRAPH_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == GraphMaxDegreeExponentialityGofStatistic().code()
+    )
+
+
+@pytest.mark.parametrize(
+    ("data", "expected_result"),
+    [
+        ([0.713, 0.644, 2.625, 0.740, 0.501, 0.185, 0.982, 1.028, 1.152, 0.267], 4.0),
+        ([0.039, 3.036, 0.626, 1.107, 0.139, 1.629, 0.050, 0.118, 0.978, 2.699], 4.0),
+    ],
+)
+def test_clique_number_exponentiality_criterion(data, expected_result):
+    statistic = GraphCliqueNumberExponentialityGofStatistic().execute_statistic(data)
+    assert expected_result == pytest.approx(statistic, 0.00001)
+
+
+def test_clique_number_exponentiality_criterion_code():
+    assert (
+        "CLIQUENUMBER_GRAPH_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == GraphCliqueNumberExponentialityGofStatistic.code()
+    )
+
+
+@pytest.mark.parametrize(
+    ("data", "expected_result"),
+    [
+        ([0.713, 0.644, 2.625, 0.740, 0.501, 0.185, 0.982, 1.028, 1.152, 0.267], 4.0),
+        ([0.039, 3.036, 0.626, 1.107, 0.139, 1.629, 0.050, 0.118, 0.978, 2.699], 6.0),
+    ],
+)
+def test_independence_number_exponentiality_criterion(data, expected_result):
+    statistic = GraphIndependenceNumberExponentialityGofStatistic().execute_statistic(data)
+    assert expected_result == pytest.approx(statistic, 0.00001)
+
+
+def test_independence_number_exponentiality_criterion_code():
+    assert (
+        "INDEPENDENCENUMBER_GRAPH_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == GraphIndependenceNumberExponentialityGofStatistic.code()
+    )
 
 
 @pytest.mark.parametrize(
