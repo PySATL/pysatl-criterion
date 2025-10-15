@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from enum import Enum, auto
+from enum import Enum
 
 from numpy import float64
 
@@ -9,9 +9,9 @@ class HypothesisType(Enum):
     Alternatives for hypotheses.
     """
 
-    RIGHT = auto()
-    LEFT = auto()
-    TWO_TAILED = auto()
+    RIGHT = "right"
+    LEFT = "left"
+    TWO_TAILED = "two_tailed"
 
     def check_hypothesis(
         self,
