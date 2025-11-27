@@ -1,3 +1,18 @@
+from pysatl_criterion.statistics.beta import (
+    AbstractBetaGofStatistic,
+    AndersonDarlingBetaGofStatistic,
+    Chi2PearsonBetaGofStatistic,
+    CrammerVonMisesBetaGofStatistic,
+    EntropyBetaGofStatistic,
+    KolmogorovSmirnovBetaGofStatistic,
+    KuiperBetaGofStatistic,
+    LillieforsTestBetaGofStatistic,
+    ModeBetaGofStatistic,
+    MomentBasedBetaGofStatistic,
+    RatioBetaGofStatistic,
+    SkewnessKurtosisBetaGofStatistic,
+    WatsonBetaGofStatistic,
+)
 from pysatl_criterion.statistics.common import (
     ADStatistic,
     Chi2Statistic,
@@ -75,21 +90,6 @@ from pysatl_criterion.statistics.normal import (
     ZhangQStarNormalityGofStatistic,
     ZhangWuANormalityGofStatistic,
     ZhangWuCNormalityGofStatistic,
-)
-from pysatl_criterion.statistics.beta import (
-    AbstractBetaGofStatistic,
-    AndersonDarlingBetaGofStatistic,
-    Chi2PearsonBetaGofStatistic,
-    CrammerVonMisesBetaGofStatistic,
-    EntropyBetaGofStatistic,
-    KolmogorovSmirnovBetaGofStatistic,
-    KuiperBetaGofStatistic,
-    LillieforsTestBetaGofStatistic,
-    ModeBetaGofStatistic,
-    MomentBasedBetaGofStatistic,
-    RatioBetaGofStatistic,
-    SkewnessKurtosisBetaGofStatistic,
-    WatsonBetaGofStatistic,
 )
 from pysatl_criterion.statistics.weibull import (
     AbstractWeibullGofStatistic,

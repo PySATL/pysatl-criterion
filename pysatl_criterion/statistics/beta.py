@@ -545,9 +545,7 @@ class MomentBasedBetaGofStatistic(AbstractBetaGofStatistic):
         # Theoretical moments
         alpha_beta_sum = self.alpha + self.beta
         theoretical_mean = self.alpha / alpha_beta_sum
-        theoretical_var = (self.alpha * self.beta) / (
-            alpha_beta_sum**2 * (alpha_beta_sum + 1)
-        )
+        theoretical_var = (self.alpha * self.beta) / (alpha_beta_sum**2 * (alpha_beta_sum + 1))
 
         # Test statistic based on standardized differences
         mean_diff = np.sqrt(n) * (sample_mean - theoretical_mean) / np.sqrt(theoretical_var)
@@ -616,29 +614,30 @@ class SkewnessKurtosisBetaGofStatistic(AbstractBetaGofStatistic):
         n = len(rvs)
 
         # Sample skewness and kurtosis
-        from scipy.stats import skew, kurtosis
+        from scipy.stats import kurtosis, skew
+
         sample_skewness = skew(rvs, bias=False)
         sample_kurtosis = kurtosis(rvs, bias=False)
 
         # Theoretical skewness and kurtosis
         alpha_beta_sum = self.alpha + self.beta
         theoretical_skewness = (
-            2 * (self.beta - self.alpha) * np.sqrt(alpha_beta_sum + 1) /
-            ((alpha_beta_sum + 2) * np.sqrt(self.alpha * self.beta))
+            2
+            * (self.beta - self.alpha)
+            * np.sqrt(alpha_beta_sum + 1)
+            / ((alpha_beta_sum + 2) * np.sqrt(self.alpha * self.beta))
         )
 
-        numerator = (
-            6 * ((self.alpha - self.beta)**2 * (alpha_beta_sum + 1) -
-                 self.alpha * self.beta * (alpha_beta_sum + 2))
+        numerator = 6 * (
+            (self.alpha - self.beta) ** 2 * (alpha_beta_sum + 1)
+            - self.alpha * self.beta * (alpha_beta_sum + 2)
         )
-        denominator = (
-            self.alpha * self.beta * (alpha_beta_sum + 2) * (alpha_beta_sum + 3)
-        )
+        denominator = self.alpha * self.beta * (alpha_beta_sum + 2) * (alpha_beta_sum + 3)
         theoretical_kurtosis = numerator / denominator
 
         # Test statistic (similar to Jarque-Bera)
-        skew_diff = (sample_skewness - theoretical_skewness)**2
-        kurt_diff = (sample_kurtosis - theoretical_kurtosis)**2
+        skew_diff = (sample_skewness - theoretical_skewness) ** 2
+        kurt_diff = (sample_kurtosis - theoretical_kurtosis) ** 2
 
         statistic = (n / 6) * skew_diff + (n / 24) * kurt_diff
 
@@ -692,7 +691,9 @@ class RatioBetaGofStatistic(AbstractBetaGofStatistic):
         """
         rvs = np.asarray(rvs)
         if np.any((rvs <= 0) | (rvs >= 1)):
-            raise ValueError("Beta distribution values must be in the open interval (0, 1) for this test")
+            raise ValueError(
+                "Beta distribution values must be in the open interval (0, 1) for this test"
+            )
 
         n = len(rvs)
 
@@ -778,7 +779,7 @@ class EntropyBetaGofStatistic(AbstractBetaGofStatistic):
             raise ValueError("Beta distribution values must be in the interval [0, 1]")
 
         n = len(rvs)
-        m = kwargs.get('m', n // 4)
+        m = kwargs.get("m", n // 4)
 
         # Sort the data
         rvs_sorted = np.sort(rvs)
@@ -798,10 +799,10 @@ class EntropyBetaGofStatistic(AbstractBetaGofStatistic):
         from scipy.special import betaln, psi
 
         theoretical_entropy = (
-            betaln(self.alpha, self.beta) -
-            (self.alpha - 1) * psi(self.alpha) -
-            (self.beta - 1) * psi(self.beta) +
-            (self.alpha + self.beta - 2) * psi(self.alpha + self.beta)
+            betaln(self.alpha, self.beta)
+            - (self.alpha - 1) * psi(self.alpha)
+            - (self.beta - 1) * psi(self.beta)
+            + (self.alpha + self.beta - 2) * psi(self.alpha + self.beta)
         )
 
         # Test statistic
