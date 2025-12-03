@@ -96,8 +96,9 @@ class KolmogorovSmirnovUniformGofStatistic(AbstractUniformGofStatistic, KSStatis
         """
         rvs = np.asarray(rvs)
         if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(f"Uniform distribution values must be in the interval"
-                             f"[{self.a}, {self.b}]")
+            raise ValueError(
+                f"Uniform distribution values must be in the interval [{self.a}, {self.b}]"
+            )
 
         rvs_sorted = np.sort(rvs)
         cdf_vals = scipy_stats.uniform.cdf(rvs_sorted, loc=self.a, scale=self.b - self.a)
@@ -152,8 +153,9 @@ class AndersonDarlingUniformGofStatistic(AbstractUniformGofStatistic, ADStatisti
         """
         rvs = np.asarray(rvs)
         if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(f"Uniform distribution values must be in the interval"
-                             f"[{self.a}, {self.b}]")
+            raise ValueError(
+                f"Uniform distribution values must be in the interval [{self.a}, {self.b}]"
+            )
 
         rvs_sorted = np.sort(rvs)
         n = len(rvs_sorted)
@@ -217,8 +219,9 @@ class CrammerVonMisesUniformGofStatistic(AbstractUniformGofStatistic, CrammerVon
         """
         rvs = np.asarray(rvs)
         if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(f"Uniform distribution values must be in the interval"
-                             f"[{self.a}, {self.b}]")
+            raise ValueError(
+                f"Uniform distribution values must be in the interval [{self.a}, {self.b}]"
+            )
 
         rvs_sorted = np.sort(rvs)
         cdf_vals = scipy_stats.uniform.cdf(rvs_sorted, loc=self.a, scale=self.b - self.a)
@@ -273,8 +276,9 @@ class LillieforsTestUniformGofStatistic(AbstractUniformGofStatistic, LillieforsT
         """
         rvs = np.asarray(rvs)
         if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(f"Uniform distribution values must be in the interval"
-                             f"[{self.a}, {self.b}]")
+            raise ValueError(
+                f"Uniform distribution values must be in the interval [{self.a}, {self.b}]"
+            )
 
         rvs_sorted = np.sort(rvs)
         cdf_vals = scipy_stats.uniform.cdf(rvs_sorted, loc=self.a, scale=self.b - self.a)
@@ -314,7 +318,7 @@ class Chi2PearsonUniformGofStatistic(AbstractUniformGofStatistic, Chi2Statistic)
            Science, 50(302), 157-175.
     """
 
-    def __init__(self, a=0, b=1, lambda_=1, bins='sturges'):
+    def __init__(self, a=0, b=1, lambda_=1, bins="sturges"):
         AbstractUniformGofStatistic.__init__(self, a, b)
         Chi2Statistic.__init__(self)
         self.lambda_ = lambda_
@@ -342,21 +346,21 @@ class Chi2PearsonUniformGofStatistic(AbstractUniformGofStatistic, Chi2Statistic)
         """
         rvs = np.asarray(rvs)
         if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(f"Uniform distribution values must be in the interval"
-                             f"[{self.a}, {self.b}]")
+            raise ValueError(
+                f"Uniform distribution values must be in the interval [{self.a}, {self.b}]"
+            )
 
         n = len(rvs)
         if isinstance(self.bins, str):
-            if self.bins == 'sturges':
+            if self.bins == "sturges":
                 num_bins = int(np.ceil(np.log2(n) + 1))
-            elif self.bins == 'sqrt':
+            elif self.bins == "sqrt":
                 num_bins = int(np.ceil(np.sqrt(n)))
-            elif self.bins == 'auto':
-                # Scott's rule for bin width
+            elif self.bins == "auto":
                 h = 3.5 * np.std(rvs) / (n ** (1 / 3))
                 num_bins = int(np.ceil((self.b - self.a) / h))
             else:
-                num_bins = 10  # default
+                num_bins = 10
         else:
             num_bins = int(self.bins)
         num_bins = max(2, num_bins)
@@ -417,8 +421,9 @@ class WatsonUniformGofStatistic(AbstractUniformGofStatistic):
         """
         rvs = np.asarray(rvs)
         if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(f"Uniform distribution values must be in the interval"
-                             f"[{self.a}, {self.b}]")
+            raise ValueError(
+                f"Uniform distribution values must be in the interval [{self.a}, {self.b}]"
+            )
 
         n = len(rvs)
         rvs_sorted = np.sort(rvs)
@@ -427,7 +432,7 @@ class WatsonUniformGofStatistic(AbstractUniformGofStatistic):
         i = np.arange(1, n + 1)
         fn = i / n
         mean_f = np.mean(rvs_standardized)
-        u2 = np.sum((rvs_standardized - fn + 0.5 / n - mean_f) ** 2) / n + 1 / (12 * n ** 2)
+        u2 = np.sum((rvs_standardized - fn + 0.5 / n - mean_f) ** 2) / n + 1 / (12 * n**2)
 
         return u2
 
@@ -482,8 +487,9 @@ class KuiperUniformGofStatistic(AbstractUniformGofStatistic):
         """
         rvs = np.asarray(rvs, dtype=np.float64)
         if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(f"Uniform distribution values must be in the interval"
-                             f"[{self.a}, {self.b}]")
+            raise ValueError(
+                f"Uniform distribution values must be in the interval [{self.a}, {self.b}]"
+            )
 
         n = len(rvs)
         rvs_sorted = np.sort(rvs)
@@ -542,7 +548,7 @@ class GreenwoodTestUniformGofStatistic(AbstractUniformGofStatistic):
         rvs_with_boundaries = np.concatenate([[0], rvs_std, [1]])
         spacings = np.diff(rvs_with_boundaries)
 
-        g = np.sum(spacings ** 2)
+        g = np.sum(spacings**2)
 
         return g
 
@@ -569,7 +575,7 @@ class BickelRosenblattUniformGofStatistic(AbstractUniformGofStatistic):
            The Annals of Statistics, 1(6), 1071-1095.
     """
 
-    def __init__(self, a=0, b=1, bandwidth='auto'):
+    def __init__(self, a=0, b=1, bandwidth="auto"):
         AbstractUniformGofStatistic.__init__(self, a, b)
         self.bandwidth = bandwidth
 
@@ -586,6 +592,7 @@ class BickelRosenblattUniformGofStatistic(AbstractUniformGofStatistic):
 
         n = len(rvs)
         rvs_std = (rvs - self.a) / (self.b - self.a)
+
         if self.bandwidth == 'auto':
             h = 1.06 * np.std(rvs_std) * (n ** (-1 / 5))
         else:
@@ -627,10 +634,10 @@ class ZhangTestsUniformGofStatistic(AbstractUniformGofStatistic):
            Series B (Statistical Methodology), 64(2), 281-294.
     """
 
-    def __init__(self, a=0, b=1, test_type='A'):
+    def __init__(self, a=0, b=1, test_type="A"):
         AbstractUniformGofStatistic.__init__(self, a, b)
         self.test_type = test_type.upper()
-        if self.test_type not in ['A', 'C', 'K']:
+        if self.test_type not in ["A", "C", "K"]:
             raise ValueError("test_type must be 'A', 'C', or 'K'")
 
     @staticmethod
@@ -651,12 +658,12 @@ class ZhangTestsUniformGofStatistic(AbstractUniformGofStatistic):
 
         i = np.arange(1, n + 1)
 
-        if self.test_type == 'A':
+        if self.test_type == "A":
             term1 = np.sum(np.log(rvs_std) / (n - i + 0.5))
             term2 = np.sum(np.log(1 - rvs_std) / (i - 0.5))
             statistic = -term1 - term2
 
-        elif self.test_type == 'C':
+        elif self.test_type == "C":
             term1 = np.sum((np.log(rvs_std) / (n - i + 0.5)) ** 2)
             term2 = np.sum((np.log(1 - rvs_std) / (i - 0.5)) ** 2)
             statistic = term1 + term2
@@ -722,8 +729,9 @@ class SteinUniformGofStatistic(AbstractUniformGofStatistic):
         """
         rvs = np.asarray(rvs)
         if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(f"Uniform distribution values must be in the interval"
-                             f"[{self.a}, {self.b}]")
+            raise ValueError(
+                f"Uniform distribution values must be in the interval [{self.a}, {self.b}]"
+            )
         if self.a != 0 or self.b != 1:
             rvs_std = (rvs - self.a) / (self.b - self.a)
         else:
@@ -739,7 +747,7 @@ class SteinUniformGofStatistic(AbstractUniformGofStatistic):
         n = len(rvs_std)
 
         def h1(x, y):
-            return 0.5 * (2 * max(x, y) - 2 * x - 2 * y + x ** 2 + y ** 2)
+            return 0.5 * (2 * max(x, y) - 2 * x - 2 * y + x**2 + y**2)
 
         total = 0
         for i in range(n):
@@ -858,7 +866,7 @@ class CensoredSteinUniformGofStatistic(AbstractUniformGofStatistic):
                 km_survival[i + 1] = km_survival[i]
 
         def survival_func(t):
-            idx = np.searchsorted(times_sorted, t, side='right')
+            idx = np.searchsorted(times_sorted, t, side="right")
             return km_survival[idx]
 
         return survival_func
@@ -885,7 +893,7 @@ class CensoredSteinUniformGofStatistic(AbstractUniformGofStatistic):
         n = len(rvs)
 
         def h1(x, y):
-            return 0.5 * (2 * max(x, y) - 2 * x - 2 * y + x ** 2 + y ** 2)
+            return 0.5 * (2 * max(x, y) - 2 * x - 2 * y + x**2 + y**2)
 
         weights = np.zeros(n)
         for i in range(n):
@@ -970,7 +978,7 @@ class NeymanSmoothTestUniformGofStatistic(AbstractUniformGofStatistic):
 
         for j in range(1, self.k + 1):
             vj = float(np.sum(phi(j, rvs_std))) / np.sqrt(n)
-            statistic += vj ** 2
+            statistic += vj**2
 
         return statistic
 
@@ -1039,7 +1047,7 @@ class QuesenberryMillerUniformGofStatistic(AbstractUniformGofStatistic):
 
         spacings = np.diff(x_with_boundaries)
 
-        sum_squares = np.sum(spacings ** 2)
+        sum_squares = np.sum(spacings**2)
 
         sum_consecutive_products = np.sum(spacings[:-1] * spacings[1:])
 

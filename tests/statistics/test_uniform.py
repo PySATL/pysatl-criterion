@@ -200,8 +200,8 @@ class TestChi2PearsonUniformGofStatistic:
     @pytest.mark.parametrize(
         ("a", "b", "bins", "seed", "n"),
         [
-            (0, 1, 'sturges', 42, 100),
-            (0, 10, 'sqrt', 123, 200),
+            (0, 1, "sturges", 42, 100),
+            (0, 10, "sqrt", 123, 200),
             (2, 5, 5, 456, 150),
         ],
     )
@@ -220,6 +220,7 @@ class TestChi2PearsonUniformGofStatistic:
         """Test different bin selection methods."""
         np.random.seed(42)
         data = np.random.uniform(0, 1, 100)
+
 
         for bins in ['sturges', 'sqrt', 'auto', 10]:
             stat = Chi2PearsonUniformGofStatistic(bins=bins)
@@ -314,13 +315,13 @@ class TestBickelRosenblattUniformGofStatistic:
 
     def test_code(self):
         """Test that the Bickel-Rosenblatt statistic returns correct code."""
-        assert ("BICKEL_ROSENBLATT_UNIFORM_GOODNESS_OF_FIT" ==
-                BickelRosenblattUniformGofStatistic.code())
+        assert ("BICKEL_ROSENBLATT_UNIFORM_GOODNESS_OF_FIT"
+                == BickelRosenblattUniformGofStatistic.code())
 
     @pytest.mark.parametrize(
         ("a", "b", "bandwidth", "seed", "n"),
         [
-            (0, 1, 'auto', 42, 100),
+            (0, 1, "auto", 42, 100),
             (0, 10, 0.1, 123, 200),
         ],
     )
@@ -366,7 +367,7 @@ class TestZhangTestsUniformGofStatistic:
     def test_zhang_invalid_test_type(self):
         """Test that Zhang statistic validates test_type parameter."""
         with pytest.raises(ValueError, match="test_type must be 'A', 'C', or 'K'"):
-            ZhangTestsUniformGofStatistic(test_type='X')
+            ZhangTestsUniformGofStatistic(test_type="X")
 
 
 class TestSteinUniformGofStatistic:
@@ -398,7 +399,7 @@ class TestSteinUniformGofStatistic:
         data = np.array([0.1, 0.3, 0.5, 0.7, 0.9])
         statistic = SteinUniformGofStatistic._compute_u_statistic(data)
 
-        assert isinstance(statistic, (float, np.floating))
+        assert isinstance(statistic, float | np.floating)
         assert np.isfinite(statistic)
 
 
@@ -502,8 +503,8 @@ class TestQuesenberryMillerUniformGofStatistic:
 
     def test_code(self):
         """Test that the Quesenberry-Miller statistic returns correct code."""
-        assert ("QUESENBERRY_MILLER_UNIFORM_GOODNESS_OF_FIT" ==
-                QuesenberryMillerUniformGofStatistic.code())
+        assert ("QUESENBERRY_MILLER_UNIFORM_GOODNESS_OF_FIT"
+                == QuesenberryMillerUniformGofStatistic.code())
 
     @pytest.mark.parametrize(
         ("a", "b", "seed", "n"),
@@ -542,9 +543,9 @@ class TestUniformIntegration:
             KuiperUniformGofStatistic(),
             GreenwoodTestUniformGofStatistic(),
             BickelRosenblattUniformGofStatistic(),
-            ZhangTestsUniformGofStatistic(test_type='A'),
-            ZhangTestsUniformGofStatistic(test_type='C'),
-            ZhangTestsUniformGofStatistic(test_type='K'),
+            ZhangTestsUniformGofStatistic(test_type="A"),
+            ZhangTestsUniformGofStatistic(test_type="C"),
+            ZhangTestsUniformGofStatistic(test_type="K"),
             SteinUniformGofStatistic(),
             CensoredSteinUniformGofStatistic(),
             NeymanSmoothTestUniformGofStatistic(k=4),
@@ -627,13 +628,14 @@ class TestUniformBenchmark:
 
         stats = [
             KolmogorovSmirnovUniformGofStatistic(),
-            Chi2PearsonUniformGofStatistic(bins='sqrt'),
+            Chi2PearsonUniformGofStatistic(bins="sqrt"),
             SteinUniformGofStatistic(),
             GreenwoodTestUniformGofStatistic(),
         ]
 
         for stat in stats:
             import time
+
             start = time.time()
             value = stat.execute_statistic(data)
             elapsed = time.time() - start
