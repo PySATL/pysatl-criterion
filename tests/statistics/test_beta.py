@@ -55,28 +55,101 @@ class TestKolmogorovSmirnovBetaGofStatistic:
         assert "KS_BETA_GOODNESS_OF_FIT" == KolmogorovSmirnovBetaGofStatistic.code()
 
     @pytest.mark.parametrize(
-        ("alpha", "beta", "seed", "n"),
+        ("data", "alpha", "beta", "result"),
         [
-            (2, 5, 42, 50),
-            (1, 1, 123, 100),  # Uniform distribution
-            (0.5, 0.5, 456, 75),
-            (5, 2, 789, 200),
+            (
+                [
+                    0.3536766572,
+                    0.2485580661,
+                    0.4159590873,
+                    0.1599675758,
+                    0.5502830781,
+                    0.1109452876,
+                    0.5098966418,
+                    0.1772703795,
+                    0.1982904719,
+                    0.3762367882,
+                ],
+                2,
+                5,
+                0.1877694,
+            ),
+            (
+                [
+                    0.7087962001,
+                    0.2915205607,
+                    0.5508644650,
+                    0.8802250282,
+                    0.5098339187,
+                    0.6131471891,
+                    0.3176350910,
+                    0.1751690171,
+                    0.4660253747,
+                    0.5769342726,
+                    0.8436683688,
+                    0.4333839830,
+                ],
+                1,
+                1,
+                0.2081872,
+            ),
+            (
+                [
+                    0.6994383163,
+                    0.5174900183,
+                    0.5925767197,
+                    0.5611698399,
+                    0.9395027265,
+                    0.6820294051,
+                    0.4379703453,
+                    0.5303633637,
+                ],
+                0.5,
+                0.5,
+                0.4604087,
+            ),
+            (
+                [
+                    0.7482953444,
+                    0.8762706351,
+                    0.4603376651,
+                    0.7471648301,
+                    0.8904978771,
+                    0.7206587486,
+                    0.8250535532,
+                    0.7494859221,
+                    0.8777684524,
+                    0.9167142296,
+                    0.9568773740,
+                ],
+                5,
+                2,
+                0.3749592,
+            ),
+            (
+                [
+                    0.3366836981,
+                    0.5643169242,
+                    0.5625418098,
+                    0.4038462174,
+                    0.3593278603,
+                    0.7521677033,
+                    0.6460545301,
+                    0.7051711915,
+                    0.1494688017,
+                    0.8260848760,
+                ],
+                3,
+                3,
+                0.2160485,
+            ),
         ],
     )
-    def test_ks_with_generated_data(self, alpha, beta, seed, n):
-        """Test KS statistic with data generated from Beta distribution."""
-        np.random.seed(seed)
-        data = scipy_stats.beta.rvs(alpha, beta, size=n)
-
+    def test_ks_with_parametrized_data(self, data, alpha, beta, result):
+        """Test KS statistic with precomputed expected values."""
         stat = KolmogorovSmirnovBetaGofStatistic(alpha=alpha, beta=beta)
         statistic_value = stat.execute_statistic(data)
-
-        # Statistic should be non-negative
-        assert statistic_value >= 0
-
-        # For data from the correct distribution, statistic should be relatively small
-        # (though this is a probabilistic statement)
-        assert statistic_value < 0.5  # Reasonable upper bound for good fit
+        assert result == pytest.approx(statistic_value, 0.00001)
 
     def test_ks_with_wrong_distribution(self):
         """Test KS statistic with data from wrong distribution."""
@@ -110,26 +183,68 @@ class TestAndersonDarlingBetaGofStatistic:
         assert "AD_BETA_GOODNESS_OF_FIT" == AndersonDarlingBetaGofStatistic.code()
 
     @pytest.mark.parametrize(
-        ("alpha", "beta", "seed", "n"),
+        ("data", "alpha", "beta", "result"),
         [
-            (2, 5, 42, 50),
-            (1, 1, 123, 100),
-            (3, 3, 456, 75),
+            (
+                [
+                    0.3536766572,
+                    0.2485580661,
+                    0.4159590873,
+                    0.1599675758,
+                    0.5502830781,
+                    0.1109452876,
+                    0.5098966418,
+                    0.1772703795,
+                    0.1982904719,
+                    0.3762367882,
+                ],
+                2,
+                5,
+                0.3746031,
+            ),
+            (
+                [
+                    0.7087962001,
+                    0.2915205607,
+                    0.5508644650,
+                    0.8802250282,
+                    0.5098339187,
+                    0.6131471891,
+                    0.3176350910,
+                    0.1751690171,
+                    0.4660253747,
+                    0.5769342726,
+                    0.8436683688,
+                    0.4333839830,
+                ],
+                1,
+                1,
+                0.7490749,
+            ),
+            (
+                [
+                    0.3366836981,
+                    0.5643169242,
+                    0.5625418098,
+                    0.4038462174,
+                    0.3593278603,
+                    0.7521677033,
+                    0.6460545301,
+                    0.7051711915,
+                    0.1494688017,
+                    0.8260848760,
+                ],
+                3,
+                3,
+                0.3998264,
+            ),
         ],
     )
-    def test_ad_with_generated_data(self, alpha, beta, seed, n):
-        """Test AD statistic with data generated from Beta distribution."""
-        np.random.seed(seed)
-        data = scipy_stats.beta.rvs(alpha, beta, size=n)
-
+    def test_ad_with_parametrized_data(self, data, alpha, beta, result):
+        """Test AD statistic with precomputed expected values."""
         stat = AndersonDarlingBetaGofStatistic(alpha=alpha, beta=beta)
         statistic_value = stat.execute_statistic(data)
-
-        # Statistic should be finite
-        assert np.isfinite(statistic_value)
-
-        # For data from the correct distribution, statistic should be reasonable
-        assert statistic_value < 10  # Reasonable upper bound for good fit
+        assert result == pytest.approx(statistic_value, 0.00001)
 
     def test_ad_validation_errors(self):
         """Test that AD statistic validates input data."""
@@ -147,26 +262,68 @@ class TestCrammerVonMisesBetaGofStatistic:
         assert "CVM_BETA_GOODNESS_OF_FIT" == CrammerVonMisesBetaGofStatistic.code()
 
     @pytest.mark.parametrize(
-        ("alpha", "beta", "seed", "n"),
+        ("data", "alpha", "beta", "result"),
         [
-            (2, 5, 42, 50),
-            (1, 1, 123, 100),
-            (3, 3, 456, 75),
+            (
+                [
+                    0.3536766572,
+                    0.2485580661,
+                    0.4159590873,
+                    0.1599675758,
+                    0.5502830781,
+                    0.1109452876,
+                    0.5098966418,
+                    0.1772703795,
+                    0.1982904719,
+                    0.3762367882,
+                ],
+                2,
+                5,
+                0.0565441,
+            ),
+            (
+                [
+                    0.7087962001,
+                    0.2915205607,
+                    0.5508644650,
+                    0.8802250282,
+                    0.5098339187,
+                    0.6131471891,
+                    0.3176350910,
+                    0.1751690171,
+                    0.4660253747,
+                    0.5769342726,
+                    0.8436683688,
+                    0.4333839830,
+                ],
+                1,
+                1,
+                0.1208704,
+            ),
+            (
+                [
+                    0.3366836981,
+                    0.5643169242,
+                    0.5625418098,
+                    0.4038462174,
+                    0.3593278603,
+                    0.7521677033,
+                    0.6460545301,
+                    0.7051711915,
+                    0.1494688017,
+                    0.8260848760,
+                ],
+                3,
+                3,
+                0.0692098,
+            ),
         ],
     )
-    def test_cvm_with_generated_data(self, alpha, beta, seed, n):
-        """Test CVM statistic with data generated from Beta distribution."""
-        np.random.seed(seed)
-        data = scipy_stats.beta.rvs(alpha, beta, size=n)
-
+    def test_cvm_with_parametrized_data(self, data, alpha, beta, result):
+        """Test CVM statistic with precomputed expected values."""
         stat = CrammerVonMisesBetaGofStatistic(alpha=alpha, beta=beta)
         statistic_value = stat.execute_statistic(data)
-
-        # Statistic should be non-negative
-        assert statistic_value >= 0
-
-        # For data from the correct distribution, statistic should be small
-        assert statistic_value < 1  # Reasonable upper bound for good fit
+        assert result == pytest.approx(statistic_value, 0.00001)
 
     def test_cvm_validation_errors(self):
         """Test that CVM statistic validates input data."""
@@ -184,23 +341,49 @@ class TestLillieforsTestBetaGofStatistic:
         assert "LILLIE_BETA_GOODNESS_OF_FIT" == LillieforsTestBetaGofStatistic.code()
 
     @pytest.mark.parametrize(
-        ("alpha", "beta", "seed", "n"),
+        ("data", "alpha", "beta", "result"),
         [
-            (2, 5, 42, 50),
-            (3, 3, 123, 100),
+            (
+                [
+                    0.3536766572,
+                    0.2485580661,
+                    0.4159590873,
+                    0.1599675758,
+                    0.5502830781,
+                    0.1109452876,
+                    0.5098966418,
+                    0.1772703795,
+                    0.1982904719,
+                    0.3762367882,
+                ],
+                2,
+                5,
+                0.1877694,
+            ),
+            (
+                [
+                    0.3366836981,
+                    0.5643169242,
+                    0.5625418098,
+                    0.4038462174,
+                    0.3593278603,
+                    0.7521677033,
+                    0.6460545301,
+                    0.7051711915,
+                    0.1494688017,
+                    0.8260848760,
+                ],
+                3,
+                3,
+                0.2160485,
+            ),
         ],
     )
-    def test_lillie_with_generated_data(self, alpha, beta, seed, n):
-        """Test Lilliefors statistic with data generated from Beta distribution."""
-        np.random.seed(seed)
-        data = scipy_stats.beta.rvs(alpha, beta, size=n)
-
+    def test_lillie_with_parametrized_data(self, data, alpha, beta, result):
+        """Test Lilliefors statistic with precomputed expected values."""
         stat = LillieforsTestBetaGofStatistic(alpha=alpha, beta=beta)
         statistic_value = stat.execute_statistic(data)
-
-        # Statistic should be non-negative
-        assert statistic_value >= 0
-        assert statistic_value < 0.5
+        assert result == pytest.approx(statistic_value, 0.00001)
 
 
 class TestChi2PearsonBetaGofStatistic:
@@ -238,22 +421,68 @@ class TestWatsonBetaGofStatistic:
         assert "W_BETA_GOODNESS_OF_FIT" == WatsonBetaGofStatistic.code()
 
     @pytest.mark.parametrize(
-        ("alpha", "beta", "seed", "n"),
+        ("data", "alpha", "beta", "result"),
         [
-            (2, 5, 42, 50),
-            (3, 3, 123, 100),
+            (
+                [
+                    0.3536766572,
+                    0.2485580661,
+                    0.4159590873,
+                    0.1599675758,
+                    0.5502830781,
+                    0.1109452876,
+                    0.5098966418,
+                    0.1772703795,
+                    0.1982904719,
+                    0.3762367882,
+                ],
+                2,
+                5,
+                0.0302649,
+            ),
+            (
+                [
+                    0.7087962001,
+                    0.2915205607,
+                    0.5508644650,
+                    0.8802250282,
+                    0.5098339187,
+                    0.6131471891,
+                    0.3176350910,
+                    0.1751690171,
+                    0.4660253747,
+                    0.5769342726,
+                    0.8436683688,
+                    0.4333839830,
+                ],
+                1,
+                1,
+                0.1096339,
+            ),
+            (
+                [
+                    0.3366836981,
+                    0.5643169242,
+                    0.5625418098,
+                    0.4038462174,
+                    0.3593278603,
+                    0.7521677033,
+                    0.6460545301,
+                    0.7051711915,
+                    0.1494688017,
+                    0.8260848760,
+                ],
+                3,
+                3,
+                0.0430198,
+            ),
         ],
     )
-    def test_watson_with_generated_data(self, alpha, beta, seed, n):
-        """Test Watson statistic with data generated from Beta distribution."""
-        np.random.seed(seed)
-        data = scipy_stats.beta.rvs(alpha, beta, size=n)
-
+    def test_watson_with_parametrized_data(self, data, alpha, beta, result):
+        """Test Watson statistic with precomputed expected values."""
         stat = WatsonBetaGofStatistic(alpha=alpha, beta=beta)
         statistic_value = stat.execute_statistic(data)
-
-        # Statistic should be finite
-        assert np.isfinite(statistic_value)
+        assert result == pytest.approx(statistic_value, 0.00001)
 
 
 class TestKuiperBetaGofStatistic:
@@ -264,23 +493,68 @@ class TestKuiperBetaGofStatistic:
         assert "KUIPER_BETA_GOODNESS_OF_FIT" == KuiperBetaGofStatistic.code()
 
     @pytest.mark.parametrize(
-        ("alpha", "beta", "seed", "n"),
+        ("data", "alpha", "beta", "result"),
         [
-            (2, 5, 42, 50),
-            (3, 3, 123, 100),
+            (
+                [
+                    0.3536766572,
+                    0.2485580661,
+                    0.4159590873,
+                    0.1599675758,
+                    0.5502830781,
+                    0.1109452876,
+                    0.5098966418,
+                    0.1772703795,
+                    0.1982904719,
+                    0.3762367882,
+                ],
+                2,
+                5,
+                0.2567761,
+            ),
+            (
+                [
+                    0.7087962001,
+                    0.2915205607,
+                    0.5508644650,
+                    0.8802250282,
+                    0.5098339187,
+                    0.6131471891,
+                    0.3176350910,
+                    0.1751690171,
+                    0.4660253747,
+                    0.5769342726,
+                    0.8436683688,
+                    0.4333839830,
+                ],
+                1,
+                1,
+                0.3450400,
+            ),
+            (
+                [
+                    0.3366836981,
+                    0.5643169242,
+                    0.5625418098,
+                    0.4038462174,
+                    0.3593278603,
+                    0.7521677033,
+                    0.6460545301,
+                    0.7051711915,
+                    0.1494688017,
+                    0.8260848760,
+                ],
+                3,
+                3,
+                0.2919412,
+            ),
         ],
     )
-    def test_kuiper_with_generated_data(self, alpha, beta, seed, n):
-        """Test Kuiper statistic with data generated from Beta distribution."""
-        np.random.seed(seed)
-        data = scipy_stats.beta.rvs(alpha, beta, size=n)
-
+    def test_kuiper_with_parametrized_data(self, data, alpha, beta, result):
+        """Test Kuiper statistic with precomputed expected values."""
         stat = KuiperBetaGofStatistic(alpha=alpha, beta=beta)
         statistic_value = stat.execute_statistic(data)
-
-        # Statistic should be non-negative
-        assert statistic_value >= 0
-        assert statistic_value < 1  # Reasonable upper bound
+        assert result == pytest.approx(statistic_value, 0.00001)
 
 
 class TestMomentBasedBetaGofStatistic:
@@ -291,35 +565,68 @@ class TestMomentBasedBetaGofStatistic:
         assert "MB_BETA_GOODNESS_OF_FIT" == MomentBasedBetaGofStatistic.code()
 
     @pytest.mark.parametrize(
-        ("alpha", "beta", "seed", "n"),
+        ("data", "alpha", "beta", "result"),
         [
-            (2, 5, 42, 100),
-            (3, 3, 123, 200),
+            (
+                [
+                    0.3536766572,
+                    0.2485580661,
+                    0.4159590873,
+                    0.1599675758,
+                    0.5502830781,
+                    0.1109452876,
+                    0.5098966418,
+                    0.1772703795,
+                    0.1982904719,
+                    0.3762367882,
+                ],
+                2,
+                5,
+                0.2349020,
+            ),
+            (
+                [
+                    0.7087962001,
+                    0.2915205607,
+                    0.5508644650,
+                    0.8802250282,
+                    0.5098339187,
+                    0.6131471891,
+                    0.3176350910,
+                    0.1751690171,
+                    0.4660253747,
+                    0.5769342726,
+                    0.8436683688,
+                    0.4333839830,
+                ],
+                1,
+                1,
+                0.3372358,
+            ),
+            (
+                [
+                    0.3366836981,
+                    0.5643169242,
+                    0.5625418098,
+                    0.4038462174,
+                    0.3593278603,
+                    0.7521677033,
+                    0.6460545301,
+                    0.7051711915,
+                    0.1494688017,
+                    0.8260848760,
+                ],
+                3,
+                3,
+                0.2891104,
+            ),
         ],
     )
-    def test_moment_with_generated_data(self, alpha, beta, seed, n):
-        """Test Moment-based statistic with data generated from Beta distribution."""
-        np.random.seed(seed)
-        data = scipy_stats.beta.rvs(alpha, beta, size=n)
-
+    def test_moment_with_parametrized_data(self, data, alpha, beta, result):
+        """Test Moment-based statistic with precomputed expected values."""
         stat = MomentBasedBetaGofStatistic(alpha=alpha, beta=beta)
         statistic_value = stat.execute_statistic(data)
-
-        # Statistic should be non-negative
-        assert statistic_value >= 0
-        assert np.isfinite(statistic_value)
-
-    def test_moment_expected_value(self):
-        """Test that moment-based statistic is small for correct distribution."""
-        np.random.seed(42)
-        # Generate large sample for stable moments
-        data = scipy_stats.beta.rvs(2, 5, size=1000)
-
-        stat = MomentBasedBetaGofStatistic(alpha=2, beta=5)
-        statistic_value = stat.execute_statistic(data)
-
-        # For correct distribution and large sample, should be relatively small
-        assert statistic_value < 10
+        assert result == pytest.approx(statistic_value, 0.00001)
 
 
 class TestSkewnessKurtosisBetaGofStatistic:
@@ -330,23 +637,68 @@ class TestSkewnessKurtosisBetaGofStatistic:
         assert "SK_BETA_GOODNESS_OF_FIT" == SkewnessKurtosisBetaGofStatistic.code()
 
     @pytest.mark.parametrize(
-        ("alpha", "beta", "seed", "n"),
+        ("data", "alpha", "beta", "result"),
         [
-            (2, 5, 42, 100),
-            (3, 3, 123, 200),
+            (
+                [
+                    0.3536766572,
+                    0.2485580661,
+                    0.4159590873,
+                    0.1599675758,
+                    0.5502830781,
+                    0.1109452876,
+                    0.5098966418,
+                    0.1772703795,
+                    0.1982904719,
+                    0.3762367882,
+                ],
+                2,
+                5,
+                0.7277307,
+            ),
+            (
+                [
+                    0.7087962001,
+                    0.2915205607,
+                    0.5508644650,
+                    0.8802250282,
+                    0.5098339187,
+                    0.6131471891,
+                    0.3176350910,
+                    0.1751690171,
+                    0.4660253747,
+                    0.5769342726,
+                    0.8436683688,
+                    0.4333839830,
+                ],
+                1,
+                1,
+                0.2648237,
+            ),
+            (
+                [
+                    0.3366836981,
+                    0.5643169242,
+                    0.5625418098,
+                    0.4038462174,
+                    0.3593278603,
+                    0.7521677033,
+                    0.6460545301,
+                    0.7051711915,
+                    0.1494688017,
+                    0.8260848760,
+                ],
+                3,
+                3,
+                0.2303306,
+            ),
         ],
     )
-    def test_sk_with_generated_data(self, alpha, beta, seed, n):
-        """Test Skewness-Kurtosis statistic with data generated from Beta distribution."""
-        np.random.seed(seed)
-        data = scipy_stats.beta.rvs(alpha, beta, size=n)
-
+    def test_sk_with_parametrized_data(self, data, alpha, beta, result):
+        """Test Skewness-Kurtosis statistic with precomputed expected values."""
         stat = SkewnessKurtosisBetaGofStatistic(alpha=alpha, beta=beta)
         statistic_value = stat.execute_statistic(data)
-
-        # Statistic should be non-negative
-        assert statistic_value >= 0
-        assert np.isfinite(statistic_value)
+        assert result == pytest.approx(statistic_value, 0.00001)
 
 
 class TestRatioBetaGofStatistic:
