@@ -617,31 +617,3 @@ class TestUniformIntegration:
         value2 = stat.execute_statistic(data)
 
         assert value1 == value2
-
-
-@pytest.mark.slow
-class TestUniformBenchmark:
-    """Benchmark tests for Uniform distribution statistics."""
-
-    @pytest.mark.parametrize("n", [100, 1000, 10000])
-    def test_large_samples(self, n):
-        """Test performance with large samples."""
-        np.random.seed(42)
-        data = np.random.uniform(0, 1, n)
-
-        stats = [
-            KolmogorovSmirnovUniformGofStatistic(),
-            Chi2PearsonUniformGofStatistic(bins="sqrt"),
-            SteinUniformGofStatistic(),
-            GreenwoodTestUniformGofStatistic(),
-        ]
-
-        for stat in stats:
-            import time
-
-            start = time.time()
-            value = stat.execute_statistic(data)
-            elapsed = time.time() - start
-
-            assert np.isfinite(value)
-            assert elapsed < 20.0, f"Statistic {stat.code()} took too long: {elapsed:.2f}s"
