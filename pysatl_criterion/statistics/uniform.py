@@ -593,7 +593,7 @@ class BickelRosenblattUniformGofStatistic(AbstractUniformGofStatistic):
         n = len(rvs)
         rvs_std = (rvs - self.a) / (self.b - self.a)
 
-        if self.bandwidth == 'auto':
+        if self.bandwidth == "auto":
             h = 1.06 * np.std(rvs_std) * (n ** (-1 / 5))
         else:
             h = self.bandwidth

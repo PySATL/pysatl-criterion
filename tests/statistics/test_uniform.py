@@ -221,8 +221,7 @@ class TestChi2PearsonUniformGofStatistic:
         np.random.seed(42)
         data = np.random.uniform(0, 1, 100)
 
-
-        for bins in ['sturges', 'sqrt', 'auto', 10]:
+        for bins in ["sturges", "sqrt", "auto", 10]:
             stat = Chi2PearsonUniformGofStatistic(bins=bins)
             statistic_value = stat.execute_statistic(data)
             assert statistic_value >= 0
@@ -315,8 +314,10 @@ class TestBickelRosenblattUniformGofStatistic:
 
     def test_code(self):
         """Test that the Bickel-Rosenblatt statistic returns correct code."""
-        assert ("BICKEL_ROSENBLATT_UNIFORM_GOODNESS_OF_FIT"
-                == BickelRosenblattUniformGofStatistic.code())
+        assert (
+            "BICKEL_ROSENBLATT_UNIFORM_GOODNESS_OF_FIT"
+            == BickelRosenblattUniformGofStatistic.code()
+        )
 
     @pytest.mark.parametrize(
         ("a", "b", "bandwidth", "seed", "n"),
@@ -349,9 +350,9 @@ class TestZhangTestsUniformGofStatistic:
     @pytest.mark.parametrize(
         ("test_type", "a", "b", "seed", "n"),
         [
-            ('A', 0, 1, 42, 50),
-            ('C', 0, 10, 123, 100),
-            ('K', 2, 5, 456, 75),
+            ("A", 0, 1, 42, 50),
+            ("C", 0, 10, 123, 100),
+            ("K", 2, 5, 456, 75),
         ],
     )
     def test_zhang_with_generated_data(self, test_type, a, b, seed, n):
@@ -503,8 +504,10 @@ class TestQuesenberryMillerUniformGofStatistic:
 
     def test_code(self):
         """Test that the Quesenberry-Miller statistic returns correct code."""
-        assert ("QUESENBERRY_MILLER_UNIFORM_GOODNESS_OF_FIT"
-                == QuesenberryMillerUniformGofStatistic.code())
+        assert (
+            "QUESENBERRY_MILLER_UNIFORM_GOODNESS_OF_FIT"
+            == QuesenberryMillerUniformGofStatistic.code()
+        )
 
     @pytest.mark.parametrize(
         ("a", "b", "seed", "n"),
