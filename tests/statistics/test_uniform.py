@@ -4,21 +4,21 @@ import scipy.stats as scipy_stats
 
 from pysatl_criterion.statistics.uniform import (
     AbstractUniformGofStatistic,
-    KolmogorovSmirnovUniformGofStatistic,
     AndersonDarlingUniformGofStatistic,
-    CrammerVonMisesUniformGofStatistic,
-    LillieforsTestUniformGofStatistic,
-    Chi2PearsonUniformGofStatistic,
-    WatsonUniformGofStatistic,
-    KuiperUniformGofStatistic,
-    GreenwoodTestUniformGofStatistic,
     BickelRosenblattUniformGofStatistic,
-    ZhangTestsUniformGofStatistic,
-    SteinUniformGofStatistic,
     CensoredSteinUniformGofStatistic,
+    Chi2PearsonUniformGofStatistic,
+    CrammerVonMisesUniformGofStatistic,
+    GreenwoodTestUniformGofStatistic,
+    KolmogorovSmirnovUniformGofStatistic,
+    KuiperUniformGofStatistic,
+    LillieforsTestUniformGofStatistic,
     NeymanSmoothTestUniformGofStatistic,
-    ShermanUniformGofStatistic,
     QuesenberryMillerUniformGofStatistic,
+    ShermanUniformGofStatistic,
+    SteinUniformGofStatistic,
+    WatsonUniformGofStatistic,
+    ZhangTestsUniformGofStatistic,
 )
 
 
@@ -314,7 +314,8 @@ class TestBickelRosenblattUniformGofStatistic:
 
     def test_code(self):
         """Test that the Bickel-Rosenblatt statistic returns correct code."""
-        assert "BICKEL_ROSENBLATT_UNIFORM_GOODNESS_OF_FIT" == BickelRosenblattUniformGofStatistic.code()
+        assert ("BICKEL_ROSENBLATT_UNIFORM_GOODNESS_OF_FIT" ==
+                BickelRosenblattUniformGofStatistic.code())
 
     @pytest.mark.parametrize(
         ("a", "b", "bandwidth", "seed", "n"),
@@ -501,7 +502,8 @@ class TestQuesenberryMillerUniformGofStatistic:
 
     def test_code(self):
         """Test that the Quesenberry-Miller statistic returns correct code."""
-        assert "QUESENBERRY_MILLER_UNIFORM_GOODNESS_OF_FIT" == QuesenberryMillerUniformGofStatistic.code()
+        assert ("QUESENBERRY_MILLER_UNIFORM_GOODNESS_OF_FIT" ==
+                QuesenberryMillerUniformGofStatistic.code())
 
     @pytest.mark.parametrize(
         ("a", "b", "seed", "n"),
