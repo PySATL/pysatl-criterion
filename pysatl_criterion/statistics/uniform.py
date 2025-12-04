@@ -158,15 +158,9 @@ class AndersonDarlingUniformGofStatistic(AbstractUniformGofStatistic, ADStatisti
             )
 
         rvs_sorted = np.sort(rvs)
-        n = len(rvs_sorted)
-
         logcdf = scipy_stats.uniform.logcdf(rvs_sorted, loc=self.a, scale=self.b - self.a)
         logsf = scipy_stats.uniform.logsf(rvs_sorted, loc=self.a, scale=self.b - self.a)
-
-        i = np.arange(1, n + 1)
-        a2 = -n - np.sum((2 * i - 1.0) / n * (logcdf + logsf[::-1]))
-
-        return a2
+        return ADStatistic.execute_statistic(self, rvs=rvs, log_cdf=logcdf, log_sf=logsf)
 
 
 class CrammerVonMisesUniformGofStatistic(AbstractUniformGofStatistic, CrammerVonMisesStatistic):

@@ -119,7 +119,7 @@ class TestAndersonDarlingUniformGofStatistic:
 
         assert np.isfinite(statistic_value)
 
-        assert statistic_value < 10
+        assert statistic_value < 2
 
     def test_ad_validation_errors(self):
         """Test that AD statistic validates input data."""
@@ -154,7 +154,7 @@ class TestCrammerVonMisesUniformGofStatistic:
 
         assert statistic_value >= 0
 
-        assert statistic_value < 1
+        assert statistic_value < 0.3
 
     def test_cvm_validation_errors(self):
         """Test that CVM statistic validates input data."""
@@ -251,7 +251,6 @@ class TestWatsonUniformGofStatistic:
         statistic_value = stat.execute_statistic(data)
 
         assert np.isfinite(statistic_value)
-
         assert statistic_value < 1
 
 
