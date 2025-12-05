@@ -412,6 +412,70 @@ class TestChi2PearsonBetaGofStatistic:
         assert statistic_value >= 0
         assert np.isfinite(statistic_value)
 
+    @pytest.mark.parametrize(
+        ("data", "alpha", "beta", "result"),
+        [
+            (
+                [
+                    0.3536766572,
+                    0.2485580661,
+                    0.4159590873,
+                    0.1599675758,
+                    0.5502830781,
+                    0.1109452876,
+                    0.5098966418,
+                    0.1772703795,
+                    0.1982904719,
+                    0.3762367882,
+                ],
+                2,
+                5,
+                1.30301816,
+            ),
+            (
+                [
+                    0.7087962001,
+                    0.2915205607,
+                    0.5508644650,
+                    0.8802250282,
+                    0.5098339187,
+                    0.6131471891,
+                    0.3176350910,
+                    0.1751690171,
+                    0.4660253747,
+                    0.5769342726,
+                    0.8436683688,
+                    0.4333839830,
+                ],
+                1,
+                1,
+                3.33333333,
+            ),
+            (
+                [
+                    0.3366836981,
+                    0.5643169242,
+                    0.5625418098,
+                    0.4038462174,
+                    0.3593278603,
+                    0.7521677033,
+                    0.6460545301,
+                    0.7051711915,
+                    0.1494688017,
+                    0.8260848760,
+                ],
+                3,
+                3,
+                1.13560740,
+            ),
+        ],
+    )
+    def test_chi2_with_parametrized_data(self, data, alpha, beta, result):
+        """Test Chi-squared statistic with precomputed expected values."""
+        stat = Chi2PearsonBetaGofStatistic(alpha=alpha, beta=beta)
+        statistic_value = stat.execute_statistic(data)
+        assert result == pytest.approx(statistic_value, 0.00001)
+
 
 class TestWatsonBetaGofStatistic:
     """Tests for Watson test statistic."""
@@ -729,6 +793,70 @@ class TestRatioBetaGofStatistic:
         assert statistic_value >= 0
         assert np.isfinite(statistic_value)
 
+    @pytest.mark.parametrize(
+        ("data", "alpha", "beta", "result"),
+        [
+            (
+                [
+                    0.3536766572,
+                    0.2485580661,
+                    0.4159590873,
+                    0.1599675758,
+                    0.5502830781,
+                    0.1109452876,
+                    0.5098966418,
+                    0.1772703795,
+                    0.1982904719,
+                    0.3762367882,
+                ],
+                2,
+                5,
+                0.20054649,
+            ),
+            (
+                [
+                    0.7087962001,
+                    0.2915205607,
+                    0.5508644650,
+                    0.8802250282,
+                    0.5098339187,
+                    0.6131471891,
+                    0.3176350910,
+                    0.1751690171,
+                    0.4660253747,
+                    0.5769342726,
+                    0.8436683688,
+                    0.4333839830,
+                ],
+                1,
+                1,
+                0.62062110,
+            ),
+            (
+                [
+                    0.3366836981,
+                    0.5643169242,
+                    0.5625418098,
+                    0.4038462174,
+                    0.3593278603,
+                    0.7521677033,
+                    0.6460545301,
+                    0.7051711915,
+                    0.1494688017,
+                    0.8260848760,
+                ],
+                3,
+                3,
+                0.02561022,
+            ),
+        ],
+    )
+    def test_ratio_with_parametrized_data(self, data, alpha, beta, result):
+        """Test Ratio statistic with precomputed expected values."""
+        stat = RatioBetaGofStatistic(alpha=alpha, beta=beta)
+        statistic_value = stat.execute_statistic(data)
+        assert result == pytest.approx(statistic_value, 0.00001)
+
     def test_ratio_validation_errors(self):
         """Test that Ratio statistic validates input data."""
         stat = RatioBetaGofStatistic(alpha=2, beta=3)
@@ -765,6 +893,70 @@ class TestEntropyBetaGofStatistic:
         # Statistic should be non-negative
         assert statistic_value >= 0
         assert np.isfinite(statistic_value)
+
+    @pytest.mark.parametrize(
+        ("data", "alpha", "beta", "result"),
+        [
+            (
+                [
+                    0.3536766572,
+                    0.2485580661,
+                    0.4159590873,
+                    0.1599675758,
+                    0.5502830781,
+                    0.1109452876,
+                    0.5098966418,
+                    0.1772703795,
+                    0.1982904719,
+                    0.3762367882,
+                ],
+                2,
+                5,
+                1.46457551,
+            ),
+            (
+                [
+                    0.7087962001,
+                    0.2915205607,
+                    0.5508644650,
+                    0.8802250282,
+                    0.5098339187,
+                    0.6131471891,
+                    0.3176350910,
+                    0.1751690171,
+                    0.4660253747,
+                    0.5769342726,
+                    0.8436683688,
+                    0.4333839830,
+                ],
+                1,
+                1,
+                1.64485770,
+            ),
+            (
+                [
+                    0.3366836981,
+                    0.5643169242,
+                    0.5625418098,
+                    0.4038462174,
+                    0.3593278603,
+                    0.7521677033,
+                    0.6460545301,
+                    0.7051711915,
+                    0.1494688017,
+                    0.8260848760,
+                ],
+                3,
+                3,
+                0.86392069,
+            ),
+        ],
+    )
+    def test_entropy_with_parametrized_data(self, data, alpha, beta, result):
+        """Test Entropy statistic with precomputed expected values."""
+        stat = EntropyBetaGofStatistic(alpha=alpha, beta=beta)
+        statistic_value = stat.execute_statistic(data)
+        assert result == pytest.approx(statistic_value, 0.00001)
 
 
 class TestModeBetaGofStatistic:
@@ -807,6 +999,51 @@ class TestModeBetaGofStatistic:
         # Statistic should be non-negative
         assert statistic_value >= 0
         assert np.isfinite(statistic_value)
+
+    @pytest.mark.parametrize(
+        ("data", "alpha", "beta", "result"),
+        [
+            (
+                [
+                    0.3536766572,
+                    0.2485580661,
+                    0.4159590873,
+                    0.1599675758,
+                    0.5502830781,
+                    0.1109452876,
+                    0.5098966418,
+                    0.1772703795,
+                    0.1982904719,
+                    0.3762367882,
+                ],
+                2,
+                5,
+                0.03766130,
+            ),
+            (
+                [
+                    0.3366836981,
+                    0.5643169242,
+                    0.5625418098,
+                    0.4038462174,
+                    0.3593278603,
+                    0.7521677033,
+                    0.6460545301,
+                    0.7051711915,
+                    0.1494688017,
+                    0.8260848760,
+                ],
+                3,
+                3,
+                0.39711215,
+            ),
+        ],
+    )
+    def test_mode_with_parametrized_data(self, data, alpha, beta, result):
+        """Test Mode statistic with precomputed expected values."""
+        stat = ModeBetaGofStatistic(alpha=alpha, beta=beta)
+        statistic_value = stat.execute_statistic(data)
+        assert result == pytest.approx(statistic_value, 0.00001)
 
 
 # Integration tests
