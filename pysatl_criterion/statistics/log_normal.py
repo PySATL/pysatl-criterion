@@ -169,7 +169,7 @@ for name, obj in inspect.getmembers(normal):
         and obj is not AbstractNormalityGofStatistic
         and name not in EXPLICITLY_IMPLEMENTED_NORMAL_STATS
         and not name.startswith("Abstract")
-        and not name.startswith("Graph")  # maybe shoud fix
+        and not name.startswith("Graph")
     ):
         ln_class = _create_lognormal_class(obj)
         setattr(current_module, ln_class.__name__, ln_class)

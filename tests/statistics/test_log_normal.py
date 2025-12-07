@@ -160,7 +160,6 @@ def test_dynamic_lognormal_equivalence(log_normal_cls, normal_cls):
     n_stat_obj = normal_cls()
     n_val = n_stat_obj.execute_statistic(z_data)
 
-    print(log_normal_cls.code())
     assert ln_val == pytest.approx(n_val, rel=1e-5)
 
 
@@ -172,7 +171,6 @@ def test_dynamic_lognormal_negative_data_handling(log_normal_cls, normal_cls):
 
     data_zero = [1.0, 2.0, 0.0, 3.0]
     stat_z = log_normal_cls(s=1, scale=1).execute_statistic(data_zero)
-    print(log_normal_cls.code())
     assert stat_z == float("inf")
 
 
@@ -182,6 +180,5 @@ def test_dynamic_lognormal_example_code_method():
         LillieforsLogNormalGofStatistic,
     )
 
-    print("!")
     assert "SW_LOGNORMAL_GOODNESS_OF_FIT" == ShapiroWilkLogNormalGofStatistic().code()
     assert "LILLIE_LOGNORMAL_GOODNESS_OF_FIT" == LillieforsLogNormalGofStatistic().code()
