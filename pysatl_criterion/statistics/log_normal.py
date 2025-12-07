@@ -1,8 +1,8 @@
 import inspect
 import sys
+
 import numpy as np
 import scipy.stats as scipy_stats
-from numpy import histogram
 from typing_extensions import override
 
 from pysatl_criterion.statistics import normal
@@ -158,7 +158,7 @@ current_module = sys.modules[__name__]
 __all__ = [
     "AbstractLogNormalGofStatistic",
     "KolmogorovSmirnovLogNormalGofStatistic",
-    "CramerVonMiseNormalityGofStatistic",
+    "CramerVonMiseLogNormalityGofStatistic",
     "QuesenberryMillerLogNormalGofStatistic",
 ]
 

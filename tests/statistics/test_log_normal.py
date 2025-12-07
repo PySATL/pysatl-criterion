@@ -1,12 +1,12 @@
 import inspect
+
 import numpy as np
 import pytest
 import scipy.stats as scipy_stats
 
 from pysatl_criterion.statistics.log_normal import (
-    AbstractLogNormalGofStatistic,
-    KolmogorovSmirnovLogNormalGofStatistic,
     CramerVonMiseLogNormalGofStatistic,
+    KolmogorovSmirnovLogNormalGofStatistic,
     QuesenberryMillerLogNormalGofStatistic,
 )
 
@@ -176,8 +176,8 @@ def test_dynamic_lognormal_negative_data_handling(log_normal_cls, normal_cls):
 
 def test_dynamic_lognormal_example_code_method():
     from pysatl_criterion.statistics.log_normal import (
-        ShapiroWilkLogNormalGofStatistic,
         LillieforsLogNormalGofStatistic,
+        ShapiroWilkLogNormalGofStatistic,
     )
 
     assert "SW_LOGNORMAL_GOODNESS_OF_FIT" == ShapiroWilkLogNormalGofStatistic().code()
