@@ -716,9 +716,7 @@ class ZhangZaStudentGofStatistic(AbstractStudentGofStatistic):
 
         i = np.arange(1, n + 1)
         # Zhang's Za statistic
-        za = -np.sum(np.log(cdf_vals) / (n - i + 0.5)) - np.sum(
-            np.log(1 - cdf_vals) / (i - 0.5)
-        )
+        za = -np.sum(np.log(cdf_vals) / (n - i + 0.5)) - np.sum(np.log(1 - cdf_vals) / (i - 0.5))
 
         return za
 
@@ -817,6 +815,7 @@ class LillieforsStudentGofStatistic(AbstractStudentGofStatistic, KSStatistic):
         z = (x - loc) / scale
         cdf_vals = scipy_stats.t.cdf(z, self.df)
         return KSStatistic.execute_statistic(self, z, cdf_vals)
+
 
 class ChiSquareStudentGofStatistic(AbstractStudentGofStatistic):
     """
@@ -922,9 +921,7 @@ class ChiSquareStudentGofStatistic(AbstractStudentGofStatistic):
         standardized = (np.array(rvs) - self.loc) / self.scale
 
         # Create bin edges based on quantiles of the t-distribution
-        bin_edges = scipy_stats.t.ppf(
-            np.linspace(0, 1, self.n_bins + 1), self.df
-        )
+        bin_edges = scipy_stats.t.ppf(np.linspace(0, 1, self.n_bins + 1), self.df)
         bin_edges[0] = -np.inf
         bin_edges[-1] = np.inf
 
