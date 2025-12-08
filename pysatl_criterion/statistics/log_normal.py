@@ -158,7 +158,7 @@ current_module = sys.modules[__name__]
 __all__ = [
     "AbstractLogNormalGofStatistic",
     "KolmogorovSmirnovLogNormalGofStatistic",
-    "CramerVonMiseLogNormalityGofStatistic",
+    "CramerVonMiseLogNormalGofStatistic",
     "QuesenberryMillerLogNormalGofStatistic",
 ]
 

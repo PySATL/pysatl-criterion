@@ -33,7 +33,7 @@ from pysatl_criterion.statistics.exponent import (
     WeExponentialityGofStatistic,
     WongWongExponentialityGofStatistic,
 )
-from pysatl_criterion.statistics.log_normal import (
+from pysatl_criterion.statistics.log_normal import (  # type: ignore[attr-defined]
     AbstractLogNormalGofStatistic,
     AndersonDarlingLogNormalGofStatistic,
     BonettSeierLogNormalGofStatistic,
