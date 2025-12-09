@@ -102,6 +102,26 @@ class AbstractStudentGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
         """
         return f"STUDENT_{AbstractGoodnessOfFitStatistic.code()}"
 
+    def _cdf_clipped(self, standardized: np.ndarray, eps: float = 1e-10) -> np.ndarray:
+        """
+        Compute the Student t CDF for standardized values and clip to avoid
+        log(0) / division issues in downstream statistics.
+
+        Parameters
+        ----------
+        standardized : array_like
+            Standardized sample values (x - loc) / scale.
+        eps : float, optional
+            Small clipping epsilon. Default is 1e-10.
+
+        Returns
+        -------
+        np.ndarray
+            Clipped CDF values in range [eps, 1 - eps].
+        """
+        cdf_vals = scipy_stats.t.cdf(standardized, self.df)
+        return np.clip(cdf_vals, eps, 1 - eps)
+
 
 class KolmogorovSmirnovStudentGofStatistic(AbstractStudentGofStatistic, KSStatistic):
     """
@@ -620,10 +640,7 @@ class ZhangZcStudentGofStatistic(AbstractStudentGofStatistic):
         rvs = np.sort(rvs)
         # Standardize the data
         standardized = (rvs - self.loc) / self.scale
-        cdf_vals = scipy_stats.t.cdf(standardized, self.df)
-
-        # Avoid log(0) issues by clipping
-        cdf_vals = np.clip(cdf_vals, 1e-10, 1 - 1e-10)
+        cdf_vals = self._cdf_clipped(standardized)
 
         i = np.arange(1, n + 1)
         # Zhang's Zc statistic
@@ -709,10 +726,7 @@ class ZhangZaStudentGofStatistic(AbstractStudentGofStatistic):
         rvs = np.sort(rvs)
         # Standardize the data
         standardized = (rvs - self.loc) / self.scale
-        cdf_vals = scipy_stats.t.cdf(standardized, self.df)
-
-        # Avoid log(0) issues by clipping
-        cdf_vals = np.clip(cdf_vals, 1e-10, 1 - 1e-10)
+        cdf_vals = self._cdf_clipped(standardized)
 
         i = np.arange(1, n + 1)
         # Zhang's Za statistic
