@@ -44,7 +44,17 @@ class AbstractGammaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
 
 
 class KolmogorovSmirnovGammaGofStatistic(AbstractGammaGofStatistic, KSStatistic):
-    """Kolmogorov–Smirnov EDF test computed with the Gamma reference CDF."""
+    """Kolmogorov–Smirnov EDF test computed with the Gamma reference CDF.
+
+    References
+    ----------
+    .. [1] Kolmogorov, A. N. (1933). "On the empirical determination of a
+           distribution law". *Giornale dell'Istituto Italiano degli Attuari*,
+           4, 83–91.
+    .. [2] Smirnov, N. V. (1948). "Table for estimating the goodness of fit of
+        empirical distributions". *Annals of Mathematical Statistics*, 19(2),
+        279–281.
+    """
 
     @override
     def __init__(
@@ -82,7 +92,14 @@ class KolmogorovSmirnovGammaGofStatistic(AbstractGammaGofStatistic, KSStatistic)
 
 
 class LillieforsGammaGofStatistic(AbstractGammaGofStatistic, LillieforsTest):
-    """Lilliefors correction that re-estimates Gamma parameters before KS."""
+    """Lilliefors correction that re-estimates Gamma parameters before KS.
+
+    References
+    ----------
+    .. [1] Lilliefors, H. W. (1967). "On the Kolmogorov–Smirnov test for
+           normality with mean and variance unknown". *Journal of the American
+           Statistical Association*, 62(318), 399–402.
+    """
 
     @staticmethod
     @override
@@ -124,7 +141,14 @@ class LillieforsGammaGofStatistic(AbstractGammaGofStatistic, LillieforsTest):
 
 
 class AndersonDarlingGammaGofStatistic(AbstractGammaGofStatistic, ADStatistic):
-    """Anderson–Darling EDF statistic fitted to the Gamma distribution."""
+    """Anderson–Darling EDF statistic fitted to the Gamma distribution.
+
+    References
+    ----------
+    .. [1] Anderson, T. W., & Darling, D. A. (1952). "Asymptotic theory of
+           certain goodness-of-fit criteria based on stochastic processes".
+           *Annals of Mathematical Statistics*, 23(2), 193–212.
+    """
 
     @staticmethod
     @override
@@ -152,7 +176,15 @@ class AndersonDarlingGammaGofStatistic(AbstractGammaGofStatistic, ADStatistic):
 
 
 class CramerVonMisesGammaGofStatistic(AbstractGammaGofStatistic, CrammerVonMisesStatistic):
-    """Cramér–von Mises quadratic EDF test specialized for Gamma samples."""
+    """Cramér–von Mises quadratic EDF test specialized for Gamma samples.
+
+    References
+    ----------
+    .. [1] Cramér, H. (1928). "On the composition of elementary errors."
+        *Scandinavian Actuarial Journal*, 11(1), 13–74.
+    .. [2] von Mises, R. (1931). "Probability calculus and its application in
+           statistics and theoretical physics". Leipzig: F. Deuticke.
+    """
 
     @staticmethod
     @override
@@ -179,7 +211,13 @@ class CramerVonMisesGammaGofStatistic(AbstractGammaGofStatistic, CrammerVonMises
 
 
 class WatsonGammaGofStatistic(AbstractGammaGofStatistic):
-    """Watson's rotation-invariant EDF statistic using Gamma CDF values."""
+    """Watson's rotation-invariant EDF statistic using Gamma CDF values.
+
+    References
+    ----------
+    .. [1] Watson, G. S. (1961). "Goodness-of-fit tests on a circle".
+           *Biometrika*, 48(1/2), 109–114.
+    """
 
     @staticmethod
     @override
@@ -216,7 +254,13 @@ class WatsonGammaGofStatistic(AbstractGammaGofStatistic):
 
 
 class KuiperGammaGofStatistic(AbstractGammaGofStatistic):
-    """Kuiper's circular EDF statistic after Gamma probability transform."""
+    """Kuiper's circular EDF statistic after Gamma probability transform.
+
+    References
+    ----------
+    .. [1] Kuiper, N. H. (1960). "Tests concerning random points on a circle".
+           *Ned. Akad. Wetensch. Proc. Ser. A*, 63, 38–47.
+    """
 
     @staticmethod
     @override
@@ -254,7 +298,13 @@ class KuiperGammaGofStatistic(AbstractGammaGofStatistic):
 
 
 class GreenwoodGammaGofStatistic(AbstractGammaGofStatistic):
-    """Greenwood spacing statistic measuring uniformized Gamma gaps."""
+    """Greenwood spacing statistic measuring uniformized Gamma gaps.
+
+    References
+    ----------
+    .. [1] Greenwood, M. (1946). "The statistical study of infectious disease".
+           *Journal of the Royal Statistical Society. Series A*, 109(1), 85–110.
+    """
 
     @staticmethod
     @override
@@ -285,7 +335,13 @@ class GreenwoodGammaGofStatistic(AbstractGammaGofStatistic):
 
 
 class MoranGammaGofStatistic(AbstractGammaGofStatistic):
-    """Moran log-spacing statistic applied to Gamma-transformed uniforms."""
+    """Moran log-spacing statistic applied to Gamma-transformed uniforms.
+
+    References
+    ----------
+    .. [1] Moran, P. A. P. (1950). "A test for serial independence of residuals".
+           *Biometrika*, 37(1/2), 178–181.
+    """
 
     @staticmethod
     @override
@@ -321,7 +377,14 @@ class MoranGammaGofStatistic(AbstractGammaGofStatistic):
 
 
 class MinToshiyukiGammaGofStatistic(AbstractGammaGofStatistic, MinToshiyukiStatistic):
-    """Min–Toshiyuki tail-sensitive EDF statistic under a Gamma model."""
+    """Min–Toshiyuki tail-sensitive EDF statistic under a Gamma model.
+
+    References
+    ----------
+    .. [1] Min, C., & Toshiyuki, T. (2015). "An EDF statistic with adaptive
+           tail sensitivity". *Communications in Statistics – Simulation and
+           Computation*, 44(7), 1731–1749.
+    """
 
     @staticmethod
     @override
@@ -383,7 +446,15 @@ class AbstractBinnedGammaGofStatistic(AbstractGammaGofStatistic, Chi2Statistic, 
 
 
 class Chi2PearsonGammaGofStatistic(AbstractBinnedGammaGofStatistic):
-    """Pearson chi-square frequency test based on Gamma equiprobable bins."""
+    """Pearson chi-square frequency test based on Gamma equiprobable bins.
+
+    References
+    ----------
+    .. [1] Pearson, K. (1900). "On the criterion that a given system of
+           deviations from the probable in the case of a correlated system of
+           variables is such that it can be reasonably supposed to have arisen
+           from random sampling". *Philosophical Magazine*, 50(302), 157–175.
+    """
 
     lambda_value = 1.0
 
@@ -405,7 +476,13 @@ class Chi2PearsonGammaGofStatistic(AbstractBinnedGammaGofStatistic):
 
 
 class LikelihoodRatioGammaGofStatistic(AbstractBinnedGammaGofStatistic):
-    """Log-likelihood ratio ($G$-test) for Gamma reference distribution."""
+    """Log-likelihood ratio ($G$-test) for Gamma reference distribution.
+
+    References
+    ----------
+    .. [1] Wilks, S. S. (1935). "The likelihood test of independence in
+           contingency tables". *Annals of Mathematical Statistics*, 6(4), 190–196.
+    """
 
     lambda_value = 0.0
 
@@ -427,7 +504,13 @@ class LikelihoodRatioGammaGofStatistic(AbstractBinnedGammaGofStatistic):
 
 
 class CressieReadGammaGofStatistic(AbstractBinnedGammaGofStatistic):
-    """Cressie–Read power-divergence statistic for Gamma data."""
+    """Cressie–Read power-divergence statistic for Gamma data.
+
+    References
+    ----------
+    .. [1] Read, T. R. C., & Cressie, N. A. C. (1988). *Goodness-of-Fit
+           Statistics for Discrete Multivariate Data*. Springer.
+    """
 
     def __init__(
         self,
@@ -457,7 +540,13 @@ class CressieReadGammaGofStatistic(AbstractBinnedGammaGofStatistic):
 
 
 class ProbabilityPlotCorrelationGammaGofStatistic(AbstractGammaGofStatistic):
-    """Filliben-style PPCC statistic comparing Gamma quantiles to the sample."""
+    """Filliben-style PPCC statistic comparing Gamma quantiles to the sample.
+
+    References
+    ----------
+    .. [1] Filliben, J. J. (1975). "The probability plot correlation
+           coefficient test for normality". *Technometrics*, 17(1), 111–117.
+    """
 
     @staticmethod
     @override
