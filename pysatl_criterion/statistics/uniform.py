@@ -40,6 +40,27 @@ class AbstractUniformGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     def code():
         return f"UNIFORM_{AbstractGoodnessOfFitStatistic.code()}"
 
+    def _validate_input(self, rvs):
+        """
+        Validate input data for Uniform distribution tests.
+
+        Parameters
+        ----------
+        rvs : array_like
+            Array of sample data
+
+        Returns
+        -------
+        rvs_array : ndarray
+            Validated numpy array
+        """
+        rvs_array = np.asarray(rvs)
+        if np.any((rvs_array < self.a) | (rvs_array > self.b)):
+            raise ValueError(
+                f"Uniform distribution values must be in the interval [{self.a}, {self.b}]"
+            )
+        return rvs_array
+
 
 class KolmogorovSmirnovUniformGofStatistic(AbstractUniformGofStatistic, KSStatistic):
     """
@@ -94,11 +115,7 @@ class KolmogorovSmirnovUniformGofStatistic(AbstractUniformGofStatistic, KSStatis
         statistic : float
             The test statistic value
         """
-        rvs = np.asarray(rvs)
-        if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(
-                f"Uniform distribution values must be in the interval [{self.a}, {self.b}]"
-            )
+        rvs = self._validate_input(rvs)
 
         rvs_sorted = np.sort(rvs)
         cdf_vals = scipy_stats.uniform.cdf(rvs_sorted, loc=self.a, scale=self.b - self.a)
@@ -151,11 +168,7 @@ class AndersonDarlingUniformGofStatistic(AbstractUniformGofStatistic, ADStatisti
         statistic : float
             The test statistic value
         """
-        rvs = np.asarray(rvs)
-        if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(
-                f"Uniform distribution values must be in the interval [{self.a}, {self.b}]"
-            )
+        rvs = self._validate_input(rvs)
 
         rvs_sorted = np.sort(rvs)
         logcdf = scipy_stats.uniform.logcdf(rvs_sorted, loc=self.a, scale=self.b - self.a)
@@ -211,11 +224,7 @@ class CrammerVonMisesUniformGofStatistic(AbstractUniformGofStatistic, CrammerVon
         statistic : float
             The test statistic value
         """
-        rvs = np.asarray(rvs)
-        if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(
-                f"Uniform distribution values must be in the interval [{self.a}, {self.b}]"
-            )
+        rvs = self._validate_input(rvs)
 
         rvs_sorted = np.sort(rvs)
         cdf_vals = scipy_stats.uniform.cdf(rvs_sorted, loc=self.a, scale=self.b - self.a)
@@ -268,11 +277,7 @@ class LillieforsTestUniformGofStatistic(AbstractUniformGofStatistic, LillieforsT
         statistic : float
             The test statistic value
         """
-        rvs = np.asarray(rvs)
-        if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(
-                f"Uniform distribution values must be in the interval [{self.a}, {self.b}]"
-            )
+        rvs = self._validate_input(rvs)
 
         rvs_sorted = np.sort(rvs)
         cdf_vals = scipy_stats.uniform.cdf(rvs_sorted, loc=self.a, scale=self.b - self.a)
@@ -338,11 +343,7 @@ class Chi2PearsonUniformGofStatistic(AbstractUniformGofStatistic, Chi2Statistic)
         statistic : float
             The test statistic value
         """
-        rvs = np.asarray(rvs)
-        if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(
-                f"Uniform distribution values must be in the interval [{self.a}, {self.b}]"
-            )
+        rvs = self._validate_input(rvs)
 
         n = len(rvs)
         if isinstance(self.bins, str):
@@ -413,11 +414,7 @@ class WatsonUniformGofStatistic(AbstractUniformGofStatistic):
         statistic : float
             The test statistic value
         """
-        rvs = np.asarray(rvs)
-        if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(
-                f"Uniform distribution values must be in the interval [{self.a}, {self.b}]"
-            )
+        rvs = self._validate_input(rvs)
 
         n = len(rvs)
         rvs_sorted = np.sort(rvs)
@@ -479,11 +476,7 @@ class KuiperUniformGofStatistic(AbstractUniformGofStatistic):
         statistic : float
             The test statistic value
         """
-        rvs = np.asarray(rvs, dtype=np.float64)
-        if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(
-                f"Uniform distribution values must be in the interval [{self.a}, {self.b}]"
-            )
+        rvs = self._validate_input(rvs)
 
         n = len(rvs)
         rvs_sorted = np.sort(rvs)
@@ -533,9 +526,7 @@ class GreenwoodTestUniformGofStatistic(AbstractUniformGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        rvs = np.asarray(rvs)
-        if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(f"Values must be in [{self.a}, {self.b}]")
+        rvs = self._validate_input(rvs)
 
         rvs_sorted = np.sort(rvs)
         rvs_std = (rvs_sorted - self.a) / (self.b - self.a)
@@ -580,9 +571,7 @@ class BickelRosenblattUniformGofStatistic(AbstractUniformGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        rvs = np.asarray(rvs)
-        if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(f"Values must be in [{self.a}, {self.b}]")
+        rvs = self._validate_input(rvs)
 
         n = len(rvs)
         rvs_std = (rvs - self.a) / (self.b - self.a)
@@ -641,9 +630,7 @@ class ZhangTestsUniformGofStatistic(AbstractUniformGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        rvs = np.asarray(rvs)
-        if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(f"Values must be in [{self.a}, {self.b}]")
+        rvs = self._validate_input(rvs)
 
         n = len(rvs)
         rvs_sorted = np.sort(rvs)
@@ -721,11 +708,7 @@ class SteinUniformGofStatistic(AbstractUniformGofStatistic):
         statistic : float
             The test statistic value
         """
-        rvs = np.asarray(rvs)
-        if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(
-                f"Uniform distribution values must be in the interval [{self.a}, {self.b}]"
-            )
+        rvs = self._validate_input(rvs)
         if self.a != 0 or self.b != 1:
             rvs_std = (rvs - self.a) / (self.b - self.a)
         else:
@@ -808,9 +791,7 @@ class CensoredSteinUniformGofStatistic(AbstractUniformGofStatistic):
         statistic : float
             The test statistic value
         """
-        rvs = np.asarray(rvs)
-        if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(f"Values must be in [{self.a}, {self.b}]")
+        rvs = self._validate_input(rvs)
 
         if self.a != 0 or self.b != 1:
             rvs_std = (rvs - self.a) / (self.b - self.a)
@@ -947,9 +928,7 @@ class NeymanSmoothTestUniformGofStatistic(AbstractUniformGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        rvs = np.asarray(rvs)
-        if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(f"Values must be in [{self.a}, {self.b}]")
+        rvs = self._validate_input(rvs)
 
         n = len(rvs)
 
@@ -996,9 +975,7 @@ class ShermanUniformGofStatistic(AbstractUniformGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        rvs = np.asarray(rvs)
-        if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(f"Values must be in [{self.a}, {self.b}]")
+        rvs = self._validate_input(rvs)
 
         n = len(rvs)
         x_sorted = np.sort(rvs)
@@ -1031,9 +1008,7 @@ class QuesenberryMillerUniformGofStatistic(AbstractUniformGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        rvs = np.asarray(rvs)
-        if np.any((rvs < self.a) | (rvs > self.b)):
-            raise ValueError(f"Values must be in [{self.a}, {self.b}]")
+        rvs = self._validate_input(rvs)
 
         x_sorted = np.sort(rvs)
 
