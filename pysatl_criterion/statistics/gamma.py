@@ -259,7 +259,8 @@ class KuiperGammaGofStatistic(AbstractGammaGofStatistic):
     References
     ----------
     .. [1] Kuiper, N. H. (1960). "Tests concerning random points on a circle".
-           *Ned. Akad. Wetensch. Proc. Ser. A*, 63, 38–47.
+            *Proceedings of the Royal Netherlands Academy of Arts and Sciences
+            Series A*, 63, 38–47.
     """
 
     @staticmethod
