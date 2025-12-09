@@ -76,6 +76,18 @@ from pysatl_criterion.statistics.normal import (
     ZhangWuANormalityGofStatistic,
     ZhangWuCNormalityGofStatistic,
 )
+from pysatl_criterion.statistics.student import (
+    AbstractStudentGofStatistic,
+    AndersonDarlingStudentGofStatistic,
+    ChiSquareStudentGofStatistic,
+    CramerVonMisesStudentGofStatistic,
+    KolmogorovSmirnovStudentGofStatistic,
+    KuiperStudentGofStatistic,
+    LillieforsStudentGofStatistic,
+    WatsonStudentGofStatistic,
+    ZhangZaStudentGofStatistic,
+    ZhangZcStudentGofStatistic,
+)
 from pysatl_criterion.statistics.weibull import (
     AbstractWeibullGofStatistic,
     AndersonDarlingWeibullGofStatistic,
@@ -196,4 +208,14 @@ __all__ = [
     "ZhangQStarNormalityGofStatistic",
     "ZhangWuANormalityGofStatistic",
     "ZhangWuCNormalityGofStatistic",
+    "AbstractStudentGofStatistic",
+    "AndersonDarlingStudentGofStatistic",
+    "ChiSquareStudentGofStatistic",
+    "CramerVonMisesStudentGofStatistic",
+    "KolmogorovSmirnovStudentGofStatistic",
+    "KuiperStudentGofStatistic",
+    "LillieforsStudentGofStatistic",
+    "WatsonStudentGofStatistic",
+    "ZhangZaStudentGofStatistic",
+    "ZhangZcStudentGofStatistic",
 ]
