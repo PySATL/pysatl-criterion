@@ -69,8 +69,14 @@ class KolmogorovSmirnovGammaGofStatistic(AbstractGammaGofStatistic, KSStatistic)
 
     @staticmethod
     @override
+    def short_code():
+        return "KS"
+
+    @staticmethod
+    @override
     def code():
-        return f"KS_{AbstractGammaGofStatistic.code()}"
+        short_code = KolmogorovSmirnovGammaGofStatistic.short_code()
+        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -103,8 +109,14 @@ class LillieforsGammaGofStatistic(AbstractGammaGofStatistic, LillieforsTest):
 
     @staticmethod
     @override
+    def short_code():
+        return "LILLIE"
+
+    @staticmethod
+    @override
     def code():
-        return f"LILLIE_{AbstractGammaGofStatistic.code()}"
+        short_code = LillieforsGammaGofStatistic.short_code()
+        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -152,8 +164,14 @@ class AndersonDarlingGammaGofStatistic(AbstractGammaGofStatistic, ADStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "AD"
+
+    @staticmethod
+    @override
     def code():
-        return f"AD_{AbstractGammaGofStatistic.code()}"
+        short_code = AndersonDarlingGammaGofStatistic.short_code()
+        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -188,8 +206,14 @@ class CramerVonMisesGammaGofStatistic(AbstractGammaGofStatistic, CrammerVonMises
 
     @staticmethod
     @override
+    def short_code():
+        return "CVM"
+
+    @staticmethod
+    @override
     def code():
-        return f"CVM_{AbstractGammaGofStatistic.code()}"
+        short_code = CramerVonMisesGammaGofStatistic.short_code()
+        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -221,8 +245,14 @@ class WatsonGammaGofStatistic(AbstractGammaGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "WAT"
+
+    @staticmethod
+    @override
     def code():
-        return f"WAT_{AbstractGammaGofStatistic.code()}"
+        short_code = WatsonGammaGofStatistic.short_code()
+        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -265,8 +295,14 @@ class KuiperGammaGofStatistic(AbstractGammaGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "KUI"
+
+    @staticmethod
+    @override
     def code():
-        return f"KUI_{AbstractGammaGofStatistic.code()}"
+        short_code = KuiperGammaGofStatistic.short_code()
+        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -309,8 +345,14 @@ class GreenwoodGammaGofStatistic(AbstractGammaGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "GRW"
+
+    @staticmethod
+    @override
     def code():
-        return f"GRW_{AbstractGammaGofStatistic.code()}"
+        short_code = GreenwoodGammaGofStatistic.short_code()
+        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -346,8 +388,14 @@ class MoranGammaGofStatistic(AbstractGammaGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "MOR"
+
+    @staticmethod
+    @override
     def code():
-        return f"MOR_{AbstractGammaGofStatistic.code()}"
+        short_code = MoranGammaGofStatistic.short_code()
+        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -389,8 +437,14 @@ class MinToshiyukiGammaGofStatistic(AbstractGammaGofStatistic, MinToshiyukiStati
 
     @staticmethod
     @override
+    def short_code():
+        return "MT"
+
+    @staticmethod
+    @override
     def code():
-        return f"MT_{AbstractGammaGofStatistic.code()}"
+        short_code = MinToshiyukiGammaGofStatistic.short_code()
+        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -461,8 +515,14 @@ class Chi2PearsonGammaGofStatistic(AbstractBinnedGammaGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "CHI2_PEARSON"
+
+    @staticmethod
+    @override
     def code():
-        return f"CHI2_PEARSON_{AbstractGammaGofStatistic.code()}"
+        short_code = Chi2PearsonGammaGofStatistic.short_code()
+        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -489,8 +549,14 @@ class LikelihoodRatioGammaGofStatistic(AbstractBinnedGammaGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "G_TEST"
+
+    @staticmethod
+    @override
     def code():
-        return f"G_TEST_{AbstractGammaGofStatistic.code()}"
+        short_code = LikelihoodRatioGammaGofStatistic.short_code()
+        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -525,8 +591,14 @@ class CressieReadGammaGofStatistic(AbstractBinnedGammaGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "CRESSIE_READ"
+
+    @staticmethod
+    @override
     def code():
-        return f"CRESSIE_READ_{AbstractGammaGofStatistic.code()}"
+        short_code = CressieReadGammaGofStatistic.short_code()
+        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -551,8 +623,14 @@ class ProbabilityPlotCorrelationGammaGofStatistic(AbstractGammaGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "PPCC"
+
+    @staticmethod
+    @override
     def code():
-        return f"PPCC_{AbstractGammaGofStatistic.code()}"
+        short_code = ProbabilityPlotCorrelationGammaGofStatistic.short_code()
+        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -629,8 +707,8 @@ class GraphEdgesNumberGammaGofStatistic(
     @override
     def code():
         parent_code = AbstractGraphGammaGofStatistic.code()
-        stat_name = GraphEdgesNumberGammaGofStatistic.get_stat_name()
-        return f"{stat_name}_{parent_code}"
+        short_code = GraphEdgesNumberGammaGofStatistic.short_code()
+        return f"{short_code}_{parent_code}"
 
 
 class GraphMaxDegreeGammaGofStatistic(AbstractGraphGammaGofStatistic, GraphMaxDegreeTestStatistic):
@@ -640,8 +718,8 @@ class GraphMaxDegreeGammaGofStatistic(AbstractGraphGammaGofStatistic, GraphMaxDe
     @override
     def code():
         parent_code = AbstractGraphGammaGofStatistic.code()
-        stat_name = GraphMaxDegreeGammaGofStatistic.get_stat_name()
-        return f"{stat_name}_{parent_code}"
+        short_code = GraphMaxDegreeGammaGofStatistic.short_code()
+        return f"{short_code}_{parent_code}"
 
 
 class GraphAverageDegreeGammaGofStatistic(
@@ -653,8 +731,8 @@ class GraphAverageDegreeGammaGofStatistic(
     @override
     def code():
         parent_code = AbstractGraphGammaGofStatistic.code()
-        stat_name = GraphAverageDegreeGammaGofStatistic.get_stat_name()
-        return f"{stat_name}_{parent_code}"
+        short_code = GraphAverageDegreeGammaGofStatistic.short_code()
+        return f"{short_code}_{parent_code}"
 
 
 class GraphConnectedComponentsGammaGofStatistic(
@@ -666,8 +744,8 @@ class GraphConnectedComponentsGammaGofStatistic(
     @override
     def code():
         parent_code = AbstractGraphGammaGofStatistic.code()
-        stat_name = GraphConnectedComponentsGammaGofStatistic.get_stat_name()
-        return f"{stat_name}_{parent_code}"
+        short_code = GraphConnectedComponentsGammaGofStatistic.short_code()
+        return f"{short_code}_{parent_code}"
 
 
 class GraphCliqueNumberGammaGofStatistic(
@@ -679,8 +757,8 @@ class GraphCliqueNumberGammaGofStatistic(
     @override
     def code():
         parent_code = AbstractGraphGammaGofStatistic.code()
-        stat_name = GraphCliqueNumberGammaGofStatistic.get_stat_name()
-        return f"{stat_name}_{parent_code}"
+        short_code = GraphCliqueNumberGammaGofStatistic.short_code()
+        return f"{short_code}_{parent_code}"
 
     def _evaluate_graph_statistic(self, transformed_sample, **kwargs):
         return GraphCliqueNumberTestStatistic.execute_statistic(self, transformed_sample, **kwargs)
@@ -695,8 +773,8 @@ class GraphIndependenceNumberGammaGofStatistic(
     @override
     def code():
         parent_code = AbstractGraphGammaGofStatistic.code()
-        stat_name = GraphIndependenceNumberGammaGofStatistic.get_stat_name()
-        return f"{stat_name}_{parent_code}"
+        short_code = GraphIndependenceNumberGammaGofStatistic.short_code()
+        return f"{short_code}_{parent_code}"
 
     def _evaluate_graph_statistic(self, transformed_sample, **kwargs):
         return GraphIndependenceNumberTestStatistic.execute_statistic(

@@ -97,8 +97,14 @@ class KolmogorovSmirnovUniformGofStatistic(AbstractUniformGofStatistic, KSStatis
 
     @staticmethod
     @override
+    def short_code():
+        return "KS"
+
+    @staticmethod
+    @override
     def code():
-        return f"KS_{AbstractUniformGofStatistic.code()}"
+        short_code = KolmogorovSmirnovUniformGofStatistic.short_code()
+        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -150,8 +156,14 @@ class AndersonDarlingUniformGofStatistic(AbstractUniformGofStatistic, ADStatisti
 
     @staticmethod
     @override
+    def short_code():
+        return "AD"
+
+    @staticmethod
+    @override
     def code():
-        return f"AD_{AbstractUniformGofStatistic.code()}"
+        short_code = AndersonDarlingUniformGofStatistic.short_code()
+        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -206,8 +218,14 @@ class CrammerVonMisesUniformGofStatistic(AbstractUniformGofStatistic, CrammerVon
 
     @staticmethod
     @override
+    def short_code():
+        return "CVM"
+
+    @staticmethod
+    @override
     def code():
-        return f"CVM_{AbstractUniformGofStatistic.code()}"
+        short_code = CrammerVonMisesUniformGofStatistic.short_code()
+        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -259,8 +277,14 @@ class LillieforsTestUniformGofStatistic(AbstractUniformGofStatistic, LillieforsT
 
     @staticmethod
     @override
+    def short_code():
+        return "LILLIE"
+
+    @staticmethod
+    @override
     def code():
-        return f"LILLIE_{AbstractUniformGofStatistic.code()}"
+        short_code = LillieforsTestUniformGofStatistic.short_code()
+        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -325,8 +349,14 @@ class Chi2PearsonUniformGofStatistic(AbstractUniformGofStatistic, Chi2Statistic)
 
     @staticmethod
     @override
+    def short_code():
+        return "CHI2_PEARSON"
+
+    @staticmethod
+    @override
     def code():
-        return f"CHI2_PEARSON_{AbstractUniformGofStatistic.code()}"
+        short_code = Chi2PearsonUniformGofStatistic.short_code()
+        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -396,8 +426,14 @@ class WatsonUniformGofStatistic(AbstractUniformGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "WATSON"
+
+    @staticmethod
+    @override
     def code():
-        return f"WATSON_{AbstractUniformGofStatistic.code()}"
+        short_code = WatsonUniformGofStatistic.short_code()
+        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -458,8 +494,14 @@ class KuiperUniformGofStatistic(AbstractUniformGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "KUIPER"
+
+    @staticmethod
+    @override
     def code():
-        return f"KUIPER_{AbstractUniformGofStatistic.code()}"
+        short_code = KuiperUniformGofStatistic.short_code()
+        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -521,8 +563,14 @@ class GreenwoodTestUniformGofStatistic(AbstractUniformGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "GREENWOOD"
+
+    @staticmethod
+    @override
     def code():
-        return f"GREENWOOD_{AbstractUniformGofStatistic.code()}"
+        short_code = GreenwoodTestUniformGofStatistic.short_code()
+        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -566,8 +614,14 @@ class BickelRosenblattUniformGofStatistic(AbstractUniformGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "BICKEL_ROSENBLATT"
+
+    @staticmethod
+    @override
     def code():
-        return f"BICKEL_ROSENBLATT_{AbstractUniformGofStatistic.code()}"
+        short_code = BickelRosenblattUniformGofStatistic.short_code()
+        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -625,8 +679,14 @@ class ZhangTestsUniformGofStatistic(AbstractUniformGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "ZHANG"
+
+    @staticmethod
+    @override
     def code():
-        return f"ZHANG_{AbstractUniformGofStatistic.code()}"
+        short_code = ZhangTestsUniformGofStatistic.short_code()
+        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -690,8 +750,14 @@ class SteinUniformGofStatistic(AbstractUniformGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "STEIN_U"
+
+    @staticmethod
+    @override
     def code():
-        return f"STEIN_U_{AbstractUniformGofStatistic.code()}"
+        short_code = SteinUniformGofStatistic.short_code()
+        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -770,8 +836,14 @@ class CensoredSteinUniformGofStatistic(AbstractUniformGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "CENSORED_STEIN_U"
+
+    @staticmethod
+    @override
     def code():
-        return f"CENSORED_STEIN_U_{AbstractUniformGofStatistic.code()}"
+        short_code = CensoredSteinUniformGofStatistic.short_code()
+        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, censoring_indices=None, **kwargs):
@@ -923,8 +995,14 @@ class NeymanSmoothTestUniformGofStatistic(AbstractUniformGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "NEYMAN"
+
+    @staticmethod
+    @override
     def code():
-        return f"NEYMAN_{AbstractUniformGofStatistic.code()}"
+        short_code = NeymanSmoothTestUniformGofStatistic.short_code()
+        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -970,8 +1048,14 @@ class ShermanUniformGofStatistic(AbstractUniformGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "SHERMAN"
+
+    @staticmethod
+    @override
     def code():
-        return f"SHERMAN_{AbstractUniformGofStatistic.code()}"
+        short_code = ShermanUniformGofStatistic.short_code()
+        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1003,8 +1087,14 @@ class QuesenberryMillerUniformGofStatistic(AbstractUniformGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "QUESENBERRY_MILLER"
+
+    @staticmethod
+    @override
     def code():
-        return f"QUESENBERRY_MILLER_{AbstractUniformGofStatistic.code()}"
+        short_code = QuesenberryMillerUniformGofStatistic.short_code()
+        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):

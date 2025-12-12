@@ -188,6 +188,11 @@ class KolmogorovSmirnovStudentGofStatistic(AbstractStudentGofStatistic, KSStatis
 
     @staticmethod
     @override
+    def short_code():
+        return "KS"
+
+    @staticmethod
+    @override
     def code():
         """
         Return the unique identifier code for this statistic.
@@ -197,7 +202,8 @@ class KolmogorovSmirnovStudentGofStatistic(AbstractStudentGofStatistic, KSStatis
         str
             The code string "KS_STUDENT_GOODNESS_OF_FIT".
         """
-        return f"KS_{AbstractStudentGofStatistic.code()}"
+        short_code = KolmogorovSmirnovStudentGofStatistic.short_code()
+        return f"{short_code}_{AbstractStudentGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -268,6 +274,11 @@ class AndersonDarlingStudentGofStatistic(AbstractStudentGofStatistic, ADStatisti
 
     @staticmethod
     @override
+    def short_code():
+        return "AD"
+
+    @staticmethod
+    @override
     def code():
         """
         Return the unique identifier code for this statistic.
@@ -277,7 +288,8 @@ class AndersonDarlingStudentGofStatistic(AbstractStudentGofStatistic, ADStatisti
         str
             The code string "AD_STUDENT_GOODNESS_OF_FIT".
         """
-        return f"AD_{AbstractStudentGofStatistic.code()}"
+        short_code = AndersonDarlingStudentGofStatistic.short_code()
+        return f"{short_code}_{AbstractStudentGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -348,6 +360,11 @@ class CramerVonMisesStudentGofStatistic(AbstractStudentGofStatistic, CrammerVonM
 
     @staticmethod
     @override
+    def short_code():
+        return "CVM"
+
+    @staticmethod
+    @override
     def code():
         """
         Return the unique identifier code for this statistic.
@@ -357,7 +374,8 @@ class CramerVonMisesStudentGofStatistic(AbstractStudentGofStatistic, CrammerVonM
         str
             The code string "CVM_STUDENT_GOODNESS_OF_FIT".
         """
-        return f"CVM_{AbstractStudentGofStatistic.code()}"
+        short_code = CramerVonMisesStudentGofStatistic.short_code()
+        return f"{short_code}_{AbstractStudentGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -428,6 +446,11 @@ class KuiperStudentGofStatistic(AbstractStudentGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "KUIPER"
+
+    @staticmethod
+    @override
     def code():
         """
         Return the unique identifier code for this statistic.
@@ -437,7 +460,8 @@ class KuiperStudentGofStatistic(AbstractStudentGofStatistic):
         str
             The code string "KUIPER_STUDENT_GOODNESS_OF_FIT".
         """
-        return f"KUIPER_{AbstractStudentGofStatistic.code()}"
+        short_code = KuiperStudentGofStatistic.short_code()
+        return f"{short_code}_{AbstractStudentGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -513,6 +537,11 @@ class WatsonStudentGofStatistic(AbstractStudentGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "WATSON"
+
+    @staticmethod
+    @override
     def code():
         """
         Return the unique identifier code for this statistic.
@@ -522,7 +551,8 @@ class WatsonStudentGofStatistic(AbstractStudentGofStatistic):
         str
             The code string "WATSON_STUDENT_GOODNESS_OF_FIT".
         """
-        return f"WATSON_{AbstractStudentGofStatistic.code()}"
+        short_code = WatsonStudentGofStatistic.short_code()
+        return f"{short_code}_{AbstractStudentGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -600,6 +630,11 @@ class ZhangZcStudentGofStatistic(AbstractStudentGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "ZHANG_ZC"
+
+    @staticmethod
+    @override
     def code():
         """
         Return the unique identifier code for this statistic.
@@ -609,7 +644,8 @@ class ZhangZcStudentGofStatistic(AbstractStudentGofStatistic):
         str
             The code string "ZHANG_ZC_STUDENT_GOODNESS_OF_FIT".
         """
-        return f"ZHANG_ZC_{AbstractStudentGofStatistic.code()}"
+        short_code = ZhangZcStudentGofStatistic.short_code()
+        return f"{short_code}_{AbstractStudentGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -686,6 +722,11 @@ class ZhangZaStudentGofStatistic(AbstractStudentGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "ZHANG_ZA"
+
+    @staticmethod
+    @override
     def code():
         """
         Return the unique identifier code for this statistic.
@@ -695,7 +736,8 @@ class ZhangZaStudentGofStatistic(AbstractStudentGofStatistic):
         str
             The code string "ZHANG_ZA_STUDENT_GOODNESS_OF_FIT".
         """
-        return f"ZHANG_ZA_{AbstractStudentGofStatistic.code()}"
+        short_code = ZhangZaStudentGofStatistic.short_code()
+        return f"{short_code}_{AbstractStudentGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -776,6 +818,11 @@ class LillieforsStudentGofStatistic(AbstractStudentGofStatistic, KSStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "LILLIE"
+
+    @staticmethod
+    @override
     def code():
         """
         Return the unique identifier code for this statistic.
@@ -785,7 +832,8 @@ class LillieforsStudentGofStatistic(AbstractStudentGofStatistic, KSStatistic):
         str
             The code string "LILLIE_STUDENT_GOODNESS_OF_FIT".
         """
-        return f"LILLIE_{AbstractStudentGofStatistic.code()}"
+        short_code = LillieforsStudentGofStatistic.short_code()
+        return f"{short_code}_{AbstractStudentGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -894,6 +942,11 @@ class ChiSquareStudentGofStatistic(AbstractStudentGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "CHI2"
+
+    @staticmethod
+    @override
     def code():
         """
         Return the unique identifier code for this statistic.
@@ -903,7 +956,8 @@ class ChiSquareStudentGofStatistic(AbstractStudentGofStatistic):
         str
             The code string "CHI2_STUDENT_GOODNESS_OF_FIT".
         """
-        return f"CHI2_{AbstractStudentGofStatistic.code()}"
+        short_code = ChiSquareStudentGofStatistic.short_code()
+        return f"{short_code}_{AbstractStudentGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
