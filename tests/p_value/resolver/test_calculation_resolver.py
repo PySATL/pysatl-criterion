@@ -5,7 +5,7 @@ This module contains comprehensive tests for the PValueCalculator class,
 covering different hypothesis types, edge cases, and error conditions.
 """
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
@@ -14,152 +14,100 @@ from pysatl_criterion.p_value.resolver.calculation_resolver import CalculationPV
 from pysatl_criterion.statistics.models import HypothesisType
 
 
-@pytest.fixture
-def mock_storage():
-    """Create a mock storage object for testing."""
-    from pysatl_criterion.p_value.resolver.calculation_resolver import ILimitDistributionStorage
+@patch("pysatl_criterion.p_value.resolver.calculation_resolver.ILimitDistributionStorage")
+def test_calculate_p_value_for_different_alternatives(mock_storage_cls):
+    """
+    Test p-value calculation for different hypothesis types using mocked storage.
+    """
+    # Setup mock distribution
+    mock_distribution = MagicMock()
+    mock_distribution.results_statistics = np.array(range(100))
 
-    return MagicMock(spec=ILimitDistributionStorage)
-
-
-@pytest.fixture
-def mock_distribution():
-    """Create a mock distribution object with test statistics."""
-    mock_dist = MagicMock()
-    mock_dist.results_statistics = np.array(range(100))
-    return mock_dist
-
-
-@pytest.fixture
-def calculator_with_mock_data(mock_storage, mock_distribution):
-    """Create a calculator with mocked storage and distribution data."""
+    # Setup mock storage
+    mock_storage = mock_storage_cls.return_value
     mock_storage.get_data_for_cv.return_value = mock_distribution
-    return CalculationPValueResolver(mock_storage)
 
+    calculator = CalculationPValueResolver(mock_storage)
 
-@pytest.fixture
-def calculator_with_empty_storage(mock_storage):
-    """Create a calculator with empty storage (returns None)."""
-    mock_storage.get_data_for_cv.return_value = None
-    return CalculationPValueResolver(mock_storage)
-
-
-@pytest.mark.parametrize(
-    "alternative,expected_p_value,test_name",
-    [
+    test_cases = [
         (HypothesisType.RIGHT, 0.1, "right_tailed"),
         (HypothesisType.LEFT, 0.9, "left_tailed"),
         (HypothesisType.TWO_TAILED, 0.2, "two_tailed"),
-    ],
-)
-def test_calculate_p_value_for_different_alternatives(
-    calculator_with_mock_data, alternative, expected_p_value, test_name
-):
-    """
-    Test p-value calculation for different hypothesis types.
+    ]
 
-    Args:
-        alternative: The hypothesis type to test
-        expected_p_value: Expected p-value result
-        test_name: Name of the test case for identification
-    """
-    # Given
-    criterion_code = "test_criterion"
-    sample_size = 100
-    statistics_value = 89.5
-
-    # When
-    p_value = calculator_with_mock_data.resolve(
-        criterion_code=criterion_code,
-        sample_size=sample_size,
-        statistics_value=statistics_value,
-        alternative=alternative,
-    )
-
-    # Then
-    assert p_value == pytest.approx(
-        expected_p_value, abs=1e-10
-    ), f"Expected p-value {expected_p_value} for {test_name}, got {p_value}"
+    for alternative, expected_p_value, test_name in test_cases:
+        p_value = calculator.resolve(
+            criterion_code="test_criterion",
+            sample_size=100,
+            statistics_value=89.5,
+            alternative=alternative,
+        )
+        assert p_value == pytest.approx(
+            expected_p_value, abs=1e-10
+        ), f"Expected p-value {expected_p_value} for {test_name}, got {p_value}"
 
 
-def test_calculate_p_value_with_statistic_outside_simulation_range(mock_storage):
-    """
-    Test p-value calculation when statistic is outside the simulation range.
-
-    This tests edge cases where the observed statistic is either much higher
-    or much lower than the simulated distribution range.
-    """
-
-    # Given
+@patch("pysatl_criterion.p_value.resolver.calculation_resolver.ILimitDistributionStorage")
+def test_calculate_p_value_with_statistic_outside_simulation_range(mock_storage_cls):
+    """Test p-value calculation when statistic is outside the simulation range."""
     mock_distribution = MagicMock()
     mock_distribution.results_statistics = np.array([10, 20, 30, 40, 50])
-    mock_storage.get_data_for_cv.return_value = mock_distribution
-    calculator = CalculationPValueResolver(limit_distribution_storage=mock_storage)
 
-    # When & Then - Statistic much higher than simulation range
+    mock_storage = mock_storage_cls.return_value
+    mock_storage.get_data_for_cv.return_value = mock_distribution
+
+    calculator = CalculationPValueResolver(mock_storage)
+
+    # Statistic above simulation range
     p_value_high = calculator.resolve(
         criterion_code="test_criterion", sample_size=10, statistics_value=100.0
     )
-    assert p_value_high == pytest.approx(
-        0.0
-    ), "P-value should be 0 for statistic above simulation range"
+    assert p_value_high == pytest.approx(0.0)
 
-    # When & Then - Statistic much lower than simulation range
+    # Statistic below simulation range
     p_value_low = calculator.resolve(
         criterion_code="test_criterion", sample_size=10, statistics_value=5.0
     )
-    assert p_value_low == pytest.approx(
-        1.0
-    ), "P-value should be 1 for statistic below simulation range"
+    assert p_value_low == pytest.approx(1.0)
 
 
-def test_calculate_p_value_raises_error_when_limit_distribution_not_found(
-    calculator_with_empty_storage,
-):
-    """
-    Test that appropriate error is raised when limit distribution is not found.
+@patch("pysatl_criterion.p_value.resolver.calculation_resolver.ILimitDistributionStorage")
+def test_calculate_p_value_raises_error_when_limit_distribution_not_found(mock_storage_cls):
+    """Test error when limit distribution is not found."""
+    mock_storage = mock_storage_cls.return_value
+    mock_storage.get_data_for_cv.return_value = None
 
-    This tests the error handling when the storage cannot provide
-    the required limit distribution data.
-    """
-    # Given
-    criterion_code = "nonexistent_criterion"
-    sample_size = 100
-    statistics_value = 89.5
+    calculator = CalculationPValueResolver(mock_storage)
 
-    # When & Then
     with pytest.raises(
         ValueError,
-        match="Limit distribution for criterion nonexistent_criterion "
-        "and sample size 100 does not exist.",
+        match="Limit distribution for criterion nonexistent_criterion and "
+        "sample size 100 does not exist.",
     ):
-        calculator_with_empty_storage.resolve(
-            criterion_code=criterion_code,
-            sample_size=sample_size,
-            statistics_value=statistics_value,
+        calculator.resolve(
+            criterion_code="nonexistent_criterion",
+            sample_size=100,
+            statistics_value=89.5,
         )
 
 
-def test_calculate_p_value_raises_error_for_unknown_alternative(calculator_with_mock_data):
-    """
-    Test that appropriate error is raised for unknown hypothesis alternatives.
+@patch("pysatl_criterion.p_value.resolver.calculation_resolver.ILimitDistributionStorage")
+def test_calculate_p_value_raises_error_for_unknown_alternative(mock_storage_cls):
+    """Test error for unknown hypothesis alternative."""
+    mock_distribution = MagicMock()
+    mock_distribution.results_statistics = np.array(range(100))
 
-    This tests the validation of the alternative parameter to ensure
-    only valid hypothesis types are accepted.
-    """
-    # Given
-    criterion_code = "test_criterion"
-    sample_size = 100
-    statistics_value = 89.5
-    invalid_alternative = "invalid_hypothesis_type"
+    mock_storage = mock_storage_cls.return_value
+    mock_storage.get_data_for_cv.return_value = mock_distribution
 
-    # When & Then
+    calculator = CalculationPValueResolver(mock_storage)
+
     with pytest.raises(ValueError, match="Unknown alternative"):
-        calculator_with_mock_data.resolve(
-            criterion_code=criterion_code,
-            sample_size=sample_size,
-            statistics_value=statistics_value,
-            alternative=invalid_alternative,
+        calculator.resolve(
+            criterion_code="test_criterion",
+            sample_size=100,
+            statistics_value=89.5,
+            alternative="invalid_hypothesis_type",
         )
 
 
@@ -171,25 +119,19 @@ def test_calculate_p_value_raises_error_for_unknown_alternative(calculator_with_
         ([1, 1, 1, 1, 1], 1.0, 0.0),
     ],
 )
+@patch("pysatl_criterion.p_value.resolver.calculation_resolver.ILimitDistributionStorage")
 def test_p_value_calculation_with_different_distributions(
-    statistics_array, statistics_value, expected_p_value
+    mock_storage_cls, statistics_array, statistics_value, expected_p_value
 ):
-    """
-    Test p-value calculation with various distribution patterns.
-
-    Args:
-        statistics_array: Array of simulated statistics
-        statistics_value: Observed statistic value
-        expected_p_value: Expected p-value result
-    """
-    # Given
-    mock_storage = MagicMock()
+    """Test p-value calculation with various distributions."""
     mock_distribution = MagicMock()
     mock_distribution.results_statistics = statistics_array
+
+    mock_storage = mock_storage_cls.return_value
     mock_storage.get_data_for_cv.return_value = mock_distribution
+
     calculator = CalculationPValueResolver(mock_storage)
 
-    # When
     p_value = calculator.resolve(
         criterion_code="test_criterion",
         sample_size=len(statistics_array),
@@ -197,8 +139,7 @@ def test_p_value_calculation_with_different_distributions(
         alternative=HypothesisType.RIGHT,
     )
 
-    # Then
     assert p_value == pytest.approx(expected_p_value), (
         f"Failed for statistics_array: {statistics_array}, "
-        f"statistics_value: {statistics_value} expected {expected_p_value}, got {p_value}"
+        f"statistics_value: {statistics_value}, expected {expected_p_value}, got {p_value}"
     )
