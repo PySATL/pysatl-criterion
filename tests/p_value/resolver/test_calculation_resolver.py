@@ -18,6 +18,7 @@ from pysatl_criterion.statistics.models import HypothesisType
 def mock_storage():
     """Create a mock storage object for testing."""
     from pysatl_criterion.p_value.resolver.calculation_resolver import ILimitDistributionStorage
+
     return MagicMock(spec=ILimitDistributionStorage)
 
 
