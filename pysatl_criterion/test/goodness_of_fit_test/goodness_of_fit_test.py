@@ -22,7 +22,6 @@ class GoodnessOfFitTest:
     :param significance_level: significance level.
     :param test_method: test method either 'critical_value' or 'p_value'.
     :param alternative: test alternative.
-
     """
 
     def __init__(
