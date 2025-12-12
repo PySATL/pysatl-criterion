@@ -17,10 +17,6 @@ class AbstractGraphTestStatistic(AbstractGoodnessOfFitStatistic, ABC):
         return statistic
 
     @staticmethod
-    def get_stat_name() -> str:
-        raise NotImplementedError("Method is not implemented")
-
-    @staticmethod
     def get_graph_stat(graph: list[list[int]]) -> float:
         raise NotImplementedError("Method is not implemented")
 
@@ -50,7 +46,7 @@ class GraphEdgesNumberTestStatistic(AbstractGraphTestStatistic):
 
     @staticmethod
     @override
-    def get_stat_name() -> str:
+    def short_code() -> str:
         return "EDGESNUMBER"
 
 
@@ -62,7 +58,7 @@ class GraphMaxDegreeTestStatistic(AbstractGraphTestStatistic):
 
     @staticmethod
     @override
-    def get_stat_name() -> str:
+    def short_code() -> str:
         return "MAXDEGREE"
 
 
@@ -75,7 +71,7 @@ class GraphAverageDegreeTestStatistic(AbstractGraphTestStatistic):
 
     @staticmethod
     @override
-    def get_stat_name() -> str:
+    def short_code() -> str:
         return "AVGDEGREE"
 
 
@@ -102,7 +98,7 @@ class GraphConnectedComponentsTestStatistic(AbstractGraphTestStatistic):
 
     @staticmethod
     @override
-    def get_stat_name() -> str:
+    def short_code() -> str:
         return "CONNECTEDCOMPONENTS"
 
 
@@ -125,7 +121,7 @@ class GraphCliqueNumberTestStatistic(AbstractGraphTestStatistic):
 
     @staticmethod
     @override
-    def get_stat_name() -> str:
+    def short_code() -> str:
         return "CLIQUENUMBER"
 
 
@@ -151,5 +147,5 @@ class GraphIndependenceNumberTestStatistic(AbstractGraphTestStatistic):
 
     @staticmethod
     @override
-    def get_stat_name() -> str:
+    def short_code() -> str:
         return "INDEPENDENCENUMBER"
