@@ -73,7 +73,7 @@ class GoodnessOfFitTest:
         criterion_code = self.statistics.code()
         statistics_value = self.statistics.execute_statistic(data)
 
-        if self.test_method == TestMethod.CRITICAL_VALUE:
+        if self.cv_calculator and self.test_method == TestMethod.CRITICAL_VALUE:
             critical_area = self.cv_calculator.resolve(
                 criterion_code,
                 data_size,
@@ -89,7 +89,7 @@ class GoodnessOfFitTest:
 
             return critical_area.contains(statistics_value)
 
-        elif self.test_method == TestMethod.P_VALUE:
+        elif self.p_value_resolver and self.test_method == TestMethod.P_VALUE:
             p_value = self.p_value_resolver.resolve(
                 criterion_code,
                 data_size,

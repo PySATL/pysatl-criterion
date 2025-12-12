@@ -83,7 +83,7 @@ def test_goodness_of_fit_p_value_path_rejects_hypothesis():
         p_value_resolver=mock_p_value_instance,
         statistics=mock_statistic,
         significance_level=0.05,
-        test_method=TestMethod.P_VALUE
+        test_method=TestMethod.P_VALUE,
     )
 
     assert gof_test.test(data=[1, 2, 3]) is False

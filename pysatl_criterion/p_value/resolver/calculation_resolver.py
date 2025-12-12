@@ -1,4 +1,3 @@
-import numpy as np
 import scipy.stats as scipy_stats
 from typing_extensions import override
 
