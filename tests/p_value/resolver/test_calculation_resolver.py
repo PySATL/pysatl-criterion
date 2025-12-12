@@ -5,24 +5,19 @@ This module contains comprehensive tests for the PValueCalculator class,
 covering different hypothesis types, edge cases, and error conditions.
 """
 
-from typing import cast
 from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
 
 from pysatl_criterion.p_value.resolver.calculation_resolver import CalculationPValueResolver
-from pysatl_criterion.persistence.model.limit_distribution.limit_distribution import (
-    ILimitDistributionStorage,
-    LimitDistributionModel,
-)
 from pysatl_criterion.statistics.models import HypothesisType
 
 
 @pytest.fixture
 def mock_storage():
     """Create a mock storage object for testing."""
-    return cast(ILimitDistributionStorage, MagicMock())
+    return MagicMock()
 
 
 @pytest.fixture
@@ -94,7 +89,7 @@ def test_calculate_p_value_with_statistic_outside_simulation_range(mock_storage)
     """
 
     # Given
-    mock_distribution = cast(LimitDistributionModel, MagicMock())
+    mock_distribution = MagicMock()
     mock_distribution.results_statistics = np.array([10, 20, 30, 40, 50])
     mock_storage.get_data_for_cv.return_value = mock_distribution
     calculator = CalculationPValueResolver(limit_distribution_storage=mock_storage)
@@ -186,8 +181,8 @@ def test_p_value_calculation_with_different_distributions(
         expected_p_value: Expected p-value result
     """
     # Given
-    mock_storage = cast(ILimitDistributionStorage, MagicMock())
-    mock_distribution = cast(LimitDistributionModel, MagicMock())
+    mock_storage = MagicMock()
+    mock_distribution = MagicMock()
     mock_distribution.results_statistics = statistics_array
     mock_storage.get_data_for_cv.return_value = mock_distribution
     calculator = CalculationPValueResolver(mock_storage)
