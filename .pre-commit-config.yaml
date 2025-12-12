@@ -60,8 +60,6 @@ repos:
     rev: v2.3.0
     hooks:
     - id: codespell
-      hooks:
-        - id: codespell
-          args: [ "--ignore-words=.codespell-ignore-words" ]
+      args: [ "--ignore-words=.codespell-ignore-words" ]
       additional_dependencies:
         - tomli
