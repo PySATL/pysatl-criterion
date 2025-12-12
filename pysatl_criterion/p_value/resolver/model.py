@@ -1,13 +1,14 @@
-from typing_extensions import Protocol
+from abc import ABC, abstractmethod
 
 from pysatl_criterion.statistics.models import HypothesisType
 
 
-class PValueResolver(Protocol):
+class PValueResolver(ABC):
     """
     P-value resolver.
     """
 
+    @abstractmethod
     def resolve(
         self,
         criterion_code: str,

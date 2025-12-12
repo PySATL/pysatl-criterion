@@ -1,14 +1,15 @@
-from typing import Protocol
+from abc import ABC, abstractmethod
 
 from pysatl_criterion.critical_value.critical_area.model import CriticalArea
 from pysatl_criterion.statistics.models import HypothesisType
 
 
-class CriticalValueResolver(Protocol):
+class CriticalValueResolver(ABC):
     """
     Critical value calculator interface. Calculate critical area.
     """
 
+    @abstractmethod
     def resolve(
         self,
         criterion_code: str,

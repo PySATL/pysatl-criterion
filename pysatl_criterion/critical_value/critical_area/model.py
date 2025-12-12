@@ -1,7 +1,8 @@
-from typing import Protocol
+from abc import ABC, abstractmethod
 
 
-class CriticalArea(Protocol):
+class CriticalArea(ABC):
+    @abstractmethod
     def contains(self, value: float) -> bool:
         """
         Check critical area contains value.
