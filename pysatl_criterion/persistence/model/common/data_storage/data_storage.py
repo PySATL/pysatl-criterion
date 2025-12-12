@@ -1,12 +1,14 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Protocol, TypeVar
+from typing import Generic, TypeVar
 
 
-class IStorage(Protocol):
+class IStorage(ABC):
     """
     Storage interface.
     """
 
+    @abstractmethod
     def init(self) -> None:
         """
         Initialize storage.
@@ -36,11 +38,12 @@ M = TypeVar("M", bound=DataModel)
 Q = TypeVar("Q", contravariant=True, bound=DataQuery)
 
 
-class IDataStorage(IStorage, Protocol[M, Q]):
+class IDataStorage(IStorage, Generic[M, Q], ABC):
     """
     Data storage interface.
     """
 
+    @abstractmethod
     def get_data(self, query: Q) -> M | None:
         """
         Get data from data storage.
@@ -51,6 +54,7 @@ class IDataStorage(IStorage, Protocol[M, Q]):
         """
         pass
 
+    @abstractmethod
     def insert_data(self, data: M) -> None:
         """
         Insert data to data storage.
@@ -61,6 +65,7 @@ class IDataStorage(IStorage, Protocol[M, Q]):
         """
         pass
 
+    @abstractmethod
     def delete_data(self, query: Q) -> None:
         """
         Delete data from data storage.

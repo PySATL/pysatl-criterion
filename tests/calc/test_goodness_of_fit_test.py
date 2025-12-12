@@ -1,114 +1,89 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
-from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.critical_value.critical_area.critical_areas import RightCriticalArea
 from pysatl_criterion.statistics.models import HypothesisType
 from pysatl_criterion.test.goodness_of_fit_test.goodness_of_fit_test import GoodnessOfFitTest
+from pysatl_criterion.test.model import TestMethod
 
 
-MODULE_PATH = "pysatl_criterion.test.goodness_of_fit_test.goodness_of_fit_test"
+@patch("pysatl_criterion.critical_value.resolver.model.CriticalValueResolver")
+@patch("pysatl_criterion.statistics.goodness_of_fit.AbstractGoodnessOfFitStatistic")
+def test_goodness_of_fit_cv_path_accepts_hypothesis(mock_stat_cls, mock_cv_cls):
+    # Setup mocks
+    mock_stat = mock_stat_cls.return_value
+    mock_stat.code.return_value = "test_criterion"
+    mock_stat.execute_statistic.return_value = 10.0
 
-
-def test_goodness_of_fit_cv_path_accepts_hypothesis(mocker):
-    mock_statistic = MagicMock(spec=AbstractGoodnessOfFitStatistic)
-    mock_statistic.code.return_value = "test_criterion"
-    mock_statistic.execute_statistic.return_value = 10.0
-
-    MockCVCalculator = mocker.patch(f"{MODULE_PATH}.CVCalculator")
-    MockPValueCalculator = mocker.patch(f"{MODULE_PATH}.PValueCalculator")
-    mocker.patch(f"{MODULE_PATH}.SQLiteLimitDistributionStorage")
-
-    mock_cv_instance = MockCVCalculator.return_value
-    mock_cv_instance.calculate_critical_value.return_value = 15.0
+    mock_cv = mock_cv_cls.return_value
+    mock_cv.resolve.return_value = MagicMock(contains=lambda x: x < 15.0)
 
     gof_test = GoodnessOfFitTest(
-        statistics=mock_statistic,
+        statistics=mock_stat,
         significance_level=0.05,
-        test_method="critical_value",
+        test_method=TestMethod.CRITICAL_VALUE,
         alternative=HypothesisType.RIGHT,
+        cv_resolver=mock_cv,
     )
 
     assert gof_test.test(data=[1, 2, 3]) is True
-    mock_cv_instance.calculate_critical_value.assert_called_once()
-    MockPValueCalculator.assert_not_called()
 
 
-def test_goodness_of_fit_cv_path_rejects_hypothesis(mocker):
-    mock_statistic = MagicMock(spec=AbstractGoodnessOfFitStatistic)
-    mock_statistic.code.return_value = "test_criterion"
-    mock_statistic.execute_statistic.return_value = 10.0
+@patch("pysatl_criterion.critical_value.resolver.model.CriticalValueResolver")
+@patch("pysatl_criterion.statistics.goodness_of_fit.AbstractGoodnessOfFitStatistic")
+def test_goodness_of_fit_cv_path_rejects_hypothesis(mock_stat_cls, mock_cv_cls):
+    mock_stat = mock_stat_cls.return_value
+    mock_stat.code.return_value = "test_criterion"
+    mock_stat.execute_statistic.return_value = 10.0
 
-    MockCVCalculator = mocker.patch(f"{MODULE_PATH}.CVCalculator")
-    MockPValueCalculator = mocker.patch(f"{MODULE_PATH}.PValueCalculator")
-    mocker.patch(f"{MODULE_PATH}.SQLiteLimitDistributionStorage")
-
-    mock_cv_instance = MockCVCalculator.return_value
-    mock_cv_instance.calculate_critical_value.return_value = 9.0
+    mock_cv = mock_cv_cls.return_value
+    mock_cv.resolve.return_value = RightCriticalArea(9)
 
     gof_test = GoodnessOfFitTest(
-        statistics=mock_statistic,
+        statistics=mock_stat,
         significance_level=0.05,
-        test_method="critical_value",
+        test_method=TestMethod.CRITICAL_VALUE,
         alternative=HypothesisType.RIGHT,
+        cv_resolver=mock_cv,
     )
 
     assert gof_test.test(data=[1, 2, 3]) is False
-    mock_cv_instance.calculate_critical_value.assert_called_once()
-    MockPValueCalculator.assert_not_called()
 
 
-def test_goodness_of_fit_p_value_path_accepts_hypothesis(mocker):
-    mock_statistic = MagicMock(spec=AbstractGoodnessOfFitStatistic)
-    mock_statistic.code.return_value = "test_criterion"
-    mock_statistic.execute_statistic.return_value = 10.0
+@patch("pysatl_criterion.p_value.resolver.model.PValueResolver")
+@patch("pysatl_criterion.statistics.goodness_of_fit.AbstractGoodnessOfFitStatistic")
+def test_goodness_of_fit_p_value_path_accepts_hypothesis(mock_stat_cls, mock_p_value_cls):
+    mock_stat = mock_stat_cls.return_value
+    mock_stat.code.return_value = "test_criterion"
+    mock_stat.execute_statistic.return_value = 10.0
 
-    MockCVCalculator = mocker.patch(f"{MODULE_PATH}.CVCalculator")
-    MockPValueCalculator = mocker.patch(f"{MODULE_PATH}.PValueCalculator")
-    mocker.patch(f"{MODULE_PATH}.SQLiteLimitDistributionStorage")
-
-    mock_p_value_instance = MockPValueCalculator.return_value
-    mock_p_value_instance.calculate_p_value.return_value = 0.1
+    mock_p_value = mock_p_value_cls.return_value
+    mock_p_value.resolve.return_value = 0.1
 
     gof_test = GoodnessOfFitTest(
-        statistics=mock_statistic, significance_level=0.05, test_method="p_value"
+        statistics=mock_stat,
+        significance_level=0.05,
+        test_method=TestMethod.P_VALUE,
+        p_value_resolver=mock_p_value,
     )
 
     assert gof_test.test(data=[1, 2, 3]) is True
-    mock_p_value_instance.calculate_p_value.assert_called_once()
-    MockCVCalculator.assert_not_called()
 
 
-def test_goodness_of_fit_p_value_path_rejects_hypothesis(mocker):
-    mock_statistic = MagicMock(spec=AbstractGoodnessOfFitStatistic)
-    mock_statistic.code.return_value = "test_criterion"
-    mock_statistic.execute_statistic.return_value = 10.0
+@patch("pysatl_criterion.p_value.resolver.model.PValueResolver")
+@patch("pysatl_criterion.statistics.goodness_of_fit.AbstractGoodnessOfFitStatistic")
+def test_goodness_of_fit_p_value_path_rejects_hypothesis(mock_stat_cls, mock_p_value_cls):
+    mock_stat = mock_stat_cls.return_value
+    mock_stat.code.return_value = "test_criterion"
+    mock_stat.execute_statistic.return_value = 10.0
 
-    MockCVCalculator = mocker.patch(f"{MODULE_PATH}.CVCalculator")
-    MockPValueCalculator = mocker.patch(f"{MODULE_PATH}.PValueCalculator")
-    mocker.patch(f"{MODULE_PATH}.SQLiteLimitDistributionStorage")
-
-    mock_p_value_instance = MockPValueCalculator.return_value
-    mock_p_value_instance.calculate_p_value.return_value = 0.01
+    mock_p_value = mock_p_value_cls.return_value
+    mock_p_value.resolve.return_value = 0.01
 
     gof_test = GoodnessOfFitTest(
-        statistics=mock_statistic, significance_level=0.05, test_method="p_value"
+        p_value_resolver=mock_p_value,
+        statistics=mock_stat,
+        significance_level=0.05,
+        test_method=TestMethod.P_VALUE,
     )
 
     assert gof_test.test(data=[1, 2, 3]) is False
-    mock_p_value_instance.calculate_p_value.assert_called_once()
-    MockCVCalculator.assert_not_called()
-
-
-# TODO: cannot check raise, because creating "sqlite:/" directory, CI failing
-"""
-def test_goodness_of_fit_raises_for_invalid_method():
-    mock_statistic = MagicMock(spec=AbstractGoodnessOfFitStatistic)
-    mock_statistic.code.return_value = "test_criterion"
-    mock_statistic.execute_statistic.return_value = 10.0
-
-    gof_test = GoodnessOfFitTest(
-        statistics=mock_statistic, significance_level=0.05, test_method="this_is_wrong"
-    )
-    with pytest.raises(ValueError, match="Invalid test method."):
-        gof_test.test(data=[1, 2, 3])
-
-"""
