@@ -2,13 +2,13 @@ import pytest
 from sqlalchemy import inspect
 
 from pysatl_criterion.persistence.limit_distribution.datastorage.datastorage import (
-    SQLAlchemyLimitDistributionStorage,
+    AlchemyLimitDistributionStorage,
 )
 
 
 @pytest.fixture
 def storage(tmp_path):
-    storage = SQLAlchemyLimitDistributionStorage("sqlite:///:memory:")
+    storage = AlchemyLimitDistributionStorage("sqlite:///:memory:")
     storage.init()
     return storage
 

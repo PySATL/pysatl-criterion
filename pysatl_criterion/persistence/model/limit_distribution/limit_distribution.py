@@ -30,6 +30,7 @@ class LimitDistributionQuery(DataQuery):
 class CriticalValueQuery(DataQuery):
     criterion_code: str
     sample_size: int
+    sample_size_error: int = 0
 
 
 class ILimitDistributionStorage(
