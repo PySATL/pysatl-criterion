@@ -24,21 +24,23 @@ You're all set! You can now import and use the statistical tests in your Python 
 
 ## PySATL Criterion module usage example:
 
+Statistic calculation example:
 ```python
 # import needed criterion from pysatl_criterion
-from pysatl_criterion import KolmogorovSmirnovNormalityGofStatistic
+from pysatl_criterion.statistics import KolmogorovSmirnovNormalityGofStatistic
+
 
 # make a criterion object
-criterion = KolmogorovSmirnovNormalityGofStatistic(mean=0, var=1)
+statistic = KolmogorovSmirnovNormalityGofStatistic(mean=0, var=1)
 
 # initialize test data
 x = [0.1, 0.7, 0.5, 0.3]
 
 # then run algorithm
-statistic = criterion.execute_statistic(x)
+result = statistic.execute_statistic(x)
 
 # print the results
-print(f"Statistic result: {statistic}")
+print(f"Statistic result: {result}")
 # output:
 # Statistic result: 0.539827837277029
 ```

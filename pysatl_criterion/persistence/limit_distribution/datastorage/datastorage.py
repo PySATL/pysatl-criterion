@@ -12,7 +12,7 @@ from pysatl_criterion.persistence.model.limit_distribution.limit_distribution im
 from pysatl_criterion.persistence.model.orm.orm import Base, LimitDistributionORM
 
 
-class SQLAlchemyLimitDistributionStorage(ILimitDistributionStorage):
+class AlchemyLimitDistributionStorage(ILimitDistributionStorage):
     """
     SQLAlchemy-based implementation of ILimitDistributionStorage.
     """

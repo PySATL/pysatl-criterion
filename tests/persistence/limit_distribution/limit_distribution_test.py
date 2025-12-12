@@ -1,7 +1,7 @@
 import pytest
 
 from pysatl_criterion.persistence.limit_distribution.datastorage.datastorage import (
-    SQLAlchemyLimitDistributionStorage,
+    AlchemyLimitDistributionStorage,
 )
 from pysatl_criterion.persistence.limit_distribution.sqlite.sqlite import (
     SQLiteLimitDistributionStorage,
@@ -17,7 +17,7 @@ from pysatl_criterion.persistence.model.limit_distribution.limit_distribution im
     params=[
         pytest.param(lambda: SQLiteLimitDistributionStorage(":memory:"), id="sqlite"),
         pytest.param(
-            lambda: SQLAlchemyLimitDistributionStorage("sqlite:///:memory:"), id="sqlalchemy"
+            lambda: AlchemyLimitDistributionStorage("sqlite:///:memory:"), id="sqlalchemy"
         ),
     ]
 )
