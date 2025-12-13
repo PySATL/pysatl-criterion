@@ -38,6 +38,21 @@ class AbstractBetaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
         self.beta = beta
 
     @staticmethod
+    def _validate_rvs(rvs, open_interval=False):
+        rvs = np.asarray(rvs)
+        if open_interval:
+            # All values strictly between 0 and 1
+            if np.any((rvs <= 0) | (rvs >= 1)):
+                raise ValueError(
+                    "Beta distribution values must be in the open interval (0, 1) for this test"
+                )
+        else:
+            # All values in [0, 1]
+            if np.any((rvs < 0) | (rvs > 1)):
+                raise ValueError("Beta distribution values must be in the interval [0, 1]")
+        return rvs
+
+    @staticmethod
     @override
     def code():
         return f"BETA_{AbstractGoodnessOfFitStatistic.code()}"
@@ -96,9 +111,7 @@ class KolmogorovSmirnovBetaGofStatistic(AbstractBetaGofStatistic, KSStatistic):
         statistic : float
             The test statistic value
         """
-        rvs = np.asarray(rvs)
-        if np.any((rvs < 0) | (rvs > 1)):
-            raise ValueError("Beta distribution values must be in the interval [0, 1]")
+        rvs = self._validate_rvs(rvs)
 
         rvs_sorted = np.sort(rvs)
         cdf_vals = scipy_stats.beta.cdf(rvs_sorted, self.alpha, self.beta)
@@ -151,9 +164,7 @@ class AndersonDarlingBetaGofStatistic(AbstractBetaGofStatistic, ADStatistic):
         statistic : float
             The test statistic value
         """
-        rvs = np.asarray(rvs)
-        if np.any((rvs < 0) | (rvs > 1)):
-            raise ValueError("Beta distribution values must be in the interval [0, 1]")
+        rvs = self._validate_rvs(rvs)
 
         rvs_sorted = np.sort(rvs)
         n = len(rvs_sorted)
@@ -216,9 +227,7 @@ class CrammerVonMisesBetaGofStatistic(AbstractBetaGofStatistic, CrammerVonMisesS
         statistic : float
             The test statistic value
         """
-        rvs = np.asarray(rvs)
-        if np.any((rvs < 0) | (rvs > 1)):
-            raise ValueError("Beta distribution values must be in the interval [0, 1]")
+        rvs = self._validate_rvs(rvs)
 
         rvs_sorted = np.sort(rvs)
         cdf_vals = scipy_stats.beta.cdf(rvs_sorted, self.alpha, self.beta)
@@ -271,9 +280,7 @@ class LillieforsTestBetaGofStatistic(AbstractBetaGofStatistic, LillieforsTest):
         statistic : float
             The test statistic value
         """
-        rvs = np.asarray(rvs)
-        if np.any((rvs < 0) | (rvs > 1)):
-            raise ValueError("Beta distribution values must be in the interval [0, 1]")
+        rvs = self._validate_rvs(rvs)
 
         rvs_sorted = np.sort(rvs)
         cdf_vals = scipy_stats.beta.cdf(rvs_sorted, self.alpha, self.beta)
@@ -335,9 +342,7 @@ class Chi2PearsonBetaGofStatistic(AbstractBetaGofStatistic, Chi2Statistic):
         statistic : float
             The test statistic value
         """
-        rvs = np.asarray(rvs)
-        if np.any((rvs < 0) | (rvs > 1)):
-            raise ValueError("Beta distribution values must be in the interval [0, 1]")
+        rvs = self._validate_rvs(rvs)
 
         rvs_sorted = np.sort(rvs)
         n = len(rvs_sorted)
@@ -400,9 +405,7 @@ class WatsonBetaGofStatistic(AbstractBetaGofStatistic):
         statistic : float
             The test statistic value
         """
-        rvs = np.asarray(rvs)
-        if np.any((rvs < 0) | (rvs > 1)):
-            raise ValueError("Beta distribution values must be in the interval [0, 1]")
+        rvs = self._validate_rvs(rvs)
 
         rvs_sorted = np.sort(rvs)
         n = len(rvs_sorted)
@@ -464,9 +467,7 @@ class KuiperBetaGofStatistic(AbstractBetaGofStatistic):
         statistic : float
             The test statistic value (D+ + D-)
         """
-        rvs = np.asarray(rvs)
-        if np.any((rvs < 0) | (rvs > 1)):
-            raise ValueError("Beta distribution values must be in the interval [0, 1]")
+        rvs = self._validate_rvs(rvs)
 
         rvs_sorted = np.sort(rvs)
         n = len(rvs_sorted)
@@ -532,9 +533,7 @@ class MomentBasedBetaGofStatistic(AbstractBetaGofStatistic):
         statistic : float
             The test statistic value
         """
-        rvs = np.asarray(rvs)
-        if np.any((rvs < 0) | (rvs > 1)):
-            raise ValueError("Beta distribution values must be in the interval [0, 1]")
+        rvs = self._validate_rvs(rvs)
 
         n = len(rvs)
 
@@ -607,9 +606,7 @@ class SkewnessKurtosisBetaGofStatistic(AbstractBetaGofStatistic):
         statistic : float
             The test statistic value
         """
-        rvs = np.asarray(rvs)
-        if np.any((rvs < 0) | (rvs > 1)):
-            raise ValueError("Beta distribution values must be in the interval [0, 1]")
+        rvs = self._validate_rvs(rvs)
 
         n = len(rvs)
 
@@ -689,11 +686,7 @@ class RatioBetaGofStatistic(AbstractBetaGofStatistic):
         statistic : float
             The test statistic value
         """
-        rvs = np.asarray(rvs)
-        if np.any((rvs <= 0) | (rvs >= 1)):
-            raise ValueError(
-                "Beta distribution values must be in the open interval (0, 1) for this test"
-            )
+        rvs = self._validate_rvs(rvs, open_interval=True)
 
         n = len(rvs)
 
@@ -774,9 +767,7 @@ class EntropyBetaGofStatistic(AbstractBetaGofStatistic):
         statistic : float
             The test statistic value
         """
-        rvs = np.asarray(rvs)
-        if np.any((rvs < 0) | (rvs > 1)):
-            raise ValueError("Beta distribution values must be in the interval [0, 1]")
+        rvs = self._validate_rvs(rvs)
 
         n = len(rvs)
         m = kwargs.get("m", n // 4)
@@ -865,9 +856,7 @@ class ModeBetaGofStatistic(AbstractBetaGofStatistic):
         statistic : float
             The test statistic value
         """
-        rvs = np.asarray(rvs)
-        if np.any((rvs < 0) | (rvs > 1)):
-            raise ValueError("Beta distribution values must be in the interval [0, 1]")
+        rvs = self._validate_rvs(rvs)
 
         n = len(rvs)
 
