@@ -93,8 +93,14 @@ class KolmogorovSmirnovBetaGofStatistic(AbstractBetaGofStatistic, KSStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "KS"
+
+    @staticmethod
+    @override
     def code():
-        return f"KS_{AbstractBetaGofStatistic.code()}"
+        short_code = KolmogorovSmirnovBetaGofStatistic.short_code()
+        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -146,8 +152,14 @@ class AndersonDarlingBetaGofStatistic(AbstractBetaGofStatistic, ADStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "AD"
+
+    @staticmethod
+    @override
     def code():
-        return f"AD_{AbstractBetaGofStatistic.code()}"
+        short_code = AndersonDarlingBetaGofStatistic.short_code()
+        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -209,8 +221,14 @@ class CrammerVonMisesBetaGofStatistic(AbstractBetaGofStatistic, CrammerVonMisesS
 
     @staticmethod
     @override
+    def short_code():
+        return "CVM"
+
+    @staticmethod
+    @override
     def code():
-        return f"CVM_{AbstractBetaGofStatistic.code()}"
+        short_code = CrammerVonMisesBetaGofStatistic.short_code()
+        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -262,8 +280,14 @@ class LillieforsTestBetaGofStatistic(AbstractBetaGofStatistic, LillieforsTest):
 
     @staticmethod
     @override
+    def short_code():
+        return "LILLIE"
+
+    @staticmethod
+    @override
     def code():
-        return f"LILLIE_{AbstractBetaGofStatistic.code()}"
+        short_code = LillieforsTestBetaGofStatistic.short_code()
+        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -324,8 +348,14 @@ class Chi2PearsonBetaGofStatistic(AbstractBetaGofStatistic, Chi2Statistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "CHI2_PEARSON"
+
+    @staticmethod
+    @override
     def code():
-        return f"CHI2_PEARSON_{AbstractBetaGofStatistic.code()}"
+        short_code = Chi2PearsonBetaGofStatistic.short_code()
+        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -387,8 +417,14 @@ class WatsonBetaGofStatistic(AbstractBetaGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "W"
+
+    @staticmethod
+    @override
     def code():
-        return f"W_{AbstractBetaGofStatistic.code()}"
+        short_code = WatsonBetaGofStatistic.short_code()
+        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -449,8 +485,14 @@ class KuiperBetaGofStatistic(AbstractBetaGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "KUIPER"
+
+    @staticmethod
+    @override
     def code():
-        return f"KUIPER_{AbstractBetaGofStatistic.code()}"
+        short_code = KuiperBetaGofStatistic.short_code()
+        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -515,8 +557,14 @@ class MomentBasedBetaGofStatistic(AbstractBetaGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "MB"
+
+    @staticmethod
+    @override
     def code():
-        return f"MB_{AbstractBetaGofStatistic.code()}"
+        short_code = MomentBasedBetaGofStatistic.short_code()
+        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -588,8 +636,14 @@ class SkewnessKurtosisBetaGofStatistic(AbstractBetaGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "SK"
+
+    @staticmethod
+    @override
     def code():
-        return f"SK_{AbstractBetaGofStatistic.code()}"
+        short_code = SkewnessKurtosisBetaGofStatistic.short_code()
+        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -668,8 +722,14 @@ class RatioBetaGofStatistic(AbstractBetaGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "RT"
+
+    @staticmethod
+    @override
     def code():
-        return f"RT_{AbstractBetaGofStatistic.code()}"
+        short_code = RatioBetaGofStatistic.short_code()
+        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -747,8 +807,14 @@ class EntropyBetaGofStatistic(AbstractBetaGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "ENT"
+
+    @staticmethod
+    @override
     def code():
-        return f"ENT_{AbstractBetaGofStatistic.code()}"
+        short_code = EntropyBetaGofStatistic.short_code()
+        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -836,8 +902,14 @@ class ModeBetaGofStatistic(AbstractBetaGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "MODE"
+
+    @staticmethod
+    @override
     def code():
-        return f"MODE_{AbstractBetaGofStatistic.code()}"
+        short_code = ModeBetaGofStatistic.short_code()
+        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
