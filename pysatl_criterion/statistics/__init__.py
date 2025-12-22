@@ -48,6 +48,28 @@ from pysatl_criterion.statistics.exponent import (
     WeExponentialityGofStatistic,
     WongWongExponentialityGofStatistic,
 )
+from pysatl_criterion.statistics.gamma import (
+    AbstractGammaGofStatistic,
+    AndersonDarlingGammaGofStatistic,
+    Chi2PearsonGammaGofStatistic,
+    CramerVonMisesGammaGofStatistic,
+    CressieReadGammaGofStatistic,
+    GraphAverageDegreeGammaGofStatistic,
+    GraphCliqueNumberGammaGofStatistic,
+    GraphConnectedComponentsGammaGofStatistic,
+    GraphEdgesNumberGammaGofStatistic,
+    GraphIndependenceNumberGammaGofStatistic,
+    GraphMaxDegreeGammaGofStatistic,
+    GreenwoodGammaGofStatistic,
+    KolmogorovSmirnovGammaGofStatistic,
+    KuiperGammaGofStatistic,
+    LikelihoodRatioGammaGofStatistic,
+    LillieforsGammaGofStatistic,
+    MinToshiyukiGammaGofStatistic,
+    MoranGammaGofStatistic,
+    ProbabilityPlotCorrelationGammaGofStatistic,
+    WatsonGammaGofStatistic,
+)
 from pysatl_criterion.statistics.log_normal import (  # type: ignore[attr-defined]
     AbstractLogNormalGofStatistic,
     AndersonDarlingLogNormalGofStatistic,
@@ -91,28 +113,6 @@ from pysatl_criterion.statistics.log_normal import (  # type: ignore[attr-define
     ZhangQStarLogNormalGofStatistic,
     ZhangWuALogNormalGofStatistic,
     ZhangWuCLogNormalGofStatistic,
-)
-from pysatl_criterion.statistics.gamma import (
-    AbstractGammaGofStatistic,
-    AndersonDarlingGammaGofStatistic,
-    Chi2PearsonGammaGofStatistic,
-    CramerVonMisesGammaGofStatistic,
-    CressieReadGammaGofStatistic,
-    GraphAverageDegreeGammaGofStatistic,
-    GraphCliqueNumberGammaGofStatistic,
-    GraphConnectedComponentsGammaGofStatistic,
-    GraphEdgesNumberGammaGofStatistic,
-    GraphIndependenceNumberGammaGofStatistic,
-    GraphMaxDegreeGammaGofStatistic,
-    GreenwoodGammaGofStatistic,
-    KolmogorovSmirnovGammaGofStatistic,
-    KuiperGammaGofStatistic,
-    LikelihoodRatioGammaGofStatistic,
-    LillieforsGammaGofStatistic,
-    MinToshiyukiGammaGofStatistic,
-    MoranGammaGofStatistic,
-    ProbabilityPlotCorrelationGammaGofStatistic,
-    WatsonGammaGofStatistic,
 )
 from pysatl_criterion.statistics.models import AbstractStatistic
 from pysatl_criterion.statistics.normal import (

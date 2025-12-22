@@ -1,6 +1,7 @@
 import inspect
 import sys
 import warnings
+from abc import ABC
 
 import numpy as np
 import scipy.stats as scipy_stats
@@ -13,7 +14,7 @@ from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitSta
 from pysatl_criterion.statistics.normal import AbstractNormalityGofStatistic
 
 
-class AbstractLogNormalGofStatistic(AbstractGoodnessOfFitStatistic):
+class AbstractLogNormalGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     """
     Base class for Log-Normal distribution Goodness-of-Fit statistics.
     """
@@ -59,8 +60,14 @@ class KolmogorovSmirnovLogNormalGofStatistic(AbstractLogNormalGofStatistic, KSSt
 
     @staticmethod
     @override
+    def short_code():
+        return "KS"
+
+    @staticmethod
+    @override
     def code():
-        return f"KS_{AbstractLogNormalGofStatistic.code()}"
+        short_code = KolmogorovSmirnovLogNormalGofStatistic.short_code()
+        return f"{short_code}_{AbstractLogNormalGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -83,8 +90,14 @@ class CramerVonMiseLogNormalGofStatistic(AbstractLogNormalGofStatistic, CrammerV
 
     @staticmethod
     @override
+    def short_code():
+        return "CVM"
+
+    @staticmethod
+    @override
     def code():
-        return f"CVM_{AbstractLogNormalGofStatistic.code()}"
+        short_code = CramerVonMiseLogNormalGofStatistic.short_code()
+        return f"{short_code}_{AbstractLogNormalGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -106,8 +119,14 @@ class QuesenberryMillerLogNormalGofStatistic(AbstractLogNormalGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "QUESENBERRY_MILLER"
+
+    @staticmethod
+    @override
     def code():
-        return f"QUESENBERRY_MILLER_{AbstractLogNormalGofStatistic.code()}"
+        short_code = QuesenberryMillerLogNormalGofStatistic.short_code()
+        return f"{short_code}_{AbstractLogNormalGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -145,8 +164,14 @@ class KLSupremumLogNormalGoFStatistic(AbstractGoodnessOfFitStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "KL_SUP"
+
+    @staticmethod
+    @override
     def code():
-        return "KL_SUP_LOGNORMAL_GOODNESS_OF_FIT"
+        short_code = KLSupremumLogNormalGoFStatistic.short_code()
+        return f"{short_code}_{AbstractLogNormalGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -231,7 +256,7 @@ class KLSupremumLogNormalGoFStatistic(AbstractGoodnessOfFitStatistic):
             )
 
 
-class KLIntegralLogNormalGoFStatistic:
+class KLIntegralLogNormalGoFStatistic(AbstractLogNormalGofStatistic):
     """
     Integral test for lognormality based on Kullback-Leibler divergences.
 
@@ -243,9 +268,17 @@ class KLIntegralLogNormalGoFStatistic:
     """
 
     @staticmethod
-    def code():
-        return "KL_INT_LOGNORMAL_GOODNESS_OF_FIT"
+    @override
+    def short_code():
+        return "KL_INT"
 
+    @staticmethod
+    @override
+    def code():
+        short_code = KLIntegralLogNormalGoFStatistic.short_code()
+        return f"{short_code}_{AbstractLogNormalGofStatistic.code()}"
+
+    @override
     def execute_statistic(self, rvs, **kwargs):
         rvs = np.array(rvs)
 
@@ -341,6 +374,7 @@ class KLIntegralLogNormalGoFStatistic:
 def _create_lognormal_class(normal_cls):
     new_class_name = normal_cls.__name__.replace("Normality", "LogNormal")
     class_code = normal_cls.code().replace("NORMALITY", "LOGNORMAL")
+    class_short_code = normal_cls.short_code()
 
     class LogNormalClass(AbstractLogNormalGofStatistic):
         @override
@@ -354,6 +388,11 @@ def _create_lognormal_class(normal_cls):
             standardized_log_rvs = (log_rvs - np.log(self.scale)) / self.s
 
             return normal_cls().execute_statistic(standardized_log_rvs, **kwargs)
+
+        @staticmethod
+        @override
+        def short_code():
+            return class_short_code
 
         @staticmethod
         @override
