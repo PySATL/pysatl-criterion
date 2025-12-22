@@ -46,6 +46,14 @@ class AbstractStatistic(ABC):
         """
         raise NotImplementedError("Method is not implemented")
 
+    @staticmethod
+    @abstractmethod
+    def short_code():
+        """
+        Generate non-unique short code for test statistic.
+        """
+        raise NotImplementedError("Method is not implemented")
+
     @abstractmethod
     def execute_statistic(self, rvs, **kwargs) -> float | float64:
         """

@@ -42,8 +42,14 @@ class KolmogorovSmirnovNormalityGofStatistic(AbstractNormalityGofStatistic, KSSt
 
     @staticmethod
     @override
+    def short_code():
+        return "KS"
+
+    @staticmethod
+    @override
     def code():
-        return f"KS_{AbstractNormalityGofStatistic.code()}"
+        short_code = KolmogorovSmirnovNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -77,8 +83,14 @@ class ChiSquareTest(AbstractNormalityTestStatistic):  # TODO: check test correct
 class AndersonDarlingNormalityGofStatistic(AbstractNormalityGofStatistic, ADStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "AD"
+
+    @staticmethod
+    @override
     def code():
-        return f"AD_{AbstractNormalityGofStatistic.code()}"
+        short_code = AndersonDarlingNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -102,8 +114,14 @@ class AndersonDarlingNormalityGofStatistic(AbstractNormalityGofStatistic, ADStat
 class ShapiroWilkNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "SW"
+
+    @staticmethod
+    @override
     def code():
-        return f"SW_{AbstractNormalityGofStatistic.code()}"
+        short_code = ShapiroWilkNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -159,10 +177,15 @@ class ShapiroWilkNormalityGofStatistic(AbstractNormalityGofStatistic):
 class CramerVonMiseNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "CVM"
+
+    @staticmethod
+    @override
     def code():
-        return (
-            "CVM" + "_" + super(AbstractNormalityGofStatistic, AbstractNormalityGofStatistic).code()
-        )
+        short_code = CramerVonMiseNormalityGofStatistic.short_code()
+        base_code = super(AbstractNormalityGofStatistic, AbstractNormalityGofStatistic).code()
+        return f"{short_code}_{base_code}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -180,8 +203,14 @@ class CramerVonMiseNormalityGofStatistic(AbstractNormalityGofStatistic):
 class LillieforsNormalityGofStatistic(AbstractNormalityGofStatistic, LillieforsTest):
     @staticmethod
     @override
+    def short_code():
+        return "LILLIE"
+
+    @staticmethod
+    @override
     def code():
-        return f"LILLIE_{AbstractNormalityGofStatistic.code()}"
+        short_code = LillieforsNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -219,8 +248,14 @@ class DANormalityTest(AbstractNormalityTestStatistic):  # TODO: check for correc
 class JBNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "JB"
+
+    @staticmethod
+    @override
     def code():
-        return f"JB_{AbstractNormalityGofStatistic.code()}"
+        short_code = JBNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -243,8 +278,14 @@ class JBNormalityGofStatistic(AbstractNormalityGofStatistic):
 class SkewNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "SKEW"
+
+    @staticmethod
+    @override
     def code():
-        return f"SKEW_{AbstractNormalityGofStatistic.code()}"
+        short_code = SkewNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -281,8 +322,14 @@ class SkewNormalityGofStatistic(AbstractNormalityGofStatistic):
 class KurtosisNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "KURTOSIS"
+
+    @staticmethod
+    @override
     def code():
-        return f"KURTOSIS_{AbstractNormalityGofStatistic.code()}"
+        short_code = KurtosisNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -336,8 +383,14 @@ class KurtosisNormalityGofStatistic(AbstractNormalityGofStatistic):
 class DAPNormalityGofStatistic(SkewNormalityGofStatistic, KurtosisNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "DAP"
+
+    @staticmethod
+    @override
     def code():
-        return f"DAP_{AbstractNormalityGofStatistic.code()}"
+        short_code = DAPNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -354,8 +407,14 @@ class DAPNormalityGofStatistic(SkewNormalityGofStatistic, KurtosisNormalityGofSt
 class FilliNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "FILLI"
+
+    @staticmethod
+    @override
     def code():
-        return f"FILLI_{AbstractNormalityGofStatistic.code()}"
+        short_code = FilliNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -389,8 +448,14 @@ class FilliNormalityGofStatistic(AbstractNormalityGofStatistic):
 class LooneyGulledgeNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "LG"
+
+    @staticmethod
+    @override
     def code():
-        return f"LG_{AbstractNormalityGofStatistic.code()}"
+        short_code = LooneyGulledgeNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -450,8 +515,14 @@ class RyanJoinerNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "RJ"
+
+    @staticmethod
+    @override
     def code():
-        return f"RJ_{AbstractNormalityGofStatistic.code()}"
+        short_code = RyanJoinerNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -511,8 +582,14 @@ class RyanJoinerNormalityGofStatistic(AbstractNormalityGofStatistic):
 class SFNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "SF"
+
+    @staticmethod
+    @override
     def code():
-        return f"SF_{AbstractNormalityGofStatistic.code()}"
+        short_code = SFNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -532,8 +609,14 @@ class SFNormalityGofStatistic(AbstractNormalityGofStatistic):
 class EppsPulleyNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "EP"
+
+    @staticmethod
+    @override
     def code():
-        return f"EP_{AbstractNormalityGofStatistic.code()}"
+        short_code = EppsPulleyNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -554,8 +637,14 @@ class EppsPulleyNormalityGofStatistic(AbstractNormalityGofStatistic):
 class Hosking2NormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "HOSKING2"
+
+    @staticmethod
+    @override
     def code():
-        return f"HOSKING2_{AbstractNormalityGofStatistic.code()}"
+        short_code = Hosking2NormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -607,8 +696,14 @@ class Hosking2NormalityGofStatistic(AbstractNormalityGofStatistic):
 class Hosking1NormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "HOSKING1"
+
+    @staticmethod
+    @override
     def code():
-        return f"HOSKING1_{AbstractNormalityGofStatistic.code()}"
+        short_code = Hosking1NormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -658,8 +753,14 @@ class Hosking1NormalityGofStatistic(AbstractNormalityGofStatistic):
 class Hosking3NormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "HOSKING3"
+
+    @staticmethod
+    @override
     def code():
-        return f"HOSKING3_{AbstractNormalityGofStatistic.code()}"
+        short_code = Hosking3NormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -716,8 +817,14 @@ class Hosking3NormalityGofStatistic(AbstractNormalityGofStatistic):
 class Hosking4NormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "HOSKING4"
+
+    @staticmethod
+    @override
     def code():
-        return f"HOSKING4_{AbstractNormalityGofStatistic.code()}"
+        short_code = Hosking4NormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -774,8 +881,14 @@ class Hosking4NormalityGofStatistic(AbstractNormalityGofStatistic):
 class ZhangWuCNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "ZWC"
+
+    @staticmethod
+    @override
     def code():
-        return f"ZWC_{AbstractNormalityGofStatistic.code()}"
+        short_code = ZhangWuCNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -798,8 +911,14 @@ class ZhangWuCNormalityGofStatistic(AbstractNormalityGofStatistic):
 class ZhangWuANormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "ZWA"
+
+    @staticmethod
+    @override
     def code():
-        return f"ZWA_{AbstractNormalityGofStatistic.code()}"
+        short_code = ZhangWuANormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -826,8 +945,14 @@ class ZhangWuANormalityGofStatistic(AbstractNormalityGofStatistic):
 class GlenLeemisBarrNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "GLB"
+
+    @staticmethod
+    @override
     def code():
-        return f"GLB_{AbstractNormalityGofStatistic.code()}"
+        short_code = GlenLeemisBarrNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -855,8 +980,14 @@ class GlenLeemisBarrNormalityGofStatistic(AbstractNormalityGofStatistic):
 class DoornikHansenNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "DH"
+
+    @staticmethod
+    @override
     def code():
-        return f"DH_{AbstractNormalityGofStatistic.code()}"
+        short_code = DoornikHansenNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -909,8 +1040,14 @@ class DoornikHansenNormalityGofStatistic(AbstractNormalityGofStatistic):
 class RobustJarqueBeraNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "RJB"
+
+    @staticmethod
+    @override
     def code():
-        return f"RJB_{AbstractNormalityGofStatistic.code()}"
+        short_code = RobustJarqueBeraNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -928,8 +1065,14 @@ class RobustJarqueBeraNormalityGofStatistic(AbstractNormalityGofStatistic):
 class BontempsMeddahi1NormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "BM1"
+
+    @staticmethod
+    @override
     def code():
-        return f"BM1_{AbstractNormalityGofStatistic.code()}"
+        short_code = BontempsMeddahi1NormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -965,8 +1108,14 @@ class BontempsMeddahi1NormalityGofStatistic(AbstractNormalityGofStatistic):
 class BontempsMeddahi2NormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "BM2"
+
+    @staticmethod
+    @override
     def code():
-        return f"BM2_{AbstractNormalityGofStatistic.code()}"
+        short_code = BontempsMeddahi2NormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -994,8 +1143,14 @@ class BontempsMeddahi2NormalityGofStatistic(AbstractNormalityGofStatistic):
 class BonettSeierNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "BS"
+
+    @staticmethod
+    @override
     def code():
-        return f"BS_{AbstractNormalityGofStatistic.code()}"
+        short_code = BonettSeierNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1029,8 +1184,14 @@ class BonettSeierNormalityGofStatistic(AbstractNormalityGofStatistic):
 class MartinezIglewiczNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "MI"
+
+    @staticmethod
+    @override
     def code():
-        return f"MI_{AbstractNormalityGofStatistic.code()}"
+        short_code = MartinezIglewiczNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1070,8 +1231,14 @@ class MartinezIglewiczNormalityGofStatistic(AbstractNormalityGofStatistic):
 class CabanaCabana1NormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "CC1"
+
+    @staticmethod
+    @override
     def code():
-        return f"CC1_{AbstractNormalityGofStatistic.code()}"
+        short_code = CabanaCabana1NormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1116,8 +1283,14 @@ class CabanaCabana1NormalityGofStatistic(AbstractNormalityGofStatistic):
 class CabanaCabana2NormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "CC2"
+
+    @staticmethod
+    @override
     def code():
-        return f"CC2_{AbstractNormalityGofStatistic.code()}"
+        short_code = CabanaCabana2NormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1215,8 +1388,14 @@ class CabanaCabana2NormalityGofStatistic(AbstractNormalityGofStatistic):
 class ChenShapiroNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "CS"
+
+    @staticmethod
+    @override
     def code():
-        return f"CS_{AbstractNormalityGofStatistic.code()}"
+        short_code = ChenShapiroNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1239,8 +1418,14 @@ class ChenShapiroNormalityGofStatistic(AbstractNormalityGofStatistic):
 class ZhangQNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "ZQ"
+
+    @staticmethod
+    @override
     def code():
-        return f"ZQ_{AbstractNormalityGofStatistic.code()}"
+        short_code = ZhangQNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1279,8 +1464,14 @@ class ZhangQNormalityGofStatistic(AbstractNormalityGofStatistic):
 class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "COIN"
+
+    @staticmethod
+    @override
     def code():
-        return f"COIN_{AbstractNormalityGofStatistic.code()}"
+        short_code = CoinNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1408,8 +1599,14 @@ class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
 class DagostinoNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "D"
+
+    @staticmethod
+    @override
     def code():
-        return f"D_{AbstractNormalityGofStatistic.code()}"
+        short_code = DagostinoNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1428,8 +1625,14 @@ class DagostinoNormalityGofStatistic(AbstractNormalityGofStatistic):
 class ZhangQStarNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "ZQS"
+
+    @staticmethod
+    @override
     def code():
-        return f"ZQS_{AbstractNormalityGofStatistic.code()}"
+        short_code = ZhangQStarNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1515,8 +1718,14 @@ class ZhangQQStarNormalityTest(AbstractNormalityTestStatistic):  # TODO: check f
 class SWRGNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "SWRG"
+
+    @staticmethod
+    @override
     def code():
-        return f"SWRG_{AbstractNormalityGofStatistic.code()}"
+        short_code = SWRGNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1545,8 +1754,14 @@ class SWRGNormalityGofStatistic(AbstractNormalityGofStatistic):
 class GMGNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "GMG"
+
+    @staticmethod
+    @override
     def code():
-        return f"GMG_{AbstractNormalityGofStatistic.code()}"
+        short_code = GMGNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1606,8 +1821,14 @@ a robust measure of skewness, Computational Statistics, Vol. 23, Issue 3, pp. 42
 class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "BHS"
+
+    @staticmethod
+    @override
     def code():
-        return f"BHS_{AbstractNormalityGofStatistic.code()}"
+        short_code = BHSNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1629,9 +1850,7 @@ class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
             eps = [2.220446e-16, 2.225074e-308]
             iter_ = [1000, 0]
 
-            print("ssss")
             w1 = self.mc_c_d(x, eps, iter_)
-            print("ssss1")
             w2 = self.mc_c_d(x1, eps, iter_)
             w3 = self.mc_c_d(x2, eps, iter_)
 
@@ -1941,8 +2160,14 @@ class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
 class SpiegelhalterNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "SH"
+
+    @staticmethod
+    @override
     def code():
-        return f"SH_{AbstractNormalityGofStatistic.code()}"
+        short_code = SpiegelhalterNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1988,8 +2213,15 @@ class SpiegelhalterNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 class DesgagneLafayeNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
+    @override
+    def short_code():
+        return "DLDMZEPD"
+
+    @staticmethod
+    @override
     def code():
-        return f"DLDMZEPD_{AbstractNormalityGofStatistic.code()}"
+        short_code = DesgagneLafayeNormalityGofStatistic.short_code()
+        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2034,7 +2266,9 @@ class DesgagneLafayeNormalityGofStatistic(AbstractNormalityGofStatistic):
             return rn  # Here is the test statistic value
 
 
-class AbstractGraphNormalityGofStatistic(AbstractNormalityGofStatistic, AbstractGraphTestStatistic):
+class AbstractGraphNormalityGofStatistic(
+    AbstractNormalityGofStatistic, AbstractGraphTestStatistic, ABC
+):
     @staticmethod
     @override
     def code():
@@ -2056,7 +2290,8 @@ class GraphEdgesNumberNormalityGofStatistic(
     @override
     def code():
         parent_code = AbstractGraphNormalityGofStatistic.code()
-        return f"{GraphEdgesNumberNormalityGofStatistic.get_stat_name()}_{parent_code}"
+        short_code = GraphEdgesNumberNormalityGofStatistic.short_code()
+        return f"{short_code}_{parent_code}"
 
 
 class GraphMaxDegreeNormalityGofStatistic(
@@ -2066,7 +2301,8 @@ class GraphMaxDegreeNormalityGofStatistic(
     @override
     def code():
         parent_code = AbstractGraphNormalityGofStatistic.code()
-        return f"{GraphMaxDegreeNormalityGofStatistic.get_stat_name()}_{parent_code}"
+        short_code = GraphMaxDegreeNormalityGofStatistic.short_code()
+        return f"{short_code}_{parent_code}"
 
 
 class GraphAverageDegreeNormalityGofStatistic(
@@ -2076,7 +2312,8 @@ class GraphAverageDegreeNormalityGofStatistic(
     @override
     def code():
         parent_code = AbstractGraphNormalityGofStatistic.code()
-        return f"{GraphAverageDegreeNormalityGofStatistic.get_stat_name()}_{parent_code}"
+        short_code = GraphAverageDegreeNormalityGofStatistic.short_code()
+        return f"{short_code}_{parent_code}"
 
 
 class GraphConnectedComponentsNormalityGofStatistic(
@@ -2086,7 +2323,8 @@ class GraphConnectedComponentsNormalityGofStatistic(
     @override
     def code():
         parent_code = AbstractGraphNormalityGofStatistic.code()
-        return f"{GraphConnectedComponentsNormalityGofStatistic.get_stat_name()}_{parent_code}"
+        short_code = GraphConnectedComponentsNormalityGofStatistic.short_code()
+        return f"{short_code}_{parent_code}"
 
 
 class GraphCliqueNumberNormalityGofStatistic(
@@ -2096,7 +2334,8 @@ class GraphCliqueNumberNormalityGofStatistic(
     @override
     def code():
         parent_code = AbstractGraphNormalityGofStatistic.code()
-        return f"{GraphCliqueNumberNormalityGofStatistic.get_stat_name()}_{parent_code}"
+        short_code = GraphCliqueNumberNormalityGofStatistic.short_code()
+        return f"{short_code}_{parent_code}"
 
 
 class GraphIndependenceNumberNormalityGofStatistic(
@@ -2106,4 +2345,5 @@ class GraphIndependenceNumberNormalityGofStatistic(
     @override
     def code():
         parent_code = AbstractGraphNormalityGofStatistic.code()
-        return f"{GraphIndependenceNumberNormalityGofStatistic.get_stat_name()}_{parent_code}"
+        short_code = GraphIndependenceNumberNormalityGofStatistic.short_code()
+        return f"{short_code}_{parent_code}"

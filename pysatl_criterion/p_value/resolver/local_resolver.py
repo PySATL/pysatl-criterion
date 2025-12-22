@@ -1,5 +1,7 @@
 import scipy.stats as scipy_stats
+from typing_extensions import override
 
+from pysatl_criterion.p_value.resolver.model import PValueResolver
 from pysatl_criterion.persistence.limit_distribution.sqlite.sqlite import (
     SQLiteLimitDistributionStorage,
 )
@@ -9,7 +11,7 @@ from pysatl_criterion.persistence.model.limit_distribution.limit_distribution im
 from pysatl_criterion.statistics.models import HypothesisType
 
 
-class PValueCalculator:
+class LocalPValueResolver(PValueResolver):
     """
     P-value calculator.
 
@@ -19,7 +21,8 @@ class PValueCalculator:
     def __init__(self, limit_distribution_storage: SQLiteLimitDistributionStorage):
         self.limit_distribution_storage = limit_distribution_storage
 
-    def calculate_p_value(
+    @override
+    def resolve(
         self,
         criterion_code: str,
         sample_size: int,
@@ -45,9 +48,7 @@ class PValueCalculator:
                 "Limit distribution for given criterion and sample size does not exist."
             )
 
-        simulation_results = limit_distribution_from_db.results_statistics
-
-        ecdf = scipy_stats.ecdf(simulation_results)
+        ecdf = scipy_stats.ecdf(limit_distribution_from_db.results_statistics)
 
         cdf_value = ecdf.cdf.evaluate(statistics_value)
 

@@ -1,5 +1,5 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Protocol
 
 from pysatl_criterion.persistence.model.common.data_storage.data_storage import (
     DataModel,
@@ -30,15 +30,15 @@ class LimitDistributionQuery(DataQuery):
 class CriticalValueQuery(DataQuery):
     criterion_code: str
     sample_size: int
+    sample_size_error: int = 0
 
 
-class ILimitDistributionStorage(
-    IDataStorage[LimitDistributionModel, LimitDistributionQuery], Protocol
-):
+class ILimitDistributionStorage(IDataStorage[LimitDistributionModel, LimitDistributionQuery], ABC):
     """
     Limit distribution storage interface.
     """
 
+    @abstractmethod
     def get_data_for_cv(self, query: CriticalValueQuery) -> LimitDistributionModel | None:
         """
         Get limit distribution data for critical value calculation.

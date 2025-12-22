@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 import numpy as np
 import pytest
 
-from pysatl_criterion.cv_calculator.cv_calculator.cv_calculator import CVCalculator
+from pysatl_criterion.critical_value.cv_calculator.cv_calculator import CVCalculator
 from pysatl_criterion.statistics.models import HypothesisType
 
 
