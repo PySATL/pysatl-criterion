@@ -6,6 +6,8 @@ import scipy.stats as scipy_stats
 
 from pysatl_criterion.statistics.log_normal import (
     CramerVonMiseLogNormalGofStatistic,
+    KLIntegralLogNormalGoFStatistic,
+    KLSupremumLogNormalGoFStatistic,
     KolmogorovSmirnovLogNormalGofStatistic,
     QuesenberryMillerLogNormalGofStatistic,
 )
@@ -107,6 +109,246 @@ def test_quesenberry_miller_lognormal_criterion_code():
         "QUESENBERRY_MILLER_LOGNORMAL_GOODNESS_OF_FIT"
         == QuesenberryMillerLogNormalGofStatistic().code()
     )
+
+
+@pytest.mark.parametrize(
+    ("data", "result"),
+    [
+        (
+            [
+                0.746,
+                0.357,
+                0.376,
+                0.327,
+                0.485,
+                1.741,
+                0.241,
+                0.777,
+                0.768,
+                0.409,
+                0.252,
+                0.512,
+                0.534,
+                1.656,
+                0.742,
+                0.378,
+                0.714,
+                1.121,
+                0.597,
+                0.231,
+                0.541,
+                0.805,
+                0.682,
+                0.418,
+                0.506,
+                0.501,
+                0.247,
+                0.922,
+                0.880,
+                0.344,
+                0.519,
+                1.302,
+                0.275,
+                0.601,
+                0.388,
+                0.450,
+                0.845,
+                0.319,
+                0.486,
+                0.529,
+                1.547,
+                0.690,
+                0.676,
+                0.314,
+                0.736,
+                0.643,
+                0.483,
+                0.352,
+                0.636,
+                1.080,
+            ],
+            0.9521,  # значение из статьи
+        ),
+    ],
+)
+def test_kl_supremum_lognormal_criterion(data, result):
+    statistic = KLSupremumLogNormalGoFStatistic().execute_statistic(data)
+
+    assert result == pytest.approx(statistic, 0.0001)
+
+
+def test_kl_supremum_lognormal_criterion_code():
+    assert "KL_SUP_LOGNORMAL_GOODNESS_OF_FIT" == KLSupremumLogNormalGoFStatistic().code()
+
+
+@pytest.mark.parametrize(
+    ("data", "result"),
+    [
+        (
+            [
+                0.746,
+                0.357,
+                0.376,
+                0.327,
+                0.485,
+                1.741,
+                0.241,
+                0.777,
+                0.768,
+                0.409,
+                0.252,
+                0.512,
+                0.534,
+                1.656,
+                0.742,
+                0.378,
+                0.714,
+                1.121,
+                0.597,
+                0.231,
+                0.541,
+                0.805,
+                0.682,
+                0.418,
+                0.506,
+                0.501,
+                0.247,
+                0.922,
+                0.880,
+                0.344,
+                0.519,
+                1.302,
+                0.275,
+                0.601,
+                0.388,
+                0.450,
+                0.845,
+                0.319,
+                0.486,
+                0.529,
+                1.547,
+                0.690,
+                0.676,
+                0.314,
+                0.736,
+                0.643,
+                0.483,
+                0.352,
+                0.636,
+                1.080,
+            ],
+            1.28216,  # значение из статьи
+        ),
+    ],
+)
+def test_kl_integral_lognormal_criterion(data, result):
+    statistic = KLIntegralLogNormalGoFStatistic().execute_statistic(data)
+
+    assert result == pytest.approx(statistic, 0.01)
+
+
+def test_kl_supremum_critical_value_n50():
+    statistic = KLSupremumLogNormalGoFStatistic()
+    n = 50
+    alpha = 0.05
+    expected = 2.1397  # Из статьи: c1,0.05(50) = 2.1397
+
+    calculated = statistic.calculate_critical_value(n, alpha)
+
+    assert abs(calculated - expected) < 1e-4
+
+
+def test_kl_integral_critical_value_n50():
+    statistic = KLIntegralLogNormalGoFStatistic()
+    n = 50
+    alpha = 0.05
+    expected = 5.7369  # Из статьи: c2,0.05(50) = 5.7369
+
+    calculated = statistic.calculate_critical_value(n, alpha)
+
+    assert abs(calculated - expected) < 1e-4
+
+
+def test_kl_supremum_critical_value_n90():
+    statistic = KLSupremumLogNormalGoFStatistic()
+    n = 90
+    alpha = 0.05
+    expected = 2.2708  # Из статьи: c1,0.05(90) = 2.2708
+
+    calculated = statistic.calculate_critical_value(n, alpha)
+
+    assert abs(calculated - expected) < 1e-4
+
+
+def test_kl_integral_critical_value_n90():
+    statistic = KLIntegralLogNormalGoFStatistic()
+    n = 90
+    alpha = 0.05
+    expected = 6.6890  # Из статьи: c2,0.05(90) = 6.6890
+
+    calculated = statistic.calculate_critical_value(n, alpha)
+
+    assert abs(calculated - expected) < 1e-4
+
+
+@pytest.mark.parametrize("n", [20, 40, 60, 80, 100])
+def test_kl_sup_critical_values(n):
+    stat = KLSupremumLogNormalGoFStatistic()
+
+    # Test alpha = 0.05
+    cv_05 = stat.calculate_critical_value(n, 0.05)
+    assert cv_05 > 0
+
+    # Test alpha = 0.01
+    cv_01 = stat.calculate_critical_value(n, 0.01)
+    assert cv_01 > cv_05
+
+
+@pytest.mark.parametrize("n", [20, 40, 60, 80, 100])
+def test_kl_int_critical_values(n):
+    stat = KLIntegralLogNormalGoFStatistic()
+
+    # Test alpha = 0.05
+    cv_05 = stat.calculate_critical_value(n, 0.05)
+    assert cv_05 > 0
+
+    # Test alpha = 0.01
+    cv_01 = stat.calculate_critical_value(n, 0.01)
+    assert cv_01 > cv_05
+
+
+@pytest.mark.parametrize(
+    ("data", "result"),
+    [
+        ([-1.0, 0.5, 2.0, 3.0, -0.1], float("inf")),
+        ([0.0, 1.0, 2.0, 3.0, 4.0], float("inf")),
+    ],
+)
+def test_kl_supremum_non_positive_data(data, result):
+    statistic = KLSupremumLogNormalGoFStatistic().execute_statistic(data)
+    assert statistic == result
+
+
+@pytest.mark.parametrize(
+    ("data", "result"),
+    [
+        ([-1.0, 0.5, 2.0, 3.0, -0.1], float("inf")),
+        ([0.0, 1.0, 2.0, 3.0, 4.0], float("inf")),
+    ],
+)
+def test_kl_integral_non_positive_data(data, result):
+    statistic = KLIntegralLogNormalGoFStatistic().execute_statistic(data)
+    assert statistic == result
+
+
+def test_kl_sup_lognormal_criterion_code():
+    stat = KLSupremumLogNormalGoFStatistic()
+    assert stat.code() == "KL_SUP_LOGNORMAL_GOODNESS_OF_FIT"
+
+
+def test_kl_int_lognormal_criterion_code():
+    stat = KLIntegralLogNormalGoFStatistic()
+    assert stat.code() == "KL_INT_LOGNORMAL_GOODNESS_OF_FIT"
 
 
 def get_dynamic_lognormal_classes():
