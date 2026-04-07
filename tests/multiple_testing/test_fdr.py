@@ -1,5 +1,7 @@
 import pytest
+
 from pysatl_criterion.multiple_testing.fdr import BenjaminiYekutieli
+
 
 def test_benjamini_yekutieli_complex():
     p_values = [0.001, 0.002, 0.01, 0.03, 0.04, 0.1, 0.15, 0.2, 0.25, 0.5]
@@ -22,7 +24,7 @@ def test_benjamini_yekutieli_adjust_complex():
         min(1.0, sorted_p[1] * n * c / 2),
         min(1.0, sorted_p[2] * n * c / 3),
         min(1.0, sorted_p[3] * n * c / 4),
-        min(1.0, sorted_p[4] * n * c / 5)
+        min(1.0, sorted_p[4] * n * c / 5),
     ]
 
     for i in range(n - 2, -1, -1):
@@ -40,6 +42,7 @@ def test_benjamini_yekutieli_edge_cases():
 
 def test_benjamini_yekutieli_large_input():
     import numpy as np
+
     np.random.seed(42)
     p_values = np.random.rand(1000).tolist()
 

@@ -1,5 +1,7 @@
-from .abstract_multiple_testing import AbstractMultipleTesting
 import math
+
+from .abstract_multiple_testing import AbstractMultipleTesting
+
 
 class BenjaminiYekutieli(AbstractMultipleTesting):
     """

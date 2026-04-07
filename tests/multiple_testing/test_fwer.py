@@ -1,6 +1,7 @@
 import pytest as pytest
 
 from pysatl_criterion.multiple_testing import BonferroniMultipleTesting, SidakMultipleTesting
+from pysatl_criterion.multiple_testing.fwer import Holm, SidakHolm
 
 
 METHODS = [BonferroniMultipleTesting, SidakMultipleTesting]
@@ -96,8 +97,7 @@ def test_sidak_adjust(p_values, expected_adjusted):
 def test_sidak_rejection_decisions(p_values, expected_rejected):
     rejected, _ = SidakMultipleTesting.test(p_values)
     assert rejected == expected_rejected
-import pytest
-from pysatl_criterion.multiple_testing.fwer import Holm, SidakHolm
+
 
 def test_holm_correction():
     p_values = [0.04, 0.001, 0.7, 0.02]
@@ -152,11 +152,7 @@ def test_sidak_correction():
 
     assert rejected == [True, False, False]
 
-    expected = [
-        1 - (1 - 0.01) ** 3,
-        1 - (1 - 0.02) ** 3,
-        1 - (1 - 0.1) ** 3
-    ]
+    expected = [1 - (1 - 0.01) ** 3, 1 - (1 - 0.02) ** 3, 1 - (1 - 0.1) ** 3]
     assert adjusted == pytest.approx(expected, abs=1e-10)
 
 

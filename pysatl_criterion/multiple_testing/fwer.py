@@ -98,6 +98,7 @@ class SidakMultipleTesting(AbstractMultipleTesting):
 
         return super().test(p_values, threshold)
 
+
 class Holm(AbstractMultipleTesting):
     """
     Adjust p-values using the Holm-Bonferroni method for multiple testing correction.
