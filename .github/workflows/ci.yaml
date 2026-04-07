@@ -108,7 +108,7 @@ jobs:
           poetry build
 
       - name: Upload artifacts 📦
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: pysatl-criterion-build
           path: |
@@ -132,7 +132,7 @@ jobs:
           persist-credentials: false
 
       - name: Download artifact  📦
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           pattern: pysatl*-build
           path: dist
