@@ -102,14 +102,6 @@ class AndersonDarlingNormalityGofStatistic(AbstractNormalityGofStatistic, ADStat
         logsf = scipy_stats.distributions.norm.logsf(w)
         return super().execute_statistic(rvs, log_cdf=logcdf, log_sf=logsf, w=w)
 
-    @override
-    def calculate_critical_value(self, rvs_size, sl, count=500_000):  # TODO: check test correctness
-        # sig = [0.15, 0.10, 0.05, 0.025, 0.01].index(alpha)
-        # critical = np.around(_Avals_norm / (1.0 + 4.0 / rvs_size - 25.0 / rvs_size / rvs_size), 3)
-        # print(critical[sig])
-        # return super().calculate_critical_value(rvs_size, alpha)
-        raise NotImplementedError("Not implemented")
-
 
 class ShapiroWilkNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
