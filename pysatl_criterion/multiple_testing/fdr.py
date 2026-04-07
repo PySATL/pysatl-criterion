@@ -6,28 +6,24 @@ from .abstract_multiple_testing import AbstractMultipleTesting
 class BenjaminiYekutieli(AbstractMultipleTesting):
     """
     Adjust p-values using Benjamini-Yekutieli correction for controlling FDR.
-
-    This method controls the false discovery rate (FDR) under arbitrary dependence.
-    It uses a harmonic series correction factor.
-
-    Steps:
-    1. Compute harmonic factor c = Σ(1/i) for i=1 to n
-    2. Sort p-values and calculate adjusted values: p_adjusted[i] = p[i] * n * c / rank
-    3. Enforce monotonicity using step-up procedure
-
-    Parameters
-    ----------
-    p_values : list[float]
-        List of raw p-values between 0 and 1
-
-    Returns
-    -------
-    list[float]
-        Adjusted p-values in original order
     """
 
     @classmethod
     def adjust(cls, p_values: list[float]) -> list[float]:
+        """
+        Adjust p-values using the Benjamini-Yekutieli procedure.
+
+        This method controls the false discovery rate (FDR) under arbitrary dependence.
+        It uses a harmonic series correction factor.
+
+        Steps:
+        1. Compute harmonic factor c = Σ(1/i) for i=1 to n
+        2. Sort p-values and calculate adjusted values: p_adjusted[i] = p[i] * n * c / rank
+        3. Enforce monotonicity using step-up procedure
+
+        :param p_values: list of raw p-values between 0 and 1.
+        :return: list of adjusted p-values in the original order, bounded in [0, 1].
+        """
         n = len(p_values)
         if n == 0:
             return []

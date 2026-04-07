@@ -69,29 +69,22 @@ class SidakMultipleTesting(AbstractMultipleTesting):
 
 class Holm(AbstractMultipleTesting):
     """
-    Adjust p-values using the Holm-Bonferroni method for multiple testing correction.
-
-    This method controls the family-wise error rate (FWER) and is more powerful than
-    the standard Bonferroni correction. It uses a step-down procedure.
-
-    Steps:
-    1. Sort p-values and keep original indices
-    2. Calculate adjusted p-values: p_adjusted[i] = p[i] * (n - i)
-    3. Enforce monotonicity using step-up procedure
-
-    Parameters
-    ----------
-    p_values : list[float]
-        List of raw p-values between 0 and 1
-
-    Returns
-    -------
-    list[float]
-        Adjusted p-values in original order
+    Holm-Bonferroni method for multiple testing correction.
     """
 
     @classmethod
     def adjust(cls, p_values: list[float]) -> list[float]:
+        """
+        Adjust p-values using the Holm-Bonferroni step-down procedure.
+
+        Steps:
+        1. Sort p-values and keep original indices
+        2. Calculate adjusted p-values: p_adjusted[i] = p[i] * (n - i)
+        3. Enforce monotonicity using step-up procedure
+
+        :param p_values: list of raw p-values between 0 and 1.
+        :return: list of adjusted p-values in the original order, bounded in [0, 1].
+        """
         n = len(p_values)
         if n == 0:
             return []
@@ -111,20 +104,16 @@ class Holm(AbstractMultipleTesting):
 
 
 class SidakHolm(AbstractMultipleTesting):
+    """
+    Šidák-Holm method for multiple testing correction.
+    """
     @classmethod
     def adjust(cls, p_values: list[float]) -> list[float]:
         """
-        Adjust p-values using the Šidák correction for multiple hypothesis testing.
+        Adjust p-values using the Šidák-Holm procedure.
 
-        Parameters
-        ----------
-        p_values : list[float]
-            List of raw p-values for hypothesis testing. Must be in range [0, 1].
-
-        Returns
-        -------
-        list[float]
-            List of adjusted p-values, each in range [0, 1].
+        :param p_values: list of raw p-values for hypothesis testing (must be in [0, 1]).
+        :return: list of adjusted p-values, each in range [0, 1].
         """
         n = len(p_values)
         if n == 0:
