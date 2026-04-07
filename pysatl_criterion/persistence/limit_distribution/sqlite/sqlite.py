@@ -21,7 +21,9 @@ class SQLiteLimitDistributionStorage(ILimitDistributionStorage):
         self.conn: None | Connection = None
 
     def init(self) -> None:
-        """Initialize the database and create tables."""
+        """
+        Initialize the database and create tables.
+        """
         db_path = Path(self.connection_string)
         db_dir = db_path.parent
         if not db_dir.exists():
@@ -30,7 +32,9 @@ class SQLiteLimitDistributionStorage(ILimitDistributionStorage):
         self._create_tables()
 
     def _create_tables(self):
-        """Create necessary tables if they don't exist."""
+        """
+        Create necessary tables if they don't exist.
+        """
         with self.conn:
             self.conn.execute("""
             CREATE TABLE IF NOT EXISTS limit_distributions (
@@ -54,13 +58,17 @@ class SQLiteLimitDistributionStorage(ILimitDistributionStorage):
             """)
 
     def _get_connection(self):
-        """Get database connection, ensuring it's initialized."""
+        """
+        Get database connection, ensuring it's initialized.
+        """
         if self.conn is None:
             raise RuntimeError("Storage not initialized. Call init() first.")
         return self.conn
 
     def _model_to_row(self, model: LimitDistributionModel) -> dict:
-        """Convert LimitDistributionModel to database row format."""
+        """
+        Convert LimitDistributionModel to database row format.
+        """
         return {
             "experiment_id": model.experiment_id,
             "criterion_code": model.criterion_code,
@@ -71,7 +79,9 @@ class SQLiteLimitDistributionStorage(ILimitDistributionStorage):
         }
 
     def _row_to_model(self, row: dict) -> LimitDistributionModel:
-        """Convert database row to LimitDistributionModel."""
+        """
+        Convert database row to LimitDistributionModel.
+        """
         return LimitDistributionModel(
             experiment_id=row["experiment_id"],
             criterion_code=row["criterion_code"],
@@ -82,7 +92,11 @@ class SQLiteLimitDistributionStorage(ILimitDistributionStorage):
         )
 
     def insert_data(self, data: LimitDistributionModel) -> None:
-        """Insert or update limit distribution data."""
+        """
+        Insert or update limit distribution data.
+
+        :param data: limit distribution model to insert or update.
+        """
         conn = self._get_connection()
         row_data = self._model_to_row(data)
 
@@ -100,7 +114,13 @@ class SQLiteLimitDistributionStorage(ILimitDistributionStorage):
             )
 
     def get_data(self, query: LimitDistributionQuery) -> LimitDistributionModel | None:
-        """Get specific limit distribution data."""
+        """
+        Get specific limit distribution data by query parameters.
+
+        :param query: query object with criterion and sample size parameters.
+
+        :return: limit distribution model if found, None otherwise.
+        """
         conn = self._get_connection()
         params_json = json.dumps(query.criterion_parameters)
 
@@ -123,7 +143,11 @@ class SQLiteLimitDistributionStorage(ILimitDistributionStorage):
         return self._row_to_model(dict(zip(columns, row, strict=False)))
 
     def delete_data(self, query: LimitDistributionQuery) -> None:
-        """Delete specific limit distribution data."""
+        """
+        Delete specific limit distribution data by query parameters.
+
+        :param query: query object with criterion and sample size parameters.
+        """
         conn = self._get_connection()
         params_json = json.dumps(query.criterion_parameters)
 
@@ -145,6 +169,10 @@ class SQLiteLimitDistributionStorage(ILimitDistributionStorage):
 
         Returns the most complete dataset (highest monte_carlo_count)
         for the criterion and sample size.
+
+        :param query: query object with criterion code and sample size.
+
+        :return: limit distribution model if found, None otherwise.
         """
         conn = self._get_connection()
 

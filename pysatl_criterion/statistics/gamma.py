@@ -27,9 +27,18 @@ from pysatl_criterion.statistics.graph_goodness_of_fit import (
 
 
 class AbstractGammaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
-    """Base class for Gamma goodness-of-fit statistics."""
+    """
+    Abstract base class for Gamma distribution goodness-of-fit statistics.
+    """
 
     def __init__(self, shape: float = 1.0, scale: float = 1.0):
+        """
+        Initialize Gamma distribution goodness-of-fit statistic.
+
+        :param shape: shape parameter (alpha) > 0.
+        :param scale: scale parameter (theta) > 0.
+        :raises ValueError: if shape or scale is not positive.
+        """
         if shape <= 0:
             raise ValueError("Shape must be positive.")
         if scale <= 0:
@@ -40,20 +49,20 @@ class AbstractGammaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for Gamma distribution statistics.
+
+        :return: string code in format "GAMMA_{parent_code}".
+        """
         return f"GAMMA_{AbstractGoodnessOfFitStatistic.code()}"
 
 
 class KolmogorovSmirnovGammaGofStatistic(AbstractGammaGofStatistic, KSStatistic):
-    """Kolmogorov–Smirnov EDF test computed with the Gamma reference CDF.
+    """
+    Kolmogorov–Smirnov EDF test computed with the Gamma reference CDF.
 
-    References
-    ----------
-    .. [1] Kolmogorov, A. N. (1933). "On the empirical determination of a
-           distribution law". *Giornale dell'Istituto Italiano degli Attuari*,
-           4, 83–91.
-    .. [2] Smirnov, N. V. (1948). "Table for estimating the goodness of fit of
-        empirical distributions". *Annals of Mathematical Statistics*, 19(2),
-        279–281.
+    Compares the empirical distribution function with the theoretical Gamma
+    distribution function. Sensitive to differences in both location and shape.
     """
 
     @override
@@ -70,26 +79,31 @@ class KolmogorovSmirnovGammaGofStatistic(AbstractGammaGofStatistic, KSStatistic)
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "KS".
+        """
         return "KS"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "KS_GAMMA_{parent_code}".
+        """
         short_code = KolmogorovSmirnovGammaGofStatistic.short_code()
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Parameters
-        ----------
-        rvs : array_like
-            Observations assumed to follow Gamma(shape, scale).
+        Execute the Kolmogorov-Smirnov test statistic for Gamma distribution.
 
-        Returns
-        -------
-        float
-            Kolmogorov–Smirnov $D$ statistic computed with the Gamma CDF.
+        :param rvs: array of observations assumed to follow Gamma(shape, scale).
+        :return: Kolmogorov–Smirnov D statistic computed with the Gamma CDF.
         """
 
         sorted_rvs = np.sort(np.asarray(rvs))
@@ -98,39 +112,42 @@ class KolmogorovSmirnovGammaGofStatistic(AbstractGammaGofStatistic, KSStatistic)
 
 
 class LillieforsGammaGofStatistic(AbstractGammaGofStatistic, LillieforsTest):
-    """Lilliefors correction that re-estimates Gamma parameters before KS.
+    """
+    Lilliefors correction that re-estimates Gamma parameters before KS.
 
-    References
-    ----------
-    .. [1] Lilliefors, H. W. (1967). "On the Kolmogorov–Smirnov test for
-           normality with mean and variance unknown". *Journal of the American
-           Statistical Association*, 62(318), 399–402.
+    Modification of Kolmogorov-Smirnov test for the case when Gamma distribution
+    parameters are estimated from the data rather than specified a priori.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "LILLIE".
+        """
         return "LILLIE"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "LILLIE_GAMMA_{parent_code}".
+        """
         short_code = LillieforsGammaGofStatistic.short_code()
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Parameters
-        ----------
-        rvs : array_like
-            Observations assumed to follow Gamma(shape, scale).
+        Execute the Lilliefors test statistic for Gamma distribution.
 
-        Returns
-        -------
-        float
-            Lilliefors-adjusted Kolmogorov–Smirnov statistic with estimated
-            Gamma parameters.
+        :param rvs: array of observations assumed to follow Gamma(shape, scale).
+        :return: Lilliefors-adjusted Kolmogorov–Smirnov statistic with estimated Gamma parameters.
+        :raises ValueError: if sample is empty or mean/variance is not positive.
         """
 
         sample = np.asarray(rvs, dtype=float)
@@ -153,38 +170,41 @@ class LillieforsGammaGofStatistic(AbstractGammaGofStatistic, LillieforsTest):
 
 
 class AndersonDarlingGammaGofStatistic(AbstractGammaGofStatistic, ADStatistic):
-    """Anderson–Darling EDF statistic fitted to the Gamma distribution.
+    """
+    Anderson–Darling EDF statistic fitted to the Gamma distribution.
 
-    References
-    ----------
-    .. [1] Anderson, T. W., & Darling, D. A. (1952). "Asymptotic theory of
-           certain goodness-of-fit criteria based on stochastic processes".
-           *Annals of Mathematical Statistics*, 23(2), 193–212.
+    Modification of Kolmogorov-Smirnov test that gives more weight to the tails
+    of the distribution, making it more sensitive to tail deviations.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "AD".
+        """
         return "AD"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "AD_GAMMA_{parent_code}".
+        """
         short_code = AndersonDarlingGammaGofStatistic.short_code()
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Parameters
-        ----------
-        rvs : array_like
-            Observations assumed to follow Gamma(shape, scale).
+        Execute the Anderson-Darling test statistic for Gamma distribution.
 
-        Returns
-        -------
-        float
-            Anderson–Darling $A^{2}$ statistic tailored to the Gamma model.
+        :param rvs: array of observations assumed to follow Gamma(shape, scale).
+        :return: Anderson–Darling A^2 statistic tailored to the Gamma model.
         """
 
         sorted_rvs = np.sort(np.asarray(rvs))
@@ -194,39 +214,41 @@ class AndersonDarlingGammaGofStatistic(AbstractGammaGofStatistic, ADStatistic):
 
 
 class CramerVonMisesGammaGofStatistic(AbstractGammaGofStatistic, CrammerVonMisesStatistic):
-    """Cramér–von Mises quadratic EDF test specialized for Gamma samples.
+    """
+    Cramér–von Mises quadratic EDF test specialized for Gamma samples.
 
-    References
-    ----------
-    .. [1] Cramér, H. (1928). "On the composition of elementary errors."
-        *Scandinavian Actuarial Journal*, 11(1), 13–74.
-    .. [2] von Mises, R. (1931). "Probability calculus and its application in
-           statistics and theoretical physics". Leipzig: F. Deuticke.
+    Goodness-of-fit test that measures the integrated squared difference between
+    the empirical and theoretical cumulative distribution functions.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "CVM".
+        """
         return "CVM"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "CVM_GAMMA_{parent_code}".
+        """
         short_code = CramerVonMisesGammaGofStatistic.short_code()
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Parameters
-        ----------
-        rvs : array_like
-            Observations assumed to follow Gamma(shape, scale).
+        Execute the Cramér-von Mises test statistic for Gamma distribution.
 
-        Returns
-        -------
-        float
-            Cramér–von Mises $W^{2}$ statistic using the Gamma CDF.
+        :param rvs: array of observations assumed to follow Gamma(shape, scale).
+        :return: Cramér–von Mises W^2 statistic using the Gamma CDF.
         """
 
         sorted_rvs = np.sort(np.asarray(rvs))
@@ -235,37 +257,42 @@ class CramerVonMisesGammaGofStatistic(AbstractGammaGofStatistic, CrammerVonMises
 
 
 class WatsonGammaGofStatistic(AbstractGammaGofStatistic):
-    """Watson's rotation-invariant EDF statistic using Gamma CDF values.
+    """
+    Watson's rotation-invariant EDF statistic using Gamma CDF values.
 
-    References
-    ----------
-    .. [1] Watson, G. S. (1961). "Goodness-of-fit tests on a circle".
-           *Biometrika*, 48(1/2), 109–114.
+    Modification of Cramér-von Mises test that is invariant under location changes,
+    making it suitable for circular data analysis.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "WAT".
+        """
         return "WAT"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "WAT_GAMMA_{parent_code}".
+        """
         short_code = WatsonGammaGofStatistic.short_code()
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Parameters
-        ----------
-        rvs : array_like
-            Observations assumed to follow Gamma(shape, scale).
+        Execute the Watson test statistic for Gamma distribution.
 
-        Returns
-        -------
-        float
-            Watson $U^{2}$ statistic derived from the Gamma CDF values.
+        :param rvs: array of observations assumed to follow Gamma(shape, scale).
+        :return: Watson U^2 statistic derived from the Gamma CDF values.
+        :raises ValueError: if sample is empty.
         """
 
         sorted_rvs = np.sort(np.asarray(rvs))
@@ -284,39 +311,42 @@ class WatsonGammaGofStatistic(AbstractGammaGofStatistic):
 
 
 class KuiperGammaGofStatistic(AbstractGammaGofStatistic):
-    """Kuiper's circular EDF statistic after Gamma probability transform.
+    """
+    Kuiper's circular EDF statistic after Gamma probability transform.
 
-    References
-    ----------
-    .. [1] Kuiper, N. H. (1960). "Tests concerning random points on a circle".
-            *Proceedings of the Royal Netherlands Academy of Arts and Sciences
-            Series A*, 63, 38–47.
+    Variant of Kolmogorov-Smirnov test that sums the maximum positive and negative
+    deviations, making it equally sensitive to deviations in both tails.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "KUI".
+        """
         return "KUI"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "KUI_GAMMA_{parent_code}".
+        """
         short_code = KuiperGammaGofStatistic.short_code()
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Parameters
-        ----------
-        rvs : array_like
-            Observations assumed to follow Gamma(shape, scale).
+        Execute the Kuiper test statistic for Gamma distribution.
 
-        Returns
-        -------
-        float
-            Kuiper $V = D^{+} + D^{-}$ statistic after the Gamma probability
-            integral transform.
+        :param rvs: array of observations assumed to follow Gamma(shape, scale).
+        :return: Kuiper V = D+ + D- statistic after the Gamma probability integral transform.
+        :raises ValueError: if sample is empty.
         """
 
         sorted_rvs = np.sort(np.asarray(rvs))
@@ -335,38 +365,42 @@ class KuiperGammaGofStatistic(AbstractGammaGofStatistic):
 
 
 class GreenwoodGammaGofStatistic(AbstractGammaGofStatistic):
-    """Greenwood spacing statistic measuring uniformized Gamma gaps.
+    """
+    Greenwood spacing statistic measuring uniformized Gamma gaps.
 
-    References
-    ----------
-    .. [1] Greenwood, M. (1946). "The statistical study of infectious disease".
-           *Journal of the Royal Statistical Society. Series A*, 109(1), 85–110.
+    Test based on sum of squared spacings between consecutive Gamma CDF values.
+    Sensitive to clustering of observations.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "GRW".
+        """
         return "GRW"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "GRW_GAMMA_{parent_code}".
+        """
         short_code = GreenwoodGammaGofStatistic.short_code()
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Parameters
-        ----------
-        rvs : array_like
-            Observations assumed to follow Gamma(shape, scale).
+        Execute the Greenwood test statistic for Gamma distribution.
 
-        Returns
-        -------
-        float
-            Greenwood spacing statistic $G = \\sum_{i=1}^{n+1} D_i^2$ where
-            spacings $D_i$ are computed from Gamma CDF values.
+        :param rvs: array of observations assumed to follow Gamma(shape, scale).
+        :return: Greenwood spacing statistic G = sum(D_i^2) where spacings D_i are computed from Gamma CDF values.
+        :raises ValueError: if spacings are negative.
         """
 
         sorted_rvs = np.sort(np.asarray(rvs))
@@ -378,37 +412,42 @@ class GreenwoodGammaGofStatistic(AbstractGammaGofStatistic):
 
 
 class MoranGammaGofStatistic(AbstractGammaGofStatistic):
-    """Moran log-spacing statistic applied to Gamma-transformed uniforms.
+    """
+    Moran log-spacing statistic applied to Gamma-transformed uniforms.
 
-    References
-    ----------
-    .. [1] Moran, P. A. P. (1950). "A test for serial independence of residuals".
-           *Biometrika*, 37(1/2), 178–181.
+    Test based on sum of log-transformed spacings between consecutive Gamma CDF values.
+    Sensitive to uniformity of probability integral transform.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "MOR".
+        """
         return "MOR"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "MOR_GAMMA_{parent_code}".
+        """
         short_code = MoranGammaGofStatistic.short_code()
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Parameters
-        ----------
-        rvs : array_like
-            Observations assumed to follow Gamma(shape, scale).
+        Execute the Moran test statistic for Gamma distribution.
 
-        Returns
-        -------
-        float
-            Moran spacing statistic $M = -\\sum \\log(n D_i)$ based on Gamma CDF spacings.
+        :param rvs: array of observations assumed to follow Gamma(shape, scale).
+        :return: Moran spacing statistic M = -sum(log(n * D_i)) based on Gamma CDF spacings.
+        :raises ValueError: if sample is empty or spacings are not strictly positive.
         """
 
         sorted_rvs = np.sort(np.asarray(rvs))
@@ -426,39 +465,41 @@ class MoranGammaGofStatistic(AbstractGammaGofStatistic):
 
 
 class MinToshiyukiGammaGofStatistic(AbstractGammaGofStatistic, MinToshiyukiStatistic):
-    """Min–Toshiyuki tail-sensitive EDF statistic under a Gamma model.
+    """
+    Min–Toshiyuki tail-sensitive EDF statistic under a Gamma model.
 
-    References
-    ----------
-    .. [1] Min, C., & Toshiyuki, T. (2015). "An EDF statistic with adaptive
-           tail sensitivity". *Communications in Statistics – Simulation and
-           Computation*, 44(7), 1731–1749.
+    EDF statistic with adaptive tail sensitivity that up-weights deviations
+    near the distribution tails using Gamma CDF values.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "MT".
+        """
         return "MT"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "MT_GAMMA_{parent_code}".
+        """
         short_code = MinToshiyukiGammaGofStatistic.short_code()
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Parameters
-        ----------
-        rvs : array_like
-            Observations assumed to follow Gamma(shape, scale).
+        Execute the Min-Toshiyuki test statistic for Gamma distribution.
 
-        Returns
-        -------
-        float
-            Min–Toshiyuki statistic that up-weights EDF deviations near the
-            distribution tails using Gamma CDF values.
+        :param rvs: array of observations assumed to follow Gamma(shape, scale).
+        :return: Min–Toshiyuki statistic that up-weights EDF deviations near the distribution tails using Gamma CDF values.
         """
 
         sorted_rvs = np.sort(np.asarray(rvs))
@@ -467,7 +508,12 @@ class MinToshiyukiGammaGofStatistic(AbstractGammaGofStatistic, MinToshiyukiStati
 
 
 class AbstractBinnedGammaGofStatistic(AbstractGammaGofStatistic, Chi2Statistic, ABC):
-    """Base class for Gamma GOF tests built on equiprobable histogram bins."""
+    """
+    Base class for Gamma GOF tests built on equiprobable histogram bins.
+
+    Provides common infrastructure for chi-squared type tests that bin data
+    using Gamma quantile function to ensure equal theoretical probability per bin.
+    """
 
     lambda_value: float = 1.0
 
@@ -478,22 +524,15 @@ class AbstractBinnedGammaGofStatistic(AbstractGammaGofStatistic, Chi2Statistic, 
         super().__init__(shape=shape, scale=scale)
         self.lambda_value = getattr(self, "lambda_value", 1.0)
 
-    def _counts_and_expected(self, rvs):
-        sample = np.asarray(rvs)
-        n = sample.size
-        if n == 0:
-            raise ValueError("At least one observation is required for binned Gamma statistics.")
-
-        quantiles = np.linspace(0.0, 1.0, self.bins + 1)
-        edges = scipy_stats.gamma.ppf(quantiles, a=self.shape, scale=self.scale)
-        edges[0] = -np.inf
-        edges[-1] = np.inf
-        counts, _ = np.histogram(sample, bins=edges)
-        expected = np.full(self.bins, n / self.bins)
-        return counts, expected
-
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the binned chi-squared test statistic for Gamma distribution.
+
+        :param rvs: array of observations assumed to follow Gamma(shape, scale).
+        :return: chi-squared test statistic value computed on equiprobable Gamma bins.
+        :raises ValueError: if sample is empty.
+        """
         counts, expected = self._counts_and_expected(rvs)
         return float(
             Chi2Statistic.execute_statistic(self, counts, expected, lambda_=self.lambda_value)
@@ -501,14 +540,11 @@ class AbstractBinnedGammaGofStatistic(AbstractGammaGofStatistic, Chi2Statistic, 
 
 
 class Chi2PearsonGammaGofStatistic(AbstractBinnedGammaGofStatistic):
-    """Pearson chi-square frequency test based on Gamma equiprobable bins.
+    """
+    Pearson chi-square frequency test based on Gamma equiprobable bins.
 
-    References
-    ----------
-    .. [1] Pearson, K. (1900). "On the criterion that a given system of
-           deviations from the probable in the case of a correlated system of
-           variables is such that it can be reasonably supposed to have arisen
-           from random sampling". *Philosophical Magazine*, 50(302), 157–175.
+    Implements Karl Pearson's (1900) frequency test by binning via the Gamma
+    quantile function so each bin has equal theoretical probability.
     """
 
     lambda_value = 1.0
@@ -516,33 +552,42 @@ class Chi2PearsonGammaGofStatistic(AbstractBinnedGammaGofStatistic):
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "CHI2_PEARSON".
+        """
         return "CHI2_PEARSON"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "CHI2_PEARSON_GAMMA_{parent_code}".
+        """
         short_code = Chi2PearsonGammaGofStatistic.short_code()
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Pearson chi-square statistic computed on equiprobable Gamma bins.
+        Execute Pearson chi-square statistic for Gamma distribution.
 
-        Implements Karl Pearson's (1900) frequency test by binning via the
-        Gamma quantile function so each bin has equal theoretical probability.
+        :param rvs: array of observations assumed to follow Gamma(shape, scale).
+        :return: Pearson chi-square statistic computed on equiprobable Gamma bins.
         """
 
         return super().execute_statistic(rvs, **kwargs)
 
 
 class LikelihoodRatioGammaGofStatistic(AbstractBinnedGammaGofStatistic):
-    """Log-likelihood ratio ($G$-test) for Gamma reference distribution.
+    """
+    Log-likelihood ratio (G-test) for Gamma reference distribution.
 
-    References
-    ----------
-    .. [1] Wilks, S. S. (1935). "The likelihood test of independence in
-           contingency tables". *Annals of Mathematical Statistics*, 6(4), 190–196.
+    Follows the classical G-test described by S. S. Wilks (1935) and tests
+    histogram counts against expected Gamma frequencies.
     """
 
     lambda_value = 0.0
@@ -550,33 +595,42 @@ class LikelihoodRatioGammaGofStatistic(AbstractBinnedGammaGofStatistic):
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "G_TEST".
+        """
         return "G_TEST"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "G_TEST_GAMMA_{parent_code}".
+        """
         short_code = LikelihoodRatioGammaGofStatistic.short_code()
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Likelihood-ratio statistic using equiprobable Gamma quantile bins.
+        Execute likelihood-ratio statistic for Gamma distribution.
 
-        Follows the classical $G$-test described by S. S. Wilks (1935) and
-        tests histogram counts against expected Gamma frequencies.
+        :param rvs: array of observations assumed to follow Gamma(shape, scale).
+        :return: likelihood-ratio statistic using equiprobable Gamma quantile bins.
         """
 
         return super().execute_statistic(rvs, **kwargs)
 
 
 class CressieReadGammaGofStatistic(AbstractBinnedGammaGofStatistic):
-    """Cressie–Read power-divergence statistic for Gamma data.
+    """
+    Cressie–Read power-divergence statistic for Gamma data.
 
-    References
-    ----------
-    .. [1] Read, T. R. C., & Cressie, N. A. C. (1988). *Goodness-of-Fit
-           Statistics for Discrete Multivariate Data*. Springer.
+    Power-divergence statistic bridging Pearson (lambda=1) and G-tests (lambda=0).
+    Defaults to the recommended lambda=2/3 value from Read & Cressie (1988).
     """
 
     def __init__(
@@ -592,60 +646,73 @@ class CressieReadGammaGofStatistic(AbstractBinnedGammaGofStatistic):
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "CRESSIE_READ".
+        """
         return "CRESSIE_READ"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "CRESSIE_READ_GAMMA_{parent_code}".
+        """
         short_code = CressieReadGammaGofStatistic.short_code()
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Power-divergence statistic bridging Pearson ($\\lambda=1$) and $G$-tests.
+        Execute Cressie-Read power-divergence statistic for Gamma distribution.
 
-        Defaults to the recommended $\\lambda=2/3$ value from Read & Cressie
-        (1988) but allows custom power parameters.
+        :param rvs: array of observations assumed to follow Gamma(shape, scale).
+        :return: power-divergence statistic bridging Pearson and G-tests.
         """
 
         return super().execute_statistic(rvs, **kwargs)
 
 
 class ProbabilityPlotCorrelationGammaGofStatistic(AbstractGammaGofStatistic):
-    """Filliben-style PPCC statistic comparing Gamma quantiles to the sample.
+    """
+    Filliben-style PPCC statistic comparing Gamma quantiles to the sample.
 
-    References
-    ----------
-    .. [1] Filliben, J. J. (1975). "The probability plot correlation
-           coefficient test for normality". *Technometrics*, 17(1), 111–117.
+    Probability plot correlation coefficient test that measures linear alignment
+    between ordered sample values and theoretical Gamma quantiles.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "PPCC".
+        """
         return "PPCC"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "PPCC_GAMMA_{parent_code}".
+        """
         short_code = ProbabilityPlotCorrelationGammaGofStatistic.short_code()
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Parameters
-        ----------
-        rvs : array_like
-            Observations assumed to follow Gamma(shape, scale).
+        Execute the probability plot correlation coefficient test for Gamma distribution.
 
-        Returns
-        -------
-        float
-            One minus the probability-plot correlation coefficient. Values
-            near zero indicate a strong linear alignment with the theoretical
-            Gamma quantiles (Filliben, 1975).
+        :param rvs: array of observations assumed to follow Gamma(shape, scale).
+        :return: one minus the probability-plot correlation coefficient. Values near zero indicate strong linear alignment with theoretical Gamma quantiles.
+        :raises ValueError: if sample has fewer than 2 observations or data is degenerate.
         """
 
         sample = np.sort(np.asarray(rvs, dtype=float))
@@ -668,32 +735,33 @@ class ProbabilityPlotCorrelationGammaGofStatistic(AbstractGammaGofStatistic):
 
 
 class AbstractGraphGammaGofStatistic(AbstractGammaGofStatistic, AbstractGraphTestStatistic):
-    """Base class for Gamma graph-based GOF statistics using EDF transforms."""
+    """
+    Base class for Gamma graph-based GOF statistics using EDF transforms.
+
+    Combines Gamma distribution testing with graph-theoretic statistics by
+    transforming data through Gamma CDF and analyzing resulting structure.
+    """
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for graph-based Gamma statistics.
+
+        :return: string code in format "GRAPH_GAMMA_{parent_code}".
+        """
         parent_code = AbstractGammaGofStatistic.code()
         return f"GRAPH_{parent_code}"
 
-    def _transform_sample(self, rvs):
-        sample = np.asarray(rvs, dtype=float)
-        if sample.size == 0:
-            raise ValueError(
-                "At least one observation is required to compute Gamma graph statistics."
-            )
-
-        sorted_sample = np.sort(sample)
-        uniformized = scipy_stats.gamma.cdf(sorted_sample, a=self.shape, scale=self.scale)
-        return uniformized.tolist()
-
-    def _evaluate_graph_statistic(self, transformed_sample, **kwargs):
-        """Delegate graph statistic evaluation to the generic adjacency-based logic."""
-
-        return AbstractGraphTestStatistic.execute_statistic(self, transformed_sample, **kwargs)
-
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the graph-based test statistic for Gamma distribution.
+
+        :param rvs: array of observations assumed to follow Gamma(shape, scale).
+        :return: graph-based test statistic value computed on Gamma-CDF transformed data.
+        :raises ValueError: if sample is empty.
+        """
         transformed_sample = self._transform_sample(rvs)
         return self._evaluate_graph_statistic(transformed_sample, **kwargs)
 
@@ -701,22 +769,42 @@ class AbstractGraphGammaGofStatistic(AbstractGammaGofStatistic, AbstractGraphTes
 class GraphEdgesNumberGammaGofStatistic(
     AbstractGraphGammaGofStatistic, GraphEdgesNumberTestStatistic
 ):
-    """Counts edges in the proximity graph built on Gamma-CDF spacings."""
+    """
+    Counts edges in the proximity graph built on Gamma-CDF spacings.
+
+    Graph-based test that counts edges in proximity graph constructed from
+    Gamma probability integral transform of the data.
+    """
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "{short_code}_GRAPH_GAMMA_{parent_code}".
+        """
         parent_code = AbstractGraphGammaGofStatistic.code()
         short_code = GraphEdgesNumberGammaGofStatistic.short_code()
         return f"{short_code}_{parent_code}"
 
 
 class GraphMaxDegreeGammaGofStatistic(AbstractGraphGammaGofStatistic, GraphMaxDegreeTestStatistic):
-    """Maximum degree in the Gamma-induced proximity graph."""
+    """
+    Maximum degree in the Gamma-induced proximity graph.
+
+    Graph-based test that computes maximum vertex degree in proximity graph
+    constructed from Gamma probability integral transform of the data.
+    """
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "{short_code}_GRAPH_GAMMA_{parent_code}".
+        """
         parent_code = AbstractGraphGammaGofStatistic.code()
         short_code = GraphMaxDegreeGammaGofStatistic.short_code()
         return f"{short_code}_{parent_code}"
@@ -725,11 +813,21 @@ class GraphMaxDegreeGammaGofStatistic(AbstractGraphGammaGofStatistic, GraphMaxDe
 class GraphAverageDegreeGammaGofStatistic(
     AbstractGraphGammaGofStatistic, GraphAverageDegreeTestStatistic
 ):
-    """Average vertex degree of the Gamma proximity graph."""
+    """
+    Average vertex degree of the Gamma proximity graph.
+
+    Graph-based test that computes average vertex degree in proximity graph
+    constructed from Gamma probability integral transform of the data.
+    """
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "{short_code}_GRAPH_GAMMA_{parent_code}".
+        """
         parent_code = AbstractGraphGammaGofStatistic.code()
         short_code = GraphAverageDegreeGammaGofStatistic.short_code()
         return f"{short_code}_{parent_code}"
@@ -738,11 +836,21 @@ class GraphAverageDegreeGammaGofStatistic(
 class GraphConnectedComponentsGammaGofStatistic(
     AbstractGraphGammaGofStatistic, GraphConnectedComponentsTestStatistic
 ):
-    """Number of connected components in the Gamma proximity graph."""
+    """
+    Number of connected components in the Gamma proximity graph.
+
+    Graph-based test that counts connected components in proximity graph
+    constructed from Gamma probability integral transform of the data.
+    """
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "{short_code}_GRAPH_GAMMA_{parent_code}".
+        """
         parent_code = AbstractGraphGammaGofStatistic.code()
         short_code = GraphConnectedComponentsGammaGofStatistic.short_code()
         return f"{short_code}_{parent_code}"
@@ -751,32 +859,44 @@ class GraphConnectedComponentsGammaGofStatistic(
 class GraphCliqueNumberGammaGofStatistic(
     AbstractGraphGammaGofStatistic, GraphCliqueNumberTestStatistic
 ):
-    """Largest clique observed in the Gamma proximity graph."""
+    """
+    Largest clique observed in the Gamma proximity graph.
+
+    Graph-based test that computes maximum clique size in proximity graph
+    constructed from Gamma probability integral transform of the data.
+    """
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "{short_code}_GRAPH_GAMMA_{parent_code}".
+        """
         parent_code = AbstractGraphGammaGofStatistic.code()
         short_code = GraphCliqueNumberGammaGofStatistic.short_code()
         return f"{short_code}_{parent_code}"
-
-    def _evaluate_graph_statistic(self, transformed_sample, **kwargs):
-        return GraphCliqueNumberTestStatistic.execute_statistic(self, transformed_sample, **kwargs)
 
 
 class GraphIndependenceNumberGammaGofStatistic(
     AbstractGraphGammaGofStatistic, GraphIndependenceNumberTestStatistic
 ):
-    """Independence number of the Gamma proximity graph."""
+    """
+    Independence number of the Gamma proximity graph.
+
+    Graph-based test that computes maximum independent set size in proximity graph
+    constructed from Gamma probability integral transform of the data.
+    """
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "{short_code}_GRAPH_GAMMA_{parent_code}".
+        """
         parent_code = AbstractGraphGammaGofStatistic.code()
         short_code = GraphIndependenceNumberGammaGofStatistic.short_code()
         return f"{short_code}_{parent_code}"
-
-    def _evaluate_graph_statistic(self, transformed_sample, **kwargs):
-        return GraphIndependenceNumberTestStatistic.execute_statistic(
-            self, transformed_sample, **kwargs
-        )

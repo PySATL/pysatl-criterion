@@ -35,8 +35,8 @@ class DistributionType(Enum):
     @classmethod
     def list(cls):
         """
-        Collect all enum values.
+        Get a list of all distribution string identifiers.
 
-        @return: enum values
+        :return: list of string values for all members in the enum.
         """
         return [member.value for member in cls]

@@ -20,41 +20,62 @@ from pysatl_criterion.statistics.graph_goodness_of_fit import (
 
 
 class AbstractExponentialityGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
+    """
+    Abstract base class for exponentiality goodness-of-fit statistics.
+
+    Provides common interface and utility methods for tests that check
+    whether data follows an exponential distribution with given rate parameter.
+    """
+
     def __init__(self, lam=1):
         self.lam = lam
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for exponentiality statistics.
+
+        :return: string code in format "EXPONENTIALITY_{parent_code}".
+        """
         return f"EXPONENTIALITY_{AbstractGoodnessOfFitStatistic.code()}"
 
 
 class EppsPulleyExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    Epps-Pulley test statistic for exponentiality.
+
+    Test based on characteristic function approach for testing exponentiality.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "EP".
+        """
         return "EP"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "EP_EXPONENTIALITY_{parent_code}".
+        """
         short_code = EppsPulleyExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Epps and Pulley test statistic for exponentiality.
+        Execute the Epps-Pulley test statistic for exponentiality.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        ep : float
-            The test statistic.
+        :param rvs: array of sample data.
+        :return: Epps-Pulley test statistic value.
         """
 
         n = len(rvs)
@@ -65,6 +86,12 @@ class EppsPulleyExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
 
 class KolmogorovSmirnovExponentialityGofStatistic(AbstractExponentialityGofStatistic, KSStatistic):
+    """
+    Kolmogorov-Smirnov test statistic for exponentiality.
+
+    Applies the KS test to check if data follows exponential distribution.
+    """
+
     def __init__(self, alternative="two-sided", lam=1):
         super().__init__()
         self.alternative = alternative
@@ -73,28 +100,31 @@ class KolmogorovSmirnovExponentialityGofStatistic(AbstractExponentialityGofStati
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "KS".
+        """
         return "KS"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "KS_EXPONENTIALITY_{parent_code}".
+        """
         short_code = KolmogorovSmirnovExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Kolmogorov and Smirnov test statistic for exponentiality.
+        Execute the Kolmogorov-Smirnov test statistic for exponentiality.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        ks : float
-            The test statistic.
+        :param rvs: array of sample data.
+        :return: Kolmogorov-Smirnov test statistic value.
         """
 
         rvs = np.sort(rvs)
@@ -103,32 +133,41 @@ class KolmogorovSmirnovExponentialityGofStatistic(AbstractExponentialityGofStati
 
 
 class AhsanullahExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    Ahsanullah characterization test statistic for exponentiality.
+
+    Test based on Ahsanullah's characterization of exponential distribution
+    using order statistics properties.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "AHS".
+        """
         return "AHS"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "AHS_EXPONENTIALITY_{parent_code}".
+        """
         short_code = AhsanullahExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Statistic of the exponentiality test based on Ahsanullah characterization.
+        Execute the Ahsanullah test statistic for exponentiality.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        a : float
-            The test statistic.
-            :param rvs:
+        :param rvs: array of sample data.
+        :return: Ahsanullah test statistic value.
         """
 
         n = len(rvs)
@@ -141,39 +180,48 @@ class AhsanullahExponentialityGofStatistic(AbstractExponentialityGofStatistic):
                         h += 1
                     if 2 * min(rvs[i], rvs[j]) < rvs[k]:
                         g += 1
-        a = (h - g) / (n**3)
+        a = (h - g) / (n ** 3)
 
         return a
 
 
 class AtkinsonExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    Atkinson test statistic for exponentiality.
+
+    Test based on comparison of sample moments with theoretical moments
+    of exponential distribution using power transformation.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "ATK".
+        """
         return "ATK"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "ATK_EXPONENTIALITY_{parent_code}".
+        """
         short_code = AtkinsonExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, p=0.99):
         """
-        Atkinson test statistic for exponentiality.
+        Execute the Atkinson test statistic for exponentiality.
 
-        Parameters
-        ----------
-        p : float
-            Statistic parameter.
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        atk : float
-            The test statistic.
+        :param rvs: array of sample data.
+        :param p: power parameter for moment comparison (default is 0.99).
+        :return: Atkinson test statistic value.
         """
 
         n = len(rvs)
@@ -186,32 +234,41 @@ class AtkinsonExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
 
 class CoxOakesExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    Cox-Oakes test statistic for exponentiality.
+
+    Test based on score function approach for testing exponentiality
+    against increasing failure rate alternatives.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "CO".
+        """
         return "CO"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "CO_EXPONENTIALITY_{parent_code}".
+        """
         short_code = CoxOakesExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Cox and Oakes test statistic for exponentiality.
+        Execute the Cox-Oakes test statistic for exponentiality.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        co : float
-            The test statistic.
-            :param rvs:
+        :param rvs: array of sample data.
+        :return: Cox-Oakes test statistic value.
         """
 
         n = len(rvs)
@@ -223,31 +280,41 @@ class CoxOakesExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
 
 class CramerVonMisesExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    Cramér-von Mises test statistic for exponentiality.
+
+    Applies the CVM test to check if data follows exponential distribution,
+    measuring integrated squared difference between empirical and theoretical CDF.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "CVM".
+        """
         return "CVM"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "CVM_EXPONENTIALITY_{parent_code}".
+        """
         short_code = CramerVonMisesExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Cramer-von Mises test statistic for exponentiality.
+        Execute the Cramér-von Mises test statistic for exponentiality.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        cvm : float
-            The test statistic.
+        :param rvs: array of sample data.
+        :return: Cramér-von Mises test statistic value.
         """
 
         n = len(rvs)
@@ -261,33 +328,41 @@ class CramerVonMisesExponentialityGofStatistic(AbstractExponentialityGofStatisti
 
 
 class DeshpandeExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    Deshpande test statistic for exponentiality.
+
+    Test based on spacings and order statistics for testing exponentiality.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "DSP".
+        """
         return "DSP"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "DSP_EXPONENTIALITY_{parent_code}".
+        """
         short_code = DeshpandeExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, b=0.44):
         """
-        Deshpande test statistic for exponentiality.
+        Execute the Deshpande test statistic for exponentiality.
 
-        Parameters
-        ----------
-        b : float
-            Statistic parameter.
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        des : float
-            The test statistic.
+        :param rvs: array of sample data.
+        :param b: threshold parameter for spacing comparison (default is 0.44).
+        :return: Deshpande test statistic value.
         """
 
         n = len(rvs)
@@ -302,68 +377,86 @@ class DeshpandeExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
 
 class EpsteinExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    Epstein test statistic for exponentiality.
+
+    Test based on normalized spacings between order statistics.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "EPS".
+        """
         return "EPS"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "EPS_EXPONENTIALITY_{parent_code}".
+        """
         short_code = EpsteinExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Epstein test statistic for exponentiality.
+        Execute the Epstein test statistic for exponentiality.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        eps : float
-            The test statistic.
+        :param rvs: array of sample data.
+        :return: Epstein test statistic value.
         """
 
         n = len(rvs)
         rvs.sort()
         x = np.concatenate(([0], rvs))
-        d = (np.arange(n, 0, -1)) * (x[1 : n + 1] - x[0:n])
+        d = (np.arange(n, 0, -1)) * (x[1: n + 1] - x[0:n])
         eps = 2 * n * (np.log(np.sum(d) / n) - (np.sum(np.log(d))) / n) / (1 + (n + 1) / (6 * n))
 
         return eps
 
 
 class FroziniExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    Frozini test statistic for exponentiality.
+
+    Test based on empirical distribution function comparison with exponential CDF.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "FZ".
+        """
         return "FZ"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "FZ_EXPONENTIALITY_{parent_code}".
+        """
         short_code = FroziniExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Frozini test statistic for exponentiality.
+        Execute the Frozini test statistic for exponentiality.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        froz : float
-            The test statistic.
+        :param rvs: array of sample data.
+        :return: Frozini test statistic value.
         """
 
         n = len(rvs)
@@ -378,31 +471,40 @@ class FroziniExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
 
 class GiniExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    Gini test statistic for exponentiality.
+
+    Test based on Gini's mean difference applied to exponential distribution testing.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "GINI".
+        """
         return "GINI"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "GINI_EXPONENTIALITY_{parent_code}".
+        """
         short_code = GiniExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Gini test statistic for exponentiality.
+        Execute the Gini test statistic for exponentiality.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        gini : float
-            The test statistic.
+        :param rvs: array of sample data.
+        :return: Gini test statistic value.
         """
 
         n = len(rvs)
@@ -417,111 +519,137 @@ class GiniExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
 
 class GnedenkoExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    Gnedenko F-test statistic for exponentiality.
+
+    Test based on ratio of mean spacings for testing exponentiality.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "GD".
+        """
         return "GD"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "GD_EXPONENTIALITY_{parent_code}".
+        """
         short_code = GnedenkoExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, r=None):
         """
-        Gnedenko F-test statistic for exponentiality.
+        Execute the Gnedenko F-test statistic for exponentiality.
 
-        Parameters
-        ----------
-        r : float
-            Statistic parameter.
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        gd : float
-            The test statistic.
+        :param rvs: array of sample data.
+        :param r: split point for spacing ratio (default is n//2).
+        :return: Gnedenko F-test statistic value.
         """
 
         if r is None:
             r = round(len(rvs) / 2)
         n = len(rvs)
         x = np.sort(np.concatenate(([0], rvs)))
-        d = (np.arange(n, 0, -1)) * (x[1 : n + 1] - x[0:n])
+        d = (np.arange(n, 0, -1)) * (x[1: n + 1] - x[0:n])
         gd = (sum(d[:r]) / r) / (sum(d[r:]) / (n - r))
 
         return gd
 
 
 class HarrisExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    Harris modification of Gnedenko F-test for exponentiality.
+
+    Improved version of Gnedenko test using symmetric spacing comparison.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "HM".
+        """
         return "HM"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "HM_EXPONENTIALITY_{parent_code}".
+        """
         short_code = HarrisExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, r=None):
         """
-        Harris' modification of Gnedenko F-test.
+        Execute the Harris modification of Gnedenko F-test for exponentiality.
 
-        Parameters
-        ----------
-        r : float
-            Statistic parameter.
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        hm : float
-            The test statistic.
+        :param rvs: array of sample data.
+        :param r: split point for symmetric spacing comparison (default is n//4).
+        :return: Harris test statistic value.
         """
 
         if r is None:
             r = round(len(rvs) / 4)
         n = len(rvs)
         x = np.sort(np.concatenate(([0], rvs)))
-        d = (np.arange(n, 0, -1)) * (x[1 : n + 1] - x[:n])
+        d = (np.arange(n, 0, -1)) * (x[1: n + 1] - x[:n])
         hm = ((np.sum(d[:r]) + np.sum(d[-r:])) / (2 * r)) / ((np.sum(d[r:-r])) / (n - 2 * r))
 
         return hm
 
 
 class HegazyGreen1ExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    Hegazy-Green 1 test statistic for exponentiality.
+
+    Test based on L1 distance between ordered sample and theoretical quantiles.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "HG1".
+        """
         return "HG1"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "HG1_EXPONENTIALITY_{parent_code}".
+        """
         short_code = HegazyGreen1ExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Hegazy-Green 1 test statistic for exponentiality.
+        Execute the Hegazy-Green 1 test statistic for exponentiality.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data.
+        :param rvs: array of sample data.
 
-        Returns
-        -------
-        hg : float
-            The test statistic.
+        :return: Hegazy-Green 1 test statistic value.
         """
 
         n = len(rvs)
@@ -533,31 +661,40 @@ class HegazyGreen1ExponentialityGofStatistic(AbstractExponentialityGofStatistic)
 
 
 class HollanderProshanExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    Hollander-Proshan test statistic for exponentiality.
+
+    Test based on total time on test transform for testing exponentiality.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "HP".
+        """
         return "HP"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "HP_EXPONENTIALITY_{parent_code}".
+        """
         short_code = HollanderProshanExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Hollander-Proshan test statistic for exponentiality.
+        Execute the Hollander-Proshan test statistic for exponentiality.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        hp : float
-            The test statistic.
+        :param rvs: array of sample data.
+        :return: Hollander-Proshan test statistic value.
         """
 
         n = len(rvs)
@@ -573,31 +710,40 @@ class HollanderProshanExponentialityGofStatistic(AbstractExponentialityGofStatis
 
 
 class KimberMichaelExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    Kimber-Michael test statistic for exponentiality.
+
+    Test based on arcsine transformation of empirical and theoretical CDFs.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "KM".
+        """
         return "KM"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "KM_EXPONENTIALITY_{parent_code}".
+        """
         short_code = KimberMichaelExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Kimber-Michael test statistic for exponentiality.
+        Execute the Kimber-Michael test statistic for exponentiality.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        km : float
-            The test statistic.
+        :param rvs: array of sample data.
+        :return: Kimber-Michael test statistic value.
         """
 
         n = len(rvs)
@@ -611,31 +757,40 @@ class KimberMichaelExponentialityGofStatistic(AbstractExponentialityGofStatistic
 
 
 class KocharExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    Kochar test statistic for exponentiality.
+
+    Test based on weighted linear combination of order statistics.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "KC".
+        """
         return "KC"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "KC_EXPONENTIALITY_{parent_code}".
+        """
         short_code = KocharExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Kochar test statistic for exponentiality.
+        Execute the Kochar test statistic for exponentiality.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        kc : float
-            The test statistic.
+        :param rvs: array of sample data.
+        :return: Kochar test statistic value.
         """
 
         n = len(rvs)
@@ -648,33 +803,41 @@ class KocharExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
 
 class LorenzExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    Lorenz test statistic for exponentiality.
+
+    Test based on Lorenz curve comparison for testing exponentiality.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "LZ".
+        """
         return "LZ"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "LZ_EXPONENTIALITY_{parent_code}".
+        """
         short_code = LorenzExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, p=0.5):
         """
-        Lorenz test statistic for exponentiality.
+        Execute the Lorenz test statistic for exponentiality.
 
-        Parameters
-        ----------
-        p : float
-            Statistic parameter.
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        lz : float
-            The test statistic.
+        :param rvs: array of sample data.
+        :param p: quantile parameter for Lorenz curve (default is 0.5).
+        :return: Lorenz test statistic value.
         """
 
         n = len(rvs)
@@ -685,31 +848,40 @@ class LorenzExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
 
 class MoranExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    Moran test statistic for exponentiality.
+
+    Test based on digamma function and log-transformed data for testing exponentiality.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "MN".
+        """
         return "MN"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "MN_EXPONENTIALITY_{parent_code}".
+        """
         short_code = MoranExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Moran test statistic for exponentiality.
+        Execute the Moran test statistic for exponentiality.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        mn : float
-            The test statistic.
+        :param rvs: array of sample data.
+        :return: Moran test statistic value.
         """
 
         # n = len(rvs)
@@ -720,31 +892,40 @@ class MoranExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
 
 class PietraExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    Pietra test statistic for exponentiality.
+
+    Test based on mean absolute deviation for testing exponentiality.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "PT".
+        """
         return "PT"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "PT_EXPONENTIALITY_{parent_code}".
+        """
         short_code = PietraExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Pietra test statistic for exponentiality.
+        Execute the Pietra test statistic for exponentiality.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        pt : float
-            The test statistic.
+        :param rvs: array of sample data.
+        :return: Pietra test statistic value.
         """
 
         n = len(rvs)
@@ -755,31 +936,40 @@ class PietraExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
 
 class ShapiroWilkExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    Shapiro-Wilk test statistic for exponentiality.
+
+    Adaptation of Shapiro-Wilk test for testing exponential distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "SW".
+        """
         return "SW"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "SW_EXPONENTIALITY_{parent_code}".
+        """
         short_code = ShapiroWilkExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Shapiro-Wilk test statistic for exponentiality.
+        Execute the Shapiro-Wilk test statistic for exponentiality.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        sw : float
-            The test statistic.
+        :param rvs: array of sample data.
+        :return: Shapiro-Wilk test statistic value.
         """
 
         n = len(rvs)
@@ -791,31 +981,40 @@ class ShapiroWilkExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
 
 class RossbergExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    Rossberg characterization test statistic for exponentiality.
+
+    Test based on Rossberg's characterization using triplets of order statistics.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "RS".
+        """
         return "RS"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "RS_EXPONENTIALITY_{parent_code}".
+        """
         short_code = RossbergExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Statistic of the exponentiality test based on Rossberg characterization.
+        Execute the Rossberg test statistic for exponentiality.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        rs : float
-            The test statistic.
+        :param rvs: array of sample data.
+        :return: Rossberg test statistic value.
         """
 
         n = len(rvs)
@@ -827,12 +1026,12 @@ class RossbergExponentialityGofStatistic(AbstractExponentialityGofStatistic):
                 for j in range(i + 1, n - 1):
                     for k in range(j + 1, n):
                         if (
-                            rvs[i]
-                            + rvs[j]
-                            + rvs[k]
-                            - 2 * min(rvs[i], rvs[j], rvs[k])
-                            - max(rvs[i], rvs[j], rvs[k])
-                            < rvs[m]
+                                rvs[i]
+                                + rvs[j]
+                                + rvs[k]
+                                - 2 * min(rvs[i], rvs[j], rvs[k])
+                                - max(rvs[i], rvs[j], rvs[k])
+                                < rvs[m]
                         ):
                             h += 1
             h = ((6 * math.factorial(n - 3)) / math.factorial(n)) * h
@@ -852,67 +1051,85 @@ class RossbergExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
 
 class WeExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    WE test statistic for exponentiality.
+
+    Test based on coefficient of variation for testing exponentiality.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "WE".
+        """
         return "WE"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "WE_EXPONENTIALITY_{parent_code}".
+        """
         short_code = WeExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        WE test statistic for exponentiality.
+        Execute the WE test statistic for exponentiality.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        we : float
-            The test statistic.
+        :param rvs: array of sample data.
+        :return: WE test statistic value.
         """
 
         n = len(rvs)
         m = np.mean(rvs)
         v = np.var(rvs)
-        we = (n - 1) * v / (n**2 * m**2)
+        we = (n - 1) * v / (n ** 2 * m ** 2)
 
         return we
 
 
 class WongWongExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    Wong-Wong test statistic for exponentiality.
+
+    Test based on ratio of maximum to minimum observation for testing exponentiality.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "WW".
+        """
         return "WW"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "WW_EXPONENTIALITY_{parent_code}".
+        """
         short_code = WongWongExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Wong and Wong test statistic for exponentiality.
+        Execute the Wong-Wong test statistic for exponentiality.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        ww : float
-            The test statistic.
+        :param rvs: array of sample data.
+        :return: Wong-Wong test statistic value.
         """
 
         # n = len(rvs)
@@ -922,31 +1139,40 @@ class WongWongExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
 
 class HegazyGreen2ExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """
+    Hegazy-Green 2 test statistic for exponentiality.
+
+    Test based on L2 distance between ordered sample and theoretical quantiles.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "HG2".
+        """
         return "HG2"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "HG2_EXPONENTIALITY_{parent_code}".
+        """
         short_code = HegazyGreen2ExponentialityGofStatistic.short_code()
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Hegazy-Green 2 test statistic for exponentiality.
+        Execute the Hegazy-Green 2 test statistic for exponentiality.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data.
-
-        Returns
-        -------
-        hg : float
-            The test statistic.
+        :param rvs: array of sample data.
+        :return: Hegazy-Green 2 test statistic value.
         """
 
         n = len(rvs)
@@ -960,15 +1186,33 @@ class HegazyGreen2ExponentialityGofStatistic(AbstractExponentialityGofStatistic)
 class AbstractGraphExponentialityGofStatistic(
     AbstractExponentialityGofStatistic, AbstractGraphTestStatistic
 ):
+    """
+    Abstract base class for graph-based exponentiality tests.
+
+    Combines exponentiality testing with graph-theoretic statistics
+    for analyzing data structure properties.
+    """
+
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for graph-based exponentiality statistics.
+
+        :return: string code in format "GRAPH_EXPONENTIALITY_{parent_code}".
+        """
         parent_code = AbstractExponentialityGofStatistic.code()
         return f"GRAPH_{parent_code}"
 
     @staticmethod
     @override
     def _compute_dist(rvs):
+        """
+        Compute normalized distance for graph-based exponentiality test.
+
+        :param rvs: array of sample data.
+        :return: normalized distance value.
+        """
         base_dist = AbstractGraphTestStatistic._compute_dist(rvs)
         mean = np.mean(rvs)
         return base_dist / mean if mean != 0 else base_dist
@@ -977,9 +1221,20 @@ class AbstractGraphExponentialityGofStatistic(
 class GraphEdgesNumberExponentialityGofStatistic(
     AbstractGraphExponentialityGofStatistic, GraphEdgesNumberTestStatistic
 ):
+    """
+    Graph edges number test statistic for exponentiality.
+
+    Applies exponentiality test using graph edges count as test statistic.
+    """
+
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "{short_code}_GRAPH_EXPONENTIALITY_{parent_code}".
+        """
         parent_code = AbstractGraphExponentialityGofStatistic.code()
         short_code = GraphEdgesNumberExponentialityGofStatistic.short_code()
         return f"{short_code}_{parent_code}"
@@ -988,9 +1243,20 @@ class GraphEdgesNumberExponentialityGofStatistic(
 class GraphMaxDegreeExponentialityGofStatistic(
     AbstractGraphExponentialityGofStatistic, GraphMaxDegreeTestStatistic
 ):
+    """
+    Graph maximum degree test statistic for exponentiality.
+
+    Applies exponentiality test using graph maximum vertex degree as test statistic.
+    """
+
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "{short_code}_GRAPH_EXPONENTIALITY_{parent_code}".
+        """
         parent_code = AbstractGraphExponentialityGofStatistic.code()
         short_code = GraphMaxDegreeExponentialityGofStatistic.short_code()
         return f"{short_code}_{parent_code}"
@@ -999,9 +1265,20 @@ class GraphMaxDegreeExponentialityGofStatistic(
 class GraphAverageDegreeExponentialityGofStatistic(
     AbstractGraphExponentialityGofStatistic, GraphAverageDegreeTestStatistic
 ):
+    """
+    Graph average degree test statistic for exponentiality.
+
+    Applies exponentiality test using graph average vertex degree as test statistic.
+    """
+
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "{short_code}_GRAPH_EXPONENTIALITY_{parent_code}".
+        """
         parent_code = AbstractGraphExponentialityGofStatistic.code()
         short_code = GraphAverageDegreeExponentialityGofStatistic.short_code()
         return f"{short_code}_{parent_code}"
@@ -1010,9 +1287,20 @@ class GraphAverageDegreeExponentialityGofStatistic(
 class GraphConnectedComponentsExponentialityGofStatistic(
     AbstractGraphExponentialityGofStatistic, GraphConnectedComponentsTestStatistic
 ):
+    """
+    Graph connected components test statistic for exponentiality.
+
+    Applies exponentiality test using number of connected components as test statistic.
+    """
+
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "{short_code}_GRAPH_EXPONENTIALITY_{parent_code}".
+        """
         parent_code = AbstractGraphExponentialityGofStatistic.code()
         short_code = GraphConnectedComponentsExponentialityGofStatistic.short_code()
         return f"{short_code}_{parent_code}"
@@ -1021,9 +1309,20 @@ class GraphConnectedComponentsExponentialityGofStatistic(
 class GraphCliqueNumberExponentialityGofStatistic(
     AbstractGraphExponentialityGofStatistic, GraphCliqueNumberTestStatistic
 ):
+    """
+    Graph clique number test statistic for exponentiality.
+
+    Applies exponentiality test using graph clique number as test statistic.
+    """
+
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "{short_code}_GRAPH_EXPONENTIALITY_{parent_code}".
+        """
         parent_code = AbstractGraphExponentialityGofStatistic.code()
         short_code = GraphCliqueNumberExponentialityGofStatistic.short_code()
         return f"{short_code}_{parent_code}"
@@ -1032,9 +1331,20 @@ class GraphCliqueNumberExponentialityGofStatistic(
 class GraphIndependenceNumberExponentialityGofStatistic(
     AbstractGraphExponentialityGofStatistic, GraphIndependenceNumberTestStatistic
 ):
+    """
+    Graph independence number test statistic for exponentiality.
+
+    Applies exponentiality test using graph independence number as test statistic.
+    """
+
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "{short_code}_GRAPH_EXPONENTIALITY_{parent_code}".
+        """
         parent_code = AbstractGraphExponentialityGofStatistic.code()
         short_code = GraphIndependenceNumberExponentialityGofStatistic.short_code()
         return f"{short_code}_{parent_code}"

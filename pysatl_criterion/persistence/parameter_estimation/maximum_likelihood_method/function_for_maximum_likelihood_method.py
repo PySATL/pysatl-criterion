@@ -37,6 +37,13 @@ from scipy.stats import beta, cauchy, chi2, f, gamma, rayleigh, t
 
 # 1.Uniform continuous distribution
 def likelihoodFunctionForUniformContinuousDistribution(dataArray):
+    """
+    Calculate likelihood function for uniform continuous distribution.
+
+    :param dataArray: array of observed data samples.
+
+    :return: likelihood value (0 if a == b).
+    """
     a = np.min(dataArray)
     b = np.max(dataArray)
 
@@ -51,6 +58,14 @@ def likelihoodFunctionForUniformContinuousDistribution(dataArray):
 
 # 2.Normal distribution
 def likelihoodFunctionForNormalDistribution(dataArray):
+    """
+    Calculate likelihood function for normal distribution.
+
+    :param dataArray: array of observed data samples.
+
+    :return: likelihood value (0 if variance is zero).
+    """
+
     n = len(dataArray)
     mean = sum(dataArray) / n
 
@@ -70,6 +85,13 @@ def likelihoodFunctionForNormalDistribution(dataArray):
 
 # 3.Lognormal distribution
 def likelihoodFunctionForLognormalDistribution(dataArray):
+    """
+    Calculate likelihood function for lognormal distribution.
+
+    :param dataArray: array of observed data samples (must be positive).
+
+    :return: likelihood value (0 if any value is non-positive or variance is zero).
+    """
     n = len(dataArray)
     if any(x <= 0 for x in dataArray):
         return 0
@@ -94,6 +116,14 @@ def likelihoodFunctionForLognormalDistribution(dataArray):
 
 # 4. Exponential distribution
 def likelihoodFunctionForExponentialDistribution(dataArray):
+    """
+    Calculate likelihood function for exponential distribution.
+
+    :param dataArray: array of observed data samples (must be non-negative).
+
+    :return: likelihood value (0 if any value is negative or all zeros).
+    """
+
     if any(x < 0 for x in dataArray):
         return 0
 
@@ -115,6 +145,13 @@ def likelihoodFunctionForExponentialDistribution(dataArray):
 
 # 5.Weibull distribution
 def likelihoodFunctionForWeibullDistribution(dataArray):
+    """
+    Calculate likelihood function for Weibull distribution.
+
+    :param dataArray: array of observed data samples (must be positive).
+
+    :return: likelihood value (0 if root-finding fails or any value is non-positive).
+    """
     if np.any(dataArray <= 0):
         return 0
 
@@ -142,6 +179,13 @@ def likelihoodFunctionForWeibullDistribution(dataArray):
 
 # 6.Gamma distribution
 def likelihoodFunctionForGammaDistribution(dataArray):
+    """
+    Calculate likelihood function for gamma distribution.
+
+    :param dataArray: array of observed data samples (must be positive).
+
+    :return: likelihood value (0 if any value is non-positive or all values are identical).
+    """
     if np.any(dataArray <= 0) or np.all(dataArray == dataArray[0]):
         return 0
 
@@ -156,6 +200,13 @@ def likelihoodFunctionForGammaDistribution(dataArray):
 
 # 7.Beta distribution
 def likelihoodFunctionForBetaDistribution(dataArray):
+    """
+    Calculate likelihood function for beta distribution.
+
+    :param dataArray: array of observed data samples (must be in range (0, 1)).
+
+    :return: likelihood value (0 if data is out of range or all values are identical).
+    """
     if (
         len(dataArray) == 0
         or np.any((dataArray <= 0) | (dataArray >= 1))
@@ -180,6 +231,15 @@ def likelihoodFunctionForBetaDistribution(dataArray):
 
 # 8.Cauchy distribution
 def likelihoodFunctionForCauchyDistribution(dataArray):
+    """
+    Calculate likelihood function for Cauchy distribution.
+
+    :param dataArray: array of observed data samples.
+
+    :return: likelihood value (0 if all values are identical or scale is non-positive,
+        inf if overflow occurs).
+    """
+
     if np.all(dataArray == dataArray[0]):
         return 0
 
@@ -200,6 +260,13 @@ def likelihoodFunctionForCauchyDistribution(dataArray):
 
 # 9.Chi-square distribution
 def likelihoodFunctionForChiSquared(dataArray):
+    """
+    Calculate likelihood function for chi-square distribution.
+
+    :param dataArray: array of observed data samples (must be positive).
+
+    :return: likelihood value (0 if any value is non-positive).
+    """
     if np.any(np.array(dataArray) <= 0):
         return 0
 
@@ -214,6 +281,13 @@ def likelihoodFunctionForChiSquared(dataArray):
 
 # 10.Student distribution (t-distribution)
 def likelihoodFunctionForTDistribution(dataArray):
+    """
+    Calculate likelihood function for Student's t-distribution.
+
+    :param dataArray: array of observed data samples.
+
+    :return: likelihood value (0 if all values are identical).
+    """
     if np.all(dataArray == dataArray[0]):
         return 0
 
@@ -223,8 +297,15 @@ def likelihoodFunctionForTDistribution(dataArray):
     return np.exp(log_likelihood)
 
 
-# 11.Phisher distribution
+# 11.Fisher distribution
 def likelihoodFunctionForFisherDistribution(dataArray):
+    """
+    Calculate likelihood function for Fisher distribution.
+
+    :param dataArray: array of observed data samples (must be positive).
+
+    :return: likelihood value (0 if any value is non-positive or all values are identical).
+    """
     if np.any(dataArray <= 0) or np.all(dataArray == dataArray[0]):
         return 0
 
@@ -236,6 +317,13 @@ def likelihoodFunctionForFisherDistribution(dataArray):
 
 # 12.Rayleigh distribution
 def likelihoodFunctionForRayleighDistribution(dataArray):
+    """
+    Calculate likelihood function for Rayleigh distribution.
+
+    :param dataArray: array of observed data samples (must be non-negative).
+
+    :return: likelihood value (0 if any value is negative).
+    """
     if np.any(dataArray < 0):
         return 0
 
@@ -248,6 +336,13 @@ def likelihoodFunctionForRayleighDistribution(dataArray):
 
 # 13.Wigner distribution
 def likelihoodFunctionForWignerDistribution(dataArray):
+    """
+    Calculate likelihood function for Wigner (semicircle) distribution.
+
+    :param dataArray: array of observed data samples.
+
+    :return: likelihood value (0 if optimization fails or all values are identical).
+    """
     if np.all(dataArray == dataArray[0]):
         return 0
 
@@ -271,6 +366,13 @@ def likelihoodFunctionForWignerDistribution(dataArray):
 
 # 14.Pareto distribution
 def likelihoodFunctionForParetoDistribution(dataArray):
+    """
+    Calculate likelihood function for Pareto distribution.
+
+    :param dataArray: array of observed data samples (must be positive).
+
+    :return: likelihood value (0 if any value is non-positive, inf if sum of log ratios is zero).
+    """
     if np.any(dataArray <= 0):
         return 0
 
@@ -294,6 +396,13 @@ def likelihoodFunctionForParetoDistribution(dataArray):
 
 # 15.Laplace distribution
 def likelihoodFunctionForLaplaceDistribution(dataArray):
+    """
+    Calculate likelihood function for Laplace (double exponential) distribution.
+
+    :param dataArray: array of observed data samples.
+
+    :return: likelihood value (inf if scale parameter is zero).
+    """
     n = len(dataArray)
     mu = np.median(dataArray)
     b = np.mean(np.abs(dataArray - mu))
@@ -311,6 +420,13 @@ def likelihoodFunctionForLaplaceDistribution(dataArray):
 
 # 1.Discrete uniform distribution
 def likelihoodFunctionForDiscreteUniformDistribution(dataArray):
+    """
+    Calculate likelihood function for discrete uniform distribution.
+
+    :param dataArray: array of observed discrete data samples.
+
+    :return: likelihood value.
+    """
     a = np.min(dataArray)
     b = np.max(dataArray)
 
@@ -324,6 +440,13 @@ def likelihoodFunctionForDiscreteUniformDistribution(dataArray):
 
 # 2.Bernoulli distribution
 def likelihoodFunctionForBernoulliDistribution(dataArray):
+    """
+    Calculate likelihood function for Bernoulli distribution.
+
+    :param dataArray: array of observed binary data samples (must be 0 or 1).
+
+    :return: likelihood value (0 if any value is not 0 or 1, 1 if p is 0 or 1).
+    """
     if not np.all(np.isin(dataArray, [0, 1])):
         return 0
 
@@ -342,6 +465,14 @@ def likelihoodFunctionForBernoulliDistribution(dataArray):
 
 # 3.Binomial distribution
 def likelihoodFunctionForBinomialDistribution(dataArray, n):
+    """
+    Calculate likelihood function for binomial distribution.
+
+    :param dataArray: array of observed success counts (must be integers in [0, n]).
+    :param n: number of trials for each binomial experiment.
+
+    :return: likelihood value (0 if data is invalid, 1 if p is 0 or 1 and data is consistent).
+    """
     if np.any((dataArray < 0) | (dataArray > n) | (~np.equal(np.mod(dataArray, 1), 0))):
         return 0
 
@@ -365,6 +496,13 @@ def likelihoodFunctionForBinomialDistribution(dataArray, n):
 
 # 4.Poisson distribution
 def likelihoodFunctionForPoissonDistribution(dataArray):
+    """
+    Calculate likelihood function for Poisson distribution.
+
+    :param dataArray: array of observed count data samples (must be non-negative integers).
+
+    :return: likelihood value (0 if any value is negative or non-integer).
+    """
     if np.any(dataArray < 0) or not np.all(np.floor(dataArray) == dataArray):
         return 0
 
@@ -379,6 +517,13 @@ def likelihoodFunctionForPoissonDistribution(dataArray):
 
 # 5.Geometric distribution
 def likelihoodFunctionForGeometricDistribution(dataArray):
+    """
+    Calculate likelihood function for geometric distribution.
+
+    :param dataArray: array of observed count data samples (must be positive integers >= 1).
+
+    :return: likelihood value (0 if any value is less than 1 or non-integer).
+    """
     if np.any(dataArray < 1) or not np.all(np.floor(dataArray) == dataArray):
         return 0
 

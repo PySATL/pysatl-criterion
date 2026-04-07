@@ -17,16 +17,6 @@ from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitSta
 class AbstractUniformGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     """
     Abstract base class for Uniform distribution goodness-of-fit statistics.
-
-    The Uniform distribution is a continuous probability distribution where
-    all values in the interval [a, b] are equally likely.
-
-    Parameters
-    ----------
-    a : float, default=0
-        Lower bound of the distribution
-    b : float, default=1
-        Upper bound of the distribution
     """
 
     def __init__(self, a=0, b=1):
@@ -38,21 +28,20 @@ class AbstractUniformGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for Uniform statistics.
+
+        :return: string code in format "UNIFORM_{parent_code}".
+        """
         return f"UNIFORM_{AbstractGoodnessOfFitStatistic.code()}"
 
     def _validate_input(self, rvs):
         """
         Validate input data for Uniform distribution tests.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data
-
-        Returns
-        -------
-        rvs_array : ndarray
-            Validated numpy array
+        :param rvs: array of sample data to validate.
+        :return: validated numpy array.
+        :raises ValueError: if any value is outside the interval [a, b].
         """
         rvs_array = np.asarray(rvs)
         if np.any((rvs_array < self.a) | (rvs_array > self.b)):
@@ -65,30 +54,6 @@ class AbstractUniformGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
 class KolmogorovSmirnovUniformGofStatistic(AbstractUniformGofStatistic, KSStatistic):
     """
     Kolmogorov-Smirnov test statistic for Uniform distribution.
-
-    The Kolmogorov-Smirnov test compares the empirical distribution function
-    with the theoretical Uniform distribution function.
-
-    Parameters
-    ----------
-    a : float, default=0
-        Lower bound of the distribution
-    b : float, default=1
-        Upper bound of the distribution
-    alternative : {'two-sided', 'less', 'greater'}, optional
-        Defines the alternative hypothesis. Default is 'two-sided'.
-    mode : {'auto', 'exact', 'approx', 'asymp'}, optional
-        Defines the distribution used for calculating the p-value. Default is 'auto'.
-
-    Returns
-    -------
-    statistic : float
-        The Kolmogorov-Smirnov test statistic
-
-    References
-    ----------
-    .. [1] Massey, F. J. (1951). The Kolmogorov-Smirnov test for goodness of fit.
-           Journal of the American Statistical Association, 46(253), 68-78.
     """
 
     def __init__(self, a=0, b=1, alternative="two-sided", mode="auto"):
@@ -98,11 +63,21 @@ class KolmogorovSmirnovUniformGofStatistic(AbstractUniformGofStatistic, KSStatis
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "KS".
+        """
         return "KS"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "KS_UNIFORM_{parent_code}".
+        """
         short_code = KolmogorovSmirnovUniformGofStatistic.short_code()
         return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
@@ -111,15 +86,8 @@ class KolmogorovSmirnovUniformGofStatistic(AbstractUniformGofStatistic, KSStatis
         """
         Execute the Kolmogorov-Smirnov test statistic.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data from Uniform distribution. Values should be in [a, b].
-
-        Returns
-        -------
-        statistic : float
-            The test statistic value
+        :param rvs: array of sample data from Uniform distribution (values in [a, b]).
+        :return: Kolmogorov-Smirnov test statistic value.
         """
         rvs = self._validate_input(rvs)
 
@@ -131,37 +99,26 @@ class KolmogorovSmirnovUniformGofStatistic(AbstractUniformGofStatistic, KSStatis
 class AndersonDarlingUniformGofStatistic(AbstractUniformGofStatistic, ADStatistic):
     """
     Anderson-Darling test statistic for Uniform distribution.
-
-    The Anderson-Darling test is a modification of the Kolmogorov-Smirnov test
-    that gives more weight to the tails of the distribution.
-
-    Parameters
-    ----------
-    a : float, default=0
-        Lower bound of the distribution
-    b : float, default=1
-        Upper bound of the distribution
-
-    Returns
-    -------
-    statistic : float
-        The Anderson-Darling test statistic
-
-    References
-    ----------
-    .. [1] Anderson, T. W., & Darling, D. A. (1952). Asymptotic theory of certain
-           "goodness of fit" criteria based on stochastic processes.
-           The Annals of Mathematical Statistics, 23(2), 193-212.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "AD".
+        """
         return "AD"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "AD_UNIFORM_{parent_code}".
+        """
         short_code = AndersonDarlingUniformGofStatistic.short_code()
         return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
@@ -170,15 +127,8 @@ class AndersonDarlingUniformGofStatistic(AbstractUniformGofStatistic, ADStatisti
         """
         Execute the Anderson-Darling test statistic.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data from Uniform distribution. Values should be in [a, b].
-
-        Returns
-        -------
-        statistic : float
-            The test statistic value
+        :param rvs: array of sample data from Uniform distribution (values in [a, b]).
+        :return: Anderson-Darling test statistic value.
         """
         rvs = self._validate_input(rvs)
 
@@ -191,39 +141,26 @@ class AndersonDarlingUniformGofStatistic(AbstractUniformGofStatistic, ADStatisti
 class CrammerVonMisesUniformGofStatistic(AbstractUniformGofStatistic, CrammerVonMisesStatistic):
     """
     Cramér-von Mises test statistic for Uniform distribution.
-
-    The Cramér-von Mises test is a goodness-of-fit test that measures the
-    discrepancy between the empirical distribution function and the theoretical
-    cumulative distribution function.
-
-    Parameters
-    ----------
-    a : float, default=0
-        Lower bound of the distribution
-    b : float, default=1
-        Upper bound of the distribution
-
-    Returns
-    -------
-    statistic : float
-        The Cramér-von Mises test statistic
-
-    References
-    ----------
-    .. [1] Cramér, H. (1928). On the composition of elementary errors.
-           Scandinavian Actuarial Journal, 1928(1), 13-74.
-    .. [2] von Mises, R. (1928). Wahrscheinlichkeit, Statistik und Wahrheit.
-           Julius Springer.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "CVM".
+        """
         return "CVM"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "CVM_UNIFORM_{parent_code}".
+        """
         short_code = CrammerVonMisesUniformGofStatistic.short_code()
         return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
@@ -232,15 +169,8 @@ class CrammerVonMisesUniformGofStatistic(AbstractUniformGofStatistic, CrammerVon
         """
         Execute the Cramér-von Mises test statistic.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data from Uniform distribution. Values should be in [a, b].
-
-        Returns
-        -------
-        statistic : float
-            The test statistic value
+        :param rvs: array of sample data from Uniform distribution (values in [a, b]).
+        :return: Cramér-von Mises test statistic value.
         """
         rvs = self._validate_input(rvs)
 
@@ -252,37 +182,26 @@ class CrammerVonMisesUniformGofStatistic(AbstractUniformGofStatistic, CrammerVon
 class LillieforsTestUniformGofStatistic(AbstractUniformGofStatistic, LillieforsTest):
     """
     Lilliefors test statistic for Uniform distribution.
-
-    The Lilliefors test is a modification of the Kolmogorov-Smirnov test for
-    the case when parameters are estimated from the data.
-
-    Parameters
-    ----------
-    a : float, default=0
-        Lower bound of the distribution
-    b : float, default=1
-        Upper bound of the distribution
-
-    Returns
-    -------
-    statistic : float
-        The Lilliefors test statistic
-
-    References
-    ----------
-    .. [1] Lilliefors, H. W. (1967). On the Kolmogorov-Smirnov test for normality
-           with mean and variance unknown. Journal of the American Statistical
-           Association, 62(318), 399-402.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "LILLIE".
+        """
         return "LILLIE"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "LILLIE_UNIFORM_{parent_code}".
+        """
         short_code = LillieforsTestUniformGofStatistic.short_code()
         return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
@@ -291,15 +210,8 @@ class LillieforsTestUniformGofStatistic(AbstractUniformGofStatistic, LillieforsT
         """
         Execute the Lilliefors test statistic.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data from Uniform distribution. Values should be in [a, b].
-
-        Returns
-        -------
-        statistic : float
-            The test statistic value
+        :param rvs: array of sample data from Uniform distribution (values in [a, b]).
+        :return: Lilliefors test statistic value.
         """
         rvs = self._validate_input(rvs)
 
@@ -311,34 +223,6 @@ class LillieforsTestUniformGofStatistic(AbstractUniformGofStatistic, LillieforsT
 class Chi2PearsonUniformGofStatistic(AbstractUniformGofStatistic, Chi2Statistic):
     """
     Pearson's Chi-squared test statistic for Uniform distribution.
-
-    The chi-squared test compares observed frequencies with expected frequencies
-    based on the Uniform distribution.
-
-    Parameters
-    ----------
-    a : float, default=0
-        Lower bound of the distribution
-    b : float, default=1
-        Upper bound of the distribution
-    lambda_ : float, default=1
-        Power divergence parameter. Lambda=1 gives Pearson's chi-squared statistic.
-    bins : int or str, optional
-        Number of bins for the histogram. Can be an integer or string like 'auto',
-        'sqrt', 'sturges', etc. Default is 'sturges'.
-
-    Returns
-    -------
-    statistic : float
-        The chi-squared test statistic
-
-    References
-    ----------
-    .. [1] Pearson, K. (1900). On the criterion that a given system of deviations from
-           the probable in the case of a correlated system of variables is such that
-           it can be reasonably supposed to have arisen from random sampling.
-           The London, Edinburgh, and Dublin Philosophical Magazine and Journal of
-           Science, 50(302), 157-175.
     """
 
     def __init__(self, a=0, b=1, lambda_=1, bins="sturges"):
@@ -350,28 +234,31 @@ class Chi2PearsonUniformGofStatistic(AbstractUniformGofStatistic, Chi2Statistic)
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "CHI2_PEARSON".
+        """
         return "CHI2_PEARSON"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "CHI2_PEARSON_UNIFORM_{parent_code}".
+        """
         short_code = Chi2PearsonUniformGofStatistic.short_code()
         return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Execute the Pearson's chi-squared test statistic.
+        Execute Pearson's Chi-squared test statistic.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data from Uniform distribution. Values should be in [a, b].
-
-        Returns
-        -------
-        statistic : float
-            The test statistic value
+        :param rvs: array of sample data from Uniform distribution (values in [a, b]).
+        :return: Chi-squared test statistic value.
         """
         rvs = self._validate_input(rvs)
 
@@ -399,26 +286,6 @@ class Chi2PearsonUniformGofStatistic(AbstractUniformGofStatistic, Chi2Statistic)
 class WatsonUniformGofStatistic(AbstractUniformGofStatistic):
     """
     Watson's U² test statistic for Uniform distribution.
-
-    Watson's test is a modification of the Cramér-von Mises test that is invariant
-    to cyclic transformations, making it particularly suitable for circular data.
-
-    Parameters
-    ----------
-    a : float, default=0
-        Lower bound of the distribution
-    b : float, default=1
-        Upper bound of the distribution
-
-    Returns
-    -------
-    statistic : float
-        The Watson's U² test statistic
-
-    References
-    ----------
-    .. [1] Watson, G. S. (1961). Goodness-of-fit tests on a circle.
-           Biometrika, 48(1/2), 109-114.
     """
 
     def __init__(self, a=0, b=1):
@@ -427,28 +294,31 @@ class WatsonUniformGofStatistic(AbstractUniformGofStatistic):
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "WATSON".
+        """
         return "WATSON"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "WATSON_UNIFORM_{parent_code}".
+        """
         short_code = WatsonUniformGofStatistic.short_code()
         return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Execute the Watson's U² test statistic.
+        Execute Watson's U² test statistic.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data from Uniform distribution. Values should be in [a, b].
-
-        Returns
-        -------
-        statistic : float
-            The test statistic value
+        :param rvs: array of sample data from Uniform distribution (values in [a, b]).
+        :return: Watson's U² test statistic value.
         """
         rvs = self._validate_input(rvs)
 
@@ -467,26 +337,6 @@ class WatsonUniformGofStatistic(AbstractUniformGofStatistic):
 class KuiperUniformGofStatistic(AbstractUniformGofStatistic):
     """
     Kuiper test statistic for Uniform distribution.
-
-    The Kuiper test is similar to the Kolmogorov-Smirnov test but is particularly
-    sensitive to deviations at the ends of the distribution.
-
-    Parameters
-    ----------
-    a : float, default=0
-        Lower bound of the distribution
-    b : float, default=1
-        Upper bound of the distribution
-
-    Returns
-    -------
-    statistic : float
-        The Kuiper test statistic
-
-    References
-    ----------
-    .. [1] Kuiper, N. H. (1960). Tests concerning random points on a circle.
-           Indagationes Mathematicae (Proceedings), 63, 38-47.
     """
 
     def __init__(self, a=0, b=1):
@@ -495,11 +345,21 @@ class KuiperUniformGofStatistic(AbstractUniformGofStatistic):
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "KUIPER".
+        """
         return "KUIPER"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "KUIPER_UNIFORM_{parent_code}".
+        """
         short_code = KuiperUniformGofStatistic.short_code()
         return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
@@ -508,15 +368,8 @@ class KuiperUniformGofStatistic(AbstractUniformGofStatistic):
         """
         Execute the Kuiper test statistic.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data from Uniform distribution. Values should be in [a, b].
-
-        Returns
-        -------
-        statistic : float
-            The test statistic value
+        :param rvs: array of sample data from Uniform distribution (values in [a, b]).
+        :return: Kuiper test statistic value (D+ + D-).
         """
         rvs = self._validate_input(rvs)
 
@@ -540,40 +393,37 @@ class KuiperUniformGofStatistic(AbstractUniformGofStatistic):
 class GreenwoodTestUniformGofStatistic(AbstractUniformGofStatistic):
     """
     Greenwood's test for Uniform distribution.
-
-    Based on the sum of squares of spacings between order statistics.
-
-    Parameters
-    ----------
-    a : float, default=0
-        Lower bound of the distribution
-    b : float, default=1
-        Upper bound of the distribution
-
-    Returns
-    -------
-    statistic : float
-        The Greenwood statistic
-
-    References
-    ----------
-    .. [1] Greenwood, M. (1946). The statistical study of infectious diseases.
-           Journal of the Royal Statistical Society, 109(2), 85-110.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "GREENWOOD".
+        """
         return "GREENWOOD"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "GREENWOOD_UNIFORM_{parent_code}".
+        """
         short_code = GreenwoodTestUniformGofStatistic.short_code()
         return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute Greenwood's test statistic.
+
+        :param rvs: array of sample data from Uniform distribution (values in [a, b]).
+        :return: Greenwood test statistic value.
+        """
         rvs = self._validate_input(rvs)
 
         rvs_sorted = np.sort(rvs)
@@ -589,23 +439,6 @@ class GreenwoodTestUniformGofStatistic(AbstractUniformGofStatistic):
 class BickelRosenblattUniformGofStatistic(AbstractUniformGofStatistic):
     """
     Bickel-Rosenblatt test for Uniform distribution.
-
-    Kernel-based goodness-of-fit test.
-
-    Parameters
-    ----------
-    a : float, default=0
-        Lower bound of the distribution
-    b : float, default=1
-        Upper bound of the distribution
-    bandwidth : float or str, default='auto'
-        Bandwidth for kernel density estimation
-
-    References
-    ----------
-    .. [1] Bickel, P. J., & Rosenblatt, M. (1973). On some global measures of
-           the deviations of density function estimates.
-           The Annals of Statistics, 1(6), 1071-1095.
     """
 
     def __init__(self, a=0, b=1, bandwidth="auto"):
@@ -615,16 +448,32 @@ class BickelRosenblattUniformGofStatistic(AbstractUniformGofStatistic):
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "BICKEL_ROSENBLATT".
+        """
         return "BICKEL_ROSENBLATT"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "BICKEL_ROSENBLATT_UNIFORM_{parent_code}".
+        """
         short_code = BickelRosenblattUniformGofStatistic.short_code()
         return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute Bickel-Rosenblatt test statistic.
+
+        :param rvs: array of sample data from Uniform distribution (values in [a, b]).
+        :return: integrated squared difference statistic value.
+        """
         rvs = self._validate_input(rvs)
 
         n = len(rvs)
@@ -652,23 +501,6 @@ class BickelRosenblattUniformGofStatistic(AbstractUniformGofStatistic):
 class ZhangTestsUniformGofStatistic(AbstractUniformGofStatistic):
     """
     Zhang's tests (Z_A, Z_C, Z_K) for Uniform distribution.
-
-    Powerful class of tests based on likelihood ratios.
-
-    Parameters
-    ----------
-    a : float, default=0
-        Lower bound of the distribution
-    b : float, default=1
-        Upper bound of the distribution
-    test_type : {'A', 'C', 'K'}, default='A'
-        Type of Zhang test
-
-    References
-    ----------
-    .. [1] Zhang, J. (2002). Powerful goodness-of-fit tests based on the
-           likelihood ratio. Journal of the Royal Statistical Society:
-           Series B (Statistical Methodology), 64(2), 281-294.
     """
 
     def __init__(self, a=0, b=1, test_type="A"):
@@ -680,16 +512,32 @@ class ZhangTestsUniformGofStatistic(AbstractUniformGofStatistic):
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "ZHANG".
+        """
         return "ZHANG"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "ZHANG_UNIFORM_{parent_code}".
+        """
         short_code = ZhangTestsUniformGofStatistic.short_code()
         return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute Zhang's test statistic.
+
+        :param rvs: array of sample data from Uniform distribution (values in [a, b]).
+        :return: Zhang test statistic value (depends on test_type).
+        """
         rvs = self._validate_input(rvs)
 
         n = len(rvs)
@@ -720,29 +568,6 @@ class ZhangTestsUniformGofStatistic(AbstractUniformGofStatistic):
 class SteinUniformGofStatistic(AbstractUniformGofStatistic):
     """
     Stein-type test statistic for Uniform distribution based on U-statistics.
-
-    Uses Stein's fixed point characterization:
-    2E(XI(X>t)) = E(I(X>t)) + t(1-t) for all t ∈ [0,1]
-
-    Parameters
-    ----------
-    a : float, default=0
-        Lower bound of the distribution
-    b : float, default=1
-        Upper bound of the distribution
-
-    Returns
-    -------
-    statistic : float
-        The Stein-type test statistic
-
-    References
-    ----------
-    .. [1] Kattumannil, S. K., & Sreedevi, E. P. (2021).
-           A new goodness of fit test for uniform distribution with censored observations.
-           arXiv preprint arXiv:2106.06368.
-    .. [2] Ebner, B., & Liebenberg, S. C. (2020). On a new test of fit to the beta distribution.
-           Stat, e341.
     """
 
     def __init__(self, a=0, b=1):
@@ -751,11 +576,21 @@ class SteinUniformGofStatistic(AbstractUniformGofStatistic):
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "STEIN_U".
+        """
         return "STEIN_U"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "STEIN_U_UNIFORM_{parent_code}".
+        """
         short_code = SteinUniformGofStatistic.short_code()
         return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
@@ -764,15 +599,8 @@ class SteinUniformGofStatistic(AbstractUniformGofStatistic):
         """
         Execute the Stein-type test statistic.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data from Uniform distribution. Values should be in [a, b].
-
-        Returns
-        -------
-        statistic : float
-            The test statistic value
+        :param rvs: array of sample data from Uniform distribution (values in [a, b]).
+        :return: Stein-type U-statistic value.
         """
         rvs = self._validate_input(rvs)
         if self.a != 0 or self.b != 1:
@@ -786,7 +614,12 @@ class SteinUniformGofStatistic(AbstractUniformGofStatistic):
 
     @staticmethod
     def _compute_u_statistic(rvs_std):
-        """Compute U-statistic directly using double sum."""
+        """
+        Compute U-statistic directly using double sum.
+
+        :param rvs_std: array of standardized data in [0, 1].
+        :return: U-statistic value.
+        """
         n = len(rvs_std)
 
         def h1(x, y):
@@ -805,30 +638,6 @@ class SteinUniformGofStatistic(AbstractUniformGofStatistic):
 class CensoredSteinUniformGofStatistic(AbstractUniformGofStatistic):
     """
     Stein-type test statistic for Uniform distribution with right censoring.
-
-    Extension of the Stein test to handle right-censored data using
-    inverse probability of censoring weighting (IPCW).
-
-    Parameters
-    ----------
-    a : float, default=0
-        Lower bound of the distribution
-    b : float, default=1
-        Upper bound of the distribution
-
-    Returns
-    -------
-    statistic : float
-        The censored Stein-type test statistic
-
-    References
-    ----------
-    .. [1] Kattumannil, S. K., & Sreedevi, E. P. (2021).
-           A new goodness of fit test for uniform distribution with censored observations.
-           arXiv preprint arXiv:2106.06368.
-    .. [2] Datta, S., Bandyopadhyay, D., & Satten, G. A. (2010).
-           Inverse probability of censoring weighted U-statistics for right-censored data.
-           Scandinavian Journal of Statistics, 37, 680-700.
     """
 
     def __init__(self, a=0, b=1):
@@ -837,11 +646,21 @@ class CensoredSteinUniformGofStatistic(AbstractUniformGofStatistic):
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "CENSORED_STEIN_U".
+        """
         return "CENSORED_STEIN_U"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "CENSORED_STEIN_U_UNIFORM_{parent_code}".
+        """
         short_code = CensoredSteinUniformGofStatistic.short_code()
         return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
@@ -850,18 +669,10 @@ class CensoredSteinUniformGofStatistic(AbstractUniformGofStatistic):
         """
         Execute the censored Stein-type test statistic.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data (observed times)
-        censoring_indices : array_like, optional
-            Binary array where 1 indicates censored observation, 0 indicates uncensored.
-            If None, assumes all observations are uncensored.
-
-        Returns
-        -------
-        statistic : float
-            The test statistic value
+        :param rvs: array of sample data (observed times).
+        :param censoring_indices: binary array where 1 indicates censored observation,
+            0 indicates uncensored (default is None, meaning no censoring).
+        :return: censored Stein-type test statistic value.
         """
         rvs = self._validate_input(rvs)
 
@@ -883,21 +694,6 @@ class CensoredSteinUniformGofStatistic(AbstractUniformGofStatistic):
 
     @staticmethod
     def _kaplan_meier(times, delta):
-        """
-        Compute Kaplan-Meier estimator for censoring distribution.
-
-        Parameters
-        ----------
-        times : array_like
-            Observed times
-        delta : array_like
-            Censoring indicators (1 = censored, 0 = uncensored)
-
-        Returns
-        -------
-        km_survival : function
-            Function that returns survival probability at given time
-        """
         sort_idx = np.argsort(times)
         times_sorted = times[sort_idx]
         delta_sorted = delta[sort_idx]
@@ -920,23 +716,6 @@ class CensoredSteinUniformGofStatistic(AbstractUniformGofStatistic):
 
     @staticmethod
     def _compute_weighted_u_statistic(rvs, delta, km_func):
-        """
-        Compute IPCW-weighted U-statistic.
-
-        Parameters
-        ----------
-        rvs : array_like
-            Standardized observations
-        delta : array_like
-            Censoring indicators
-        km_func : function
-            Kaplan-Meier survival function for censoring
-
-        Returns
-        -------
-        statistic : float
-            Weighted test statistic
-        """
         n = len(rvs)
 
         def h1(x, y):
@@ -971,22 +750,6 @@ class CensoredSteinUniformGofStatistic(AbstractUniformGofStatistic):
 class NeymanSmoothTestUniformGofStatistic(AbstractUniformGofStatistic):
     """
     Neyman's smooth test for Uniform distribution.
-
-    Powerful against smooth alternatives.
-
-    Parameters
-    ----------
-    a : float, default=0
-        Lower bound of the distribution
-    b : float, default=1
-        Upper bound of the distribution
-    k : int, default=4
-        Number of components to use
-
-    References
-    ----------
-    .. [1] Neyman, J. (1937). Smooth test for goodness of fit.
-           Scandinavian Actuarial Journal, 1937(1), 149-199.
     """
 
     def __init__(self, a=0, b=1, k=4):
@@ -996,16 +759,32 @@ class NeymanSmoothTestUniformGofStatistic(AbstractUniformGofStatistic):
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "NEYMAN".
+        """
         return "NEYMAN"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "NEYMAN_UNIFORM_{parent_code}".
+        """
         short_code = NeymanSmoothTestUniformGofStatistic.short_code()
         return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute Neyman's smooth test statistic.
+
+        :param rvs: array of sample data from Uniform distribution (values in [a, b]).
+        :return: chi-square-like statistic value with k degrees of freedom.
+        """
         rvs = self._validate_input(rvs)
 
         n = len(rvs)
@@ -1037,28 +816,37 @@ class NeymanSmoothTestUniformGofStatistic(AbstractUniformGofStatistic):
 class ShermanUniformGofStatistic(AbstractUniformGofStatistic):
     """
     Sherman's test for Uniform distribution.
-
-    Based on spacing between order statistics.
-
-    References
-    ----------
-    .. [1] Sherman, B. (1950). A random variable related to the spacing of sample values.
-           The Annals of Mathematical Statistics, 21, 339-361.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "SHERMAN".
+        """
         return "SHERMAN"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "SHERMAN_UNIFORM_{parent_code}".
+        """
         short_code = ShermanUniformGofStatistic.short_code()
         return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute Sherman's test statistic.
+
+        :param rvs: array of sample data from Uniform distribution (values in [a, b]).
+        :return: Sherman test statistic value.
+        """
         rvs = self._validate_input(rvs)
 
         n = len(rvs)
@@ -1077,27 +865,37 @@ class ShermanUniformGofStatistic(AbstractUniformGofStatistic):
 class QuesenberryMillerUniformGofStatistic(AbstractUniformGofStatistic):
     """
     Quesenberry and Miller's Q-test for Uniform distribution.
-
-    References
-    ----------
-    .. [1] Quesenberry, C. P., & Miller Jr, F. L. (1977).
-           Power studies of some tests for uniformity.
-           Journal of Statistical Computation and Simulation, 5, 169-191.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "QUESENBERRY_MILLER".
+        """
         return "QUESENBERRY_MILLER"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "QUESENBERRY_MILLER_UNIFORM_{parent_code}".
+        """
         short_code = QuesenberryMillerUniformGofStatistic.short_code()
         return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute Quesenberry-Miller Q-test statistic.
+
+        :param rvs: array of sample data from Uniform distribution (values in [a, b]).
+        :return: Q-test statistic value.
+        """
         rvs = self._validate_input(rvs)
 
         x_sorted = np.sort(rvs)

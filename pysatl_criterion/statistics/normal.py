@@ -20,6 +20,10 @@ from pysatl_criterion.statistics.graph_goodness_of_fit import (
 
 
 class AbstractNormalityGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
+    """
+    Abstract base class for Normality goodness-of-fit statistics.
+    """
+
     @override
     def __init__(self, mean=0, var=1):
         self.mean = mean
@@ -28,10 +32,19 @@ class AbstractNormalityGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for Normality statistics.
+
+        :return: string code in format "NORMALITY_{parent_code}".
+        """
         return f"NORMALITY_{AbstractGoodnessOfFitStatistic.code()}"
 
 
 class KolmogorovSmirnovNormalityGofStatistic(AbstractNormalityGofStatistic, KSStatistic):
+    """
+    Kolmogorov-Smirnov test statistic for Normal distribution.
+    """
+
     @override
     def __init__(self, alternative="two-sided", mode="auto", mean=0, var=1):
         AbstractNormalityGofStatistic.__init__(self)
@@ -43,16 +56,32 @@ class KolmogorovSmirnovNormalityGofStatistic(AbstractNormalityGofStatistic, KSSt
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "KS".
+        """
         return "KS"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "KS_NORMALITY_{parent_code}".
+        """
         short_code = KolmogorovSmirnovNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Kolmogorov-Smirnov test statistic for Normal distribution.
+
+        :param rvs: array of observed data samples.
+        :return: Kolmogorov-Smirnov test statistic value.
+        """
         rvs = np.sort(rvs)
         cdf_vals = scipy_stats.norm.cdf(rvs)
         return KSStatistic.execute_statistic(self, rvs, cdf_vals)
@@ -81,19 +110,39 @@ class ChiSquareTest(AbstractNormalityTestStatistic):  # TODO: check test correct
 
 
 class AndersonDarlingNormalityGofStatistic(AbstractNormalityGofStatistic, ADStatistic):
+    """
+    Anderson-Darling test statistic for Normal distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "AD".
+        """
         return "AD"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "AD_NORMALITY_{parent_code}".
+        """
         short_code = AndersonDarlingNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Anderson-Darling test statistic for Normal distribution.
+
+        :param rvs: array of observed data samples.
+        :return: Anderson-Darling test statistic value.
+        """
         s = np.std(rvs, ddof=1, axis=0)
         y = np.sort(rvs)
         xbar = np.mean(rvs, axis=0)
@@ -104,6 +153,15 @@ class AndersonDarlingNormalityGofStatistic(AbstractNormalityGofStatistic, ADStat
 
     @override
     def calculate_critical_value(self, rvs_size, sl, count=500_000):  # TODO: check test correctness
+        """
+        Calculate critical value for Anderson-Darling test.
+
+        :param rvs_size: sample size.
+        :param sl: significance level.
+        :param count: number of simulations (unused placeholder).
+        :return: critical value.
+        :raises NotImplementedError: method is not yet implemented.
+        """
         # sig = [0.15, 0.10, 0.05, 0.025, 0.01].index(alpha)
         # critical = np.around(_Avals_norm / (1.0 + 4.0 / rvs_size - 25.0 / rvs_size / rvs_size), 3)
         # print(critical[sig])
@@ -112,19 +170,39 @@ class AndersonDarlingNormalityGofStatistic(AbstractNormalityGofStatistic, ADStat
 
 
 class ShapiroWilkNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Shapiro-Wilk test statistic for Normal distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "SW".
+        """
         return "SW"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "SW_NORMALITY_{parent_code}".
+        """
         short_code = ShapiroWilkNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Shapiro-Wilk test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: Shapiro-Wilk test statistic value.
+        """
         f_obs = np.asanyarray(rvs)
         f_obs_sorted = np.sort(f_obs)
         x_mean = np.mean(f_obs)
@@ -138,13 +216,19 @@ class ShapiroWilkNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @staticmethod
     def ordered_statistic(n):
+        """
+        Compute coefficients for Shapiro-Wilk test based on sample size.
+
+        :param n: sample size.
+        :return: array of coefficients.
+        """
         if n == 3:
             sqrt = np.sqrt(0.5)
             return np.array([sqrt, 0, -sqrt])
 
         m = np.array([scipy_stats.norm.ppf((i - 3 / 8) / (n + 0.25)) for i in range(1, n + 1)])
 
-        m2 = m**2
+        m2 = m ** 2
         term = np.sqrt(m2.sum())
         cn = m[-1] / term
         cn1 = m[-2] / term
@@ -158,7 +242,7 @@ class ShapiroWilkNormalityGofStatistic(AbstractNormalityGofStatistic):
         w1 = -wn
 
         if n == 4 or n == 5:
-            phi = (m2.sum() - 2 * m[-1] ** 2) / (1 - 2 * wn**2)
+            phi = (m2.sum() - 2 * m[-1] ** 2) / (1 - 2 * wn ** 2)
             phi_sqrt = np.sqrt(phi)
             result = np.array([m[k] / phi_sqrt for k in range(1, n - 1)])
             return np.concatenate([[w1], result, [wn]])
@@ -168,27 +252,47 @@ class ShapiroWilkNormalityGofStatistic(AbstractNormalityGofStatistic):
         if n > 5:
             wn1 = np.polyval(p2, u)
             w2 = -wn1
-            phi = (m2.sum() - 2 * m[-1] ** 2 - 2 * m[-2] ** 2) / (1 - 2 * wn**2 - 2 * wn1**2)
+            phi = (m2.sum() - 2 * m[-1] ** 2 - 2 * m[-2] ** 2) / (1 - 2 * wn ** 2 - 2 * wn1 ** 2)
             phi_sqrt = np.sqrt(phi)
             result = np.array([m[k] / phi_sqrt for k in range(2, n - 2)])
             return np.concatenate([[w1, w2], result, [wn1, wn]])
 
 
 class CramerVonMiseNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Cramér-von Mises test statistic for Normal distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "CVM".
+        """
         return "CVM"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "CVM_NORMALITY_{parent_code}".
+        """
         short_code = CramerVonMiseNormalityGofStatistic.short_code()
         base_code = super(AbstractNormalityGofStatistic, AbstractNormalityGofStatistic).code()
         return f"{short_code}_{base_code}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Cramér-von Mises test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: Cramér-von Mises test statistic value.
+        """
         n = len(rvs)
 
         rvs = np.sort(rvs)
@@ -201,19 +305,39 @@ class CramerVonMiseNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class LillieforsNormalityGofStatistic(AbstractNormalityGofStatistic, LillieforsTest):
+    """
+    Lilliefors test statistic for Normal distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "LILLIE".
+        """
         return "LILLIE"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "LILLIE_NORMALITY_{parent_code}".
+        """
         short_code = LillieforsNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Lilliefors test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: Lilliefors test statistic value.
+        """
         x = np.asarray(rvs)
         z = (x - x.mean()) / x.std(ddof=1)
         cdf_vals = scipy_stats.norm.cdf(np.sort(z))
@@ -246,19 +370,40 @@ class DANormalityTest(AbstractNormalityTestStatistic):  # TODO: check for correc
 
 
 class JBNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Jarque-Bera test statistic for Normal distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "JB".
+        """
         return "JB"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "JB_NORMALITY_{parent_code}".
+        """
         short_code = JBNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Jarque-Bera test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: Jarque-Bera test statistic value.
+        :raises ValueError: if sample is empty.
+        """
         x = np.asarray(rvs)
         x = x.ravel()
         axis = 0
@@ -271,24 +416,44 @@ class JBNormalityGofStatistic(AbstractNormalityGofStatistic):
         diffx = x - mu
         s = scipy_stats.skew(diffx, axis=axis, _no_deco=True)
         k = scipy_stats.kurtosis(diffx, axis=axis, _no_deco=True)
-        statistic = n / 6 * (s**2 + k**2 / 4)
+        statistic = n / 6 * (s ** 2 + k ** 2 / 4)
         return statistic
 
 
 class SkewNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Skewness test statistic for Normal distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "SKEW".
+        """
         return "SKEW"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "SKEW_NORMALITY_{parent_code}".
+        """
         short_code = SkewNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Skewness test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: standardized skewness test statistic value.
+        """
         x = np.asanyarray(rvs)
         y = np.sort(x)
 
@@ -296,6 +461,13 @@ class SkewNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @staticmethod
     def skew_test(a):
+        """
+        Compute standardized skewness statistic.
+
+        :param a: sorted array of data.
+        :return: standardized skewness value.
+        :raises ValueError: if sample size is less than 8.
+        """
         n = len(a)
         if n < 8:
             raise ValueError(
@@ -304,11 +476,11 @@ class SkewNormalityGofStatistic(AbstractNormalityGofStatistic):
         b2 = scipy_stats.skew(a, axis=0)
         y = b2 * math.sqrt(((n + 1) * (n + 3)) / (6.0 * (n - 2)))
         beta2 = (
-            3.0
-            * (n**2 + 27 * n - 70)
-            * (n + 1)
-            * (n + 3)
-            / ((n - 2.0) * (n + 5) * (n + 7) * (n + 9))
+                3.0
+                * (n ** 2 + 27 * n - 70)
+                * (n + 1)
+                * (n + 3)
+                / ((n - 2.0) * (n + 5) * (n + 7) * (n + 9))
         )
         w2 = -1 + math.sqrt(2 * (beta2 - 1))
         delta = 1 / math.sqrt(0.5 * math.log(w2))
@@ -320,19 +492,39 @@ class SkewNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class KurtosisNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Kurtosis test statistic for Normal distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "KURTOSIS".
+        """
         return "KURTOSIS"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "KURTOSIS_NORMALITY_{parent_code}".
+        """
         short_code = KurtosisNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Kurtosis test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: standardized kurtosis test statistic value.
+        """
         x = np.asanyarray(rvs)
         y = np.sort(x)
 
@@ -340,6 +532,13 @@ class KurtosisNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @staticmethod
     def kurtosis_test(a):
+        """
+        Compute standardized kurtosis statistic.
+
+        :param a: sorted array of data.
+        :return: standardized kurtosis value.
+        :raises ValueError: if sample size is less than 5.
+        """
         n = len(a)
         if n < 5:
             raise ValueError(
@@ -353,18 +552,18 @@ class KurtosisNormalityGofStatistic(AbstractNormalityGofStatistic):
 
         e = 3.0 * (n - 1) / (n + 1)
         var_b2 = (
-            24.0 * n * (n - 2) * (n - 3) / ((n + 1) * (n + 1.0) * (n + 3) * (n + 5))
+                24.0 * n * (n - 2) * (n - 3) / ((n + 1) * (n + 1.0) * (n + 3) * (n + 5))
         )  # [1]_ Eq. 1
         x = (b2 - e) / np.sqrt(var_b2)  # [1]_ Eq. 4
         # [1]_ Eq. 2:
         sqrt_beta1 = (
-            6.0
-            * (n * n - 5 * n + 2)
-            / ((n + 7) * (n + 9))
-            * np.sqrt((6.0 * (n + 3) * (n + 5)) / (n * (n - 2) * (n - 3)))
+                6.0
+                * (n * n - 5 * n + 2)
+                / ((n + 7) * (n + 9))
+                * np.sqrt((6.0 * (n + 3) * (n + 5)) / (n * (n - 2) * (n - 3)))
         )
         # [1]_ Eq. 3:
-        a = 6.0 + 8.0 / sqrt_beta1 * (2.0 / sqrt_beta1 + np.sqrt(1 + 4.0 / (sqrt_beta1**2)))
+        a = 6.0 + 8.0 / sqrt_beta1 * (2.0 / sqrt_beta1 + np.sqrt(1 + 4.0 / (sqrt_beta1 ** 2)))
         term1 = 1 - 2 / (9.0 * a)
         denom = 1 + x * np.sqrt(2 / (a - 4.0))
         term2 = np.sign(denom) * np.where(
@@ -381,19 +580,39 @@ class KurtosisNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class DAPNormalityGofStatistic(SkewNormalityGofStatistic, KurtosisNormalityGofStatistic):
+    """
+    D'Agostino-Pearson test statistic combining Skewness and Kurtosis.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "DAP".
+        """
         return "DAP"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "DAP_NORMALITY_{parent_code}".
+        """
         short_code = DAPNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the D'Agostino-Pearson test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: combined chi-square statistic value.
+        """
         x = np.asanyarray(rvs)
         y = np.sort(x)
 
@@ -405,19 +624,38 @@ class DAPNormalityGofStatistic(SkewNormalityGofStatistic, KurtosisNormalityGofSt
 
 # https://github.com/puzzle-in-a-mug/normtest
 class FilliNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Filliben's probability plot correlation coefficient test.
+    """
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "FILLI".
+        """
         return "FILLI"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "FILLI_NORMALITY_{parent_code}".
+        """
         short_code = FilliNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Filliben test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: correlation coefficient statistic value.
+        """
         uniform_order = self._uniform_order_medians(len(rvs))
         zi = self._normal_order_medians(uniform_order)
         x_data = np.sort(rvs)
@@ -446,19 +684,38 @@ class FilliNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 # https://github.com/puzzle-in-a-mug/normtest
 class LooneyGulledgeNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Looney-Gulledge probability plot correlation coefficient test.
+    """
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "LG".
+        """
         return "LG"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "LG_NORMALITY_{parent_code}".
+        """
         short_code = LooneyGulledgeNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Looney-Gulledge test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: correlation coefficient statistic value.
+        """
         # ordering
         x_data = np.sort(rvs)
 
@@ -507,6 +764,9 @@ class LooneyGulledgeNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 # https://github.com/puzzle-in-a-mug/normtest
 class RyanJoinerNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Ryan-Joiner probability plot correlation coefficient test.
+    """
     @override
     def __init__(self, weighted=False, cte_alpha="3/8"):
         super(AbstractNormalityGofStatistic).__init__()
@@ -516,16 +776,32 @@ class RyanJoinerNormalityGofStatistic(AbstractNormalityGofStatistic):
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "RJ".
+        """
         return "RJ"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "RJ_NORMALITY_{parent_code}".
+        """
         short_code = RyanJoinerNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Ryan-Joiner test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: correlation coefficient statistic value.
+        """
         # ordering
         x_data = np.sort(rvs)
 
@@ -580,19 +856,38 @@ class RyanJoinerNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class SFNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Sarhan-Farag test statistic for Normal distribution.
+    """
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "SF".
+        """
         return "SF"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "SF_NORMALITY_{parent_code}".
+        """
         short_code = SFNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the SF test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: SF test statistic value.
+        """
         n = len(rvs)
         rvs = np.sort(rvs)
 
@@ -601,25 +896,44 @@ class SFNormalityGofStatistic(AbstractNormalityGofStatistic):
         terms = (np.arange(1, n + 1) - alpha) / (n - 2 * alpha + 1)
         e = -scipy_stats.norm.ppf(terms)
 
-        w = np.sum(e * rvs) ** 2 / (np.sum((rvs - x_mean) ** 2) * np.sum(e**2))
+        w = np.sum(e * rvs) ** 2 / (np.sum((rvs - x_mean) ** 2) * np.sum(e ** 2))
         return w
 
 
 # https://habr.com/ru/articles/685582/
 class EppsPulleyNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Epps-Pulley test statistic for Normal distribution.
+    """
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "EP".
+        """
         return "EP"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "EP_NORMALITY_{parent_code}".
+        """
         short_code = EppsPulleyNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Epps-Pulley test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: Epps-Pulley test statistic value.
+        """
         n = len(rvs)
         x = np.sort(rvs)
         x_mean = np.mean(x)
@@ -635,19 +949,38 @@ class EppsPulleyNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class Hosking2NormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Hosking L-moments test statistic for Normal distribution.
+    """
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "HOSKING2".
+        """
         return "HOSKING2"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "HOSKING2_NORMALITY_{parent_code}".
+        """
         short_code = Hosking2NormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Hosking TL-moments test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: chi-square-like statistic value.
+        """
         n = len(rvs)
 
         if n > 3:
@@ -684,6 +1017,14 @@ class Hosking2NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @staticmethod
     def pstarmod1(r, n, i):
+        """
+        Compute probability weight for L-moments calculation.
+
+        :param r: order of L-moment.
+        :param n: sample size.
+        :param i: index of order statistic.
+        :return: weight value.
+        """
         res = 0.0
         for k in range(r):
             res = res + (-1.0) ** k * math.comb(r - 1, k) * math.comb(
@@ -694,23 +1035,48 @@ class Hosking2NormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class Hosking1NormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Hosking L-moments test statistic (standard L-moments) for Normal distribution.
+    """
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "HOSKING1".
+        """
         return "HOSKING1"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "HOSKING1_NORMALITY_{parent_code}".
+        """
         short_code = Hosking1NormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Hosking L-moments test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: chi-square-like statistic value.
+        """
         return self.stat10(rvs)
 
     @staticmethod
     def stat10(x):
+        """
+        Compute Hosking L-moments statistic.
+
+        :param x: array of data.
+        :return: chi-square-like statistic value.
+        """
         n = len(x)
 
         if n > 3:
@@ -746,27 +1112,52 @@ class Hosking1NormalityGofStatistic(AbstractNormalityGofStatistic):
                 v_tau3 = 0.0019434
                 v_tau4 = 0.00095785
 
-            stat_tl_mom = (tau3**2) / v_tau3 + (tau4 - mu_tau4) ** 2 / v_tau4
+            stat_tl_mom = (tau3 ** 2) / v_tau3 + (tau4 - mu_tau4) ** 2 / v_tau4
             return stat_tl_mom
 
 
 class Hosking3NormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Hosking L-moments test statistic (TL-moments t=2) for Normal distribution.
+    """
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "HOSKING3".
+        """
         return "HOSKING3"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "HOSKING3_NORMALITY_{parent_code}".
+        """
         short_code = Hosking3NormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Hosking TL-moments (t=2) test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: chi-square-like statistic value.
+        """
         return self.stat12(rvs)
 
     def stat12(self, x):
+        """
+        Compute Hosking TL-moments (t=2) statistic.
+
+        :param x: array of data.
+        :return: chi-square-like statistic value.
+        """
         n = len(x)
 
         if n > 3:
@@ -798,39 +1189,72 @@ class Hosking3NormalityGofStatistic(AbstractNormalityGofStatistic):
                 v_tau32 = 0.0015120
                 v_tau42 = 0.00054207
 
-            stat_tl_mom2 = (tau32**2) / v_tau32 + (tau42 - mu_tau42) ** 2 / v_tau42
+            stat_tl_mom2 = (tau32 ** 2) / v_tau32 + (tau42 - mu_tau42) ** 2 / v_tau42
             return stat_tl_mom2
 
     @staticmethod
     def pstarmod2(r, n, i):
+        """
+        Compute probability weight for TL-moments (t=2) calculation.
+
+        :param r: order of L-moment.
+        :param n: sample size.
+        :param i: index of order statistic.
+        :return: weight value.
+        """
         res = 0.0
         for k in range(r):
             res += (
-                (-1) ** k
-                * math.comb(r - 1, k)
-                * math.comb(i - 1, r + 2 - 1 - k)
-                * math.comb(n - i, 2 + k)
+                    (-1) ** k
+                    * math.comb(r - 1, k)
+                    * math.comb(i - 1, r + 2 - 1 - k)
+                    * math.comb(n - i, 2 + k)
             )
         return res
 
 
 class Hosking4NormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Hosking L-moments test statistic (TL-moments t=3) for Normal distribution.
+    """
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "HOSKING4".
+        """
         return "HOSKING4"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "HOSKING4_NORMALITY_{parent_code}".
+        """
         short_code = Hosking4NormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Hosking TL-moments (t=3) test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: chi-square-like statistic value.
+        """
         return self.stat13(rvs)
 
     def stat13(self, x):
+        """
+        Compute Hosking TL-moments (t=3) statistic.
+
+        :param x: array of data.
+        :return: chi-square-like statistic value.
+        """
         n = len(x)
 
         if n > 3:
@@ -862,36 +1286,63 @@ class Hosking4NormalityGofStatistic(AbstractNormalityGofStatistic):
                 v_tau33 = 0.0014547
                 v_tau43 = 0.00045107
 
-            stat_tl_mom3 = (tau33**2) / v_tau33 + (tau43 - mu_tau43) ** 2 / v_tau43
+            stat_tl_mom3 = (tau33 ** 2) / v_tau33 + (tau43 - mu_tau43) ** 2 / v_tau43
             return stat_tl_mom3
 
     @staticmethod
     def pstarmod3(r, n, i):
+        """
+        Compute probability weight for TL-moments (t=3) calculation.
+
+        :param r: order of L-moment.
+        :param n: sample size.
+        :param i: index of order statistic.
+        :return: weight value.
+        """
         res = 0.0
         for k in range(r):
             res += (
-                (-1) ** k
-                * math.comb(r - 1, k)
-                * math.comb(i - 1, r + 3 - 1 - k)
-                * math.comb(n - i, 3 + k)
+                    (-1) ** k
+                    * math.comb(r - 1, k)
+                    * math.comb(i - 1, r + 3 - 1 - k)
+                    * math.comb(n - i, 3 + k)
             )
         return res
 
 
 class ZhangWuCNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Zhang-Wu C test statistic for Normal distribution.
+    """
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "ZWC".
+        """
         return "ZWC"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "ZWC_NORMALITY_{parent_code}".
+        """
         short_code = ZhangWuCNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Zhang-Wu C test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: test statistic value.
+        """
         n = len(rvs)
 
         if n > 3:
@@ -909,19 +1360,39 @@ class ZhangWuCNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class ZhangWuANormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Zhang-Wu A test statistic for Normal distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "ZWA".
+        """
         return "ZWA"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "ZWA_NORMALITY_{parent_code}".
+        """
         short_code = ZhangWuANormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Zhang-Wu A test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: test statistic value.
+        """
         n = len(rvs)
 
         if n > 3:
@@ -935,7 +1406,7 @@ class ZhangWuANormalityGofStatistic(AbstractNormalityGofStatistic):
             stat_za = 0.0
             for i in range(1, n + 1):
                 stat_za += np.log(phiz[i - 1]) / ((n - i) + 0.5) + np.log(1.0 - phiz[i - 1]) / (
-                    i - 0.5
+                        i - 0.5
                 )
             stat_za = -stat_za
             stat_za = 10.0 * stat_za - 32.0
@@ -943,19 +1414,38 @@ class ZhangWuANormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class GlenLeemisBarrNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Glen-Leemis-Barr test statistic for Normal distribution.
+    """
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "GLB".
+        """
         return "GLB"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "GLB_NORMALITY_{parent_code}".
+        """
         short_code = GlenLeemisBarrNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Glen-Leemis-Barr test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: test statistic value.
+        """
         n = len(rvs)
 
         if n > 3:
@@ -978,39 +1468,72 @@ class GlenLeemisBarrNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class DoornikHansenNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Doornik-Hansen test statistic for Normal distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "DH".
+        """
         return "DH"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "DH_NORMALITY_{parent_code}".
+        """
         short_code = DoornikHansenNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Doornik-Hansen test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: chi-square-like statistic value.
+        """
         return self.doornik_hansen(rvs)
 
     def doornik_hansen(self, x):
+        """
+        Compute Doornik-Hansen statistic from skewness and kurtosis.
+
+        :param x: array of data.
+        :return: chi-square-like statistic value.
+        """
         n = len(x)
         m2 = scipy_stats.moment(x, moment=2)
         m3 = scipy_stats.moment(x, moment=3)
         m4 = scipy_stats.moment(x, moment=4)
 
-        b1 = m3 / (m2**1.5)
-        b2 = m4 / (m2**2)
+        b1 = m3 / (m2 ** 1.5)
+        b2 = m4 / (m2 ** 2)
 
         z1 = self.skewness_to_z1(b1, n)
         z2 = self.kurtosis_to_z2(b1, b2, n)
 
-        stat = z1**2 + z2**2
+        stat = z1 ** 2 + z2 ** 2
         return stat
 
     @staticmethod
     def skewness_to_z1(skew, n):
-        b = 3 * ((n**2) + 27 * n - 70) * (n + 1) * (n + 3) / ((n - 2) * (n + 5) * (n + 7) * (n + 9))
+        """
+        Transform sample skewness to approximate standard normal.
+
+        :param skew: sample skewness.
+        :param n: sample size.
+        :return: transformed z-score.
+        """
+        b = 3 * ((n ** 2) + 27 * n - 70) * (n + 1) * (n + 3) / ((n - 2) * (n + 5) * (n + 7) * (n + 9))
         w2 = -1 + math.sqrt(2 * (b - 1))
         d = 1 / math.sqrt(math.log(math.sqrt(w2)))
         y = skew * math.sqrt((n + 1) * (n + 3) / (6 * (n - 2)))
@@ -1020,8 +1543,16 @@ class DoornikHansenNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @staticmethod
     def kurtosis_to_z2(skew, kurt, n):
-        n2 = n**2
-        n3 = n**3
+        """
+        Transform sample kurtosis to approximate standard normal.
+
+        :param skew: sample skewness (used for adjustment).
+        :param kurt: sample kurtosis.
+        :param n: sample size.
+        :return: transformed z-score.
+        """
+        n2 = n ** 2
+        n3 = n ** 3
         p1 = n2 + 15 * n - 4
         p2 = n2 + 27 * n - 70
         p3 = n2 + 2 * n - 5
@@ -1030,27 +1561,47 @@ class DoornikHansenNormalityGofStatistic(AbstractNormalityGofStatistic):
         a = (n - 2) * (n + 5) * (n + 7) * p2 / (6 * d)
         c = (n - 7) * (n + 5) * (n + 7) * p3 / (6 * d)
         k = (n + 5) * (n + 7) * p4 / (12 * d)
-        alpha = a + skew**2 * c
-        q = 2 * (kurt - 1 - skew**2) * k
+        alpha = a + skew ** 2 * c
+        q = 2 * (kurt - 1 - skew ** 2) * k
         z = (0.5 * q / alpha) ** (1 / 3) - 1 + 1 / (9 * alpha)
         z *= math.sqrt(9 * alpha)
         return z
 
 
 class RobustJarqueBeraNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Robust Jarque-Bera test statistic for Normal distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "RJB".
+        """
         return "RJB"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "RJB_NORMALITY_{parent_code}".
+        """
         short_code = RobustJarqueBeraNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Robust Jarque-Bera test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: robust JB statistic value.
+        """
         y = np.sort(rvs)
         n = len(rvs)
         m = np.median(y)
@@ -1058,24 +1609,44 @@ class RobustJarqueBeraNormalityGofStatistic(AbstractNormalityGofStatistic):
         j = (c / n) * np.sum(np.abs(rvs - m))
         m_3 = scipy_stats.moment(y, moment=3)
         m_4 = scipy_stats.moment(y, moment=4)
-        rjb = (n / 6) * (m_3 / j**3) ** 2 + (n / 64) * (m_4 / j**4 - 3) ** 2
+        rjb = (n / 6) * (m_3 / j ** 3) ** 2 + (n / 64) * (m_4 / j ** 4 - 3) ** 2
         return rjb
 
 
 class BontempsMeddahi1NormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Bontemps-Meddahi test statistic (moments 3-4) for Normal distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "BM1".
+        """
         return "BM1"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "BM1_NORMALITY_{parent_code}".
+        """
         short_code = BontempsMeddahi1NormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Bontemps-Meddahi (3-4) test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: chi-square-like statistic value.
+        """
         n = len(rvs)
 
         if n > 3:
@@ -1091,7 +1662,7 @@ class BontempsMeddahi1NormalityGofStatistic(AbstractNormalityGofStatistic):
 
             for i in range(n):
                 var_x += rvs[i] ** 2
-            var_x = (n * (var_x / n - mean_x**2)) / (n - 1)
+            var_x = (n * (var_x / n - mean_x ** 2)) / (n - 1)
             sd_x = math.sqrt(var_x)
 
             for i in range(n):
@@ -1101,28 +1672,53 @@ class BontempsMeddahi1NormalityGofStatistic(AbstractNormalityGofStatistic):
                 tmp3 += (z[i] ** 3 - 3 * z[i]) / math.sqrt(6)
                 tmp4 += (z[i] ** 4 - 6 * z[i] ** 2 + 3) / (2 * math.sqrt(6))
 
-            stat_bm34 = (tmp3**2 + tmp4**2) / n
+            stat_bm34 = (tmp3 ** 2 + tmp4 ** 2) / n
             return stat_bm34
 
 
 class BontempsMeddahi2NormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Bontemps-Meddahi test statistic (moments 3-6) for Normal distribution.
+    """
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "BM2".
+        """
         return "BM2"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "BM2_NORMALITY_{parent_code}".
+        """
         short_code = BontempsMeddahi2NormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Bontemps-Meddahi (3-6) test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: chi-square-like statistic value.
+        """
         return self.stat15(rvs)
 
     @staticmethod
     def stat15(x):
+        """
+        Compute Bontemps-Meddahi statistic using moments 3 to 6.
+
+        :param x: array of data.
+        :return: chi-square-like statistic value.
+        """
         n = len(x)
 
         if n > 3:
@@ -1132,32 +1728,58 @@ class BontempsMeddahi2NormalityGofStatistic(AbstractNormalityGofStatistic):
             sd_x = np.sqrt(var_x)
             for i in range(n):
                 z[i] = (x[i] - mean_x) / sd_x
-            tmp3 = np.sum((z**3 - 3 * z) / np.sqrt(6))
-            tmp4 = np.sum((z**4 - 6 * z**2 + 3) / (2 * np.sqrt(6)))
-            tmp5 = np.sum((z**5 - 10 * z**3 + 15 * z) / (2 * np.sqrt(30)))
-            tmp6 = np.sum((z**6 - 15 * z**4 + 45 * z**2 - 15) / (12 * np.sqrt(5)))
-            stat_bm36 = (tmp3**2 + tmp4**2 + tmp5**2 + tmp6**2) / n
+            tmp3 = np.sum((z ** 3 - 3 * z) / np.sqrt(6))
+            tmp4 = np.sum((z ** 4 - 6 * z ** 2 + 3) / (2 * np.sqrt(6)))
+            tmp5 = np.sum((z ** 5 - 10 * z ** 3 + 15 * z) / (2 * np.sqrt(30)))
+            tmp6 = np.sum((z ** 6 - 15 * z ** 4 + 45 * z ** 2 - 15) / (12 * np.sqrt(5)))
+            stat_bm36 = (tmp3 ** 2 + tmp4 ** 2 + tmp5 ** 2 + tmp6 ** 2) / n
             return stat_bm36
 
 
 class BonettSeierNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Bonett-Seier test statistic for Normal distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "BS".
+        """
         return "BS"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "BS_NORMALITY_{parent_code}".
+        """
         short_code = BonettSeierNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Bonett-Seier test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: standardized test statistic value.
+        """
         return self.stat17(rvs)
 
     @staticmethod
     def stat17(x):
+        """
+        Compute Bonett-Seier statistic.
+
+        :param x: array of data.
+        :return: standardized test statistic value.
+        """
         n = len(x)
 
         if n > 3:
@@ -1182,23 +1804,49 @@ class BonettSeierNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class MartinezIglewiczNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Martinez-Iglewicz test statistic for Normal distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "MI".
+        """
         return "MI"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "MI_NORMALITY_{parent_code}".
+        """
         short_code = MartinezIglewiczNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Martinez-Iglewicz test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: ratio of variance to robust scale statistic.
+        """
         return self.stat32(rvs)
 
     @staticmethod
     def stat32(x):
+        """
+        Compute Martinez-Iglewicz statistic.
+
+        :param x: array of data.
+        :return: ratio of variance to robust scale statistic.
+        """
         n = len(x)
 
         if n > 3:
@@ -1219,57 +1867,82 @@ class MartinezIglewiczNormalityGofStatistic(AbstractNormalityGofStatistic):
             a = 9.0 * a
 
             z = aux1 / a
-            term1 = np.sum(aux1**2 * (1 - z**2) ** 4)
-            term2 = np.sum((1 - z**2) * (1 - 5 * z**2))
-            term3 = np.sum(aux1**2)
+            term1 = np.sum(aux1 ** 2 * (1 - z ** 2) ** 4)
+            term2 = np.sum((1 - z ** 2) * (1 - 5 * z ** 2))
+            term3 = np.sum(aux1 ** 2)
 
-            sb2 = (n * term1) / term2**2
+            sb2 = (n * term1) / term2 ** 2
             stat_in = (term3 / (n - 1)) / sb2
             return stat_in
 
 
 class CabanaCabana1NormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Cabana-Cabana test statistic (TSL) for Normal distribution.
+    """
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "CC1".
+        """
         return "CC1"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "CC1_NORMALITY_{parent_code}".
+        """
         short_code = CabanaCabana1NormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Cabana-Cabana TSL test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: supremum statistic value.
+        """
         return self.stat19(rvs)
 
     @staticmethod
     def stat19(x):
+        """
+        Compute Cabana-Cabana TSL statistic.
+
+        :param x: array of data.
+        :return: supremum statistic value.
+        """
         n = len(x)
 
         if n > 3:
             z_data = (x - np.mean(x)) / np.std(x, ddof=1)
-            mean_h3 = np.sum(z_data**3 - 3 * z_data) / (np.sqrt(6) * np.sqrt(n))
-            mean_h4 = np.sum(z_data**4 - 6 * z_data**2 + 3) / (2 * np.sqrt(6) * np.sqrt(n))
-            mean_h5 = np.sum(z_data**5 - 10 * z_data**3 + 15 * z_data) / (
-                2 * np.sqrt(30) * np.sqrt(n)
+            mean_h3 = np.sum(z_data ** 3 - 3 * z_data) / (np.sqrt(6) * np.sqrt(n))
+            mean_h4 = np.sum(z_data ** 4 - 6 * z_data ** 2 + 3) / (2 * np.sqrt(6) * np.sqrt(n))
+            mean_h5 = np.sum(z_data ** 5 - 10 * z_data ** 3 + 15 * z_data) / (
+                    2 * np.sqrt(30) * np.sqrt(n)
             )
-            mean_h6 = np.sum(z_data**6 - 15 * z_data**4 + 45 * z_data**2 - 15) / (
-                12 * np.sqrt(5) * np.sqrt(n)
+            mean_h6 = np.sum(z_data ** 6 - 15 * z_data ** 4 + 45 * z_data ** 2 - 15) / (
+                    12 * np.sqrt(5) * np.sqrt(n)
             )
-            mean_h7 = np.sum(z_data**7 - 21 * z_data**5 + 105 * z_data**3 - 105 * z_data) / (
-                12 * np.sqrt(35) * np.sqrt(n)
+            mean_h7 = np.sum(z_data ** 7 - 21 * z_data ** 5 + 105 * z_data ** 3 - 105 * z_data) / (
+                    12 * np.sqrt(35) * np.sqrt(n)
             )
             mean_h8 = np.sum(
-                z_data**8 - 28 * z_data**6 + 210 * z_data**4 - 420 * z_data**2 + 105
+                z_data ** 8 - 28 * z_data ** 6 + 210 * z_data ** 4 - 420 * z_data ** 2 + 105
             ) / (24 * np.sqrt(70) * np.sqrt(n))
             vector_aux1 = (
-                mean_h4
-                + mean_h5 * z_data / np.sqrt(2)
-                + mean_h6 * (z_data**2 - 1) / np.sqrt(6)
-                + mean_h7 * (z_data**3 - 3 * z_data) / (2 * np.sqrt(6))
-                + mean_h8 * (z_data**4 - 6 * z_data**2 + 3) / (2 * np.sqrt(30))
+                    mean_h4
+                    + mean_h5 * z_data / np.sqrt(2)
+                    + mean_h6 * (z_data ** 2 - 1) / np.sqrt(6)
+                    + mean_h7 * (z_data ** 3 - 3 * z_data) / (2 * np.sqrt(6))
+                    + mean_h8 * (z_data ** 4 - 6 * z_data ** 2 + 3) / (2 * np.sqrt(30))
             )
             stat_tsl = np.max(
                 np.abs(
@@ -1281,23 +1954,48 @@ class CabanaCabana1NormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class CabanaCabana2NormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Cabana-Cabana test statistic (TKL) for Normal distribution.
+    """
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "CC2".
+        """
         return "CC2"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "CC2_NORMALITY_{parent_code}".
+        """
         short_code = CabanaCabana2NormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Cabana-Cabana TKL test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: supremum statistic value.
+        """
         return self.stat20(rvs)
 
     @staticmethod
     def stat20(x):
+        """
+        Compute Cabana-Cabana TKL statistic.
+
+        :param x: array of data.
+        :return: supremum statistic value.
+        """
         n = len(x)
 
         if n > 3:
@@ -1329,30 +2027,30 @@ class CabanaCabana2NormalityGofStatistic(AbstractNormalityGofStatistic):
                 h2[i] = (math.pow(z[i], 2.0) - 1.0) / np.sqrt(2.0)
                 h3[i] = (math.pow(z[i], 3.0) - 3.0 * z[i]) / np.sqrt(6.0)
                 h4[i] = (math.pow(z[i], 4.0) - 6.0 * math.pow(z[i], 2.0) + 3.0) / (
-                    2.0 * np.sqrt(6.0)
+                        2.0 * np.sqrt(6.0)
                 )
                 h5[i] = (math.pow(z[i], 5.0) - 10.0 * math.pow(z[i], 3.0) + 15.0 * z[i]) / (
-                    2.0 * np.sqrt(30.0)
+                        2.0 * np.sqrt(30.0)
                 )
                 h6[i] = (
-                    math.pow(z[i], 6.0)
-                    - 15.0 * math.pow(z[i], 4.0)
-                    + 45.0 * math.pow(z[i], 2.0)
-                    - 15.0
-                ) / (12.0 * np.sqrt(5.0))
+                                math.pow(z[i], 6.0)
+                                - 15.0 * math.pow(z[i], 4.0)
+                                + 45.0 * math.pow(z[i], 2.0)
+                                - 15.0
+                        ) / (12.0 * np.sqrt(5.0))
                 h7[i] = (
-                    math.pow(z[i], 7.0)
-                    - 21.0 * math.pow(z[i], 5.0)
-                    + 105.0 * math.pow(z[i], 3.0)
-                    - 105.0 * z[i]
-                ) / (12.0 * np.sqrt(35.0))
+                                math.pow(z[i], 7.0)
+                                - 21.0 * math.pow(z[i], 5.0)
+                                + 105.0 * math.pow(z[i], 3.0)
+                                - 105.0 * z[i]
+                        ) / (12.0 * np.sqrt(35.0))
                 h8[i] = (
-                    math.pow(z[i], 8.0)
-                    - 28.0 * math.pow(z[i], 6.0)
-                    + 210.0 * math.pow(z[i], 4.0)
-                    - 420.0 * math.pow(z[i], 2.0)
-                    + 105.0
-                ) / (24.0 * np.sqrt(70.0))
+                                math.pow(z[i], 8.0)
+                                - 28.0 * math.pow(z[i], 6.0)
+                                + 210.0 * math.pow(z[i], 4.0)
+                                - 420.0 * math.pow(z[i], 2.0)
+                                + 105.0
+                        ) / (24.0 * np.sqrt(70.0))
 
                 h3_tilde = h3_tilde + h3[i]
                 h4_tilde = h4_tilde + h4[i]
@@ -1369,11 +2067,11 @@ class CabanaCabana2NormalityGofStatistic(AbstractNormalityGofStatistic):
             h8_tilde = h8_tilde / np.sqrt(n)
 
             vector_aux2 = (
-                (np.sqrt(2) * h0 + h2) * h5_tilde
-                + (np.sqrt(3 / 2) * h1 + h3) * h6_tilde
-                + (np.sqrt(4 / 3) * h2 + h4) * h7_tilde
-                + (np.sqrt(5 / 4) * h3 + h5) * h8_tilde
-                + (np.sqrt(5 / 4) * h3 + h5) * h8_tilde
+                    (np.sqrt(2) * h0 + h2) * h5_tilde
+                    + (np.sqrt(3 / 2) * h1 + h3) * h6_tilde
+                    + (np.sqrt(4 / 3) * h2 + h4) * h7_tilde
+                    + (np.sqrt(5 / 4) * h3 + h5) * h8_tilde
+                    + (np.sqrt(5 / 4) * h3 + h5) * h8_tilde
             )
             stat_tkl = np.max(
                 np.abs(
@@ -1386,23 +2084,49 @@ class CabanaCabana2NormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class ChenShapiroNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Chen-Shapiro test statistic for Normal distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "CS".
+        """
         return "CS"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "CS_NORMALITY_{parent_code}".
+        """
         short_code = ChenShapiroNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Chen-Shapiro test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: standardized test statistic value.
+        """
         return self.stat26(rvs)
 
     @staticmethod
     def stat26(x):
+        """
+        Compute Chen-Shapiro statistic.
+
+        :param x: array of data.
+        :return: standardized test statistic value.
+        """
         n = len(x)
 
         if n > 3:
@@ -1416,23 +2140,48 @@ class ChenShapiroNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class ZhangQNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Zhang Q test statistic for Normal distribution.
+    """
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "ZQ".
+        """
         return "ZQ"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "ZQ_NORMALITY_{parent_code}".
+        """
         short_code = ZhangQNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+         Execute the Zhang Q test statistic.
+
+         :param rvs: array of observed data samples.
+         :return: log-ratio statistic value.
+         """
         return self.stat27(rvs)
 
     @staticmethod
     def stat27(x):
+        """
+        Compute Zhang Q statistic.
+
+        :param x: array of data.
+        :return: log-ratio statistic value.
+        """
         n = len(x)
 
         if n > 3:
@@ -1462,22 +2211,48 @@ class ZhangQNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Coin test statistic for Normal distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "COIN".
+        """
         return "COIN"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "COIN_NORMALITY_{parent_code}".
+        """
         short_code = CoinNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Coin test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: squared coefficient statistic value.
+        """
         return self.stat30(rvs)
 
     def stat30(self, x):
+        """
+        Compute Coin statistic.
+
+        :param x: array of data.
+        :return: squared coefficient statistic value.
+        """
         n = len(x)
 
         if n > 3:
@@ -1499,7 +2274,7 @@ class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
 
             for i in range(n):
                 var_x += x[i] ** 2
-            var_x = (n * (var_x / n - mean_x**2)) / (n - 1)
+            var_x = (n * (var_x / n - mean_x ** 2)) / (n - 1)
             sd_x = math.sqrt(var_x)
 
             for i in range(n):
@@ -1532,6 +2307,13 @@ class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @staticmethod
     def correct(i, n):
+        """
+        Compute correction factor for normal scores.
+
+        :param i: index.
+        :param n: sample size.
+        :return: correction value.
+        """
         c1 = [9.5, 28.7, 1.9, 0.0, -7.0, -6.2, -1.6]
         c2 = [-6195.0, -9569.0, -6728.0, -17614.0, -8278.0, -3570.0, 1075.0]
         c3 = [93380.0, 175160.0, 410400.0, 2157600.0, 2.376e6, 2.065e6, 2.065e6]
@@ -1552,6 +2334,14 @@ class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
         return (c1[i] + an * (c2[i] + an * c3[i])) * mic
 
     def nscor2(self, s, n, n2):
+        """
+        Compute normal score coefficients.
+
+        :param s: output array for coefficients.
+        :param n: sample size.
+        :param n2: number of coefficients to compute.
+        :raises ValueError: if n2 > n or n <= 1.
+        """
         eps = [0.419885, 0.450536, 0.456936, 0.468488]
         dl1 = [0.112063, 0.12177, 0.239299, 0.215159]
         dl2 = [0.080122, 0.111348, -0.211867, -0.115049]
@@ -1597,45 +2387,83 @@ class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class DagostinoNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    D'Agostino D test statistic for Normal distribution.
+    """
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "D".
+        """
         return "D"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "D_NORMALITY_{parent_code}".
+        """
         short_code = DagostinoNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the D'Agostino D test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: standardized test statistic value.
+        """
         n = len(rvs)
         if n > 3:
             xs = np.sort(rvs)  # We sort the data
             mean_x = sum(xs) / n
-            var_x = sum(x_i**2 for x_i in xs) / n - mean_x**2
+            var_x = sum(x_i ** 2 for x_i in xs) / n - mean_x ** 2
             t = sum((i - 0.5 * (n + 1)) * xs[i - 1] for i in range(1, n + 1))
-            d = t / ((n**2) * math.sqrt(var_x))
+            d = t / ((n ** 2) * math.sqrt(var_x))
             stat_da = math.sqrt(n) * (d - 0.28209479) / 0.02998598
 
             return stat_da  # Here is the test statistic value
 
 
 class ZhangQStarNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Zhang Q* test statistic for Normal distribution.
+    """
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "ZQS".
+        """
         return "ZQS"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "ZQS_NORMALITY_{parent_code}".
+        """
         short_code = ZhangQStarNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Zhang Q* test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: log-ratio statistic value.
+        """
         n = len(rvs)
 
         if n > 3:
@@ -1716,19 +2544,39 @@ class ZhangQQStarNormalityTest(AbstractNormalityTestStatistic):  # TODO: check f
 
 
 class SWRGNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Shapiro-Wilk-Royston-Green (SWRG) test statistic for Normal distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "SWRG".
+        """
         return "SWRG"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "SWRG_NORMALITY_{parent_code}".
+        """
         short_code = SWRGNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the SWRG test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: W-like statistic value.
+        """
         n = len(rvs)
 
         if n > 3:
@@ -1740,7 +2588,7 @@ class SWRGNormalityGofStatistic(AbstractNormalityGofStatistic):
             aux3 = np.concatenate((mi[1:] * fi[1:], [0]))
             aux4 = aux1 - aux2 + aux3
             ai_star = -((n + 1) * (n + 2)) * fi * aux4
-            norm2 = np.sum(ai_star**2)
+            norm2 = np.sum(ai_star ** 2)
             ai = ai_star / np.sqrt(norm2)
 
             xs = np.sort(rvs)
@@ -1752,23 +2600,49 @@ class SWRGNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class GMGNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Geary-Moore-Geary (GMG) test statistic for Normal distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "GMG".
+        """
         return "GMG"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "GMG_NORMALITY_{parent_code}".
+        """
         short_code = GMGNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the GMG test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: ratio statistic value.
+        """
         return self.stat33(rvs)
 
     @staticmethod
     def stat33(x):
+        """
+        Compute GMG statistic.
+
+        :param x: array of data.
+        :return: ratio statistic value.
+        """
         n = len(x)
 
         if n > 3:
@@ -1819,22 +2693,48 @@ a robust measure of skewness, Computational Statistics, Vol. 23, Issue 3, pp. 42
 
 
 class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Brys-Hubert-Struyf test statistic for Normal distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "BHS".
+        """
         return "BHS"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "BHS_NORMALITY_{parent_code}".
+        """
         short_code = BHSNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the BHS test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: chi-square-like statistic value.
+        """
         return self.stat16(rvs)
 
     def stat16(self, x):
+        """
+        Compute BHS statistic using medcouple.
+
+        :param x: array of data.
+        :return: chi-square-like statistic value.
+        """
         n = len(x)
 
         if n > 3:
@@ -1842,10 +2742,10 @@ class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
             x_sorted = np.sort(x)
             if n % 2 == 0:
                 x1 = x_sorted[: n // 2]
-                x2 = x_sorted[n // 2 :]
+                x2 = x_sorted[n // 2:]
             else:
                 x1 = x_sorted[: (n // 2) + 1]
-                x2 = x_sorted[(n // 2) + 1 :]
+                x2 = x_sorted[(n // 2) + 1:]
 
             eps = [2.220446e-16, 2.225074e-308]
             iter_ = [1000, 0]
@@ -1871,6 +2771,14 @@ class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
     # TODO: refactor
     # flake8: noqa: C901
     def mc_c_d(self, z, eps, iter_):
+        """
+        Compute the medcouple statistic robustly.
+
+        :param z: array of data.
+        :param eps: tolerance values [eps1, eps2].
+        :param iter_: iteration control [max_it, trace_lev].
+        :return: medcouple value.
+        """
         """
         NOTE:
             eps = [eps1, eps2]
@@ -1942,7 +2850,7 @@ class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
         if trace_lev >= 2:
             print(f"   x1[] := {{x | x_j > x_eps = {x_eps}}}    has {j - 1} (='j-1') entries")
         i = 1
-        x2 = x[j - 1 :]  # pointer -- corresponding to x2[i] = x[j]
+        x2 = x[j - 1:]  # pointer -- corresponding to x2[i] = x[j]
         while j <= n and x[j] > -x_eps:  # test relative to x_med
             j += 1
             i += 1
@@ -2022,8 +2930,8 @@ class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
             j = 1
             for i in range(h2, 0, -1):
                 while (
-                    j <= h1
-                    and self.h_kern(x[j], x2[i - 1], j, i, h1 + 1, eps[1]) - trial > eps_trial
+                        j <= h1
+                        and self.h_kern(x[j], x2[i - 1], j, i, h1 + 1, eps[1]) - trial > eps_trial
                 ):
                     j += 1
                 p[i] = j - 1
@@ -2033,8 +2941,8 @@ class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
             sum_q = 0
             for i in range(1, h2 + 1):
                 while (
-                    j >= 1
-                    and trial - self.h_kern(x[j], x2[i - 1], j, i, h1 + 1, eps[1]) > eps_trial
+                        j >= 1
+                        and trial - self.h_kern(x[j], x2[i - 1], j, i, h1 + 1, eps[1]) > eps_trial
                 ):
                     j -= 1
                 q[i] = j + 1
@@ -2115,6 +3023,17 @@ class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @staticmethod
     def h_kern(a, b, ai, bi, ab, eps):
+        """
+        Kernel function for medcouple calculation.
+
+        :param a: left data point.
+        :param b: right data point.
+        :param ai: left index.
+        :param bi: right index.
+        :param ab: sum of indices.
+        :param eps: tolerance.
+        :return: kernel value.
+        """
         if np.abs(a - b) < 2.0 * eps or b > 0:
             return np.sign(ab - (ai + bi))
         else:
@@ -2122,6 +3041,17 @@ class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @staticmethod
     def whi_med_i(a, w, n, a_cand, a_srt, w_cand):
+        """
+        Weighted median calculation for medcouple algorithm.
+
+        :param a: values.
+        :param w: weights.
+        :param n: number of elements.
+        :param a_cand: candidate array.
+        :param a_srt: sorted array.
+        :param w_cand: candidate weights.
+        :return: weighted median.
+        """
         w_tot = sum(w)
         w_rest = 0
 
@@ -2158,23 +3088,49 @@ class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class SpiegelhalterNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Spiegelhalter test statistic for Normal distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "SH".
+        """
         return "SH"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "SH_NORMALITY_{parent_code}".
+        """
         short_code = SpiegelhalterNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Spiegelhalter test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: test statistic value.
+        """
         return self.stat41(rvs)
 
     @staticmethod
     def stat41(x):
+        """
+        Compute Spiegelhalter statistic.
+
+        :param x: array of data.
+        :return: test statistic value.
+        """
         n = len(x)
 
         if n > 3:
@@ -2201,9 +3157,9 @@ class SpiegelhalterNormalityGofStatistic(AbstractNormalityGofStatistic):
                 cn = 0.5 * math.gamma(n + 1) ** (1 / (n - 1)) / n
             else:
                 cn = (
-                    (2 * math.pi) ** (1 / (2 * (n - 1)))
-                    * ((n * math.sqrt(n)) / math.e) ** (1 / (n - 1))
-                    / (2 * math.e)
+                        (2 * math.pi) ** (1 / (2 * (n - 1)))
+                        * ((n * math.sqrt(n)) / math.e) ** (1 / (n - 1))
+                        / (2 * math.e)
                 )  # Stirling approximation
 
             stat_sp = ((cn * u) ** (-(n - 1)) + g ** (-(n - 1))) ** (1 / (n - 1))
@@ -2212,23 +3168,49 @@ class SpiegelhalterNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class DesgagneLafayeNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """
+    Desgagné-Lafaye test statistic for Normal distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "DLDMZEPD".
+        """
         return "DLDMZEPD"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "DLDMZEPD_NORMALITY_{parent_code}".
+        """
         short_code = DesgagneLafayeNormalityGofStatistic.short_code()
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Desgagné-Lafaye test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: quadratic form statistic value.
+        """
         return self.stat35(rvs)
 
     @staticmethod
     def stat35(x):
+        """
+        Compute Desgagné-Lafaye statistic.
+
+        :param x: array of data.
+        :return: quadratic form statistic value.
+        """
         n = len(x)
 
         if n > 3:
@@ -2242,7 +3224,7 @@ class DesgagneLafayeNormalityGofStatistic(AbstractNormalityGofStatistic):
 
             for i in range(n):
                 varpop_x += x[i] ** 2
-            varpop_x = varpop_x / n - mean_x**2
+            varpop_x = varpop_x / n - mean_x ** 2
             sd_x = np.sqrt(varpop_x)
             for i in range(n):
                 y[i] = (x[i] - mean_x) / sd_x
@@ -2258,9 +3240,9 @@ class DesgagneLafayeNormalityGofStatistic(AbstractNormalityGofStatistic):
 
             # Formula given in our paper p. 170
             rn = n * (
-                (r1 * 1259.04213344 - r2 * 32040.69569026 + r3 * 85065.77739473) * r1
-                + (-r1 * 32040.6956903 + r2 * 918649.9005906 - r3 * 2425883.3443201) * r2
-                + (r1 * 85065.7773947 - r2 * 2425883.3443201 + r3 * 6407749.8211208) * r3
+                    (r1 * 1259.04213344 - r2 * 32040.69569026 + r3 * 85065.77739473) * r1
+                    + (-r1 * 32040.6956903 + r2 * 918649.9005906 - r3 * 2425883.3443201) * r2
+                    + (r1 * 85065.7773947 - r2 * 2425883.3443201 + r3 * 6407749.8211208) * r3
             )
 
             return rn  # Here is the test statistic value
@@ -2269,9 +3251,18 @@ class DesgagneLafayeNormalityGofStatistic(AbstractNormalityGofStatistic):
 class AbstractGraphNormalityGofStatistic(
     AbstractNormalityGofStatistic, AbstractGraphTestStatistic, ABC
 ):
+    """
+    Abstract base class for graph-based Normality tests.
+    """
+
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for graph-based Normality statistics.
+
+        :return: string code in format "GRAPH_NORMALITY_{parent_code}".
+        """
         parent_code = AbstractNormalityGofStatistic.code()
         return f"GRAPH_{parent_code}"
 
@@ -2286,9 +3277,18 @@ class AbstractGraphNormalityGofStatistic(
 class GraphEdgesNumberNormalityGofStatistic(
     AbstractGraphNormalityGofStatistic, GraphEdgesNumberTestStatistic
 ):
+    """
+    Graph edges number test for Normality.
+    """
+
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "{short_code}_GRAPH_NORMALITY_{parent_code}".
+        """
         parent_code = AbstractGraphNormalityGofStatistic.code()
         short_code = GraphEdgesNumberNormalityGofStatistic.short_code()
         return f"{short_code}_{parent_code}"
@@ -2297,9 +3297,18 @@ class GraphEdgesNumberNormalityGofStatistic(
 class GraphMaxDegreeNormalityGofStatistic(
     AbstractGraphNormalityGofStatistic, GraphMaxDegreeTestStatistic
 ):
+    """
+    Graph maximum degree test for Normality.
+    """
+
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "{short_code}_GRAPH_NORMALITY_{parent_code}".
+        """
         parent_code = AbstractGraphNormalityGofStatistic.code()
         short_code = GraphMaxDegreeNormalityGofStatistic.short_code()
         return f"{short_code}_{parent_code}"
@@ -2308,9 +3317,18 @@ class GraphMaxDegreeNormalityGofStatistic(
 class GraphAverageDegreeNormalityGofStatistic(
     AbstractGraphNormalityGofStatistic, GraphAverageDegreeTestStatistic
 ):
+    """
+    Graph average degree test for Normality.
+    """
+
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "{short_code}_GRAPH_NORMALITY_{parent_code}".
+        """
         parent_code = AbstractGraphNormalityGofStatistic.code()
         short_code = GraphAverageDegreeNormalityGofStatistic.short_code()
         return f"{short_code}_{parent_code}"
@@ -2319,9 +3337,18 @@ class GraphAverageDegreeNormalityGofStatistic(
 class GraphConnectedComponentsNormalityGofStatistic(
     AbstractGraphNormalityGofStatistic, GraphConnectedComponentsTestStatistic
 ):
+    """
+    Graph connected components test for Normality.
+    """
+
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "{short_code}_GRAPH_NORMALITY_{parent_code}".
+        """
         parent_code = AbstractGraphNormalityGofStatistic.code()
         short_code = GraphConnectedComponentsNormalityGofStatistic.short_code()
         return f"{short_code}_{parent_code}"
@@ -2330,9 +3357,18 @@ class GraphConnectedComponentsNormalityGofStatistic(
 class GraphCliqueNumberNormalityGofStatistic(
     AbstractGraphNormalityGofStatistic, GraphCliqueNumberTestStatistic
 ):
+    """
+    Graph clique number test for Normality.
+    """
+
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "{short_code}_GRAPH_NORMALITY_{parent_code}".
+        """
         parent_code = AbstractGraphNormalityGofStatistic.code()
         short_code = GraphCliqueNumberNormalityGofStatistic.short_code()
         return f"{short_code}_{parent_code}"
@@ -2341,9 +3377,18 @@ class GraphCliqueNumberNormalityGofStatistic(
 class GraphIndependenceNumberNormalityGofStatistic(
     AbstractGraphNormalityGofStatistic, GraphIndependenceNumberTestStatistic
 ):
+    """
+    Graph independence number test for Normality.
+    """
+
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "{short_code}_GRAPH_NORMALITY_{parent_code}".
+        """
         parent_code = AbstractGraphNormalityGofStatistic.code()
         short_code = GraphIndependenceNumberNormalityGofStatistic.short_code()
         return f"{short_code}_{parent_code}"
