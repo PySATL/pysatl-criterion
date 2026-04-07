@@ -120,7 +120,7 @@ class SQLiteLimitDistributionStorage(ILimitDistributionStorage):
             return None
 
         columns = [col[0] for col in cursor.description]
-        return self._row_to_model(dict(zip(columns, row)))
+        return self._row_to_model(dict(zip(columns, row, strict=False)))
 
     def delete_data(self, query: LimitDistributionQuery) -> None:
         """Delete specific limit distribution data."""
@@ -164,4 +164,4 @@ class SQLiteLimitDistributionStorage(ILimitDistributionStorage):
             return None
 
         columns = [col[0] for col in cursor.description]
-        return self._row_to_model(dict(zip(columns, row)))
+        return self._row_to_model(dict(zip(columns, row, strict=False)))

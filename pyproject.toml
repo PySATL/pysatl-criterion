@@ -7,12 +7,14 @@ authors = [
 ]
 license = {text = "MIT"}
 readme = "README.md"
-requires-python = ">=3.9,<3.13"
+requires-python = ">=3.10,<3.13"
 dependencies = [
     "numpy>=1.25.1",
     "scipy>=1.11.2",
     "pandas>=2.2.1",
-    "typing-extensions>=4.12.2"
+    "typing-extensions>=4.12.2",
+    "networkx == 3.4.2",
+    "sqlalchemy == 2.0.41"
 ]
 
 [project.urls]

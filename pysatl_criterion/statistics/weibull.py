@@ -34,8 +34,14 @@ class AbstractWeibullGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
 class MinToshiyukiWeibullGofStatistic(AbstractWeibullGofStatistic, MinToshiyukiStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "MT"
+
+    @staticmethod
+    @override
     def code():
-        return f"MT_{AbstractWeibullGofStatistic.code()}"
+        short_code = MinToshiyukiWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs):
@@ -47,8 +53,14 @@ class MinToshiyukiWeibullGofStatistic(AbstractWeibullGofStatistic, MinToshiyukiS
 class Chi2PearsonWeibullGofStatistic(AbstractWeibullGofStatistic, Chi2Statistic):
     @staticmethod
     @override
+    def short_code():
+        return "CHI2_PEARSON"
+
+    @staticmethod
+    @override
     def code():
-        return f"CHI2_PEARSON_{AbstractWeibullGofStatistic.code()}"
+        short_code = Chi2PearsonWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -64,8 +76,14 @@ class Chi2PearsonWeibullGofStatistic(AbstractWeibullGofStatistic, Chi2Statistic)
 class LillieforsWeibullGofStatistic(AbstractWeibullGofStatistic, LillieforsTest):
     @staticmethod
     @override
+    def short_code():
+        return "LILLIE"
+
+    @staticmethod
+    @override
     def code():
-        return f"LILLIE_{AbstractWeibullGofStatistic.code()}"
+        short_code = LillieforsWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -77,8 +95,14 @@ class LillieforsWeibullGofStatistic(AbstractWeibullGofStatistic, LillieforsTest)
 class CrammerVonMisesWeibullGofStatistic(AbstractWeibullGofStatistic, CrammerVonMisesStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "CVM"
+
+    @staticmethod
+    @override
     def code():
-        return f"CVM_{AbstractWeibullGofStatistic.code()}"
+        short_code = CrammerVonMisesWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def execute_statistic(self, rvs):
         rvs_sorted = np.sort(rvs)
@@ -89,8 +113,14 @@ class CrammerVonMisesWeibullGofStatistic(AbstractWeibullGofStatistic, CrammerVon
 class AndersonDarlingWeibullGofStatistic(AbstractWeibullGofStatistic, ADStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "AD"
+
+    @staticmethod
+    @override
     def code():
-        return f"AD_{AbstractWeibullGofStatistic.code()}"
+        short_code = AndersonDarlingWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -115,8 +145,14 @@ class KolmogorovSmirnovWeibullGofStatistic(AbstractWeibullGofStatistic, KSStatis
 
     @staticmethod
     @override
+    def short_code():
+        return "KS"
+
+    @staticmethod
+    @override
     def code():
-        return f"KS_{AbstractWeibullGofStatistic.code()}"
+        short_code = KolmogorovSmirnovWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -128,8 +164,14 @@ class KolmogorovSmirnovWeibullGofStatistic(AbstractWeibullGofStatistic, KSStatis
 class SbWeibullGofStatistic(AbstractWeibullGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "SB"
+
+    @staticmethod
+    @override
     def code():
-        return f"SB_{AbstractWeibullGofStatistic.code()}"
+        short_code = SbWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     # Test statistic of Shapiro Wilk
     @override
@@ -156,8 +198,14 @@ class SbWeibullGofStatistic(AbstractWeibullGofStatistic):
 class ST2WeibullGofStatistic(AbstractWeibullGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "ST2"
+
+    @staticmethod
+    @override
     def code():
-        return f"ST2_{AbstractWeibullGofStatistic.code()}"
+        short_code = ST2WeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     # Smooth test statistic based on the kurtosis
     @override
@@ -179,8 +227,14 @@ class ST2WeibullGofStatistic(AbstractWeibullGofStatistic):
 class ST1WeibullGofStatistic(AbstractWeibullGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "ST1"
+
+    @staticmethod
+    @override
     def code():
-        return f"ST1_{AbstractWeibullGofStatistic.code()}"
+        short_code = ST1WeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     # Smooth test statistic based on the skewness
     @override
@@ -201,8 +255,14 @@ class ST1WeibullGofStatistic(AbstractWeibullGofStatistic):
 class RSBWeibullGofStatistic(AbstractWeibullGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "RSB"
+
+    @staticmethod
+    @override
     def code():
-        return f"RSB_{AbstractWeibullGofStatistic.code()}"
+        short_code = RSBWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     # Test statistic of Smith and Bain based on probability plot
     @override
@@ -292,8 +352,14 @@ class NormalizeSpaceWeibullGofStatistic(AbstractWeibullGofStatistic):
 class TikuSinghWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "TS"
+
+    @staticmethod
+    @override
     def code():
-        return f"TS_{AbstractWeibullGofStatistic.code()}"
+        short_code = TikuSinghWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     # Tiku-Singh test statistic
 
@@ -316,8 +382,14 @@ class TikuSinghWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
 class LOSWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "LOS"
+
+    @staticmethod
+    @override
     def code():
-        return f"LOS_{AbstractWeibullGofStatistic.code()}"
+        short_code = LOSWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     # Lockhart-O'Reilly-Stephens test statistic
     @override
@@ -341,8 +413,14 @@ class LOSWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
 class MSFWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "MSF"
+
+    @staticmethod
+    @override
     def code():
-        return f"MSF_{AbstractWeibullGofStatistic.code()}"
+        short_code = MSFWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     # Lockhart-O'Reilly-Stephens test statistic
     @override
@@ -469,8 +547,14 @@ class WPPWeibullGofStatistic(AbstractWeibullGofStatistic):
 class OKWeibullGofStatistic(WPPWeibullGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "OK"
+
+    @staticmethod
+    @override
     def code():
-        return f"OK_{AbstractWeibullGofStatistic.code()}"
+        short_code = OKWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     # Test statistic of Ozturk and Korukoglu
     @override
@@ -491,8 +575,14 @@ class OKWeibullGofStatistic(WPPWeibullGofStatistic):
 class SBWeibullGofStatistic(WPPWeibullGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "SB"
+
+    @staticmethod
+    @override
     def code():
-        return f"SB_{WPPWeibullGofStatistic.code()}"
+        short_code = SBWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     # Test statistic of Shapiro Wilk
     @override
@@ -503,8 +593,14 @@ class SBWeibullGofStatistic(WPPWeibullGofStatistic):
 class REJGWeibullGofStatistic(WPPWeibullGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "REJG"
+
+    @staticmethod
+    @override
     def code():
-        return f"REJG_{WPPWeibullGofStatistic.code()}"
+        short_code = REJGWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     # Test statistic of Evans, Johnson and Green based on probability plot
     @override
@@ -515,8 +611,14 @@ class REJGWeibullGofStatistic(WPPWeibullGofStatistic):
 class SPPWeibullGofStatistic(WPPWeibullGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "SPP"
+
+    @staticmethod
+    @override
     def code():
-        return f"SPP_{WPPWeibullGofStatistic.code()}"
+        short_code = SPPWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     # Test statistic based on stabilized probability plot
     @override
@@ -536,8 +638,14 @@ class MahdiDoostparastWeibullGofStatistic(AbstractWeibullGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "MD"
+
+    @staticmethod
+    @override
     def code():
-        return f"MD_{AbstractWeibullGofStatistic.code()}"
+        short_code = MahdiDoostparastWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs):
@@ -564,8 +672,14 @@ class WatsonWeibullGofStatistic(CrammerVonMisesWeibullGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "W"
+
+    @staticmethod
+    @override
     def code():
-        return f"W_{CrammerVonMisesWeibullGofStatistic.code()}"
+        short_code = WatsonWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs):
@@ -591,8 +705,14 @@ class LiaoShimokawaWeibullGofStatistic(AbstractWeibullGofStatistic):
 
     @staticmethod
     @override
+    def short_code():
+        return "LS"
+
+    @staticmethod
+    @override
     def code():
-        return f"LS_{AbstractWeibullGofStatistic.code()}"
+        short_code = LiaoShimokawaWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs):
@@ -616,8 +736,14 @@ class LiaoShimokawaWeibullGofStatistic(AbstractWeibullGofStatistic):
 class KullbackLeiblerWeibullGofStatistic(AbstractWeibullGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "KL"
+
+    @staticmethod
+    @override
     def code():
-        return f"KL_{AbstractWeibullGofStatistic.code()}"
+        short_code = KullbackLeiblerWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, m=None):
@@ -679,8 +805,14 @@ class LaplaceTransformWeibullGofStatistic(AbstractWeibullGofStatistic):
 class LaplaceTransform2WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "LT2"
+
+    @staticmethod
+    @override
     def code():
-        return f"LT2_{LaplaceTransformWeibullGofStatistic.code()}"
+        short_code = LaplaceTransform2WeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def execute_statistic(self, rvs, m=100, a=-5):
         return super().execute_statistic(rvs, m, a, self.code())
@@ -689,8 +821,14 @@ class LaplaceTransform2WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
 class LaplaceTransform3WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
     @staticmethod
     @override
+    def short_code():
+        return "LT3"
+
+    @staticmethod
+    @override
     def code():
-        return f"LT3_{LaplaceTransformWeibullGofStatistic.code()}"
+        short_code = LaplaceTransform3WeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def execute_statistic(self, rvs, m=100, a=-5):
         return super().execute_statistic(rvs, m, a, self.code())
@@ -698,12 +836,18 @@ class LaplaceTransform3WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
 
 # TODO: Check it. Throws exception on weibull test
 class CabanaQuirozWeibullGofStatistic(AbstractWeibullGofStatistic):
-    # Test statistic of Cabana and Quiroz
+    @staticmethod
+    @override
+    def short_code():
+        return "CQ*"
 
     @staticmethod
     @override
     def code():
-        return f"CQ*_{AbstractWeibullGofStatistic.code()}"
+        short_code = CabanaQuirozWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
+
+    # Test statistic of Cabana and Quiroz
 
     def execute_statistic(self, rvs):
         s1 = -0.1
