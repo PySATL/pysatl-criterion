@@ -31,5 +31,5 @@ class CriticalValueLoader:
             self.__local_storage.insert_data(remote_data)
         else:
             logging.warning(
-                f"Remote data for criterion {criterion_code} " f"with size {sample_size} not found"
+                f"Remote data for criterion {criterion_code} with size {sample_size} not found"
             )
