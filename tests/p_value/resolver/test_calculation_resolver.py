@@ -42,9 +42,9 @@ def test_calculate_p_value_for_different_alternatives(mock_storage_cls):
             statistics_value=89.5,
             alternative=alternative,
         )
-        assert p_value == pytest.approx(
-            expected_p_value, abs=1e-10
-        ), f"Expected p-value {expected_p_value} for {test_name}, got {p_value}"
+        assert p_value == pytest.approx(expected_p_value, abs=1e-10), (
+            f"Expected p-value {expected_p_value} for {test_name}, got {p_value}"
+        )
 
 
 @patch("pysatl_criterion.p_value.resolver.calculation_resolver.ILimitDistributionStorage")
