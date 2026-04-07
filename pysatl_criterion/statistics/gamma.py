@@ -526,6 +526,20 @@ class AbstractBinnedGammaGofStatistic(AbstractGammaGofStatistic, Chi2Statistic, 
         super().__init__(shape=shape, scale=scale)
         self.lambda_value = getattr(self, "lambda_value", 1.0)
 
+    def _counts_and_expected(self, rvs):
+        sample = np.asarray(rvs)
+        n = sample.size
+        if n == 0:
+            raise ValueError("At least one observation is required for binned Gamma statistics.")
+
+        quantiles = np.linspace(0.0, 1.0, self.bins + 1)
+        edges = scipy_stats.gamma.ppf(quantiles, a=self.shape, scale=self.scale)
+        edges[0] = -np.inf
+        edges[-1] = np.inf
+        counts, _ = np.histogram(sample, bins=edges)
+        expected = np.full(self.bins, n / self.bins)
+        return counts, expected
+
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
@@ -756,6 +770,22 @@ class AbstractGraphGammaGofStatistic(AbstractGammaGofStatistic, AbstractGraphTes
         parent_code = AbstractGammaGofStatistic.code()
         return f"GRAPH_{parent_code}"
 
+    def _transform_sample(self, rvs):
+        sample = np.asarray(rvs, dtype=float)
+        if sample.size == 0:
+            raise ValueError(
+                "At least one observation is required to compute Gamma graph statistics."
+            )
+
+        sorted_sample = np.sort(sample)
+        uniformized = scipy_stats.gamma.cdf(sorted_sample, a=self.shape, scale=self.scale)
+        return uniformized.tolist()
+
+    def _evaluate_graph_statistic(self, transformed_sample, **kwargs):
+        """Delegate graph statistic evaluation to the generic adjacency-based logic."""
+
+        return AbstractGraphTestStatistic.execute_statistic(self, transformed_sample, **kwargs)
+
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
@@ -881,6 +911,9 @@ class GraphCliqueNumberGammaGofStatistic(
         short_code = GraphCliqueNumberGammaGofStatistic.short_code()
         return f"{short_code}_{parent_code}"
 
+    def _evaluate_graph_statistic(self, transformed_sample, **kwargs):
+        return GraphCliqueNumberTestStatistic.execute_statistic(self, transformed_sample, **kwargs)
+
 
 class GraphIndependenceNumberGammaGofStatistic(
     AbstractGraphGammaGofStatistic, GraphIndependenceNumberTestStatistic
@@ -903,3 +936,8 @@ class GraphIndependenceNumberGammaGofStatistic(
         parent_code = AbstractGraphGammaGofStatistic.code()
         short_code = GraphIndependenceNumberGammaGofStatistic.short_code()
         return f"{short_code}_{parent_code}"
+
+    def _evaluate_graph_statistic(self, transformed_sample, **kwargs):
+        return GraphIndependenceNumberTestStatistic.execute_statistic(
+            self, transformed_sample, **kwargs
+        )
