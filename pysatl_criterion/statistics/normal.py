@@ -1533,7 +1533,8 @@ class DoornikHansenNormalityGofStatistic(AbstractNormalityGofStatistic):
         :param n: sample size.
         :return: transformed z-score.
         """
-        b = 3 * ((n ** 2) + 27 * n - 70) * (n + 1) * (n + 3) / ((n - 2) * (n + 5) * (n + 7) * (n + 9))
+        b = 3 * ((n ** 2) + 27 * n - 70) * (n + 1) * (n + 3) / ((n - 2) * (n + 5) * (n + 7) *
+                                                                (n + 9))
         w2 = -1 + math.sqrt(2 * (b - 1))
         d = 1 / math.sqrt(math.log(math.sqrt(w2)))
         y = skew * math.sqrt((n + 1) * (n + 3) / (6 * (n - 2)))

@@ -278,7 +278,8 @@ class KLSupremumLogNormalGoFStatistic(AbstractGoodnessOfFitStatistic):
         Calculate critical value for the KL Supremum test.
 
         :param n: sample size.
-        :param alpha: significance level (default is 0.05). Supported: 0.01, 0.05, or range [0.001, 0.1].
+        :param alpha: significance level (default is 0.05). Supported: 0.01, 0.05,
+        or range [0.001, 0.1].
         :return: critical value.
         :raises ValueError: if alpha is outside the supported range [0.001, 0.1].
         """
@@ -405,7 +406,8 @@ class KLIntegralLogNormalGoFStatistic(AbstractLogNormalGofStatistic):
         Calculate critical value for the KL Integral test.
 
         :param n: sample size.
-        :param alpha: significance level (default is 0.05). Supported: 0.01, 0.05, or range [0.001, 0.1].
+        :param alpha: significance level (default is 0.05). Supported: 0.01, 0.05,
+        or range [0.001, 0.1].
         :return: critical value.
         :raises ValueError: if alpha is outside the supported range [0.001, 0.1].
         """

@@ -399,7 +399,8 @@ class GreenwoodGammaGofStatistic(AbstractGammaGofStatistic):
         Execute the Greenwood test statistic for Gamma distribution.
 
         :param rvs: array of observations assumed to follow Gamma(shape, scale).
-        :return: Greenwood spacing statistic G = sum(D_i^2) where spacings D_i are computed from Gamma CDF values.
+        :return: Greenwood spacing statistic G = sum(D_i^2) where spacings D_i are computed
+        from Gamma CDF values.
         :raises ValueError: if spacings are negative.
         """
 
@@ -499,7 +500,8 @@ class MinToshiyukiGammaGofStatistic(AbstractGammaGofStatistic, MinToshiyukiStati
         Execute the Min-Toshiyuki test statistic for Gamma distribution.
 
         :param rvs: array of observations assumed to follow Gamma(shape, scale).
-        :return: Min–Toshiyuki statistic that up-weights EDF deviations near the distribution tails using Gamma CDF values.
+        :return: Min–Toshiyuki statistic that up-weights EDF deviations near the distribution tails
+        using Gamma CDF values.
         """
 
         sorted_rvs = np.sort(np.asarray(rvs))
@@ -711,7 +713,8 @@ class ProbabilityPlotCorrelationGammaGofStatistic(AbstractGammaGofStatistic):
         Execute the probability plot correlation coefficient test for Gamma distribution.
 
         :param rvs: array of observations assumed to follow Gamma(shape, scale).
-        :return: one minus the probability-plot correlation coefficient. Values near zero indicate strong linear alignment with theoretical Gamma quantiles.
+        :return: one minus the probability-plot correlation coefficient. Values near zero
+        indicate strong linear alignment with theoretical Gamma quantiles.
         :raises ValueError: if sample has fewer than 2 observations or data is degenerate.
         """
 
