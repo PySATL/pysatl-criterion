@@ -1,7 +1,6 @@
 from abc import ABC
 
 import numpy as np
-import scipy.stats as scipy_stats
 from scipy import special
 from typing_extensions import override
 
@@ -61,10 +60,6 @@ class KSStatistic(AbstractStatistic, ABC):
             # d_location = d_minus_location
             # d_sign = -1
         return D
-
-    @override
-    def calculate_critical_value(self, rvs_size, sl):
-        return scipy_stats.distributions.kstwo.ppf(1 - sl, rvs_size)
 
     @staticmethod
     def __compute_dplus(cdf_vals, rvs):
@@ -161,10 +156,6 @@ class Chi2Statistic(AbstractStatistic, ABC):
             terms /= 0.5 * lambda_ * (lambda_ + 1)
 
         return terms.sum()
-
-    @override
-    def calculate_critical_value(self, rvs_size, sl):
-        return scipy_stats.distributions.chi2.ppf(1 - sl, rvs_size - 1)
 
 
 class MinToshiyukiStatistic(AbstractStatistic, ABC):
