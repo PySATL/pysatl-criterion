@@ -17,11 +17,11 @@ class CVCalculator:
         self.limit_distribution_storage = limit_distribution_storage
 
     def calculate_critical_value(
-            self,
-            criterion_code: str,
-            sample_size: int,
-            sl: float,
-            alternative: HypothesisType = HypothesisType.RIGHT,
+        self,
+        criterion_code: str,
+        sample_size: int,
+        sl: float,
+        alternative: HypothesisType = HypothesisType.RIGHT,
     ) -> float | tuple[float, float]:
         """
         Calculate critical value for given criterion.

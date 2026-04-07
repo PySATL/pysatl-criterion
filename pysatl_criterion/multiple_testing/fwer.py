@@ -107,6 +107,7 @@ class SidakHolm(AbstractMultipleTesting):
     """
     Šidák-Holm method for multiple testing correction.
     """
+
     @classmethod
     def adjust(cls, p_values: list[float]) -> list[float]:
         """

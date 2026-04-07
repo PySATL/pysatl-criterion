@@ -335,11 +335,11 @@ class KLIntegralLogNormalGoFStatistic(AbstractLogNormalGofStatistic):
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-         Execute the KL Integral test statistic for Log-Normal distribution.
+        Execute the KL Integral test statistic for Log-Normal distribution.
 
-         :param rvs: array of observed data samples.
-         :return: KL Integral test statistic value (inf if data contains non-positive values).
-         """
+        :param rvs: array of observed data samples.
+        :return: KL Integral test statistic value (inf if data contains non-positive values).
+        """
         rvs = np.array(rvs)
 
         if np.any(rvs <= 0):

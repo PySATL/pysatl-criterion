@@ -180,7 +180,7 @@ class AhsanullahExponentialityGofStatistic(AbstractExponentialityGofStatistic):
                         h += 1
                     if 2 * min(rvs[i], rvs[j]) < rvs[k]:
                         g += 1
-        a = (h - g) / (n ** 3)
+        a = (h - g) / (n**3)
 
         return a
 
@@ -416,7 +416,7 @@ class EpsteinExponentialityGofStatistic(AbstractExponentialityGofStatistic):
         n = len(rvs)
         rvs.sort()
         x = np.concatenate(([0], rvs))
-        d = (np.arange(n, 0, -1)) * (x[1: n + 1] - x[0:n])
+        d = (np.arange(n, 0, -1)) * (x[1 : n + 1] - x[0:n])
         eps = 2 * n * (np.log(np.sum(d) / n) - (np.sum(np.log(d))) / n) / (1 + (n + 1) / (6 * n))
 
         return eps
@@ -560,7 +560,7 @@ class GnedenkoExponentialityGofStatistic(AbstractExponentialityGofStatistic):
             r = round(len(rvs) / 2)
         n = len(rvs)
         x = np.sort(np.concatenate(([0], rvs)))
-        d = (np.arange(n, 0, -1)) * (x[1: n + 1] - x[0:n])
+        d = (np.arange(n, 0, -1)) * (x[1 : n + 1] - x[0:n])
         gd = (sum(d[:r]) / r) / (sum(d[r:]) / (n - r))
 
         return gd
@@ -608,7 +608,7 @@ class HarrisExponentialityGofStatistic(AbstractExponentialityGofStatistic):
             r = round(len(rvs) / 4)
         n = len(rvs)
         x = np.sort(np.concatenate(([0], rvs)))
-        d = (np.arange(n, 0, -1)) * (x[1: n + 1] - x[:n])
+        d = (np.arange(n, 0, -1)) * (x[1 : n + 1] - x[:n])
         hm = ((np.sum(d[:r]) + np.sum(d[-r:])) / (2 * r)) / ((np.sum(d[r:-r])) / (n - 2 * r))
 
         return hm
@@ -1026,12 +1026,12 @@ class RossbergExponentialityGofStatistic(AbstractExponentialityGofStatistic):
                 for j in range(i + 1, n - 1):
                     for k in range(j + 1, n):
                         if (
-                                rvs[i]
-                                + rvs[j]
-                                + rvs[k]
-                                - 2 * min(rvs[i], rvs[j], rvs[k])
-                                - max(rvs[i], rvs[j], rvs[k])
-                                < rvs[m]
+                            rvs[i]
+                            + rvs[j]
+                            + rvs[k]
+                            - 2 * min(rvs[i], rvs[j], rvs[k])
+                            - max(rvs[i], rvs[j], rvs[k])
+                            < rvs[m]
                         ):
                             h += 1
             h = ((6 * math.factorial(n - 3)) / math.factorial(n)) * h
@@ -1090,7 +1090,7 @@ class WeExponentialityGofStatistic(AbstractExponentialityGofStatistic):
         n = len(rvs)
         m = np.mean(rvs)
         v = np.var(rvs)
-        we = (n - 1) * v / (n ** 2 * m ** 2)
+        we = (n - 1) * v / (n**2 * m**2)
 
         return we
 
