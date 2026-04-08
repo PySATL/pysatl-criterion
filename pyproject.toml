@@ -14,7 +14,8 @@ dependencies = [
     "pandas>=2.2.1",
     "typing-extensions>=4.12.2",
     "networkx == 3.4.2",
-    "sqlalchemy == 2.0.41"
+    "sqlalchemy == 2.0.41",
+    "zstandard == 0.25.0"
 ]
 
 [project.urls]

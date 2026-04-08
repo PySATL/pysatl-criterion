@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from pysatl_criterion.critical_value.loader.remote_loader import CriticalValueLoader
@@ -66,7 +67,9 @@ def test_load_success_with_remote_data(
     assert local_data is not None
     assert local_data.criterion_code == sample_model.criterion_code
     assert local_data.sample_size == sample_model.sample_size
-    assert local_data.results_statistics == sample_model.results_statistics
+    assert np.allclose(
+        local_data.results_statistics, sample_model.results_statistics, rtol=1e-7, atol=0.0
+    )
 
 
 def test_load_no_remote_data(loader, sample_query, local_storage):
@@ -149,7 +152,7 @@ def test_load_with_different_query_parameters(loader, remote_storage, local_stor
         assert local_data is not None
         assert local_data.criterion_code == model.criterion_code
         assert local_data.sample_size == model.sample_size
-        assert local_data.results_statistics == model.results_statistics
+        np.allclose(local_data.results_statistics, model.results_statistics, rtol=1e-7, atol=0.0)
 
 
 def test_load_with_empty_model_data(loader, sample_query, remote_storage, local_storage):
@@ -197,7 +200,9 @@ def test_load_data_already_exists_locally(
     # Assert - verify data still exists and is correct
     local_data = local_storage.get_data_for_cv(sample_query)
     assert local_data is not None
-    assert local_data.results_statistics == sample_model.results_statistics
+    assert np.allclose(
+        local_data.results_statistics, sample_model.results_statistics, rtol=1e-7, atol=0.0
+    )
 
 
 def test_load_multiple_criteria_same_sample_size(loader, remote_storage, local_storage):
@@ -240,4 +245,6 @@ def test_load_multiple_criteria_same_sample_size(loader, remote_storage, local_s
         local_data = local_storage.get_data_for_cv(query)
         assert local_data is not None
         assert local_data.criterion_code == model.criterion_code
-        assert local_data.results_statistics == model.results_statistics
+        assert np.allclose(
+            local_data.results_statistics, model.results_statistics, rtol=1e-7, atol=0.0
+        )

@@ -3,6 +3,7 @@ import json
 from sqlalchemy import PrimaryKeyConstraint, Text
 from sqlalchemy.orm import Mapped, declarative_base, mapped_column
 
+from pysatl_criterion.persistence.alchemy_decorator import CompressedFloatArray
 from pysatl_criterion.persistence.model.limit_distribution.limit_distribution import (
     LimitDistributionModel,
 )
@@ -23,7 +24,7 @@ class LimitDistributionORM(Base):  # type: ignore
     criterion_parameters: Mapped[str] = mapped_column(Text)
     sample_size: Mapped[int]
     monte_carlo_count: Mapped[int]
-    results_statistics: Mapped[str] = mapped_column(Text)
+    results_statistics: Mapped[list[float]] = mapped_column(CompressedFloatArray(use_float32=True))
 
     __table_args__ = (
         PrimaryKeyConstraint(
@@ -48,7 +49,7 @@ class LimitDistributionORM(Base):  # type: ignore
             criterion_parameters=json.loads(self.criterion_parameters),
             sample_size=self.sample_size,
             monte_carlo_count=self.monte_carlo_count,
-            results_statistics=json.loads(self.results_statistics),
+            results_statistics=self.results_statistics,
         )
 
     @staticmethod
@@ -66,5 +67,5 @@ class LimitDistributionORM(Base):  # type: ignore
             criterion_parameters=json.dumps(model.criterion_parameters),
             sample_size=model.sample_size,
             monte_carlo_count=model.monte_carlo_count,
-            results_statistics=json.dumps(model.results_statistics),
+            results_statistics=model.results_statistics,
         )

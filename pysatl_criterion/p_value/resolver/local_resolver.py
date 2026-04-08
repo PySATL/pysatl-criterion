@@ -2,11 +2,9 @@ import scipy.stats as scipy_stats
 from typing_extensions import override
 
 from pysatl_criterion.p_value.resolver.model import PValueResolver
-from pysatl_criterion.persistence.limit_distribution.sqlite.sqlite import (
-    SQLiteLimitDistributionStorage,
-)
 from pysatl_criterion.persistence.model.limit_distribution.limit_distribution import (
     CriticalValueQuery,
+    ILimitDistributionStorage,
 )
 from pysatl_criterion.statistics.models import HypothesisType
 
@@ -18,7 +16,7 @@ class LocalPValueResolver(PValueResolver):
     :param limit_distribution_storage: limit distribution storage
     """
 
-    def __init__(self, limit_distribution_storage: SQLiteLimitDistributionStorage):
+    def __init__(self, limit_distribution_storage: ILimitDistributionStorage):
         self.limit_distribution_storage = limit_distribution_storage
 
     @override
