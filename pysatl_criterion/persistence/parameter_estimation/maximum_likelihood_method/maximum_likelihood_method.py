@@ -5,6 +5,13 @@ import numpy as np
 
 
 def findMaxProbabilityFunction(data):
+    """
+    Find the distribution function with maximum likelihood for given data.
+
+    :param data: list of observed data samples for distribution fitting.
+    :return: likelihood function with the maximum value for the given data.
+    :raises ValueError: if no function produces a positive likelihood value.
+    """
     functions = [
         f for _, f in inspect.getmembers(function_for_maximum_likelihood_method, inspect.isfunction)
     ]
@@ -22,6 +29,14 @@ def findMaxProbabilityFunction(data):
 
 
 def findResultOfLikelihoodFunction(data):
+    """
+    Validate data and find the best-fitting distribution function with its likelihood value.
+
+    :param data: list of observed data samples for distribution fitting.
+    :return: tuple containing the best likelihood function and its likelihood value.
+    :raises ValueError: if data is empty or no function produces positive likelihood.
+    :raises TypeError: if data contains non-numeric values.
+    """
     data_array = np.array(data)
 
     if not data_array:

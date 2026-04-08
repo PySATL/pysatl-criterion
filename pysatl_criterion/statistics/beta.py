@@ -20,13 +20,6 @@ class AbstractBetaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
 
     The Beta distribution is a continuous probability distribution defined on the interval [0, 1]
     parameterized by two positive shape parameters, denoted by α (alpha) and β (beta).
-
-    Parameters
-    ----------
-    alpha : float, default=1
-        Shape parameter α > 0
-    beta : float, default=1
-        Shape parameter β > 0
     """
 
     def __init__(self, alpha=1, beta=1):
@@ -55,6 +48,11 @@ class AbstractBetaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for Beta distribution statistics.
+
+        :return: string code in format "BETA_{parent_code}".
+        """
         return f"BETA_{AbstractGoodnessOfFitStatistic.code()}"
 
 
@@ -64,27 +62,6 @@ class KolmogorovSmirnovBetaGofStatistic(AbstractBetaGofStatistic, KSStatistic):
 
     The Kolmogorov-Smirnov test compares the empirical distribution function
     with the theoretical Beta distribution function.
-
-    Parameters
-    ----------
-    alpha : float, default=1
-        Shape parameter α > 0
-    beta : float, default=1
-        Shape parameter β > 0
-    alternative : {'two-sided', 'less', 'greater'}, optional
-        Defines the alternative hypothesis. Default is 'two-sided'.
-    mode : {'auto', 'exact', 'approx', 'asymp'}, optional
-        Defines the distribution used for calculating the p-value. Default is 'auto'.
-
-    Returns
-    -------
-    statistic : float
-        The Kolmogorov-Smirnov test statistic
-
-    References
-    ----------
-    .. [1] Massey, F. J. (1951). The Kolmogorov-Smirnov test for goodness of fit.
-           Journal of the American Statistical Association, 46(253), 68-78.
     """
 
     def __init__(self, alpha=1, beta=1, alternative="two-sided", mode="auto"):
@@ -94,11 +71,21 @@ class KolmogorovSmirnovBetaGofStatistic(AbstractBetaGofStatistic, KSStatistic):
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "KS".
+        """
         return "KS"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "KS_BETA_{parent_code}".
+        """
         short_code = KolmogorovSmirnovBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
@@ -107,15 +94,8 @@ class KolmogorovSmirnovBetaGofStatistic(AbstractBetaGofStatistic, KSStatistic):
         """
         Execute the Kolmogorov-Smirnov test statistic.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data from Beta distribution. Values should be in [0, 1].
-
-        Returns
-        -------
-        statistic : float
-            The test statistic value
+        :param rvs: array of sample data from Beta distribution (values in [0, 1]).
+        :return: Kolmogorov-Smirnov test statistic value.
         """
         rvs = self._validate_rvs(rvs)
 
@@ -130,24 +110,6 @@ class AndersonDarlingBetaGofStatistic(AbstractBetaGofStatistic, ADStatistic):
 
     The Anderson-Darling test is a modification of the Kolmogorov-Smirnov test
     that gives more weight to the tails of the distribution.
-
-    Parameters
-    ----------
-    alpha : float, default=1
-        Shape parameter α > 0
-    beta : float, default=1
-        Shape parameter β > 0
-
-    Returns
-    -------
-    statistic : float
-        The Anderson-Darling test statistic
-
-    References
-    ----------
-    .. [1] Anderson, T. W., & Darling, D. A. (1952). Asymptotic theory of certain
-           "goodness of fit" criteria based on stochastic processes.
-           The Annals of Mathematical Statistics, 23(2), 193-212.
     """
 
     @staticmethod
@@ -158,6 +120,11 @@ class AndersonDarlingBetaGofStatistic(AbstractBetaGofStatistic, ADStatistic):
     @staticmethod
     @override
     def code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "AD".
+        """
         short_code = AndersonDarlingBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
@@ -166,15 +133,8 @@ class AndersonDarlingBetaGofStatistic(AbstractBetaGofStatistic, ADStatistic):
         """
         Execute the Anderson-Darling test statistic.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data from Beta distribution. Values should be in [0, 1].
-
-        Returns
-        -------
-        statistic : float
-            The test statistic value
+        :param rvs: array of sample data from Beta distribution (values in [0, 1]).
+        :return: Anderson-Darling test statistic value.
         """
         rvs = self._validate_rvs(rvs)
 
@@ -195,38 +155,28 @@ class CrammerVonMisesBetaGofStatistic(AbstractBetaGofStatistic, CrammerVonMisesS
     """
     Cramér-von Mises test statistic for Beta distribution.
 
-    The Cramér-von Mises test is a goodness-of-fit test that measures the
-    discrepancy between the empirical distribution function and the theoretical
-    cumulative distribution function.
-
-    Parameters
-    ----------
-    alpha : float, default=1
-        Shape parameter α > 0
-    beta : float, default=1
-        Shape parameter β > 0
-
-    Returns
-    -------
-    statistic : float
-        The Cramér-von Mises test statistic
-
-    References
-    ----------
-    .. [1] Cramér, H. (1928). On the composition of elementary errors.
-           Scandinavian Actuarial Journal, 1928(1), 13-74.
-    .. [2] von Mises, R. (1928). Wahrscheinlichkeit, Statistik und Wahrheit.
-           Julius Springer.
+    Goodness-of-fit test that measures the integrated squared difference between
+    the empirical and theoretical cumulative distribution functions.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "CVM".
+        """
         return "CVM"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "CVM_BETA_{parent_code}".
+        """
         short_code = CrammerVonMisesBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
@@ -235,15 +185,8 @@ class CrammerVonMisesBetaGofStatistic(AbstractBetaGofStatistic, CrammerVonMisesS
         """
         Execute the Cramér-von Mises test statistic.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data from Beta distribution. Values should be in [0, 1].
-
-        Returns
-        -------
-        statistic : float
-            The test statistic value
+        :param rvs: array of sample data from Beta distribution (values in [0, 1]).
+        :return: Cramér-von Mises test statistic value.
         """
         rvs = self._validate_rvs(rvs)
 
@@ -258,34 +201,26 @@ class LillieforsTestBetaGofStatistic(AbstractBetaGofStatistic, LillieforsTest):
 
     The Lilliefors test is a modification of the Kolmogorov-Smirnov test for
     the case when parameters are estimated from the data.
-
-    Parameters
-    ----------
-    alpha : float, default=1
-        Shape parameter α > 0
-    beta : float, default=1
-        Shape parameter β > 0
-
-    Returns
-    -------
-    statistic : float
-        The Lilliefors test statistic
-
-    References
-    ----------
-    .. [1] Lilliefors, H. W. (1967). On the Kolmogorov-Smirnov test for normality
-           with mean and variance unknown. Journal of the American Statistical
-           Association, 62(318), 399-402.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "LILLIE".
+        """
         return "LILLIE"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "LILLIE_BETA_{parent_code}".
+        """
         short_code = LillieforsTestBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
@@ -294,15 +229,8 @@ class LillieforsTestBetaGofStatistic(AbstractBetaGofStatistic, LillieforsTest):
         """
         Execute the Lilliefors test statistic.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data from Beta distribution. Values should be in [0, 1].
-
-        Returns
-        -------
-        statistic : float
-            The test statistic value
+        :param rvs: array of sample data from Beta distribution (values in [0, 1]).
+        :return: Lilliefors test statistic value.
         """
         rvs = self._validate_rvs(rvs)
 
@@ -317,28 +245,6 @@ class Chi2PearsonBetaGofStatistic(AbstractBetaGofStatistic, Chi2Statistic):
 
     The chi-squared test compares observed frequencies with expected frequencies
     based on the Beta distribution.
-
-    Parameters
-    ----------
-    alpha : float, default=1
-        Shape parameter α > 0
-    beta : float, default=1
-        Shape parameter β > 0
-    lambda_ : float, default=1
-        Power divergence parameter. Lambda=1 gives Pearson's chi-squared statistic.
-
-    Returns
-    -------
-    statistic : float
-        The chi-squared test statistic
-
-    References
-    ----------
-    .. [1] Pearson, K. (1900). On the criterion that a given system of deviations from
-           the probable in the case of a correlated system of variables is such that
-           it can be reasonably supposed to have arisen from random sampling.
-           The London, Edinburgh, and Dublin Philosophical Magazine and Journal of
-           Science, 50(302), 157-175.
     """
 
     def __init__(self, alpha=1, beta=1, lambda_=1):
@@ -349,28 +255,31 @@ class Chi2PearsonBetaGofStatistic(AbstractBetaGofStatistic, Chi2Statistic):
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "CHI2_PEARSON".
+        """
         return "CHI2_PEARSON"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "CHI2_PEARSON_BETA_{parent_code}".
+        """
         short_code = Chi2PearsonBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Execute the Pearson's chi-squared test statistic.
+        Execute Pearson's Chi-squared test statistic.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data from Beta distribution. Values should be in [0, 1].
-
-        Returns
-        -------
-        statistic : float
-            The test statistic value
+        :param rvs: array of sample data from Beta distribution (values in [0, 1]).
+        :return: Chi-squared test statistic value.
         """
         rvs = self._validate_rvs(rvs)
 
@@ -396,33 +305,26 @@ class WatsonBetaGofStatistic(AbstractBetaGofStatistic):
 
     The Watson test is a modification of the Cramér-von Mises test that is
     invariant under location changes.
-
-    Parameters
-    ----------
-    alpha : float, default=1
-        Shape parameter α > 0
-    beta : float, default=1
-        Shape parameter β > 0
-
-    Returns
-    -------
-    statistic : float
-        The Watson test statistic
-
-    References
-    ----------
-    .. [1] Watson, G. S. (1961). Goodness-of-fit tests on a circle.
-           Biometrika, 48(1/2), 109-114.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "W".
+        """
         return "W"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "W_BETA_{parent_code}".
+        """
         short_code = WatsonBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
@@ -431,15 +333,8 @@ class WatsonBetaGofStatistic(AbstractBetaGofStatistic):
         """
         Execute the Watson test statistic.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data from Beta distribution. Values should be in [0, 1].
-
-        Returns
-        -------
-        statistic : float
-            The test statistic value
+        :param rvs: array of sample data from Beta distribution (values in [0, 1]).
+        :return: Watson test statistic value.
         """
         rvs = self._validate_rvs(rvs)
 
@@ -464,33 +359,26 @@ class KuiperBetaGofStatistic(AbstractBetaGofStatistic):
 
     The Kuiper test is a variant of the Kolmogorov-Smirnov test that is
     more sensitive to deviations in the tails of the distribution.
-
-    Parameters
-    ----------
-    alpha : float, default=1
-        Shape parameter α > 0
-    beta : float, default=1
-        Shape parameter β > 0
-
-    Returns
-    -------
-    statistic : float
-        The Kuiper test statistic (D+ + D-)
-
-    References
-    ----------
-    .. [1] Kuiper, N. H. (1960). Tests concerning random points on a circle.
-           Indagationes Mathematicae, 63, 38-47.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "KUIPER".
+        """
         return "KUIPER"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "KUIPER_BETA_{parent_code}".
+        """
         short_code = KuiperBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
@@ -499,15 +387,8 @@ class KuiperBetaGofStatistic(AbstractBetaGofStatistic):
         """
         Execute the Kuiper test statistic.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data from Beta distribution. Values should be in [0, 1].
-
-        Returns
-        -------
-        statistic : float
-            The test statistic value (D+ + D-)
+        :param rvs: array of sample data from Beta distribution (values in [0, 1]).
+        :return: Kuiper test statistic value.
         """
         rvs = self._validate_rvs(rvs)
 
@@ -531,38 +412,26 @@ class MomentBasedBetaGofStatistic(AbstractBetaGofStatistic):
 
     This test compares the sample moments with the theoretical moments of
     the Beta distribution. It uses the first two moments (mean and variance).
-
-    For Beta(α, β):
-    - Mean: μ = α/(α+β)
-    - Variance: σ² = αβ/[(α+β)²(α+β+1)]
-
-    Parameters
-    ----------
-    alpha : float, default=1
-        Shape parameter α > 0
-    beta : float, default=1
-        Shape parameter β > 0
-
-    Returns
-    -------
-    statistic : float
-        The moment-based test statistic
-
-    References
-    ----------
-    .. [1] Johnson, N. L., Kotz, S., & Balakrishnan, N. (1995).
-           Continuous univariate distributions, volume 2 (Vol. 289).
-           John Wiley & Sons.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "MB".
+        """
         return "MB"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "MB_BETA_{parent_code}".
+        """
         short_code = MomentBasedBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
@@ -571,15 +440,8 @@ class MomentBasedBetaGofStatistic(AbstractBetaGofStatistic):
         """
         Execute the moment-based test statistic.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data from Beta distribution. Values should be in [0, 1].
-
-        Returns
-        -------
-        statistic : float
-            The test statistic value
+        :param rvs: array of sample data from Beta distribution (values in [0, 1]).
+        :return: moment-based test statistic value.
         """
         rvs = self._validate_rvs(rvs)
 
@@ -610,38 +472,26 @@ class SkewnessKurtosisBetaGofStatistic(AbstractBetaGofStatistic):
 
     This test compares the sample skewness and kurtosis with the theoretical
     values of the Beta distribution.
-
-    For Beta(α, β):
-    - Skewness: γ₁ = 2(β-α)√(α+β+1) / [(α+β+2)√(αβ)]
-    - Kurtosis: γ₂ = 6[(α-β)²(α+β+1) - αβ(α+β+2)] / [αβ(α+β+2)(α+β+3)]
-
-    Parameters
-    ----------
-    alpha : float, default=1
-        Shape parameter α > 0
-    beta : float, default=1
-        Shape parameter β > 0
-
-    Returns
-    -------
-    statistic : float
-        The skewness-kurtosis test statistic
-
-    References
-    ----------
-    .. [1] Jarque, C. M., & Bera, A. K. (1980). Efficient tests for normality,
-           homoscedasticity and serial independence of regression residuals.
-           Economics Letters, 6(3), 255-259.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "SK".
+        """
         return "SK"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "SK_BETA_{parent_code}".
+        """
         short_code = SkewnessKurtosisBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
@@ -650,15 +500,8 @@ class SkewnessKurtosisBetaGofStatistic(AbstractBetaGofStatistic):
         """
         Execute the skewness-kurtosis test statistic.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data from Beta distribution. Values should be in [0, 1].
-
-        Returns
-        -------
-        statistic : float
-            The test statistic value
+        :param rvs: array of sample data from Beta distribution (values in [0, 1]).
+        :return: skewness-kurtosis test statistic value.
         """
         rvs = self._validate_rvs(rvs)
 
@@ -701,33 +544,26 @@ class RatioBetaGofStatistic(AbstractBetaGofStatistic):
 
     This test is based on the ratio of geometric mean to arithmetic mean,
     which has a known relationship for the Beta distribution.
-
-    Parameters
-    ----------
-    alpha : float, default=1
-        Shape parameter α > 0
-    beta : float, default=1
-        Shape parameter β > 0
-
-    Returns
-    -------
-    statistic : float
-        The ratio test statistic
-
-    References
-    ----------
-    .. [1] Rao, C. R., & Shanbhag, D. N. (1994). Choquet-Deny type functional
-           equations with applications to stochastic models. John Wiley & Sons.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "RT".
+        """
         return "RT"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "RT_BETA_{parent_code}".
+        """
         short_code = RatioBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
@@ -736,15 +572,9 @@ class RatioBetaGofStatistic(AbstractBetaGofStatistic):
         """
         Execute the ratio test statistic.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data from Beta distribution. Values should be in [0, 1].
-
-        Returns
-        -------
-        statistic : float
-            The test statistic value
+        :param rvs: array of sample data from Beta distribution (values in (0, 1)).
+        :return: ratio test statistic value.
+        :raises ValueError: if arithmetic mean is zero.
         """
         rvs = self._validate_rvs(rvs, open_interval=True)
 
@@ -781,38 +611,26 @@ class EntropyBetaGofStatistic(AbstractBetaGofStatistic):
 
     This test compares the sample entropy (estimated using kernel density)
     with the theoretical entropy of the Beta distribution.
-
-    The differential entropy of Beta(α, β) is:
-    H = ln(B(α,β)) - (α-1)ψ(α) - (β-1)ψ(β) + (α+β-2)ψ(α+β)
-    where B is the Beta function and ψ is the digamma function.
-
-    Parameters
-    ----------
-    alpha : float, default=1
-        Shape parameter α > 0
-    beta : float, default=1
-        Shape parameter β > 0
-
-    Returns
-    -------
-    statistic : float
-        The entropy-based test statistic
-
-    References
-    ----------
-    .. [1] Vasicek, O. (1976). A test for normality based on sample entropy.
-           Journal of the Royal Statistical Society: Series B (Methodological),
-           38(1), 54-59.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "ENT".
+        """
         return "ENT"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "ENT_BETA_{parent_code}".
+        """
         short_code = EntropyBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
@@ -821,17 +639,8 @@ class EntropyBetaGofStatistic(AbstractBetaGofStatistic):
         """
         Execute the entropy-based test statistic.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data from Beta distribution. Values should be in [0, 1].
-        m : int, optional
-            Window size for entropy estimation. Default is n//4.
-
-        Returns
-        -------
-        statistic : float
-            The test statistic value
+        :param rvs: array of sample data from Beta distribution (values in [0, 1]).
+        :return: entropy-based test statistic value.
         """
         rvs = self._validate_rvs(rvs)
 
@@ -874,23 +683,6 @@ class ModeBetaGofStatistic(AbstractBetaGofStatistic):
 
     For Beta(α, β) with α, β > 1, the mode is (α-1)/(α+β-2).
     This test compares the sample mode (estimated) with the theoretical mode.
-
-    Parameters
-    ----------
-    alpha : float, default=2
-        Shape parameter α > 1
-    beta : float, default=2
-        Shape parameter β > 1
-
-    Returns
-    -------
-    statistic : float
-        The mode-based test statistic
-
-    References
-    ----------
-    .. [1] Chernoff, H. (1964). Estimation of the mode.
-           Annals of the Institute of Statistical Mathematics, 16(1), 31-41.
     """
 
     def __init__(self, alpha=2, beta=2):
@@ -903,11 +695,21 @@ class ModeBetaGofStatistic(AbstractBetaGofStatistic):
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "MODE".
+        """
         return "MODE"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "MODE_BETA_{parent_code}".
+        """
         short_code = ModeBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
@@ -916,17 +718,8 @@ class ModeBetaGofStatistic(AbstractBetaGofStatistic):
         """
         Execute the mode-based test statistic.
 
-        Parameters
-        ----------
-        rvs : array_like
-            Array of sample data from Beta distribution. Values should be in [0, 1].
-        bandwidth : float, optional
-            Bandwidth for kernel density estimation. If None, uses Scott's rule.
-
-        Returns
-        -------
-        statistic : float
-            The test statistic value
+        :param rvs: array of sample data from Beta distribution (values in [0, 1]).
+        :return: mode-based test statistic value.
         """
         rvs = self._validate_rvs(rvs)
 

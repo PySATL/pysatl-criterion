@@ -20,6 +20,10 @@ from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitSta
 
 
 class AbstractWeibullGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
+    """
+    Abstract base class for Weibull distribution goodness-of-fit statistics.
+    """
+
     def __init__(self, a=1, k=1):
         self.a = a
         self.k = k
@@ -27,43 +31,88 @@ class AbstractWeibullGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for Weibull statistics.
+
+        :return: string code in format "WEIBULL_{parent_code}".
+        """
         return f"WEIBULL_{AbstractGoodnessOfFitStatistic.code()}"
 
 
 # TODO: Check is it real test
 class MinToshiyukiWeibullGofStatistic(AbstractWeibullGofStatistic, MinToshiyukiStatistic):
+    """
+    Min–Toshiyuki tail-sensitive EDF statistic for Weibull distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "MT".
+        """
         return "MT"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "MT_WEIBULL_{parent_code}".
+        """
         short_code = MinToshiyukiWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs):
+        """
+        Execute the Min-Toshiyuki test statistic for Weibull distribution.
+
+        :param rvs: array of observed data samples.
+        :return: Min-Toshiyuki test statistic value.
+        """
         rvs = np.sort(rvs)
         cdf_vals = generate_weibull_cdf(rvs, a=self.a, k=self.k)
         return super().execute_statistic(cdf_vals)
 
 
 class Chi2PearsonWeibullGofStatistic(AbstractWeibullGofStatistic, Chi2Statistic):
+    """
+    Pearson's Chi-squared test statistic for Weibull distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "CHI2_PEARSON".
+        """
         return "CHI2_PEARSON"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "CHI2_PEARSON_WEIBULL_{parent_code}".
+        """
         short_code = Chi2PearsonWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute Pearson's Chi-squared test statistic for Weibull distribution.
+
+        :param rvs: array of observed data samples.
+        :return: Chi-squared test statistic value.
+        """
         rvs_sorted = np.sort(rvs)
         n = len(rvs)
         (observed, bin_edges) = histogram(rvs_sorted, bins=int(np.ceil(np.sqrt(n))))
@@ -74,56 +123,116 @@ class Chi2PearsonWeibullGofStatistic(AbstractWeibullGofStatistic, Chi2Statistic)
 
 
 class LillieforsWeibullGofStatistic(AbstractWeibullGofStatistic, LillieforsTest):
+    """
+    Lilliefors test statistic for Weibull distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "LILLIE".
+        """
         return "LILLIE"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "LILLIE_WEIBULL_{parent_code}".
+        """
         short_code = LillieforsWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Lilliefors test statistic for Weibull distribution.
+
+        :param rvs: array of observed data samples.
+        :return: Lilliefors test statistic value.
+        """
         rvs_sorted = np.sort(rvs)
         cdf_vals = generate_weibull_cdf(rvs_sorted, a=self.a, k=self.k)
         return super().execute_statistic(rvs, cdf_vals)
 
 
 class CrammerVonMisesWeibullGofStatistic(AbstractWeibullGofStatistic, CrammerVonMisesStatistic):
+    """
+    Cramér-von Mises test statistic for Weibull distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "CVM".
+        """
         return "CVM"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "CVM_WEIBULL_{parent_code}".
+        """
         short_code = CrammerVonMisesWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def execute_statistic(self, rvs):
+        """
+        Execute the Cramér-von Mises test statistic for Weibull distribution.
+
+        :param rvs: array of observed data samples.
+        :return: Cramér-von Mises test statistic value.
+        """
         rvs_sorted = np.sort(rvs)
         cdf_vals = generate_weibull_cdf(rvs_sorted, a=self.a, k=self.k)
         return super().execute_statistic(rvs, cdf_vals)
 
 
 class AndersonDarlingWeibullGofStatistic(AbstractWeibullGofStatistic, ADStatistic):
+    """
+    Anderson-Darling test statistic for Weibull distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "AD".
+        """
         return "AD"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "AD_WEIBULL_{parent_code}".
+        """
         short_code = AndersonDarlingWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Anderson-Darling test statistic for Weibull distribution.
+
+        :param rvs: array of observed data samples.
+        :return: Anderson-Darling test statistic value.
+        """
         rvs = np.log(rvs)
         y = np.sort(rvs)
         xbar, s = distributions.gumbel_l.fit(y)
@@ -135,6 +244,10 @@ class AndersonDarlingWeibullGofStatistic(AbstractWeibullGofStatistic, ADStatisti
 
 
 class KolmogorovSmirnovWeibullGofStatistic(AbstractWeibullGofStatistic, KSStatistic):
+    """
+    Kolmogorov-Smirnov test statistic for Weibull distribution.
+    """
+
     @override
     def __init__(self, alternative="two-sided", mode="auto", a=1, k=5):
         AbstractWeibullGofStatistic.__init__(self, None)
@@ -146,36 +259,71 @@ class KolmogorovSmirnovWeibullGofStatistic(AbstractWeibullGofStatistic, KSStatis
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "KS".
+        """
         return "KS"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "KS_WEIBULL_{parent_code}".
+        """
         short_code = KolmogorovSmirnovWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Kolmogorov-Smirnov test statistic for Weibull distribution.
+
+        :param rvs: array of observed data samples.
+        :return: Kolmogorov-Smirnov test statistic value.
+        """
         rvs = np.sort(rvs)
         cdf_vals = generate_weibull_cdf(rvs, a=self.a, k=self.k)
         return super().execute_statistic(rvs, cdf_vals)
 
 
 class SbWeibullGofStatistic(AbstractWeibullGofStatistic):
+    """
+    Shapiro-Wilk type test statistic for Weibull distribution (SB variant).
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "SB".
+        """
         return "SB"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "SB_WEIBULL_{parent_code}".
+        """
         short_code = SbWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
-    # Test statistic of Shapiro Wilk
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the SB test statistic for Weibull distribution.
+
+        :param rvs: array of observed data samples.
+        :return: WPP test statistic value.
+        """
         n = len(rvs)
         lv = np.log(rvs)
         y = np.sort(lv)
@@ -196,20 +344,39 @@ class SbWeibullGofStatistic(AbstractWeibullGofStatistic):
 
 
 class ST2WeibullGofStatistic(AbstractWeibullGofStatistic):
+    """
+    Smooth test statistic based on kurtosis for Weibull distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "ST2".
+        """
         return "ST2"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "ST2_WEIBULL_{parent_code}".
+        """
         short_code = ST2WeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
-    # Smooth test statistic based on the kurtosis
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the ST2 smooth test statistic for Weibull distribution.
+
+        :param rvs: array of observed data samples.
+        :return: chi-square-like statistic value based on kurtosis.
+        """
         n = len(rvs)
         lv = np.log(rvs)
         y = np.sort(lv)
@@ -225,20 +392,40 @@ class ST2WeibullGofStatistic(AbstractWeibullGofStatistic):
 
 
 class ST1WeibullGofStatistic(AbstractWeibullGofStatistic):
+    """
+    Smooth test statistic based on skewness for Weibull distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "ST1".
+        """
         return "ST1"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "ST1_WEIBULL_{parent_code}".
+        """
         short_code = ST1WeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     # Smooth test statistic based on the skewness
     @override
     def execute_statistic(self, rvs, *kwargs):
+        """
+        Execute the ST1 smooth test statistic for Weibull distribution.
+
+        :param rvs: array of observed data samples.
+        :return: chi-square-like statistic value based on skewness.
+        """
         n = len(rvs)
         lv = np.log(rvs)
         y = np.sort(lv)
@@ -253,20 +440,40 @@ class ST1WeibullGofStatistic(AbstractWeibullGofStatistic):
 
 
 class RSBWeibullGofStatistic(AbstractWeibullGofStatistic):
+    """
+    Smith-Bain test statistic for Weibull distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "RSB".
+        """
         return "RSB"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "RSB_WEIBULL_{parent_code}".
+        """
         short_code = RSBWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     # Test statistic of Smith and Bain based on probability plot
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Smith-Bain test statistic for Weibull distribution.
+
+        :param rvs: array of observed data samples.
+        :return: WPP test statistic value.
+        """
         n = len(rvs)
         interval = np.arange(1, n + 1)
 
@@ -283,8 +490,20 @@ class RSBWeibullGofStatistic(AbstractWeibullGofStatistic):
 
 
 class NormalizeSpaceWeibullGofStatistic(AbstractWeibullGofStatistic):
+    """
+    Base class for tests based on normalized spacings for Weibull distribution.
+    """
+
     @staticmethod
     def GoFNS(t, n, m):
+        """
+        Compute normalized spacing coefficients.
+
+        :param t: starting index offset.
+        :param n: total sample size including censoring.
+        :param m: number of observed failures.
+        :return: array of normalized spacing coefficients.
+        """
         res = np.zeros(m)
         for i in range(m):
             p_r = (t + i) / (n + 1)
@@ -306,6 +525,14 @@ class NormalizeSpaceWeibullGofStatistic(AbstractWeibullGofStatistic):
 
     @override
     def execute_statistic(self, rvs, type_):
+        """
+        Execute the normalized spacing test statistic.
+
+        :param rvs: array of observed data samples.
+        :param type_: type of test statistic to compute (TS, LOS, or MSF).
+        :return: normalized spacing test statistic value.
+        :raises ValueError: if MSF test is used with left censoring (s != 0).
+        """
         m = len(rvs)
         s = 0  # can be defined
         r = 0  # can be defined
@@ -350,75 +577,107 @@ class NormalizeSpaceWeibullGofStatistic(AbstractWeibullGofStatistic):
 
 
 class TikuSinghWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
+    """
+    Tiku-Singh test statistic for Weibull distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "TS".
+        """
         return "TS"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "TS_WEIBULL_{parent_code}".
+        """
         short_code = TikuSinghWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     # Tiku-Singh test statistic
-
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Tiku M.L. and Singh M., Testing the two-parameter Weibull distribution, Communications in
-        Statistics, 10, 907-918, 1981.
+        Execute the Tiku-Singh test statistic for Weibull distribution.
 
-        :param rvs:
-        :return:
-
-        Parameters
-        ----------
-        **kwargs
+        :param rvs: array of observed data samples.
+        :return: Tiku-Singh test statistic value.
         """
         return super().execute_statistic(rvs, self.code())
 
 
 class LOSWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
+    """
+    Lockhart-O'Reilly-Stephens test statistic for Weibull distribution.
+
+    Reference: Lockhart R.A., O'Reilly F. and Stephens M.A. (1986).
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "LOS".
+        """
         return "LOS"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "LOS_WEIBULL_{parent_code}".
+        """
         short_code = LOSWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
-    # Lockhart-O'Reilly-Stephens test statistic
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Lockhart R.A., O'Reilly F. and Stephens M.A., Tests for the extreme-value and Weibull
-        distributions based on normalized spacings, Naval Research Logistics Quarterly, 33, 413-421,
-        1986.
+        Execute the Lockhart-O'Reilly-Stephens test statistic.
 
-        :param rvs:
-        :return:
-
-        Parameters
-        ----------
-        **kwargs
+        :param rvs: array of observed data samples.
+        :return: LOS test statistic value.
         """
-
         return super().execute_statistic(rvs, self.code())
 
 
 class MSFWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
+    """
+    Mann-Scheuer-Fertig test statistic for Weibull distribution.
+
+    Reference: Mann N.R., Scheuer E.M. and Fertig K.W. (1973).
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "MSF".
+        """
         return "MSF"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "MSF_WEIBULL_{parent_code}".
+        """
         short_code = MSFWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
@@ -426,23 +685,28 @@ class MSFWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
     @override
     def execute_statistic(self, rvs, **kwargs):
         """
-        Mann N.R., Scheuer E.M. and Fertig K.W., A new goodness-of-fit test for the two-parameter
-        Weibull or extreme-value distribution, Communications in Statistics, 2, 383-400, 1973.
+        Execute the Mann-Scheuer-Fertig test statistic.
 
-        :param rvs:
-        :return:
-
-        Parameters
-        ----------
-        **kwargs
+        :param rvs: array of observed data samples.
+        :return: MSF test statistic value.
         """
-
         return super().execute_statistic(rvs, self.code())
 
 
 class WPPWeibullGofStatistic(AbstractWeibullGofStatistic):
+    """
+    Family of Weibull Probability Plot (WPP) test statistics.
+    """
+
     @staticmethod
     def MLEst(x):
+        """
+        Compute Maximum Likelihood Estimates for Weibull parameters.
+
+        :param x: array of observed data samples.
+        :return: dictionary with 'eta' (scale), 'beta' (shape), and transformed 'y'.
+        :raises ValueError: if data contains non-positive values.
+        """
         if np.min(x) <= 0:
             raise ValueError("Data x is not a positive sample")
 
@@ -470,6 +734,13 @@ class WPPWeibullGofStatistic(AbstractWeibullGofStatistic):
     @staticmethod
     @override
     def execute_statistic(x, type_):
+        """
+        Execute a specific WPP test statistic by type.
+
+        :param x: array of observed data samples.
+        :param type_: code of the specific test to run (OK, SB, RSB, REJG, SPP, ST1, ST2).
+        :return: corresponding WPP test statistic value.
+        """
         n = len(x)
         lv = np.log(x)
         y = np.sort(lv)
@@ -545,14 +816,30 @@ class WPPWeibullGofStatistic(AbstractWeibullGofStatistic):
 
 
 class OKWeibullGofStatistic(WPPWeibullGofStatistic):
+    """
+    Ozturk-Korukoglu test statistic for Weibull distribution.
+
+    Reference: Öztürk A. (1986).
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "OK".
+        """
         return "OK"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "OK_WEIBULL_{parent_code}".
+        """
         short_code = OKWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
@@ -560,69 +847,127 @@ class OKWeibullGofStatistic(WPPWeibullGofStatistic):
     @override
     def execute_statistic(self, rvs):
         """
-        On the W Test for the Extreme Value Distribution
-        Aydin Öztürk
-        Biometrika
-        Vol. 73, No. 3 (Dec., 1986), pp. 738-740 (3 pages)
+        Execute the Ozturk-Korukoglu test statistic.
 
-        :param rvs:
-        :return:
+        :param rvs: array of observed data samples.
+        :return: OK test statistic value.
         """
-
         return super().execute_statistic(rvs, self.code())
 
 
 class SBWeibullGofStatistic(WPPWeibullGofStatistic):
+    """
+    Shapiro-Wilk type test statistic for Weibull distribution (SB variant).
+
+    Reference: See SbWeibullGofStatistic.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "SB".
+        """
         return "SB"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "SB_WEIBULL_{parent_code}".
+        """
         short_code = SBWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     # Test statistic of Shapiro Wilk
     @override
     def execute_statistic(self, rvs):
+        """
+        Execute the SB test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: SB test statistic value.
+        """
         return super().execute_statistic(rvs, self.code())
 
 
 class REJGWeibullGofStatistic(WPPWeibullGofStatistic):
+    """
+    Evans-Johnson-Green test statistic for Weibull distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "REJG".
+        """
         return "REJG"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "REJG_WEIBULL_{parent_code}".
+        """
         short_code = REJGWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     # Test statistic of Evans, Johnson and Green based on probability plot
     @override
     def execute_statistic(self, rvs):
+        """
+        Execute the Evans-Johnson-Green test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: REJG test statistic value.
+        """
         return super().execute_statistic(rvs, self.code())
 
 
 class SPPWeibullGofStatistic(WPPWeibullGofStatistic):
+    """
+    Stabilized Probability Plot test statistic for Weibull distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "SPP".
+        """
         return "SPP"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "SPP_WEIBULL_{parent_code}".
+        """
         short_code = SPPWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     # Test statistic based on stabilized probability plot
     @override
     def execute_statistic(self, rvs):
+        """
+        Execute the Stabilized Probability Plot test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: SPP test statistic value.
+        """
         return super().execute_statistic(rvs, self.code())
 
 
@@ -630,25 +975,41 @@ class SPPWeibullGofStatistic(WPPWeibullGofStatistic):
 
 
 class MahdiDoostparastWeibullGofStatistic(AbstractWeibullGofStatistic):
-    """title:
-    25 Oct 2011 Goodness-of-ﬁt tests for weibull populations on the basis of records
-    Mahdi Doostparast
-    Department of Statistics, School of Mathematical Sciences,Ferdowsi University of Mashhad
-    P. O. Box 91775-1159, Mashhad, Iran"""
+    """
+    Mahdi-Doostparast test statistic for Weibull distribution.
+
+    Reference: Doostparast M. (2011).
+    """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "MD".
+        """
         return "MD"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "MD_WEIBULL_{parent_code}".
+        """
         short_code = MahdiDoostparastWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs):
+        """
+        Execute the Mahdi-Doostparast test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: MD test statistic value.
+        """
         rvs_sorted = np.sort(rvs)
         n = len(rvs_sorted)
         emp_cdf = np.arange(1, n + 1) / n
@@ -667,22 +1028,39 @@ class MahdiDoostparastWeibullGofStatistic(AbstractWeibullGofStatistic):
 
 
 class WatsonWeibullGofStatistic(CrammerVonMisesWeibullGofStatistic):
-    """Modified Cramer Statitstic
-    https://ru.wikipedia.org/wiki/Критерий_согласия_Ватсона"""
+    """
+    Watson test statistic for Weibull distribution.
+    """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "W".
+        """
         return "W"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "W_WEIBULL_{parent_code}".
+        """
         short_code = WatsonWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs):
+        """
+        Execute the Watson test statistic for Weibull distribution.
+
+        :param rvs: array of observed data samples.
+        :return: Watson test statistic value.
+        """
         rvs_sorted = np.sort(rvs)
         cdf_vals = generate_weibull_cdf(rvs_sorted, a=self.a, k=self.k)
         n = len(rvs)
@@ -696,26 +1074,42 @@ class WatsonWeibullGofStatistic(CrammerVonMisesWeibullGofStatistic):
 
 
 class LiaoShimokawaWeibullGofStatistic(AbstractWeibullGofStatistic):
-    """Test statistic of Liao-Shimokawa
-    https://www.researchgate.net/profile/Min-Liao-8/publication
-    /243043005_A_new_goodness-of-fit_test_for_Type-I_extreme-value_and_2-parameter_Weibull_distributions_with_estimated_parameters/
-    links/57b77e2708ae14f440ba3487/
-    A-new-goodness-of-fit-test-for-Type-I-extreme-value-and
-    -2-parameter-Weibull-distributions-with-estimated-parameters.pdf"""
+    """
+    Liao-Shimokawa test statistic for Weibull distribution.
+
+    Goodness-of-fit test based on weighted deviations of CDF.
+    Reference: Liao M. and Shimokawa T. (1999).
+    """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "LS".
+        """
         return "LS"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "LS_WEIBULL_{parent_code}".
+        """
         short_code = LiaoShimokawaWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs):
+        """
+        Execute the Liao-Shimokawa test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: LS test statistic value.
+        """
         n = len(rvs)
         rvs_sorted = np.sort(rvs)
 
@@ -734,21 +1128,39 @@ class LiaoShimokawaWeibullGofStatistic(AbstractWeibullGofStatistic):
 
 
 class KullbackLeiblerWeibullGofStatistic(AbstractWeibullGofStatistic):
+    """
+    Kullback-Leibler divergence test statistic for Weibull distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "KL".
+        """
         return "KL"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "KL_WEIBULL_{parent_code}".
+        """
         short_code = KullbackLeiblerWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, m=None):
         """
-        Test statistic based on Kullback-Leibler information
+        Execute the Kullback-Leibler test statistic.
+
+        :param rvs: array of observed data samples.
+        :param m: window size for entropy estimation (default is n//2).
+        :return: KL divergence test statistic value.
         """
         n = len(rvs)
         m = n // 2 if m is None else m
@@ -773,11 +1185,20 @@ class KullbackLeiblerWeibullGofStatistic(AbstractWeibullGofStatistic):
 
 class LaplaceTransformWeibullGofStatistic(AbstractWeibullGofStatistic):
     """
-    Family of the test statistics based on the Laplace transform
-    Recommended to use for small data
+    Family of test statistics based on Laplace transform for Weibull distribution.
     """
 
     def execute_statistic(self, rvs, m=100, a=-5, _type="LT3_WEIBULL"):
+        """
+        Execute the Laplace transform test statistic.
+
+        :param rvs: array of observed data samples.
+        :param m: number of integration points.
+        :param a: shift parameter for transform.
+        :param _type: type of test.
+        :return: Laplace transform test statistic value.
+        :raises ValueError: if invalid type is specified.
+        """
         n = len(rvs)
 
         if _type == "LT2_WEIBULL":
@@ -803,53 +1224,116 @@ class LaplaceTransformWeibullGofStatistic(AbstractWeibullGofStatistic):
 
 
 class LaplaceTransform2WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
+    """
+    Laplace Transform type 2 test statistic for Weibull distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "LT2".
+        """
         return "LT2"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "LT2_WEIBULL_{parent_code}".
+        """
         short_code = LaplaceTransform2WeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def execute_statistic(self, rvs, m=100, a=-5):
+        """
+        Execute the LT2 test statistic.
+
+        :param rvs: array of observed data samples.
+        :param m: number of integration points.
+        :param a: shift parameter.
+        :return: LT2 test statistic value.
+        """
         return super().execute_statistic(rvs, m, a, self.code())
 
 
 class LaplaceTransform3WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
+    """
+    Laplace Transform type 3 test statistic for Weibull distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "LT3".
+        """
         return "LT3"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "LT3_WEIBULL_{parent_code}".
+        """
         short_code = LaplaceTransform3WeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def execute_statistic(self, rvs, m=100, a=-5):
+        """
+        Execute the LT3 test statistic.
+
+        :param rvs: array of observed data samples.
+        :param m: number of integration points.
+        :param a: shift parameter.
+        :return: LT3 test statistic value.
+        """
         return super().execute_statistic(rvs, m, a, self.code())
 
 
 # TODO: Check it. Throws exception on weibull test
 class CabanaQuirozWeibullGofStatistic(AbstractWeibullGofStatistic):
+    """
+    Cabana-Quiroz test statistic for Weibull distribution.
+    """
+
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "CQ*".
+        """
         return "CQ*"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "CQ*_WEIBULL_{parent_code}".
+        """
         short_code = CabanaQuirozWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     # Test statistic of Cabana and Quiroz
-
     def execute_statistic(self, rvs):
+        """
+        Execute the Cabana-Quiroz test statistic.
+
+        :param rvs: array of observed data samples.
+        :return: CQ test statistic value.
+        """
         s1 = -0.1
         s2 = 0.02
         v1 = 1.59

@@ -12,6 +12,10 @@ Base = declarative_base()
 
 
 class LimitDistributionORM(Base):  # type: ignore
+    """
+    ORM model for limit distribution storage.
+    """
+
     __tablename__ = "limit_distributions"
 
     experiment_id: Mapped[int]

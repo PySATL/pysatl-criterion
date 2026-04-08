@@ -10,6 +10,10 @@ from pysatl_criterion.persistence.model.common.data_storage.data_storage import 
 
 @dataclass
 class LimitDistributionModel(DataModel):
+    """
+    Model for storing limit distribution data from Monte Carlo simulations.
+    """
+
     experiment_id: int
     criterion_code: str
     criterion_parameters: list[float]
@@ -20,6 +24,10 @@ class LimitDistributionModel(DataModel):
 
 @dataclass
 class LimitDistributionQuery(DataQuery):
+    """
+    Query object for retrieving specific limit distribution data.
+    """
+
     criterion_code: str
     criterion_parameters: list[float]
     sample_size: int
@@ -28,6 +36,10 @@ class LimitDistributionQuery(DataQuery):
 
 @dataclass
 class CriticalValueQuery(DataQuery):
+    """
+    Query object for retrieving limit distribution data for critical value calculation.
+    """
+
     criterion_code: str
     sample_size: int
     sample_size_error: int = 0

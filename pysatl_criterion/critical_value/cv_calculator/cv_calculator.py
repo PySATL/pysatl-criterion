@@ -11,8 +11,6 @@ from pysatl_criterion.statistics.models import HypothesisType
 class CVCalculator:
     """
     Critical value calculator.
-
-    :param limit_distribution_storage: limit distribution storage
     """
 
     def __init__(self, limit_distribution_storage: ILimitDistributionStorage):
@@ -32,7 +30,6 @@ class CVCalculator:
         :param sample_size: sample size.
         :param sl: significance level.
         :param alternative: test alternative
-
         :return: critical value.
         """
 

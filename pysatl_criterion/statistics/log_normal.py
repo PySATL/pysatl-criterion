@@ -20,10 +20,6 @@ class AbstractLogNormalGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     """
 
     def __init__(self, s=1, scale=1):
-        """
-        :param s: shape parameter (sigma)
-        :param scale: scale parameter (exp(mu))
-        """
         if s <= 0:
             raise ValueError("Shape parameter s must be positive")
         if scale <= 0:
@@ -35,6 +31,11 @@ class AbstractLogNormalGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for Log-Normal statistics.
+
+        :return: string code in format "LOGNORMAL_{parent_code}".
+        """
         return f"LOGNORMAL_{AbstractGoodnessOfFitStatistic.code()}"
 
 
@@ -46,11 +47,6 @@ class AbstractLogNormalGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
 class KolmogorovSmirnovLogNormalGofStatistic(AbstractLogNormalGofStatistic, KSStatistic):
     """
     Kolmogorov-Smirnov test statistic for Log-Normal distribution.
-
-    References
-    ----------
-    .. [1] Massey, F. J. (1951). The Kolmogorov-Smirnov test for goodness of fit.
-           Journal of the American Statistical Association, 46(253), 68-78.
     """
 
     @override
@@ -61,16 +57,32 @@ class KolmogorovSmirnovLogNormalGofStatistic(AbstractLogNormalGofStatistic, KSSt
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "KS".
+        """
         return "KS"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "KS_LOGNORMAL_{parent_code}".
+        """
         short_code = KolmogorovSmirnovLogNormalGofStatistic.short_code()
         return f"{short_code}_{AbstractLogNormalGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Kolmogorov-Smirnov test statistic for Log-Normal distribution.
+
+        :param rvs: array of observed data samples.
+        :return: Kolmogorov-Smirnov test statistic value.
+        """
         rvs = np.sort(rvs)
         cdf_vals = scipy_stats.lognorm.cdf(rvs, s=self.s, scale=self.scale)
         return KSStatistic.execute_statistic(self, rvs, cdf_vals)
@@ -79,28 +91,37 @@ class KolmogorovSmirnovLogNormalGofStatistic(AbstractLogNormalGofStatistic, KSSt
 class CramerVonMiseLogNormalGofStatistic(AbstractLogNormalGofStatistic, CrammerVonMisesStatistic):
     """
     Cramér-von Mises test statistic for Log-Normal distribution.
-
-    References
-    ----------
-    .. [1] Cramér, H. (1928). On the composition of elementary errors.
-           Scandinavian Actuarial Journal, 1928(1), 13-74.
-    .. [2] von Mises, R. (1928). Wahrscheinlichkeit, Statistik und Wahrheit.
-           Julius Springer.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "CVM".
+        """
         return "CVM"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "CVM_LOGNORMAL_{parent_code}".
+        """
         short_code = CramerVonMiseLogNormalGofStatistic.short_code()
         return f"{short_code}_{AbstractLogNormalGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Cramér-von Mises test statistic for Log-Normal distribution.
+
+        :param rvs: array of observed data samples.
+        :return: Cramér-von Mises test statistic value.
+        """
         rvs_sorted = np.sort(rvs)
         cdf_vals = scipy_stats.lognorm.cdf(rvs_sorted, s=self.s, scale=self.scale)
         return super().execute_statistic(rvs, cdf_vals)
@@ -109,27 +130,37 @@ class CramerVonMiseLogNormalGofStatistic(AbstractLogNormalGofStatistic, CrammerV
 class QuesenberryMillerLogNormalGofStatistic(AbstractLogNormalGofStatistic):
     """
     Quesenberry and Miller's Q-test for Log-Normal distribution.
-
-    References
-    ----------
-    .. [1] Quesenberry, C. P., & Miller Jr, F. L. (1977).
-           Power studies of some tests for uniformity.
-           Journal of Statistical Computation and Simulation, 5, 169-191.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "QUESENBERRY_MILLER".
+        """
         return "QUESENBERRY_MILLER"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "QUESENBERRY_MILLER_LOGNORMAL_{parent_code}".
+        """
         short_code = QuesenberryMillerLogNormalGofStatistic.short_code()
         return f"{short_code}_{AbstractLogNormalGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the Quesenberry-Miller Q-test statistic for Log-Normal distribution.
+
+        :param rvs: array of observed data samples.
+        :return: Quesenberry-Miller test statistic value.
+        """
         rvs = np.asarray(rvs)
 
         # Transform data to [0, 1] using the CDF of the Log-Normal distribution
@@ -154,27 +185,37 @@ class QuesenberryMillerLogNormalGofStatistic(AbstractLogNormalGofStatistic):
 class KLSupremumLogNormalGoFStatistic(AbstractGoodnessOfFitStatistic):
     """
     Supremum test for lognormality based on Kullback-Leibler divergences.
-
-    References:
-    ----------
-    .. [1] Batsidis, A., Tzavelas, G., & Economou, P. (2015).
-           Testing lognormality using a family of Kullback-Leibler type divergences.
-           Journal of Statistical Computation and Simulation, 85(11), 215-233.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "KL_SUP".
+        """
         return "KL_SUP"
 
     @staticmethod
     @override
     def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "KL_SUP_LOGNORMAL_{parent_code}".
+        """
         short_code = KLSupremumLogNormalGoFStatistic.short_code()
         return f"{short_code}_{AbstractLogNormalGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the KL Supremum test statistic for Log-Normal distribution.
+
+        :param rvs: array of observed data samples.
+        :return: KL Supremum test statistic value (inf if data contains non-positive values).
+        """
         rvs = np.array(rvs)
 
         if np.any(rvs <= 0):
@@ -233,6 +274,15 @@ class KLSupremumLogNormalGoFStatistic(AbstractGoodnessOfFitStatistic):
         return T1
 
     def calculate_critical_value(self, n, alpha=0.05):
+        """
+        Calculate critical value for the KL Supremum test.
+
+        :param n: sample size.
+        :param alpha: significance level (default is 0.05). Supported: 0.01, 0.05,
+        or range [0.001, 0.1].
+        :return: critical value.
+        :raises ValueError: if alpha is outside the supported range [0.001, 0.1].
+        """
         if alpha == 0.05:
             # Formula (27)
             return 2.67076 - 3.90704 / np.sqrt(n) + 1.07162 / n
@@ -259,27 +309,37 @@ class KLSupremumLogNormalGoFStatistic(AbstractGoodnessOfFitStatistic):
 class KLIntegralLogNormalGoFStatistic(AbstractLogNormalGofStatistic):
     """
     Integral test for lognormality based on Kullback-Leibler divergences.
-
-    References:
-    ----------
-    .. [1] Batsidis, A., Tzavelas, G., & Economou, P. (2015).
-           Testing lognormality using a family of Kullback-Leibler type divergences.
-           Journal of Statistical Computation and Simulation, 85(11), 215-233.
     """
 
     @staticmethod
     @override
     def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "KL_INT".
+        """
         return "KL_INT"
 
     @staticmethod
     @override
     def code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "KL_INT".
+        """
         short_code = KLIntegralLogNormalGoFStatistic.short_code()
         return f"{short_code}_{AbstractLogNormalGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """
+        Execute the KL Integral test statistic for Log-Normal distribution.
+
+        :param rvs: array of observed data samples.
+        :return: KL Integral test statistic value (inf if data contains non-positive values).
+        """
         rvs = np.array(rvs)
 
         if np.any(rvs <= 0):
@@ -342,6 +402,15 @@ class KLIntegralLogNormalGoFStatistic(AbstractLogNormalGofStatistic):
         return T2 if not np.isnan(T2) else float("inf")
 
     def calculate_critical_value(self, n, alpha=0.05):
+        """
+        Calculate critical value for the KL Integral test.
+
+        :param n: sample size.
+        :param alpha: significance level (default is 0.05). Supported: 0.01, 0.05,
+        or range [0.001, 0.1].
+        :return: critical value.
+        :raises ValueError: if alpha is outside the supported range [0.001, 0.1].
+        """
         if alpha == 0.05:
             # Formula (28)
             return -2.88971 - 0.130082 * (np.log(n) ** 2) + 2.71403 * np.log(n)
@@ -379,6 +448,12 @@ def _create_lognormal_class(normal_cls):
     class LogNormalClass(AbstractLogNormalGofStatistic):
         @override
         def execute_statistic(self, rvs, **kwargs):
+            """
+            Execute the wrapped normality test on log-transformed data.
+
+            :param rvs: array of observed data samples.
+            :return: test statistic value.
+            """
             rvs_arr = np.array(rvs)
 
             if np.any(rvs_arr <= 0):
@@ -392,11 +467,21 @@ def _create_lognormal_class(normal_cls):
         @staticmethod
         @override
         def short_code():
+            """
+            Get short code identifier for this dynamically generated test.
+
+            :return: short code inherited from the parent Normality test.
+            """
             return class_short_code
 
         @staticmethod
         @override
         def code():
+            """
+            Get unique code identifier for this dynamically generated test.
+
+            :return: string code in format "{short_code}_LOGNORMAL_{parent_code}".
+            """
             return class_code
 
     LogNormalClass.__name__ = new_class_name

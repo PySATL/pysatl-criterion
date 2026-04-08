@@ -58,6 +58,7 @@ class AbstractStatistic(ABC):
     def execute_statistic(self, rvs, **kwargs) -> float | float64:
         """
         Execute test statistic and return calculated statistic value.
+
         :param rvs: rvs data to calculated statistic value
         :param kwargs: arguments for statistic calculation
         """

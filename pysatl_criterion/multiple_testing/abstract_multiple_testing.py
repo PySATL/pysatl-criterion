@@ -2,11 +2,16 @@ from abc import ABC, abstractmethod
 
 
 class AbstractMultipleTesting(ABC):
+    """
+    Abstract base class for multiple testing correction methods.
+    """
+
     @staticmethod
     def _validate_p_values(p_values: list[float]) -> None:
         """
         Validate that all p-values are in [0,1] range.
-        :param p_values: List of p-values for hypothesis testing
+
+        :param p_values: list of p-values for hypothesis testing.
         """
         if not all(0 <= x <= 1 for x in p_values):
             raise ValueError("All p-values must be in range [0,1].")
@@ -14,14 +19,11 @@ class AbstractMultipleTesting(ABC):
     @classmethod
     def test(cls, p_values: list[float], threshold: float = 0.05) -> tuple[list[bool], list[float]]:
         """
-        Perform multiple testing correction and return both rejection decisions
-        and adjusted p-values.
-        :param p_values: List of raw p-values for hypothesis testing
-        :param threshold: Significance level for controlling FWER (Family-Wise Error Rate)
-        or FDR (False Discovery Rate) (default is 0.05)
-        :return: Tuple containing:
-                - Boolean list indicating rejected hypotheses (True where rejected)
-                - List of adjusted p-values after multiple testing correction
+        Perform multiple testing correction and return rejection decisions with adjusted p-values.
+
+        :param p_values: list of raw p-values for hypothesis testing.
+        :param threshold: significance level for controlling FWER or FDR (default is 0.05).
+        :return: tuple containing boolean list of rejected hypotheses and list of adjusted p-values.
         """
         cls._validate_p_values(p_values)
         p_values_adjusted = cls.adjust(p_values)
@@ -33,7 +35,8 @@ class AbstractMultipleTesting(ABC):
     def adjust(cls, p_values: list[float]) -> list[float]:
         """
         Compute adjusted p-values for multiple testing correction.
-        :param p_values: List of raw p-values for hypothesis testing
-        :return: List of adjusted p-values after multiple testing correction
+
+        :param p_values: List of raw p-values for hypothesis testing.
+        :return: list of adjusted p-values after multiple testing correction.
         """
         raise NotImplementedError("Method is not implemented")
