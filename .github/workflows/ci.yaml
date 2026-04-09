@@ -146,6 +146,8 @@ jobs:
     needs: [ build ]
     runs-on: ubuntu-22.04
 
+    if: github.event_name == 'push'
+
     environment:
       name: testpypi
       url: https://test.pypi.org/project/pysatl-criterion/
