@@ -1,6 +1,9 @@
-﻿from unittest.mock import MagicMock
-from pysatl_criterion.critical_value.resolver.composite_resolver import CompositeCriticalValueResolver
+from unittest.mock import MagicMock
+
 from pysatl_criterion.critical_value.critical_area.critical_areas import RightCriticalArea
+from pysatl_criterion.critical_value.resolver.composite_resolver import (
+    CompositeCriticalValueResolver,
+)
 from pysatl_criterion.statistics.models import HypothesisType
 
 
@@ -22,16 +25,12 @@ def test_composite_resolver_cache_miss_logic():
     mock_loader.load.return_value = True
 
     resolver = CompositeCriticalValueResolver(
-        local_resolver=mock_local_resolver,
-        cv_loader=mock_loader
+        local_resolver=mock_local_resolver, cv_loader=mock_loader
     )
 
     # Act
     result = resolver.resolve(
-        criterion_code="test_crit",
-        sample_size=100,
-        sl=0.05,
-        alternative=HypothesisType.RIGHT
+        criterion_code="test_crit", sample_size=100, sl=0.05, alternative=HypothesisType.RIGHT
     )
 
     # Assert

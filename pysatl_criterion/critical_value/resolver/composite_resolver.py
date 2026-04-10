@@ -14,7 +14,7 @@ class CompositeCriticalValueResolver(CriticalValueResolver):
     def __init__(
         self,
         local_resolver: StorageCriticalValueResolver,
-            cv_loader: CriticalValueLoader,
+        cv_loader: CriticalValueLoader,
     ):
         self._local_resolver = local_resolver
         self._cv_loader = cv_loader

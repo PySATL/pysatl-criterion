@@ -88,6 +88,7 @@ def test_goodness_of_fit_p_value_path_rejects_hypothesis(mock_stat_cls, mock_p_v
 
     assert gof_test.test(data=[1, 2, 3]) is False
 
+
 def test_goodness_of_fit_default_resolver_initialization():
     """
     Ensure that the test correctly initializes the Composite resolver
@@ -96,10 +97,11 @@ def test_goodness_of_fit_default_resolver_initialization():
     mock_stat = MagicMock()
 
     gof_test = GoodnessOfFitTest(
-        statistics=mock_stat,
-        significance_level=0.05,
-        test_method=TestMethod.CRITICAL_VALUE
+        statistics=mock_stat, significance_level=0.05, test_method=TestMethod.CRITICAL_VALUE
     )
 
-    from pysatl_criterion.critical_value.resolver.composite_resolver import CompositeCriticalValueResolver
+    from pysatl_criterion.critical_value.resolver.composite_resolver import (
+        CompositeCriticalValueResolver,
+    )
+
     assert isinstance(gof_test.cv_calculator, CompositeCriticalValueResolver)

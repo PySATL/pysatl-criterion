@@ -43,7 +43,9 @@ class GoodnessOfFitTest:
             LOCAL_PYSATL_URL, label="Local CV Storage"
         )
         if cv_local_storage is None:
-            raise RuntimeError("Local storage is required for caching, but could not be initialized.")
+            raise RuntimeError(
+                "Local storage is required for caching, but could not be initialized."
+            )
 
         cv_remote_storage = AlchemyLimitDistributionStorage.create_safe(
             REMOTE_PYSATL_URL, label="Remote CV Storage"
