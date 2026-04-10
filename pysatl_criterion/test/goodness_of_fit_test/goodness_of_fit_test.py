@@ -1,4 +1,4 @@
-from pysatl_criterion.constants import LOCAL_LIMIT_DISTRIBUTION_URL, REMOTE_LIMIT_DISTRIBUTION_URL
+from pysatl_criterion.constants import LOCAL_PYSATL_URL, REMOTE_PYSATL_URL
 from pysatl_criterion.critical_value.resolver.composite_resolver import (
     CompositeCriticalValueResolver,
 )
@@ -42,13 +42,13 @@ class GoodnessOfFitTest:
             resolvers = []
 
             cv_local_storage = AlchemyLimitDistributionStorage.create_safe(
-                LOCAL_LIMIT_DISTRIBUTION_URL, label="Local CV Storage"
+                LOCAL_PYSATL_URL, label="Local CV Storage"
             )
             if cv_local_storage:
                 resolvers.append(StorageCriticalValueResolver(cv_local_storage))
 
             cv_remote_storage = AlchemyLimitDistributionStorage.create_safe(
-                REMOTE_LIMIT_DISTRIBUTION_URL, label="Remote CV Storage"
+                REMOTE_PYSATL_URL, label="Remote CV Storage"
             )
             if cv_remote_storage:
                 resolvers.append(StorageCriticalValueResolver(cv_remote_storage))
@@ -60,10 +60,8 @@ class GoodnessOfFitTest:
 
         if p_value_resolver is None and test_method == TestMethod.P_VALUE:
             p_storage = AlchemyLimitDistributionStorage.create_safe(
-                REMOTE_LIMIT_DISTRIBUTION_URL, "Remote P-Storage"
-            ) or AlchemyLimitDistributionStorage.create_safe(
-                LOCAL_LIMIT_DISTRIBUTION_URL, "Local P-Storage"
-            )
+                REMOTE_PYSATL_URL, "Remote P-Storage"
+            ) or AlchemyLimitDistributionStorage.create_safe(LOCAL_PYSATL_URL, "Local P-Storage")
 
             if p_storage is None:
                 raise RuntimeError("No available storage for P-value calculation.")
