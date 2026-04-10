@@ -1,4 +1,5 @@
 from pysatl_criterion.constants import LOCAL_PYSATL_URL, REMOTE_PYSATL_URL
+from pysatl_criterion.critical_value.loader.remote_loader import CriticalValueLoader
 from pysatl_criterion.critical_value.resolver.composite_resolver import (
     CompositeCriticalValueResolver,
 )
@@ -38,25 +39,22 @@ class GoodnessOfFitTest:
         self.test_method = test_method
         self.alternative = alternative
 
+        cv_local_storage = AlchemyLimitDistributionStorage.create_safe(
+            LOCAL_PYSATL_URL, label="Local CV Storage"
+        )
+        if cv_local_storage is None:
+            raise RuntimeError(
+                "Local storage is required for caching, but could not be initialized."
+            )
+
+        cv_remote_storage = AlchemyLimitDistributionStorage.create_safe(
+            REMOTE_PYSATL_URL, label="Remote CV Storage"
+        )
+
         if cv_resolver is None and test_method == TestMethod.CRITICAL_VALUE:
-            resolvers = []
-
-            cv_local_storage = AlchemyLimitDistributionStorage.create_safe(
-                LOCAL_PYSATL_URL, label="Local CV Storage"
-            )
-            if cv_local_storage:
-                resolvers.append(StorageCriticalValueResolver(cv_local_storage))
-
-            cv_remote_storage = AlchemyLimitDistributionStorage.create_safe(
-                REMOTE_PYSATL_URL, label="Remote CV Storage"
-            )
-            if cv_remote_storage:
-                resolvers.append(StorageCriticalValueResolver(cv_remote_storage))
-
-            if not resolvers:
-                raise RuntimeError("No available critical value storage found.")
-
-            cv_resolver = CompositeCriticalValueResolver(*resolvers)
+            cv_loader = CriticalValueLoader(cv_local_storage, cv_remote_storage)
+            cv_local_resolver = StorageCriticalValueResolver(cv_local_storage)
+            cv_resolver = CompositeCriticalValueResolver(cv_local_resolver, cv_loader)
 
         if p_value_resolver is None and test_method == TestMethod.P_VALUE:
             p_storage = AlchemyLimitDistributionStorage.create_safe(

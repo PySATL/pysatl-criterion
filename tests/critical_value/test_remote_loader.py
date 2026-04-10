@@ -62,7 +62,7 @@ def test_load_success_with_remote_data(
     remote_storage.insert_data(sample_model)
 
     # Act
-    loader.load(sample_query.criterion_code, sample_query.sample_size)
+    result = loader.load(sample_query.criterion_code, sample_query.sample_size)
 
     # Assert - verify data was copied to local storage
     local_data = local_storage.get_data_for_cv(sample_query)
@@ -72,16 +72,18 @@ def test_load_success_with_remote_data(
     assert np.allclose(
         local_data.results_statistics, sample_model.results_statistics, rtol=1e-7, atol=0.0
     )
+    assert result is True
 
 
 def test_load_no_remote_data(loader, sample_query, local_storage):
     """Test load function when remote data is not found (returns None)."""
     # Act
-    loader.load(sample_query.criterion_code, sample_query.sample_size)
+    result = loader.load(sample_query.criterion_code, sample_query.sample_size)
 
     # Assert - verify no data was inserted into local storage
     local_data = local_storage.get_data_for_cv(sample_query)
     assert local_data is None
+    assert result is False
 
 
 def test_load_storage_interactions_correct_order(
@@ -259,13 +261,10 @@ def test_loader_with_unavailable_remote_storage(local_storage, sample_query):
     Check that the loader is created correctly, even if
     the remote database returned None (was unavailable).
     """
-    remote_storage = None
+    loader = CriticalValueLoader(local_storage, None)
+    result = loader.load(sample_query.criterion_code, sample_query.sample_size)
 
-    try:
-        loader = CriticalValueLoader(local_storage, remote_storage)
-        loader.load(sample_query.criterion_code, sample_query.sample_size)
-    except AttributeError:
-        pass
+    assert result is False
 
 
 def test_alchemy_storage_create_safe_on_failure():
