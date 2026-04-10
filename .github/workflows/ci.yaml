@@ -171,3 +171,4 @@ jobs:
         uses: pypa/gh-action-pypi-publish@v1.13.0
         with:
           repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
