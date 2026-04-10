@@ -1,6 +1,9 @@
 import json
+import logging
+from typing import Optional
 
 from sqlalchemy import create_engine, desc, select
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
 
 from pysatl_criterion.persistence.model.limit_distribution.limit_distribution import (
@@ -12,18 +15,44 @@ from pysatl_criterion.persistence.model.limit_distribution.limit_distribution im
 from pysatl_criterion.persistence.model.orm.orm import Base, LimitDistributionORM
 
 
+logger = logging.getLogger(__name__)
+
+
 class AlchemyLimitDistributionStorage(ILimitDistributionStorage):
     """
     SQLAlchemy-based implementation of ILimitDistributionStorage.
     """
 
     def __init__(self, connection_string: str):
+        self.connection_string = connection_string
         self.engine = create_engine(connection_string, echo=True, future=True)
         self.Session = sessionmaker(bind=self.engine, future=True)
 
     def init(self) -> None:
         """Create all tables."""
-        Base.metadata.create_all(self.engine)
+        try:
+            with self.engine.connect():
+                pass
+            Base.metadata.create_all(self.engine)
+        except (OperationalError, Exception) as e:
+            raise ConnectionError(f"Database unavailable: {self.connection_string}") from e
+
+    @staticmethod
+    def create_safe(
+        connection_string: str, label: str = "Database"
+    ) -> Optional["AlchemyLimitDistributionStorage"]:
+        """
+        Try to create and initialize storage.
+        If database is unavailable, return None instead of raising an exception.
+        """
+        try:
+            storage = AlchemyLimitDistributionStorage(connection_string)
+            storage.init()
+            logger.info(f"{label} connected successfully.")
+            return storage
+        except Exception as e:
+            logger.warning(f"{label} connection failed: {e}")
+            return None
 
     def insert_data(self, data: LimitDistributionModel) -> None:
         """

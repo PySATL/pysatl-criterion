@@ -8,7 +8,9 @@ from pysatl_criterion.persistence.model.limit_distribution.limit_distribution im
 
 class CriticalValueLoader:
     def __init__(
-        self, local_storage: ILimitDistributionStorage, remote_storage: ILimitDistributionStorage
+        self,
+        local_storage: ILimitDistributionStorage,
+        remote_storage: ILimitDistributionStorage | None,
     ):
         self.__local_storage = local_storage
         self.__remote_storage = remote_storage
@@ -25,6 +27,11 @@ class CriticalValueLoader:
 
         logging.info(f"Load criterion {criterion_code} with size {sample_size} from remote")
         query = CriticalValueQuery(criterion_code, sample_size, sample_size_error)
+
+        if self.__remote_storage is None:
+            logging.error("Cannot load data: remote storage is not initialized.")
+            return
+
         remote_data = self.__remote_storage.get_data_for_cv(query)
 
         if remote_data is not None:

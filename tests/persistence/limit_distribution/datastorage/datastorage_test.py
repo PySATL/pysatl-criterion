@@ -8,8 +8,11 @@ from pysatl_criterion.persistence.limit_distribution.datastorage.datastorage imp
 
 @pytest.fixture
 def storage(tmp_path):
-    storage = AlchemyLimitDistributionStorage("sqlite:///:memory:")
-    storage.init()
+    storage = AlchemyLimitDistributionStorage.create_safe(
+        "sqlite:///:memory:", label="Test Storage"
+    )
+    if storage is None:
+        pytest.fail("Failed to initialize in-memory database for testing")
     return storage
 
 
