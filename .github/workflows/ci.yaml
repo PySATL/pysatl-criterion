@@ -140,3 +140,34 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@v1.13.0
+
+  deploy-testpypi:
+    name: "Publish Python 🐍 distribution 📦 to Test PyPI"
+    needs: [ build ]
+    runs-on: ubuntu-22.04
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/pysatl-criterion/
+
+    permissions:
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Download artifact 📦
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pysatl*-build
+          path: dist
+          merge-multiple: true
+
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@v1.13.0
+        with:
+          repository-url: https://test.pypi.org/legacy/
