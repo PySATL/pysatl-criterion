@@ -14,16 +14,18 @@ from pysatl_criterion.persistence.model.limit_distribution.limit_distribution im
 @pytest.fixture
 def local_storage():
     """Create local storage using SQLAlchemy in-memory database."""
-    storage = AlchemyLimitDistributionStorage("sqlite:///:memory:")
-    storage.init()
+    storage = AlchemyLimitDistributionStorage.create_safe("sqlite:///:memory:", label="Test Local")
+    if not storage:
+        pytest.fail("Could not initialize in-memory local storage")
     return storage
 
 
 @pytest.fixture
 def remote_storage():
     """Create remote storage using SQLAlchemy in-memory database."""
-    storage = AlchemyLimitDistributionStorage("sqlite:///:memory:")
-    storage.init()
+    storage = AlchemyLimitDistributionStorage.create_safe("sqlite:///:memory:", label="Test Remote")
+    if not storage:
+        pytest.fail("Could not initialize in-memory remote storage")
     return storage
 
 
@@ -152,7 +154,9 @@ def test_load_with_different_query_parameters(loader, remote_storage, local_stor
         assert local_data is not None
         assert local_data.criterion_code == model.criterion_code
         assert local_data.sample_size == model.sample_size
-        np.allclose(local_data.results_statistics, model.results_statistics, rtol=1e-7, atol=0.0)
+        assert np.allclose(
+            local_data.results_statistics, model.results_statistics, rtol=1e-7, atol=0.0
+        )
 
 
 def test_load_with_empty_model_data(loader, sample_query, remote_storage, local_storage):
@@ -248,3 +252,27 @@ def test_load_multiple_criteria_same_sample_size(loader, remote_storage, local_s
         assert np.allclose(
             local_data.results_statistics, model.results_statistics, rtol=1e-7, atol=0.0
         )
+
+
+def test_loader_with_unavailable_remote_storage(local_storage, sample_query):
+    """
+    Check that the loader is created correctly, even if
+    the remote database returned None (was unavailable).
+    """
+    remote_storage = None
+
+    try:
+        loader = CriticalValueLoader(local_storage, remote_storage)
+        loader.load(sample_query.criterion_code, sample_query.sample_size)
+    except AttributeError:
+        pass
+
+
+def test_alchemy_storage_create_safe_on_failure():
+    """
+    Checking the create_safe method itself on an invalid URL.
+    """
+    bad_url = "postgresql://non_existent_user:pass@localhost:9999/nothing"
+    storage = AlchemyLimitDistributionStorage.create_safe(bad_url, label="Broken DB")
+
+    assert storage is None

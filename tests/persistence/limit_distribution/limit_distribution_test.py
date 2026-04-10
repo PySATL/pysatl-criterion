@@ -13,7 +13,8 @@ from pysatl_criterion.persistence.model.limit_distribution.limit_distribution im
 @pytest.fixture(
     params=[
         pytest.param(
-            lambda: AlchemyLimitDistributionStorage("sqlite:///:memory:"), id="sqlalchemy"
+            lambda: AlchemyLimitDistributionStorage.create_safe("sqlite:///:memory:"),
+            id="sqlalchemy_safe",
         ),
     ]
 )
@@ -24,10 +25,11 @@ def storage_factory(request):
 @pytest.fixture
 def storage(storage_factory):
     store = storage_factory()
-    store.init()
+    if store is None:
+        pytest.fail("Storage factory returned None - check database connection logic")
     yield store
-    if hasattr(store, "conn") and store.conn:
-        store.conn.close()
+    if hasattr(store, "engine") and store.engine:
+        store.engine.dispose()
 
 
 @pytest.fixture
