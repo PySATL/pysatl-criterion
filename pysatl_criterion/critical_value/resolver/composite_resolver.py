@@ -14,10 +14,10 @@ class CompositeCriticalValueResolver(CriticalValueResolver):
     def __init__(
         self,
         local_resolver: StorageCriticalValueResolver,
-        remote_resolver: StorageCriticalValueResolver,
+            cv_loader: CriticalValueLoader,
     ):
         self._local_resolver = local_resolver
-        self._remote_resolver = remote_resolver
+        self._cv_loader = cv_loader
 
     @override
     def resolve(
@@ -47,9 +47,7 @@ class CompositeCriticalValueResolver(CriticalValueResolver):
             return result
 
         # 2. Try to get remote value and cache it to local storage.
-        CriticalValueLoader(
-            self._local_resolver.limit_distribution_storage,
-            self._remote_resolver.limit_distribution_storage,
-        ).load(criterion_code, sample_size)
+        if self._cv_loader.load(criterion_code, sample_size):
+            return self._local_resolver.resolve(criterion_code, sample_size, sl, alternative)
 
-        return self._local_resolver.resolve(criterion_code, sample_size, sl, alternative)
+        return None

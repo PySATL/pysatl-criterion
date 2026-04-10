@@ -15,14 +15,16 @@ class CriticalValueLoader:
         self.__local_storage = local_storage
         self.__remote_storage = remote_storage
 
-    def load(self, criterion_code: str, sample_size: int, sample_size_error: int = 0):
+    def load(self, criterion_code: str, sample_size: int, sample_size_error: int = 0) -> bool:
         """
         Load data from remote distribution storage to local distribution storage.
+
+        Get sample_size - sample_size_error <= sample_size <= sample_size + sample_size_error
 
         :param criterion_code: criterion code
         :param sample_size: sample size
         :param sample_size_error: sample size error.
-        Get sample_size - sample_size_error <= sample_size <= sample_size + sample_size_error
+        :return: True if data exists, False otherwise.
         """
 
         logging.info(f"Load criterion {criterion_code} with size {sample_size} from remote")
@@ -30,13 +32,15 @@ class CriticalValueLoader:
 
         if self.__remote_storage is None:
             logging.error("Cannot load data: remote storage is not initialized.")
-            return
+            return False
 
         remote_data = self.__remote_storage.get_data_for_cv(query)
 
         if remote_data is not None:
             self.__local_storage.insert_data(remote_data)
+            return True
         else:
             logging.warning(
                 f"Remote data for criterion {criterion_code} with size {sample_size} not found"
             )
+            return False
