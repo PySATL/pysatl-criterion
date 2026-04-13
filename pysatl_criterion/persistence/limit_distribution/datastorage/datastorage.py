@@ -87,10 +87,7 @@ class AlchemyLimitDistributionStorage(ILimitDistributionStorage):
             return result.to_model() if result else None
 
     def get_bulk_data(
-            self,
-            criterion_codes: list[str],
-            sample_size: int,
-            sample_size_error: int = 0
+        self, criterion_codes: list[str], sample_size: int, sample_size_error: int = 0
     ) -> list[LimitDistributionModel]:
         """
         Fetch multiple limit distributions by their codes and sample size range.
@@ -106,7 +103,7 @@ class AlchemyLimitDistributionStorage(ILimitDistributionStorage):
 
             stmt = select(LimitDistributionORM).where(
                 LimitDistributionORM.criterion_code.in_(criterion_codes),
-                LimitDistributionORM.sample_size.between(min_size, max_size)
+                LimitDistributionORM.sample_size.between(min_size, max_size),
             )
 
             results = session.execute(stmt).scalars().all()

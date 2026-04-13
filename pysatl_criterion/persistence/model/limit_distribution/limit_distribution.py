@@ -13,10 +13,12 @@ class BulkLoadResult:
     """
     Detailed statistics for the bulk load operation.
     """
+
     requested_count: int
     already_cached_count: int
     newly_cached_count: int
     not_found_codes: list[str] = field(default_factory=list)
+
 
 @dataclass
 class LimitDistributionModel(DataModel):
@@ -72,7 +74,8 @@ class ILimitDistributionStorage(IDataStorage[LimitDistributionModel, LimitDistri
         pass
 
     @abstractmethod
-    def get_bulk_data(self, criterion_codes: list[str], sample_size: int, sample_size_error: int = 0
+    def get_bulk_data(
+        self, criterion_codes: list[str], sample_size: int, sample_size_error: int = 0
     ) -> list[LimitDistributionModel]:
         """
         Fetch multiple limit distributions using a batch query.

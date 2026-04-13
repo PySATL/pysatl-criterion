@@ -1,8 +1,9 @@
 import logging
 
 from pysatl_criterion.persistence.model.limit_distribution.limit_distribution import (
+    BulkLoadResult,
     CriticalValueQuery,
-    ILimitDistributionStorage, BulkLoadResult,
+    ILimitDistributionStorage,
 )
 
 
@@ -46,10 +47,7 @@ class CriticalValueLoader:
             return False
 
     def load_bulk(
-            self,
-            criterion_codes: list[str],
-            sample_size: int,
-            sample_size_error: int = 0
+        self, criterion_codes: list[str], sample_size: int, sample_size_error: int = 0
     ) -> BulkLoadResult:
         """
         Synchronize multiple criteria with cache-miss optimization and bulk insert.
@@ -99,5 +97,5 @@ class CriticalValueLoader:
             requested_count=len(criterion_codes),
             already_cached_count=len(already_cached),
             newly_cached_count=len(remote_models),
-            not_found_codes=not_found
+            not_found_codes=not_found,
         )

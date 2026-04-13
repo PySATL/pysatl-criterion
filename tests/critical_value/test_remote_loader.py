@@ -276,6 +276,7 @@ def test_alchemy_storage_create_safe_on_failure():
 
     assert storage is None
 
+
 def test_load_bulk_all_new_data(loader, local_storage, remote_storage):
     """
     Test the load_bulk method when all requested criteria are missing from local storage and found in remote storage.
