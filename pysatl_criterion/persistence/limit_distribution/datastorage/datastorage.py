@@ -86,6 +86,47 @@ class AlchemyLimitDistributionStorage(ILimitDistributionStorage):
             result = session.execute(stmt).scalar_one_or_none()
             return result.to_model() if result else None
 
+    def get_bulk_data(
+            self,
+            criterion_codes: list[str],
+            sample_size: int,
+            sample_size_error: int = 0
+    ) -> list[LimitDistributionModel]:
+        """
+        Fetch multiple limit distributions by their codes and sample size range.
+
+        :param criterion_codes: list of unique criterion identifiers.
+        :param sample_size: target sample size.
+        :param sample_size_error: allowed deviation for sample size.
+        :return: list of found LimitDistributionModel objects.
+        """
+        with self.Session() as session:
+            min_size = sample_size - sample_size_error
+            max_size = sample_size + sample_size_error
+
+            stmt = select(LimitDistributionORM).where(
+                LimitDistributionORM.criterion_code.in_(criterion_codes),
+                LimitDistributionORM.sample_size.between(min_size, max_size)
+            )
+
+            results = session.execute(stmt).scalars().all()
+            return [result.to_model() for result in results]
+
+    def insert_bulk_data(self, models: list[LimitDistributionModel]) -> None:
+        """
+        Insert multiple records into the database in a single transaction.
+
+        :param models: list of models to be persisted.
+        """
+        if not models:
+            return
+
+        with self.Session() as session:
+            for model in models:
+                orm_obj = LimitDistributionORM.from_model(model)
+                session.merge(orm_obj)
+            session.commit()
+
     def delete_data(self, query: LimitDistributionQuery) -> None:
         """
         Delete limit distribution data based on the provided query parameters.

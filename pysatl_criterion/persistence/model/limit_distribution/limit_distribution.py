@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from pysatl_criterion.persistence.model.common.data_storage.data_storage import (
     DataModel,
@@ -7,6 +7,16 @@ from pysatl_criterion.persistence.model.common.data_storage.data_storage import 
     IDataStorage,
 )
 
+
+@dataclass
+class BulkLoadResult:
+    """
+    Detailed statistics for the bulk load operation.
+    """
+    requested_count: int
+    already_cached_count: int
+    newly_cached_count: int
+    not_found_codes: list[str] = field(default_factory=list)
 
 @dataclass
 class LimitDistributionModel(DataModel):
@@ -56,8 +66,29 @@ class ILimitDistributionStorage(IDataStorage[LimitDistributionModel, LimitDistri
         Get limit distribution data for critical value calculation.
 
         :param query: calculation parameters.
-
         :return: limit distribution data.
         """
 
+        pass
+
+    @abstractmethod
+    def get_bulk_data(self, criterion_codes: list[str], sample_size: int, sample_size_error: int = 0
+    ) -> list[LimitDistributionModel]:
+        """
+        Fetch multiple limit distributions using a batch query.
+
+        :param criterion_codes: list of criterion codes.
+        :param sample_size: number of samples.
+        :param sample_size_error: number of samples error.
+        :return: list of limit distribution data.
+        """
+        pass
+
+    @abstractmethod
+    def insert_bulk_data(self, models: list[LimitDistributionModel]) -> None:
+        """
+        Batch insert or update multiple distribution records.
+
+        :param models: list of limit distribution data.
+        """
         pass
