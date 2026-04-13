@@ -275,3 +275,91 @@ def test_alchemy_storage_create_safe_on_failure():
     storage = AlchemyLimitDistributionStorage.create_safe(bad_url, label="Broken DB")
 
     assert storage is None
+
+def test_load_bulk_all_new_data(loader, local_storage, remote_storage):
+    """
+    Test the load_bulk method when all requested criteria are missing from local storage and found in remote storage.
+    """
+    # Arrange
+    criterion_codes = ["ks", "ad"]
+    sample_size = 100
+    models = [
+        LimitDistributionModel(1, "ks", [], sample_size, 1000, [0.1]),
+        LimitDistributionModel(2, "ad", [], sample_size, 1000, [0.2]),
+    ]
+    for model in models:
+        remote_storage.insert_data(model)
+
+    # Act
+    result = loader.load_bulk(criterion_codes, sample_size)
+
+    # Assert
+    assert result.requested_count == len(criterion_codes)
+    assert result.already_cached_count == 0
+    assert result.newly_cached_count == len(criterion_codes)
+    assert result.not_found_codes == []
+
+    for model in models:
+        query = CriticalValueQuery(
+            criterion_code=model.criterion_code, sample_size=model.sample_size
+        )
+        local_data = local_storage.get_data_for_cv(query)
+        assert local_data is not None
+        assert np.allclose(
+            local_data.results_statistics, model.results_statistics, rtol=1e-7, atol=0.0
+        )
+
+
+def test_load_bulk_with_partial_cache(loader, local_storage, remote_storage):
+    """
+    Test the load_bulk method when some criteria are already in local storage and some are missing.
+    """
+    # Arrange
+    criterion_codes = ["ks", "ad"]
+    sample_size = 100
+
+    local_model_ks = LimitDistributionModel(1, "ks", [], sample_size, 1000, [0.1])
+    local_storage.insert_data(local_model_ks)
+
+    remote_model_ad = LimitDistributionModel(2, "ad", [], sample_size, 1000, [0.2])
+    remote_storage.insert_data(remote_model_ad)
+
+    # Act
+    result = loader.load_bulk(criterion_codes, sample_size)
+
+    # Assert
+    assert result.requested_count == len(criterion_codes)
+    assert result.already_cached_count == 1
+    assert result.newly_cached_count == 1
+    assert result.not_found_codes == []
+
+    query_ad = CriticalValueQuery(criterion_code="ad", sample_size=sample_size)
+    local_data_ad = local_storage.get_data_for_cv(query_ad)
+    assert local_data_ad is not None
+    assert np.allclose(
+        local_data_ad.results_statistics,
+        remote_model_ad.results_statistics,
+    )
+
+
+def test_load_bulk_remote_not_found(loader, local_storage, remote_storage):
+    """
+    Test the load_bulk method when none of the requested criteria are found in remote and local storages.
+    """
+    # Arrange
+    criterion_codes = ["code1", "code2"]
+    sample_size = 100
+
+    # Act
+    result = loader.load_bulk(criterion_codes, sample_size)
+
+    # Assert
+    assert result.requested_count == len(criterion_codes)
+    assert result.already_cached_count == 0
+    assert result.newly_cached_count == 0
+    assert sorted(result.not_found_codes) == sorted(criterion_codes)
+
+    for code in criterion_codes:
+        query = CriticalValueQuery(criterion_code=code, sample_size=sample_size)
+        local_data = local_storage.get_data_for_cv(query)
+        assert local_data is None
