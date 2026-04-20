@@ -6,7 +6,9 @@ from pysatl_criterion.persistence.model.limit_distribution.limit_distribution im
     ILimitDistributionStorage,
 )
 
+
 logger = logging.getLogger(__name__)
+
 
 class CriticalValueLoader:
     def __init__(
