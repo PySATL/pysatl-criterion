@@ -27,14 +27,14 @@ class GoodnessOfFitTest:
 
     def __init__(
         self,
-        statistics: AbstractGoodnessOfFitStatistic,
+        statistics: list[AbstractGoodnessOfFitStatistic],
         significance_level: float,
         cv_resolver: CriticalValueResolver | None = None,
         p_value_resolver: PValueResolver | None = None,
         test_method: TestMethod = TestMethod.CRITICAL_VALUE,
         alternative: HypothesisType = HypothesisType.RIGHT,
     ):
-        self.statistics = statistics
+        self.statistics_list = statistics
         self.significance_level = significance_level
         self.test_method = test_method
         self.alternative = alternative
@@ -69,43 +69,38 @@ class GoodnessOfFitTest:
         self.cv_calculator = cv_resolver
         self.p_value_resolver = p_value_resolver
 
-    def test(self, data: list[float]) -> bool:
+    def test(self, data: list[float]) -> dict[str, bool]:
         """
         Perform goodness of fit.
 
         :param data: data to test.
 
-        :return: True if data is fitted distribution, False otherwise.
+        :return: a dictionary mapping criterion code to test result (True/False).
         """
 
         data_size = len(data)
-        criterion_code = self.statistics.code()
-        statistics_value = self.statistics.execute_statistic(data)
+        stats_map = {s.code(): s.execute_statistic(data) for s in self.statistics_list}
+        codes = list(stats_map.keys())
 
         if self.cv_calculator and self.test_method == TestMethod.CRITICAL_VALUE:
-            critical_area = self.cv_calculator.resolve(
-                criterion_code,
-                data_size,
-                self.significance_level,
-                self.alternative,
+            critical_areas = self.cv_calculator.resolve_bulk(
+                codes, data_size, self.significance_level, self.alternative
             )
-
-            if critical_area is None:
-                raise ValueError(
-                    f"Limit distribution for criterion {criterion_code} and "
-                    f"sample size {data_size} does not exist."
+            return {
+                code: (
+                    critical_areas[code].contains(stats_map[code])
+                    if code in critical_areas
+                    else False
                 )
-
-            return critical_area.contains(statistics_value)
+                for code in codes
+            }
 
         elif self.p_value_resolver and self.test_method == TestMethod.P_VALUE:
-            p_value = self.p_value_resolver.resolve(
-                criterion_code,
-                data_size,
-                statistics_value,
-                self.alternative,
-            )
+            results = {}
+            for code, stat in stats_map.items():
+                p_value = self.p_value_resolver.resolve(code, data_size, stat, self.alternative)
+                results[code] = p_value is not None and p_value >= self.significance_level
+            return results
 
-            return p_value is not None and p_value >= self.significance_level
         else:
             raise ValueError(f"Invalid test method {self.test_method}.")

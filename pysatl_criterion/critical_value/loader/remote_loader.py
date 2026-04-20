@@ -55,7 +55,8 @@ class CriticalValueLoader:
         :param criterion_codes: list of criterion codes to load.
         :param sample_size: sample size for the query.
         :param sample_size_error: acceptable error in sample size for matching.
-        :return: BulkLoadResult containing counts of requested, cached, newly loaded, and not found criteria.
+        :return: BulkLoadResult containing counts of requested, cached, newly loaded, and not
+        found criteria.
         """
         if self.__remote_storage is None:
             logging.error("Remote storage not initialized.")

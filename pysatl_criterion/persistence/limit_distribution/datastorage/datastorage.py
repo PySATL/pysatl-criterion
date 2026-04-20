@@ -107,7 +107,17 @@ class AlchemyLimitDistributionStorage(ILimitDistributionStorage):
             )
 
             results = session.execute(stmt).scalars().all()
-            return [result.to_model() for result in results]
+
+            best_results: dict[str, LimitDistributionModel] = {}
+            for obj in results:
+                key = obj.criterion_code
+                if (
+                    key not in best_results
+                    or obj.monte_carlo_count > best_results[key].monte_carlo_count
+                ):
+                    best_results[key] = obj.to_model()
+
+            return list(best_results.values())
 
     def insert_bulk_data(self, models: list[LimitDistributionModel]) -> None:
         """

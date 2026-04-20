@@ -6,6 +6,7 @@ from pysatl_criterion.persistence.model.common.data_storage.data_storage import 
     DataQuery,
     IDataStorage,
 )
+from pysatl_criterion.statistics.models import HypothesisType
 
 
 @dataclass
@@ -18,6 +19,20 @@ class BulkLoadResult:
     already_cached_count: int
     newly_cached_count: int
     not_found_codes: list[str] = field(default_factory=list)
+
+
+@dataclass
+class CriticalValueResultModel(DataModel):
+    """
+    Model for storing calculated critical values.
+    """
+
+    criterion_code: str
+    sample_size: int
+    significance_level: float
+    alternative: HypothesisType
+    value_low: float
+    value_high: float | None = None
 
 
 @dataclass

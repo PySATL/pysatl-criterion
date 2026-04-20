@@ -1,12 +1,15 @@
 import json
 
-from sqlalchemy import PrimaryKeyConstraint, Text
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import Float, Integer, PrimaryKeyConstraint, Text
 from sqlalchemy.orm import Mapped, declarative_base, mapped_column
 
 from pysatl_criterion.persistence.alchemy_decorator import CompressedFloatArray
 from pysatl_criterion.persistence.model.limit_distribution.limit_distribution import (
+    CriticalValueResultModel,
     LimitDistributionModel,
 )
+from pysatl_criterion.statistics.models import HypothesisType
 
 
 Base = declarative_base()
