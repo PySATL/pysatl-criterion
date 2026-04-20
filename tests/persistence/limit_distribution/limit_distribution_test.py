@@ -138,3 +138,35 @@ def test_get_data_for_cv(storage, model_factory, query_factory):
 def test_get_data_for_cv_not_found(storage):
     query = CriticalValueQuery(criterion_code="missing", sample_size=999)
     assert storage.get_data_for_cv(query) is None, "Find mystic data"
+
+
+def test_insert_bulk_data(storage, model_factory):
+    models = [
+        model_factory(criterion_code="A", sample_size=100),
+        model_factory(criterion_code="B", sample_size=100),
+    ]
+    storage.insert_bulk_data(models)
+
+    results = storage.get_bulk_data(["A", "B"], 100)
+    assert len(results) == 2
+    assert {r.criterion_code for r in results} == {"A", "B"}
+
+
+def test_get_bulk_data_filtering_best_monte_carlo(storage, model_factory):
+    storage.insert_data(model_factory(criterion_code="A", monte_carlo_count=100))
+    storage.insert_data(model_factory(criterion_code="A", monte_carlo_count=1000))
+
+    results = storage.get_bulk_data(["A"], 100)
+
+    assert len(results) == 1
+    assert results[0].monte_carlo_count == 1000
+
+
+def test_storage_data_mapping_consistency(storage, model_factory):
+    original_model = model_factory(criterion_code="test", monte_carlo_count=500)
+    storage.insert_data(original_model)
+
+    retrieved = storage.get_bulk_data(["test"], 100)[0]
+
+    assert retrieved.criterion_code == original_model.criterion_code
+    assert retrieved.monte_carlo_count == original_model.monte_carlo_count

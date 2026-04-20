@@ -35,258 +35,17 @@ def loader(local_storage, remote_storage):
     return CriticalValueLoader(local_storage, remote_storage)
 
 
-@pytest.fixture
-def sample_query():
-    """Create a sample CriticalValueQuery for testing."""
-    return CriticalValueQuery(criterion_code="test_criterion", sample_size=100)
-
-
-@pytest.fixture
-def sample_model():
-    """Create a sample LimitDistributionModel for testing."""
-    return LimitDistributionModel(
-        experiment_id=1,
-        criterion_code="test_criterion",
-        criterion_parameters=[1.0, 2.0],
-        sample_size=100,
-        monte_carlo_count=1000,
-        results_statistics=[0.1, 0.2, 0.3, 0.4, 0.5],
-    )
-
-
-def test_load_success_with_remote_data(
-    loader, sample_query, sample_model, remote_storage, local_storage
-):
-    """Test load function when remote data is found and successfully inserted to local storage."""
-    # Arrange - insert data into remote storage
-    remote_storage.insert_data(sample_model)
-
-    # Act
-    result = loader.load(sample_query.criterion_code, sample_query.sample_size)
-
-    # Assert - verify data was copied to local storage
-    local_data = local_storage.get_data_for_cv(sample_query)
-    assert local_data is not None
-    assert local_data.criterion_code == sample_model.criterion_code
-    assert local_data.sample_size == sample_model.sample_size
-    assert np.allclose(
-        local_data.results_statistics, sample_model.results_statistics, rtol=1e-7, atol=0.0
-    )
-    assert result is True
-
-
-def test_load_no_remote_data(loader, sample_query, local_storage):
-    """Test load function when remote data is not found (returns None)."""
-    # Act
-    result = loader.load(sample_query.criterion_code, sample_query.sample_size)
-
-    # Assert - verify no data was inserted into local storage
-    local_data = local_storage.get_data_for_cv(sample_query)
-    assert local_data is None
-    assert result is False
-
-
-def test_load_storage_interactions_correct_order(
-    loader, sample_query, sample_model, remote_storage, local_storage
-):
-    """Test that storage methods are called in the correct order and data flows correctly."""
-    # Arrange
-    remote_storage.insert_data(sample_model)
-
-    # Act
-    loader.load(sample_query.criterion_code, sample_query.sample_size)
-
-    # Assert - verify data exists in both storages
-    remote_data = remote_storage.get_data_for_cv(sample_query)
-    local_data = local_storage.get_data_for_cv(sample_query)
-
-    assert remote_data is not None
-    assert local_data is not None
-    assert local_data.results_statistics == remote_data.results_statistics
-
-
-def test_load_with_different_query_parameters(loader, remote_storage, local_storage):
-    """Test load function with different query parameters."""
-    # Test with different criterion codes and sample sizes
-    test_cases = [
-        (
-            CriticalValueQuery(criterion_code="ks_test", sample_size=50),
-            LimitDistributionModel(
-                experiment_id=1,
-                criterion_code="ks_test",
-                criterion_parameters=[],
-                sample_size=50,
-                monte_carlo_count=1000,
-                results_statistics=[0.1, 0.2, 0.3],
-            ),
-        ),
-        (
-            CriticalValueQuery(criterion_code="ad_test", sample_size=200),
-            LimitDistributionModel(
-                experiment_id=1,
-                criterion_code="ad_test",
-                criterion_parameters=[],
-                sample_size=200,
-                monte_carlo_count=1000,
-                results_statistics=[0.4, 0.5, 0.6],
-            ),
-        ),
-        (
-            CriticalValueQuery(criterion_code="cvm_test", sample_size=1000),
-            LimitDistributionModel(
-                experiment_id=1,
-                criterion_code="cvm_test",
-                criterion_parameters=[],
-                sample_size=1000,
-                monte_carlo_count=1000,
-                results_statistics=[0.7, 0.8, 0.9],
-            ),
-        ),
-    ]
-
-    for query, model in test_cases:
-        # Arrange
-        remote_storage.insert_data(model)
-
-        # Act
-        loader.load(query.criterion_code, query.sample_size)
-
-        # Assert
-        local_data = local_storage.get_data_for_cv(query)
-        assert local_data is not None
-        assert local_data.criterion_code == model.criterion_code
-        assert local_data.sample_size == model.sample_size
-        assert np.allclose(
-            local_data.results_statistics, model.results_statistics, rtol=1e-7, atol=0.0
-        )
-
-
-def test_load_with_empty_model_data(loader, sample_query, remote_storage, local_storage):
-    """Test load function with empty model data."""
-    # Arrange
-    empty_model = LimitDistributionModel(
-        experiment_id=1,
-        criterion_code="test_criterion",
-        criterion_parameters=[],
-        sample_size=100,
-        monte_carlo_count=1000,
-        results_statistics=[],
-    )
-    remote_storage.insert_data(empty_model)
-
-    # Act
-    loader.load(sample_query.criterion_code, sample_query.sample_size)
-
-    # Assert
-    local_data = local_storage.get_data_for_cv(sample_query)
-    assert local_data is not None
-    assert local_data.results_statistics == []
-
-
-def test_load_data_already_exists_locally(
-    loader, sample_query, sample_model, remote_storage, local_storage
-):
-    """Test load function when data already exists in local storage."""
-    # Arrange - insert same data into both storages
-    remote_storage.insert_data(sample_model)
-
-    sample_model_local = LimitDistributionModel(
-        experiment_id=1,
-        criterion_code="ks_test",
-        criterion_parameters=[],
-        sample_size=100,
-        monte_carlo_count=1000,
-        results_statistics=[0.1, 0.2],
-    )
-    local_storage.insert_data(sample_model_local)
-
-    # Act
-    loader.load(sample_query.criterion_code, sample_query.sample_size)
-
-    # Assert - verify data still exists and is correct
-    local_data = local_storage.get_data_for_cv(sample_query)
-    assert local_data is not None
-    assert np.allclose(
-        local_data.results_statistics, sample_model.results_statistics, rtol=1e-7, atol=0.0
-    )
-
-
-def test_load_multiple_criteria_same_sample_size(loader, remote_storage, local_storage):
-    """Test load function with multiple criteria but same sample size."""
-    # Arrange
-    models = [
-        LimitDistributionModel(
-            experiment_id=1,
-            criterion_code="ks_test",
-            criterion_parameters=[],
-            sample_size=100,
-            monte_carlo_count=1000,
-            results_statistics=[0.1, 0.2],
-        ),
-        LimitDistributionModel(
-            experiment_id=2,
-            criterion_code="ad_test",
-            criterion_parameters=[],
-            sample_size=100,
-            monte_carlo_count=1000,
-            results_statistics=[0.3, 0.4],
-        ),
-    ]
-
-    for model in models:
-        remote_storage.insert_data(model)
-
-    # Act - load each criterion
-    for model in models:
-        query = CriticalValueQuery(
-            criterion_code=model.criterion_code, sample_size=model.sample_size
-        )
-        loader.load(query.criterion_code, query.sample_size)
-
-    # Assert - verify all data was loaded correctly
-    for model in models:
-        query = CriticalValueQuery(
-            criterion_code=model.criterion_code, sample_size=model.sample_size
-        )
-        local_data = local_storage.get_data_for_cv(query)
-        assert local_data is not None
-        assert local_data.criterion_code == model.criterion_code
-        assert np.allclose(
-            local_data.results_statistics, model.results_statistics, rtol=1e-7, atol=0.0
-        )
-
-
-def test_loader_with_unavailable_remote_storage(local_storage, sample_query):
-    """
-    Check that the loader is created correctly, even if
-    the remote database returned None (was unavailable).
-    """
-    loader = CriticalValueLoader(local_storage, None)
-    result = loader.load(sample_query.criterion_code, sample_query.sample_size)
-
-    assert result is False
-
-
-def test_alchemy_storage_create_safe_on_failure():
-    """
-    Checking the create_safe method itself on an invalid URL.
-    """
-    bad_url = "postgresql://non_existent_user:pass@localhost:9999/nothing"
-    storage = AlchemyLimitDistributionStorage.create_safe(bad_url, label="Broken DB")
-
-    assert storage is None
-
-
 def test_load_bulk_all_new_data(loader, local_storage, remote_storage):
     """
-    Test the load_bulk method when all requested criteria are missing from local storage and found in remote storage.
+    Test that load_bulk insert all new data to local storage.
     """
-    # Arrange
     criterion_codes = ["ks", "ad"]
     sample_size = 100
+
+    # Prepare remote data
     models = [
-        LimitDistributionModel(1, "ks", [], sample_size, 1000, [0.1]),
-        LimitDistributionModel(2, "ad", [], sample_size, 1000, [0.2]),
+        LimitDistributionModel(1, "ks", [], sample_size, 1000, [0.1, 0.2]),
+        LimitDistributionModel(2, "ad", [], sample_size, 1000, [0.3, 0.4]),
     ]
     for model in models:
         remote_storage.insert_data(model)
@@ -295,9 +54,9 @@ def test_load_bulk_all_new_data(loader, local_storage, remote_storage):
     result = loader.load_bulk(criterion_codes, sample_size)
 
     # Assert
-    assert result.requested_count == len(criterion_codes)
+    assert result.requested_count == 2
     assert result.already_cached_count == 0
-    assert result.newly_cached_count == len(criterion_codes)
+    assert result.newly_cached_count == 2
     assert result.not_found_codes == []
 
     for model in models:
@@ -306,61 +65,115 @@ def test_load_bulk_all_new_data(loader, local_storage, remote_storage):
         )
         local_data = local_storage.get_data_for_cv(query)
         assert local_data is not None
-        assert np.allclose(
-            local_data.results_statistics, model.results_statistics, rtol=1e-7, atol=0.0
-        )
+        assert np.allclose(local_data.results_statistics, model.results_statistics, rtol=1e-7)
 
 
-def test_load_bulk_with_partial_cache(loader, local_storage, remote_storage):
+def test_load_bulk_partial_cache(loader, local_storage, remote_storage):
     """
     Test the load_bulk method when some criteria are already in local storage and some are missing.
     """
-    # Arrange
-    criterion_codes = ["ks", "ad"]
+    criterion_codes = ["ks", "ad", "cvm"]
     sample_size = 100
 
-    local_model_ks = LimitDistributionModel(1, "ks", [], sample_size, 1000, [0.1])
-    local_storage.insert_data(local_model_ks)
-
-    remote_model_ad = LimitDistributionModel(2, "ad", [], sample_size, 1000, [0.2])
-    remote_storage.insert_data(remote_model_ad)
+    local_storage.insert_data(LimitDistributionModel(1, "ks", [], sample_size, 1000, [0.1]))
+    remote_storage.insert_data(LimitDistributionModel(2, "ad", [], sample_size, 1000, [0.2]))
 
     # Act
     result = loader.load_bulk(criterion_codes, sample_size)
 
     # Assert
-    assert result.requested_count == len(criterion_codes)
-    assert result.already_cached_count == 1
-    assert result.newly_cached_count == 1
-    assert result.not_found_codes == []
+    assert result.requested_count == 3
+    assert result.already_cached_count == 1  # 'ks'
+    assert result.newly_cached_count == 1  # 'ad'
+    assert result.not_found_codes == ["cvm"]
 
-    query_ad = CriticalValueQuery(criterion_code="ad", sample_size=sample_size)
-    local_data_ad = local_storage.get_data_for_cv(query_ad)
-    assert local_data_ad is not None
-    assert np.allclose(
-        local_data_ad.results_statistics,
-        remote_model_ad.results_statistics,
-    )
+    assert local_storage.get_data_for_cv(CriticalValueQuery("ks", sample_size)) is not None
+    assert local_storage.get_data_for_cv(CriticalValueQuery("ad", sample_size)) is not None
+    assert local_storage.get_data_for_cv(CriticalValueQuery("cvm", sample_size)) is None
 
 
-def test_load_bulk_remote_not_found(loader, local_storage, remote_storage):
+def test_load_bulk_empty_remote(loader, local_storage, remote_storage):
     """
-    Test the load_bulk method when none of the requested criteria are found in remote and local storages.
+    Check that load_bulk do not add data to local storage when remote is empty.
     """
-    # Arrange
-    criterion_codes = ["code1", "code2"]
+    criterion_codes = ["missing_1", "missing_2"]
     sample_size = 100
 
     # Act
     result = loader.load_bulk(criterion_codes, sample_size)
 
-    # Assert
-    assert result.requested_count == len(criterion_codes)
+    # Assert Counters
+    assert result.requested_count == 2
     assert result.already_cached_count == 0
     assert result.newly_cached_count == 0
     assert sorted(result.not_found_codes) == sorted(criterion_codes)
 
     for code in criterion_codes:
-        query = CriticalValueQuery(criterion_code=code, sample_size=sample_size)
-        local_data = local_storage.get_data_for_cv(query)
-        assert local_data is None
+        assert local_storage.get_data_for_cv(CriticalValueQuery(code, sample_size)) is None
+
+
+def test_load_bulk_all_cached(loader, local_storage, remote_storage):
+    """
+    Test load_bulk when all requested criteria are already in local cache.
+    """
+    criterion_codes = ["ks", "ad"]
+    sample_size = 100
+
+    for code in criterion_codes:
+        local_storage.insert_data(LimitDistributionModel(1, code, [], sample_size, 1000, [0.5]))
+
+    # Act
+    result = loader.load_bulk(criterion_codes, sample_size)
+
+    # Assert Counters
+    assert result.requested_count == 2
+    assert result.already_cached_count == 2
+    assert result.newly_cached_count == 0
+    assert result.not_found_codes == []
+
+
+def test_load_bulk_with_unavailable_remote(local_storage, sample_size=100):
+    """
+    Test load_bulk when remote storage is None (unavailable).
+    """
+    criterion_codes = ["ks", "ad"]
+    loader = CriticalValueLoader(local_storage, remote_storage=None)
+
+    # Act
+    result = loader.load_bulk(criterion_codes, sample_size)
+
+    # Assert
+    assert result.requested_count == 2
+    assert result.already_cached_count == 0
+    assert result.newly_cached_count == 0
+    assert sorted(result.not_found_codes) == sorted(criterion_codes)
+
+
+def test_load_bulk_preserves_best_monte_carlo(loader, local_storage, remote_storage):
+    """
+    In this test get_bulk_data should return the one with the highest MC count, and it gets cached.
+    """
+    criterion_codes = ["ks"]
+    sample_size = 100
+
+    # Insert data
+    remote_storage.insert_data(LimitDistributionModel(1, "ks", [], sample_size, 500, [0.1]))
+    remote_storage.insert_data(LimitDistributionModel(2, "ks", [], sample_size, 2000, [0.9]))
+
+    # Act
+    loader.load_bulk(criterion_codes, sample_size)
+
+    # Assert
+    local_data = local_storage.get_data_for_cv(CriticalValueQuery("ks", sample_size))
+    assert local_data is not None
+    assert local_data.monte_carlo_count == 2000
+    assert np.allclose(local_data.results_statistics, [0.9])
+
+
+def test_alchemy_storage_create_safe_on_failure():
+    """
+    Verify that create_safe returns None instead of raising on invalid URL.
+    """
+    bad_url = "postgresql://non_existent_user:pass@localhost:9999/nothing"
+    storage = AlchemyLimitDistributionStorage.create_safe(bad_url, label="Broken DB")
+    assert storage is None

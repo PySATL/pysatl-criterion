@@ -4,58 +4,105 @@ from pysatl_criterion.critical_value.critical_area.critical_areas import RightCr
 from pysatl_criterion.critical_value.resolver.composite_resolver import (
     CompositeCriticalValueResolver,
 )
-from pysatl_criterion.statistics.models import HypothesisType
+from pysatl_criterion.persistence.model.limit_distribution.limit_distribution import BulkLoadResult
 
 
-def test_composite_resolver_cache_miss_logic():
+def test_composite_resolver_cache_hit():
     """
-    Scenario:
-    1. Local resolver returns None (cache miss).
-    2. Loader successfully fetches data (returns True).
-    3. Local resolver is called again and returns the area.
+    All data is in local cache. Loader should NOT be called.
     """
-    # Setup mocks
     mock_local_resolver = MagicMock()
     mock_loader = MagicMock()
 
-    expected_area = RightCriticalArea(1.96)
+    code1 = "crit1"
+    area1 = RightCriticalArea(1.96)
 
-    mock_local_resolver.resolve.side_effect = [None, expected_area]
+    mock_local_resolver.resolve_bulk.return_value = {code1: area1}
 
-    mock_loader.load.return_value = True
+    resolver = CompositeCriticalValueResolver(mock_local_resolver, mock_loader)
 
-    resolver = CompositeCriticalValueResolver(
-        local_resolver=mock_local_resolver, cv_loader=mock_loader
+    results = resolver.resolve_bulk([code1], 100, 0.05)
+
+    assert results == {code1: area1}
+    mock_loader.load_bulk.assert_not_called()
+    assert mock_local_resolver.resolve_bulk.call_count == 1
+
+
+def test_composite_resolver_cache_miss_and_load_success():
+    """
+    1. Local cache miss.
+    2. Loader successfully fetches data.
+    3. Second local call returns the data.
+    """
+    mock_local_resolver = MagicMock()
+    mock_loader = MagicMock()
+
+    code1 = "crit1"
+    area1 = RightCriticalArea(1.96)
+
+    mock_local_resolver.resolve_bulk.side_effect = [{}, {code1: area1}]
+
+    mock_loader.load_bulk.return_value = BulkLoadResult(
+        requested_count=1, already_cached_count=0, newly_cached_count=1, not_found_codes=[]
     )
 
-    # Act
-    result = resolver.resolve(
-        criterion_code="test_crit", sample_size=100, sl=0.05, alternative=HypothesisType.RIGHT
-    )
+    resolver = CompositeCriticalValueResolver(mock_local_resolver, mock_loader)
 
-    # Assert
-    assert mock_local_resolver.resolve.call_count == 2
-    mock_loader.load.assert_called_once_with("test_crit", 100)
-    assert result == expected_area
+    results = resolver.resolve_bulk([code1], 100, 0.05)
+
+    assert results == {code1: area1}
+    assert mock_local_resolver.resolve_bulk.call_count == 2
+    mock_loader.load_bulk.assert_called_once_with([code1], 100)
 
 
 def test_composite_resolver_loader_fails():
     """
-    If loader return False, there should be no second attempt to search the local database
+    Loader returns failure (not_found). Result should be empty for that code.
     """
-    # Setup mocks
     mock_local_resolver = MagicMock()
     mock_loader = MagicMock()
 
-    mock_local_resolver.resolve.return_value = None
-    mock_loader.load.return_value = False  # Данных нет на сервере
+    code1 = "crit1"
+
+    mock_local_resolver.resolve_bulk.side_effect = [{}, {}]
+
+    mock_loader.load_bulk.return_value = BulkLoadResult(
+        requested_count=1, already_cached_count=0, newly_cached_count=0, not_found_codes=[code1]
+    )
 
     resolver = CompositeCriticalValueResolver(mock_local_resolver, mock_loader)
 
-    # Act
-    result = resolver.resolve("test_crit", 100, 0.05)
+    results = resolver.resolve_bulk([code1], 100, 0.05)
 
-    # Assert
-    assert mock_local_resolver.resolve.call_count == 1
-    mock_loader.load.assert_called_once()
-    assert result is None
+    assert code1 not in results
+    assert mock_local_resolver.resolve_bulk.call_count == 1
+    mock_loader.load_bulk.assert_called_once()
+
+
+def test_composite_resolver_partial_cache_hit():
+    """
+    Some codes in cache, some missing. Only missing are loaded.
+    """
+
+    mock_local_resolver = MagicMock()
+    mock_loader = MagicMock()
+
+    code1 = "crit1"
+    code2 = "crit2"
+    area1 = RightCriticalArea(1.96)
+    area2 = RightCriticalArea(2.58)
+
+    mock_local_resolver.resolve_bulk.side_effect = [{code1: area1}, {code2: area2}]
+
+    mock_loader.load_bulk.return_value = BulkLoadResult(
+        requested_count=1, already_cached_count=0, newly_cached_count=1, not_found_codes=[]
+    )
+
+    resolver = CompositeCriticalValueResolver(mock_local_resolver, mock_loader)
+
+    results = resolver.resolve_bulk([code1, code2], 100, 0.05)
+
+    assert results == {code1: area1, code2: area2}
+    assert mock_local_resolver.resolve_bulk.call_count == 2
+
+    mock_loader.load_bulk.assert_called_once_with([code2], 100)
