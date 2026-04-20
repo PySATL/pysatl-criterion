@@ -41,9 +41,15 @@ class CompositeCriticalValueResolver(CriticalValueResolver):
 
         # 3. Load missing results and update the results dictionary
         if missing:
-            for code in missing:
-                self._cv_loader.load(code, sample_size)
-            new_data = self._local_resolver.resolve_bulk(missing, sample_size, sl, alternative)
-            results.update(new_data)
+            load_result = self._cv_loader.load_bulk(missing, sample_size)
+
+            if load_result.newly_cached_count > 0:
+                logger.info(f"Loaded {load_result.newly_cached_count} new criteria. Retrying local resolution...")
+                codes_to_retry = [c for c in missing if c not in load_result.not_found_codes]
+                if codes_to_retry:
+                    new_results = self._local_resolver.resolve_bulk(codes_to_retry, sample_size, sl, alternative)
+                    results.update(new_results)
+            else:
+                logger.warning(f"Could not load any new data. Missing: {load_result.not_found_codes}")
 
         return results
