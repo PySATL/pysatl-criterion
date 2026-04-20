@@ -83,8 +83,8 @@ def test_load_bulk_partial_cache(loader, local_storage, remote_storage):
 
     # Assert
     assert result.requested_count == 3
-    assert result.already_cached_count == 1  # 'ks'
-    assert result.newly_cached_count == 1  # 'ad'
+    assert result.already_cached_count == 1
+    assert result.newly_cached_count == 1
     assert result.not_found_codes == ["cvm"]
 
     assert local_storage.get_data_for_cv(CriticalValueQuery("ks", sample_size)) is not None
@@ -125,7 +125,7 @@ def test_load_bulk_all_cached(loader, local_storage, remote_storage):
     # Act
     result = loader.load_bulk(criterion_codes, sample_size)
 
-    # Assert Counters
+    # Assert
     assert result.requested_count == 2
     assert result.already_cached_count == 2
     assert result.newly_cached_count == 0
