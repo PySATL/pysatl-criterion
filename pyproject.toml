@@ -50,7 +50,7 @@ pytest-random-order = "1.2.0"
 ruff = "0.15.12"
 pytest-mock = "3.15.1"
 pre-commit = "4.6.0"
-mypy = "1.20.2"
+mypy = "2.0.0"
 
 [tool.isort]
 line_length = 100
