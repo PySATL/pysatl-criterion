@@ -1,7 +1,10 @@
 import pytest
 
-from pysatl_criterion.hypothesis_testing.critical_values.critical_area.critical_areas import LeftCriticalArea, \
-    RightCriticalArea, TwoSidedCriticalArea
+from pysatl_criterion.hypothesis_testing.critical_values.critical_area.critical_areas import (
+    LeftCriticalArea,
+    RightCriticalArea,
+    TwoSidedCriticalArea,
+)
 
 
 def test_left_critical_area_contains_expected_values():

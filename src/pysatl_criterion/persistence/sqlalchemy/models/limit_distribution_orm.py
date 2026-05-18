@@ -3,10 +3,8 @@ import json
 from sqlalchemy import PrimaryKeyConstraint, Text
 from sqlalchemy.orm import Mapped, declarative_base, mapped_column
 
+from pysatl_criterion.persistence.models.limit_distribution import LimitDistributionModel
 from pysatl_criterion.persistence.sqlalchemy.alchemy_decorator import CompressedFloatArray
-from pysatl_criterion.persistence.models.limit_distribution import (
-    LimitDistributionModel,
-)
 
 
 Base = declarative_base()

@@ -1,4 +1,5 @@
-﻿from ..utils.distribution import DistributionType
+from ..utils.distribution import DistributionType
+
 
 __all__ = [
     "DistributionType",

@@ -10,11 +10,16 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from pysatl_criterion.hypothesis_testing.p_value.resolver.calculation_resolver import CalculationPValueResolver
+from pysatl_criterion.hypothesis_testing.p_value.resolver.calculation_resolver import (
+    CalculationPValueResolver,
+)
 from pysatl_criterion.statistics.models import HypothesisType
 
 
-@patch("pysatl_criterion.hypothesis_testing.p_value.resolver.calculation_resolver.ILimitDistributionStorage")
+@patch(
+    "pysatl_criterion.hypothesis_testing.p_value.resolver.calculation_resolver"
+    ".ILimitDistributionStorage"
+)
 def test_calculate_p_value_for_different_alternatives(mock_storage_cls):
     """
     Test p-value calculation for different hypothesis types using mocked storage.
@@ -47,7 +52,10 @@ def test_calculate_p_value_for_different_alternatives(mock_storage_cls):
         )
 
 
-@patch("pysatl_criterion.hypothesis_testing.p_value.resolver.calculation_resolver.ILimitDistributionStorage")
+@patch(
+    "pysatl_criterion.hypothesis_testing.p_value.resolver.calculation_resolver"
+    ".ILimitDistributionStorage"
+)
 def test_calculate_p_value_with_statistic_outside_simulation_range(mock_storage_cls):
     """Test p-value calculation when statistic is outside the simulation range."""
     mock_distribution = MagicMock()
@@ -71,7 +79,10 @@ def test_calculate_p_value_with_statistic_outside_simulation_range(mock_storage_
     assert p_value_low == pytest.approx(1.0)
 
 
-@patch("pysatl_criterion.hypothesis_testing.p_value.resolver.calculation_resolver.ILimitDistributionStorage")
+@patch(
+    "pysatl_criterion.hypothesis_testing.p_value.resolver.calculation_resolver"
+    ".ILimitDistributionStorage"
+)
 def test_calculate_p_value_raises_error_when_limit_distribution_not_found(mock_storage_cls):
     """Test error when limit distribution is not found."""
     mock_storage = mock_storage_cls.return_value
@@ -91,7 +102,10 @@ def test_calculate_p_value_raises_error_when_limit_distribution_not_found(mock_s
         )
 
 
-@patch("pysatl_criterion.hypothesis_testing.p_value.resolver.calculation_resolver.ILimitDistributionStorage")
+@patch(
+    "pysatl_criterion.hypothesis_testing.p_value.resolver.calculation_resolver"
+    ".ILimitDistributionStorage"
+)
 def test_calculate_p_value_raises_error_for_unknown_alternative(mock_storage_cls):
     """Test error for unknown hypothesis alternative."""
     mock_distribution = MagicMock()
@@ -119,7 +133,10 @@ def test_calculate_p_value_raises_error_for_unknown_alternative(mock_storage_cls
         ([1, 1, 1, 1, 1], 1.0, 0.0),
     ],
 )
-@patch("pysatl_criterion.hypothesis_testing.p_value.resolver.calculation_resolver.ILimitDistributionStorage")
+@patch(
+    "pysatl_criterion.hypothesis_testing.p_value.resolver.calculation_resolver"
+    ".ILimitDistributionStorage"
+)
 def test_p_value_calculation_with_different_distributions(
     mock_storage_cls, statistics_array, statistics_value, expected_p_value
 ):

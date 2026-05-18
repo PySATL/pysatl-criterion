@@ -12,7 +12,10 @@ from pysatl_criterion.persistence.models.limit_distribution import (
     LimitDistributionModel,
     LimitDistributionQuery,
 )
-from pysatl_criterion.persistence.sqlalchemy.models.limit_distribution_orm import Base, LimitDistributionORM
+from pysatl_criterion.persistence.sqlalchemy.models.limit_distribution_orm import (
+    Base,
+    LimitDistributionORM,
+)
 
 
 logger = logging.getLogger(__name__)

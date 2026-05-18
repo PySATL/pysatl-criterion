@@ -1,12 +1,13 @@
 import scipy.stats as scipy_stats
 from typing_extensions import override
 
-from .model import PValueResolver
 from pysatl_criterion.persistence.models.limit_distribution import (
     CriticalValueQuery,
     ILimitDistributionStorage,
 )
 from pysatl_criterion.statistics.models import HypothesisType
+
+from .model import PValueResolver
 
 
 class CalculationPValueResolver(PValueResolver):

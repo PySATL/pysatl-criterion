@@ -1,13 +1,11 @@
 import pytest
 
-from pysatl_criterion.persistence.sqlalchemy.datastorage import (
-    AlchemyLimitDistributionStorage,
-)
 from pysatl_criterion.persistence.models.limit_distribution import (
     CriticalValueQuery,
     LimitDistributionModel,
     LimitDistributionQuery,
 )
+from pysatl_criterion.persistence.sqlalchemy.datastorage import AlchemyLimitDistributionStorage
 
 
 @pytest.fixture(

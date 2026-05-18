@@ -2,7 +2,9 @@ import unittest
 
 import numpy as np
 
-from pysatl_criterion.estimation.maximum_likelihood_method import function_for_maximum_likelihood_method as maxMethod
+from pysatl_criterion.estimation.maximum_likelihood_method import (
+    function_for_maximum_likelihood_method as maxMethod,
+)
 
 
 # 1.Uniform continuous distribution

@@ -1,14 +1,19 @@
-from pysatl_criterion.hypothesis_testing.model import TestMethod
-from pysatl_criterion.hypothesis_testing.p_value.resolver.model import PValueResolver
-from pysatl_criterion.hypothesis_testing.critical_values.resolver.model import CriticalValueResolver
-from pysatl_criterion.hypothesis_testing.critical_values.loader.remote_loader import CriticalValueLoader
-from pysatl_criterion.hypothesis_testing.critical_values.resolver.composite_resolver import \
-    CompositeCriticalValueResolver
-from pysatl_criterion.hypothesis_testing.critical_values.resolver.storage_resolver import StorageCriticalValueResolver
-from pysatl_criterion.hypothesis_testing.p_value.resolver.calculation_resolver import CalculationPValueResolver
-from pysatl_criterion.persistence.sqlalchemy.datastorage import (
-    AlchemyLimitDistributionStorage,
+from pysatl_criterion.hypothesis_testing.critical_values.loader.remote_loader import (
+    CriticalValueLoader,
 )
+from pysatl_criterion.hypothesis_testing.critical_values.resolver.composite_resolver import (
+    CompositeCriticalValueResolver,
+)
+from pysatl_criterion.hypothesis_testing.critical_values.resolver.model import CriticalValueResolver
+from pysatl_criterion.hypothesis_testing.critical_values.resolver.storage_resolver import (
+    StorageCriticalValueResolver,
+)
+from pysatl_criterion.hypothesis_testing.model import TestMethod
+from pysatl_criterion.hypothesis_testing.p_value.resolver.calculation_resolver import (
+    CalculationPValueResolver,
+)
+from pysatl_criterion.hypothesis_testing.p_value.resolver.model import PValueResolver
+from pysatl_criterion.persistence.sqlalchemy.datastorage import AlchemyLimitDistributionStorage
 from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.models import HypothesisType
 from pysatl_criterion.utils.constants import LOCAL_PYSATL_URL, REMOTE_PYSATL_URL
