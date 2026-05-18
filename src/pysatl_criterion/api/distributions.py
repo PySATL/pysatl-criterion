@@ -1,4 +1,4 @@
-from ..utils.distribution import DistributionType
+from pysatl_criterion.utils.distribution import DistributionType
 
 
 __all__ = [
