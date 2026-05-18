@@ -37,25 +37,25 @@ class GoodnessOfFitTest:
         self.significance_level = significance_level
         self.test_method = test_method
         self.alternative = alternative
+        self.cv_calculator = cv_resolver
+        self.p_value_resolver = p_value_resolver
 
-        cv_local_storage = AlchemyLimitDistributionStorage.create_safe(
-            LOCAL_PYSATL_URL, label="Local CV Storage"
-        )
-        if cv_local_storage is None:
-            raise RuntimeError(
-                "Local storage is required for caching, but could not be initialized."
+        if self.cv_calculator is None and test_method == TestMethod.CRITICAL_VALUE:
+            cv_local_storage = AlchemyLimitDistributionStorage.create_safe(
+                LOCAL_PYSATL_URL, label="Local CV Storage"
             )
-
-        cv_remote_storage = AlchemyLimitDistributionStorage.create_safe(
-            REMOTE_PYSATL_URL, label="Remote CV Storage"
-        )
-
-        if cv_resolver is None and test_method == TestMethod.CRITICAL_VALUE:
+            if cv_local_storage is None:
+                raise RuntimeError(
+                    "Local storage is required for caching, but could not be initialized."
+                )
+            cv_remote_storage = AlchemyLimitDistributionStorage.create_safe(
+                REMOTE_PYSATL_URL, label="Remote CV Storage"
+            )
             cv_loader = CriticalValueLoader(cv_local_storage, cv_remote_storage)
             cv_local_resolver = StorageCriticalValueResolver(cv_local_storage)
-            cv_resolver = CompositeCriticalValueResolver(cv_local_resolver, cv_loader)
+            self.cv_calculator = CompositeCriticalValueResolver(cv_local_resolver, cv_loader)
 
-        if p_value_resolver is None and test_method == TestMethod.P_VALUE:
+        if self.p_value_resolver is None and test_method == TestMethod.P_VALUE:
             p_storage = AlchemyLimitDistributionStorage.create_safe(
                 REMOTE_PYSATL_URL, "Remote P-Storage"
             ) or AlchemyLimitDistributionStorage.create_safe(LOCAL_PYSATL_URL, "Local P-Storage")
@@ -63,10 +63,7 @@ class GoodnessOfFitTest:
             if p_storage is None:
                 raise RuntimeError("No available storage for P-value calculation.")
 
-            p_value_resolver = CalculationPValueResolver(p_storage)
-
-        self.cv_calculator = cv_resolver
-        self.p_value_resolver = p_value_resolver
+            self.p_value_resolver = CalculationPValueResolver(p_storage)
 
     def test(self, data: list[float]) -> dict[str, bool]:
         """
