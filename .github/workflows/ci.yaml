@@ -42,7 +42,7 @@ jobs:
 
       - name: Mypy
         run: |
-          poetry run mypy pysatl_criterion tests
+          poetry run mypy src/pysatl_criterion tests
 
       - name: Run tests
         run: poetry run pytest --random-order
