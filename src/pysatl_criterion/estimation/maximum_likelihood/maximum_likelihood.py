@@ -1,10 +1,10 @@
 import inspect
 
-import function_for_maximum_likelihood_method
+import function_for_maximum_likelihood
 import numpy as np
 
 
-def findMaxProbabilityFunction(data):
+def find_max_probability_function(data):
     """
     Find the distribution function with maximum likelihood for given data.
 
@@ -28,7 +28,7 @@ def findMaxProbabilityFunction(data):
     return max_func
 
 
-def findResultOfLikelihoodFunction(data):
+def find_result_of_likelihood_function(data):
     """
     Validate data and find the best-fitting distribution function with its likelihood value.
 
@@ -45,4 +45,4 @@ def findResultOfLikelihoodFunction(data):
     if not np.issubdtype(data_array.dtype, np.number):
         raise TypeError("Data should be numeric.")
 
-    findMaxProbabilityFunction(data)
+    find_max_probability_function(data)

@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 import scipy.stats as scipy_stats
 
-from pysatl_criterion.statistics.student import (
+from src.pysatl_criterion.statistics.student import (
     AbstractStudentGofStatistic,
     AndersonDarlingStudentGofStatistic,
     ChiSquareStudentGofStatistic,

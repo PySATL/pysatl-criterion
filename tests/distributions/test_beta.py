@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import scipy.stats as scipy_stats
 
-from pysatl_criterion.statistics.beta import (
+from src.pysatl_criterion.statistics.beta import (
     AbstractBetaGofStatistic,
     AndersonDarlingBetaGofStatistic,
     Chi2PearsonBetaGofStatistic,

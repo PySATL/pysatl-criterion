@@ -3,10 +3,10 @@ from unittest.mock import MagicMock
 import numpy as np
 import pytest
 
-from pysatl_criterion.hypothesis_testing.critical_values.cv_calculator.cv_calculator import (
+from src.pysatl_criterion.hypothesis_testing.critical_values.cv_calculator.cv_calculator import (
     CVCalculator,
 )
-from pysatl_criterion.statistics.models import HypothesisType
+from src.pysatl_criterion.statistics.models import HypothesisType
 
 
 def test_calc_critical_value_right_tailed():

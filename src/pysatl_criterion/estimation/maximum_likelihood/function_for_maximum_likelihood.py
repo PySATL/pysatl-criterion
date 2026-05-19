@@ -36,7 +36,7 @@ from scipy.stats import beta, cauchy, chi2, f, gamma, rayleigh, t
 
 
 # 1.Uniform continuous distribution
-def likelihoodFunctionForUniformContinuousDistribution(dataArray):
+def likelihood_function_uniform_continuous(dataArray):
     """
     Calculate likelihood function for uniform continuous distribution.
 
@@ -57,7 +57,7 @@ def likelihoodFunctionForUniformContinuousDistribution(dataArray):
 
 
 # 2.Normal distribution
-def likelihoodFunctionForNormalDistribution(dataArray):
+def likelihood_function_normal(dataArray):
     """
     Calculate likelihood function for normal distribution.
 
@@ -84,7 +84,7 @@ def likelihoodFunctionForNormalDistribution(dataArray):
 
 
 # 3.Lognormal distribution
-def likelihoodFunctionForLognormalDistribution(dataArray):
+def likelihood_function_lognormal(dataArray):
     """
     Calculate likelihood function for lognormal distribution.
 
@@ -115,7 +115,7 @@ def likelihoodFunctionForLognormalDistribution(dataArray):
 
 
 # 4. Exponential distribution
-def likelihoodFunctionForExponentialDistribution(dataArray):
+def likelihood_function_exponential(dataArray):
     """
     Calculate likelihood function for exponential distribution.
 
@@ -144,7 +144,7 @@ def likelihoodFunctionForExponentialDistribution(dataArray):
 
 
 # 5.Weibull distribution
-def likelihoodFunctionForWeibullDistribution(dataArray):
+def likelihood_function_weibull(dataArray):
     """
     Calculate likelihood function for Weibull distribution.
 
@@ -178,7 +178,7 @@ def likelihoodFunctionForWeibullDistribution(dataArray):
 
 
 # 6.Gamma distribution
-def likelihoodFunctionForGammaDistribution(dataArray):
+def likelihood_function_gamma(dataArray):
     """
     Calculate likelihood function for gamma distribution.
 
@@ -199,7 +199,7 @@ def likelihoodFunctionForGammaDistribution(dataArray):
 
 
 # 7.Beta distribution
-def likelihoodFunctionForBetaDistribution(dataArray):
+def likelihood_function_beta(dataArray):
     """
     Calculate likelihood function for beta distribution.
 
@@ -230,7 +230,7 @@ def likelihoodFunctionForBetaDistribution(dataArray):
 
 
 # 8.Cauchy distribution
-def likelihoodFunctionForCauchyDistribution(dataArray):
+def likelihood_function_cauchy(dataArray):
     """
     Calculate likelihood function for Cauchy distribution.
 
@@ -259,7 +259,7 @@ def likelihoodFunctionForCauchyDistribution(dataArray):
 
 
 # 9.Chi-square distribution
-def likelihoodFunctionForChiSquared(dataArray):
+def likelihood_function_chi_squared(dataArray):
     """
     Calculate likelihood function for chi-square distribution.
 
@@ -280,7 +280,7 @@ def likelihoodFunctionForChiSquared(dataArray):
 
 
 # 10.Student distribution (t-distribution)
-def likelihoodFunctionForTDistribution(dataArray):
+def likelihood_function_t_distribution(dataArray):
     """
     Calculate likelihood function for Student's t-distribution.
 
@@ -298,7 +298,7 @@ def likelihoodFunctionForTDistribution(dataArray):
 
 
 # 11.Fisher distribution
-def likelihoodFunctionForFisherDistribution(dataArray):
+def likelihood_function_fisher(dataArray):
     """
     Calculate likelihood function for Fisher distribution.
 
@@ -316,7 +316,7 @@ def likelihoodFunctionForFisherDistribution(dataArray):
 
 
 # 12.Rayleigh distribution
-def likelihoodFunctionForRayleighDistribution(dataArray):
+def likelihood_function_rayleigh(dataArray):
     """
     Calculate likelihood function for Rayleigh distribution.
 
@@ -335,7 +335,7 @@ def likelihoodFunctionForRayleighDistribution(dataArray):
 
 
 # 13.Wigner distribution
-def likelihoodFunctionForWignerDistribution(dataArray):
+def likelihood_function_wigner(dataArray):
     """
     Calculate likelihood function for Wigner (semicircle) distribution.
 
@@ -365,7 +365,7 @@ def likelihoodFunctionForWignerDistribution(dataArray):
 
 
 # 14.Pareto distribution
-def likelihoodFunctionForParetoDistribution(dataArray):
+def likelihood_function_pareto(dataArray):
     """
     Calculate likelihood function for Pareto distribution.
 
@@ -395,7 +395,7 @@ def likelihoodFunctionForParetoDistribution(dataArray):
 
 
 # 15.Laplace distribution
-def likelihoodFunctionForLaplaceDistribution(dataArray):
+def likelihood_function_laplace(dataArray):
     """
     Calculate likelihood function for Laplace (double exponential) distribution.
 
@@ -419,7 +419,7 @@ def likelihoodFunctionForLaplaceDistribution(dataArray):
 
 
 # 1.Discrete uniform distribution
-def likelihoodFunctionForDiscreteUniformDistribution(dataArray):
+def likelihood_function_discrete_uniform(dataArray):
     """
     Calculate likelihood function for discrete uniform distribution.
 
@@ -439,7 +439,7 @@ def likelihoodFunctionForDiscreteUniformDistribution(dataArray):
 
 
 # 2.Bernoulli distribution
-def likelihoodFunctionForBernoulliDistribution(dataArray):
+def likelihood_function_bernoulli(dataArray):
     """
     Calculate likelihood function for Bernoulli distribution.
 
@@ -464,7 +464,7 @@ def likelihoodFunctionForBernoulliDistribution(dataArray):
 
 
 # 3.Binomial distribution
-def likelihoodFunctionForBinomialDistribution(dataArray, n):
+def likelihood_function_binomial(dataArray, n):
     """
     Calculate likelihood function for binomial distribution.
 
@@ -495,7 +495,7 @@ def likelihoodFunctionForBinomialDistribution(dataArray, n):
 
 
 # 4.Poisson distribution
-def likelihoodFunctionForPoissonDistribution(dataArray):
+def likelihood_function_poisson(dataArray):
     """
     Calculate likelihood function for Poisson distribution.
 
@@ -516,7 +516,7 @@ def likelihoodFunctionForPoissonDistribution(dataArray):
 
 
 # 5.Geometric distribution
-def likelihoodFunctionForGeometricDistribution(dataArray):
+def likelihood_function_geometric(dataArray):
     """
     Calculate likelihood function for geometric distribution.
 

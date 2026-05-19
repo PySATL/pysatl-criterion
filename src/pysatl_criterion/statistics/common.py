@@ -4,7 +4,7 @@ import numpy as np
 from scipy import special
 from typing_extensions import override
 
-from pysatl_criterion.statistics.models import AbstractStatistic
+from src.pysatl_criterion.statistics.models import AbstractStatistic
 
 
 class KSStatistic(AbstractStatistic, ABC):

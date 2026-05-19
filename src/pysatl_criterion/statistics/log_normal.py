@@ -8,10 +8,10 @@ import scipy.stats as scipy_stats
 from scipy import integrate
 from typing_extensions import override
 
-from pysatl_criterion.statistics import normal
-from pysatl_criterion.statistics.common import CrammerVonMisesStatistic, KSStatistic
-from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
-from pysatl_criterion.statistics.normal import AbstractNormalityGofStatistic
+from src.pysatl_criterion.statistics import normal
+from src.pysatl_criterion.statistics.common import CrammerVonMisesStatistic, KSStatistic
+from src.pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
+from src.pysatl_criterion.statistics.normal import AbstractNormalityGofStatistic
 
 
 class AbstractLogNormalGofStatistic(AbstractGoodnessOfFitStatistic, ABC):

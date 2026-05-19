@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import scipy.stats as scipy_stats
 
-from pysatl_criterion.statistics.log_normal import (
+from src.pysatl_criterion.statistics.log_normal import (
     CramerVonMiseLogNormalGofStatistic,
     KLIntegralLogNormalGoFStatistic,
     KLSupremumLogNormalGoFStatistic,

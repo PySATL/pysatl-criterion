@@ -4,7 +4,7 @@ import numpy as np
 from numpy import float64
 from typing_extensions import override
 
-from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
+from src.pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
 
 
 class AbstractGraphTestStatistic(AbstractGoodnessOfFitStatistic, ABC):

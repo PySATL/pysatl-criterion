@@ -1,14 +1,16 @@
 from enum import Enum
 
-from pysatl_criterion.statistics import (
+from src.pysatl_criterion.statistics import (
+    AbstractBetaGofStatistic,
     AbstractExponentialityGofStatistic,
     AbstractGammaGofStatistic,
+    AbstractLogNormalGofStatistic,
     AbstractNormalityGofStatistic,
     AbstractStudentGofStatistic,
+    AbstractUniformGofStatistic,
     AbstractWeibullGofStatistic,
 )
-from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
-from pysatl_criterion.statistics.uniform import AbstractUniformGofStatistic
+from src.pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
 
 
 class DistributionType(Enum):
@@ -24,6 +26,8 @@ class DistributionType(Enum):
     UNIFORM = ("uniform", AbstractUniformGofStatistic)
     STUDENT = ("student", AbstractStudentGofStatistic)
     GAMMA = ("gamma", AbstractGammaGofStatistic)
+    BETA = ("beta", AbstractBetaGofStatistic)
+    LOG_NORMAL = ("log_normal", AbstractLogNormalGofStatistic)
 
     def __new__(cls, value: str, base_class: type[AbstractGoodnessOfFitStatistic]):
         obj = object.__new__(cls)

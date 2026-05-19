@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pysatl_criterion.statistics.gamma import (
+from src.pysatl_criterion.statistics.gamma import (
     AbstractGammaGofStatistic,
     AndersonDarlingGammaGofStatistic,
     Chi2PearsonGammaGofStatistic,

@@ -1,14 +1,14 @@
 import numpy as np
 import pytest
 
-from pysatl_criterion.hypothesis_testing.critical_values.loader.remote_loader import (
+from src.pysatl_criterion.hypothesis_testing.critical_values.loader.remote_loader import (
     CriticalValueLoader,
 )
-from pysatl_criterion.persistence.models.limit_distribution import (
+from src.pysatl_criterion.persistence.models.limit_distribution import (
     CriticalValueQuery,
     LimitDistributionModel,
 )
-from pysatl_criterion.persistence.sqlalchemy.datastorage import AlchemyLimitDistributionStorage
+from src.pysatl_criterion.persistence.sqlalchemy.datastorage import AlchemyLimitDistributionStorage
 
 
 @pytest.fixture

@@ -10,10 +10,10 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from pysatl_criterion.hypothesis_testing.p_value.resolver.calculation_resolver import (
+from src.pysatl_criterion.hypothesis_testing.p_value.resolver.calculation_resolver import (
     CalculationPValueResolver,
 )
-from pysatl_criterion.statistics.models import HypothesisType
+from src.pysatl_criterion.statistics.models import HypothesisType
 
 
 @patch(

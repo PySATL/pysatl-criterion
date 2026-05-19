@@ -1,4 +1,4 @@
-from pysatl_criterion.statistics.beta import (
+from src.pysatl_criterion.statistics.beta import (
     AbstractBetaGofStatistic,
     AndersonDarlingBetaGofStatistic,
     Chi2PearsonBetaGofStatistic,
@@ -13,7 +13,7 @@ from pysatl_criterion.statistics.beta import (
     SkewnessKurtosisBetaGofStatistic,
     WatsonBetaGofStatistic,
 )
-from pysatl_criterion.statistics.common import (
+from src.pysatl_criterion.statistics.common import (
     ADStatistic,
     Chi2Statistic,
     CrammerVonMisesStatistic,
@@ -21,7 +21,7 @@ from pysatl_criterion.statistics.common import (
     LillieforsTest,
     MinToshiyukiStatistic,
 )
-from pysatl_criterion.statistics.exponent import (
+from src.pysatl_criterion.statistics.exponent import (
     AbstractExponentialityGofStatistic,
     AhsanullahExponentialityGofStatistic,
     AtkinsonExponentialityGofStatistic,
@@ -48,7 +48,7 @@ from pysatl_criterion.statistics.exponent import (
     WeExponentialityGofStatistic,
     WongWongExponentialityGofStatistic,
 )
-from pysatl_criterion.statistics.gamma import (
+from src.pysatl_criterion.statistics.gamma import (
     AbstractGammaGofStatistic,
     AndersonDarlingGammaGofStatistic,
     Chi2PearsonGammaGofStatistic,
@@ -70,7 +70,7 @@ from pysatl_criterion.statistics.gamma import (
     ProbabilityPlotCorrelationGammaGofStatistic,
     WatsonGammaGofStatistic,
 )
-from pysatl_criterion.statistics.log_normal import (  # type: ignore[attr-defined]
+from src.pysatl_criterion.statistics.log_normal import (  # type: ignore[attr-defined]
     AbstractLogNormalGofStatistic,
     AndersonDarlingLogNormalGofStatistic,
     BonettSeierLogNormalGofStatistic,
@@ -114,8 +114,8 @@ from pysatl_criterion.statistics.log_normal import (  # type: ignore[attr-define
     ZhangWuALogNormalGofStatistic,
     ZhangWuCLogNormalGofStatistic,
 )
-from pysatl_criterion.statistics.models import AbstractStatistic
-from pysatl_criterion.statistics.normal import (
+from src.pysatl_criterion.statistics.models import AbstractStatistic
+from src.pysatl_criterion.statistics.normal import (
     AbstractNormalityGofStatistic,
     AndersonDarlingNormalityGofStatistic,
     BHSNormalityGofStatistic,
@@ -157,7 +157,7 @@ from pysatl_criterion.statistics.normal import (
     ZhangWuANormalityGofStatistic,
     ZhangWuCNormalityGofStatistic,
 )
-from pysatl_criterion.statistics.student import (
+from src.pysatl_criterion.statistics.student import (
     AbstractStudentGofStatistic,
     AndersonDarlingStudentGofStatistic,
     ChiSquareStudentGofStatistic,
@@ -169,7 +169,25 @@ from pysatl_criterion.statistics.student import (
     ZhangZaStudentGofStatistic,
     ZhangZcStudentGofStatistic,
 )
-from pysatl_criterion.statistics.weibull import (
+from src.pysatl_criterion.statistics.uniform import (
+    AbstractUniformGofStatistic,
+    AndersonDarlingUniformGofStatistic,
+    BickelRosenblattUniformGofStatistic,
+    CensoredSteinUniformGofStatistic,
+    Chi2PearsonUniformGofStatistic,
+    CrammerVonMisesUniformGofStatistic,
+    GreenwoodTestUniformGofStatistic,
+    KolmogorovSmirnovUniformGofStatistic,
+    KuiperUniformGofStatistic,
+    LillieforsTestUniformGofStatistic,
+    NeymanSmoothTestUniformGofStatistic,
+    QuesenberryMillerUniformGofStatistic,
+    ShermanUniformGofStatistic,
+    SteinUniformGofStatistic,
+    WatsonUniformGofStatistic,
+    ZhangTestsUniformGofStatistic,
+)
+from src.pysatl_criterion.statistics.weibull import (
     AbstractWeibullGofStatistic,
     AndersonDarlingWeibullGofStatistic,
     Chi2PearsonWeibullGofStatistic,
@@ -380,4 +398,21 @@ __all__ = [
     "ZhangQStarLogNormalGofStatistic",
     "ZhangWuALogNormalGofStatistic",
     "ZhangWuCLogNormalGofStatistic",
+    #Uniform
+    "AbstractUniformGofStatistic",
+    "KolmogorovSmirnovUniformGofStatistic",
+    "AndersonDarlingUniformGofStatistic",
+    "CrammerVonMisesUniformGofStatistic",
+    "LillieforsTestUniformGofStatistic",
+    "Chi2PearsonUniformGofStatistic",
+    "WatsonUniformGofStatistic",
+    "KuiperUniformGofStatistic",
+    "GreenwoodTestUniformGofStatistic",
+    "BickelRosenblattUniformGofStatistic",
+    "ZhangTestsUniformGofStatistic",
+    "SteinUniformGofStatistic",
+    "CensoredSteinUniformGofStatistic",
+    "NeymanSmoothTestUniformGofStatistic",
+    "ShermanUniformGofStatistic",
+    "QuesenberryMillerUniformGofStatistic",
 ]

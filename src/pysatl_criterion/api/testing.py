@@ -1,23 +1,20 @@
-from pysatl_criterion.hypothesis_testing.critical_values.resolver.model import CriticalValueResolver
-from pysatl_criterion.hypothesis_testing.goodness_of_fit_test.goodness_of_fit_test import (
-    GoodnessOfFitTest,
-)
-from pysatl_criterion.hypothesis_testing.model import TestMethod
-from pysatl_criterion.hypothesis_testing.multiple_testing.fdr import BenjaminiYekutieli
-from pysatl_criterion.hypothesis_testing.multiple_testing.fwer import (
+from src.pysatl_criterion import (
+    BenjaminiYekutieli,
     BonferroniMultipleTesting,
-    Holm,
+    CriticalValueResolver,
+    GoodnessOfFitTest,
+    PValueResolver,
     SidakHolm,
     SidakMultipleTesting,
+    TestMethod,
 )
-from pysatl_criterion.hypothesis_testing.p_value.resolver.model import PValueResolver
 
 
 __all__ = [
     "GoodnessOfFitTest",
     "TestMethod",
     "BonferroniMultipleTesting",
-    "Holm",
+    "Holm",  # noqa: F822
     "SidakMultipleTesting",
     "SidakHolm",
     "BenjaminiYekutieli",

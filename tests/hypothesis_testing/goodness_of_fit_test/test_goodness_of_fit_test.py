@@ -1,15 +1,15 @@
 from unittest.mock import MagicMock, patch
 
-from pysatl_criterion import GoodnessOfFitTest
-from pysatl_criterion.hypothesis_testing.critical_values.critical_area.critical_areas import (
+from src.pysatl_criterion import GoodnessOfFitTest
+from src.pysatl_criterion.hypothesis_testing.critical_values.critical_area.critical_areas import (
     RightCriticalArea,
 )
-from pysatl_criterion.hypothesis_testing.critical_values.resolver.composite_resolver import (
+from src.pysatl_criterion.hypothesis_testing.critical_values.resolver.composite_resolver import (
     CompositeCriticalValueResolver,
 )
-from pysatl_criterion.hypothesis_testing.model import TestMethod
-from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
-from pysatl_criterion.statistics.models import HypothesisType
+from src.pysatl_criterion.hypothesis_testing.model import TestMethod
+from src.pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
+from src.pysatl_criterion.statistics.models import HypothesisType
 
 
 @patch("pysatl_criterion.hypothesis_testing.critical_values.resolver.model.CriticalValueResolver")

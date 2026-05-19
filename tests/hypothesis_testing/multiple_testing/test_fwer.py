@@ -1,6 +1,6 @@
 import pytest as pytest
 
-from pysatl_criterion import BonferroniMultipleTesting, Holm, SidakHolm, SidakMultipleTesting
+from src.pysatl_criterion import BonferroniMultipleTesting, Holm, SidakHolm, SidakMultipleTesting
 
 
 METHODS = [BonferroniMultipleTesting, SidakMultipleTesting]

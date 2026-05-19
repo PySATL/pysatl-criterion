@@ -1,11 +1,11 @@
 import numpy as np
 import scipy.stats as scipy_stats
 
-from pysatl_criterion.persistence.models.limit_distribution import (
+from src.pysatl_criterion.persistence.models.limit_distribution import (
     CriticalValueQuery,
     ILimitDistributionStorage,
 )
-from pysatl_criterion.statistics.models import HypothesisType
+from src.pysatl_criterion.statistics.models import HypothesisType
 
 
 class CVCalculator:

@@ -1,6 +1,6 @@
 import logging
 
-from pysatl_criterion.persistence.models.limit_distribution import (
+from src.pysatl_criterion.persistence.models.limit_distribution import (
     BulkLoadResult,
     CriticalValueQuery,
     ILimitDistributionStorage,
