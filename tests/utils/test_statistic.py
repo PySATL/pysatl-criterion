@@ -1,7 +1,7 @@
 import pytest
 
-from src.pysatl_criterion.utils.distribution import DistributionType
-from src.pysatl_criterion.utils.statistic import get_available_criteria
+from pysatl_criterion.utils.distribution import DistributionType
+from pysatl_criterion.utils.statistic import get_available_criteria
 
 
 @pytest.mark.parametrize(

@@ -1,12 +1,12 @@
 from unittest.mock import MagicMock
 
-from src.pysatl_criterion.hypothesis_testing.critical_values.critical_area.critical_areas import (
+from pysatl_criterion.hypothesis_testing.critical_values.critical_area.critical_areas import (
     RightCriticalArea,
 )
-from src.pysatl_criterion.hypothesis_testing.critical_values.resolver.composite_resolver import (
+from pysatl_criterion.hypothesis_testing.critical_values.resolver.composite_resolver import (
     CompositeCriticalValueResolver,
 )
-from src.pysatl_criterion.persistence.models.limit_distribution import BulkLoadResult
+from pysatl_criterion.persistence.models.limit_distribution import BulkLoadResult
 
 
 def test_composite_resolver_cache_hit():

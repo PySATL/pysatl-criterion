@@ -1,6 +1,6 @@
 import pytest
 
-from src.pysatl_criterion import BenjaminiYekutieli
+from pysatl_criterion import BenjaminiYekutieli
 
 
 def test_benjamini_yekutieli_complex():

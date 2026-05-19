@@ -1,6 +1,6 @@
 import pytest as pytest
 
-from src.pysatl_criterion.statistics.exponent import (
+from pysatl_criterion.statistics.exponent import (
     AbstractExponentialityGofStatistic,
     AhsanullahExponentialityGofStatistic,
     AtkinsonExponentialityGofStatistic,

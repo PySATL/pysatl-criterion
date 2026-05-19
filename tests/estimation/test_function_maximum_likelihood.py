@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from src.pysatl_criterion.estimation.maximum_likelihood import (
+from pysatl_criterion.estimation.maximum_likelihood import (
     function_for_maximum_likelihood as max_method,
 )
 

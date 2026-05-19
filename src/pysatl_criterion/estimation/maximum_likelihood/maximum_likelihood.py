@@ -13,7 +13,7 @@ def find_max_probability_function(data):
     :raises ValueError: if no function produces a positive likelihood value.
     """
     functions = [
-        f for _, f in inspect.getmembers(function_for_maximum_likelihood_method, inspect.isfunction)
+        f for _, f in inspect.getmembers(function_for_maximum_likelihood, inspect.isfunction)
     ]
 
     max_func = None

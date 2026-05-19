@@ -1,4 +1,4 @@
-from src.pysatl_criterion.hypothesis_testing.multiple_testing.abstract_multiple_testing import (
+from pysatl_criterion.hypothesis_testing.multiple_testing.abstract_multiple_testing import (
     AbstractMultipleTesting,
 )
 

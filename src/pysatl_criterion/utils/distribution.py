@@ -1,6 +1,6 @@
 from enum import Enum
 
-from src.pysatl_criterion.statistics import (
+from pysatl_criterion.statistics import (
     AbstractBetaGofStatistic,
     AbstractExponentialityGofStatistic,
     AbstractGammaGofStatistic,
@@ -10,7 +10,7 @@ from src.pysatl_criterion.statistics import (
     AbstractUniformGofStatistic,
     AbstractWeibullGofStatistic,
 )
-from src.pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
 
 
 class DistributionType(Enum):

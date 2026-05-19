@@ -2,7 +2,7 @@ from abc import ABC
 
 from typing_extensions import override
 
-from src.pysatl_criterion.statistics.models import AbstractStatistic
+from pysatl_criterion.statistics.models import AbstractStatistic
 
 
 class AbstractGoodnessOfFitStatistic(AbstractStatistic, ABC):

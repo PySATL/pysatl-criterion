@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
-from src.pysatl_criterion.persistence.models.base import DataModel, DataQuery, IDataStorage
+from pysatl_criterion.persistence.models.base import DataModel, DataQuery, IDataStorage
 
 
 @dataclass

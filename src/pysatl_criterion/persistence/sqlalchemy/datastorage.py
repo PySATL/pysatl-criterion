@@ -6,13 +6,13 @@ from sqlalchemy import create_engine, desc, select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
 
-from src.pysatl_criterion.persistence.models.limit_distribution import (
+from pysatl_criterion.persistence.models.limit_distribution import (
     CriticalValueQuery,
     ILimitDistributionStorage,
     LimitDistributionModel,
     LimitDistributionQuery,
 )
-from src.pysatl_criterion.persistence.sqlalchemy.models.limit_distribution_orm import (
+from pysatl_criterion.persistence.sqlalchemy.models.limit_distribution_orm import (
     Base,
     LimitDistributionORM,
 )

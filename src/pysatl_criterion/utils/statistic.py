@@ -3,7 +3,7 @@ import inspect
 from .distribution import DistributionType
 
 
-def get_available_criteria(distribution: DistributionType) -> [str]:
+def get_available_criteria(distribution: DistributionType) -> list[str]:
     """
     Return a list of short codes for all non-abstract statistical criteria available for
     the given distribution.

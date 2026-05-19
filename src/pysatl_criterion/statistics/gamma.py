@@ -6,7 +6,7 @@ import numpy as np
 import scipy.stats as scipy_stats
 from typing_extensions import override
 
-from src.pysatl_criterion.statistics.common import (
+from pysatl_criterion.statistics.common import (
     ADStatistic,
     Chi2Statistic,
     CrammerVonMisesStatistic,
@@ -14,8 +14,8 @@ from src.pysatl_criterion.statistics.common import (
     LillieforsTest,
     MinToshiyukiStatistic,
 )
-from src.pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
-from src.pysatl_criterion.statistics.graph_goodness_of_fit import (
+from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.graph_goodness_of_fit import (
     AbstractGraphTestStatistic,
     GraphAverageDegreeTestStatistic,
     GraphCliqueNumberTestStatistic,

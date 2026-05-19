@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from src.pysatl_criterion.hypothesis_testing.critical_values.critical_area.model import CriticalArea
+from pysatl_criterion.hypothesis_testing.critical_values.critical_area.model import CriticalArea
 
 
 @dataclass

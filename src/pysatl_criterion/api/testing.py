@@ -1,4 +1,4 @@
-from src.pysatl_criterion import (
+from pysatl_criterion import (
     BenjaminiYekutieli,
     BonferroniMultipleTesting,
     CriticalValueResolver,

@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import scipy.stats as scipy_stats
 
-from src.pysatl_criterion.statistics.uniform import (
+from pysatl_criterion.statistics.uniform import (
     AbstractUniformGofStatistic,
     AndersonDarlingUniformGofStatistic,
     BickelRosenblattUniformGofStatistic,

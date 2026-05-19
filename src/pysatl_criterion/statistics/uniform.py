@@ -4,14 +4,14 @@ import numpy as np
 import scipy.stats as scipy_stats
 from typing_extensions import override
 
-from src.pysatl_criterion.statistics.common import (
+from pysatl_criterion.statistics.common import (
     ADStatistic,
     Chi2Statistic,
     CrammerVonMisesStatistic,
     KSStatistic,
     LillieforsTest,
 )
-from src.pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
 
 
 class AbstractUniformGofStatistic(AbstractGoodnessOfFitStatistic, ABC):

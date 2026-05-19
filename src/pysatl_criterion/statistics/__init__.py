@@ -1,4 +1,4 @@
-from src.pysatl_criterion.statistics.beta import (
+from pysatl_criterion.statistics.beta import (
     AbstractBetaGofStatistic,
     AndersonDarlingBetaGofStatistic,
     Chi2PearsonBetaGofStatistic,
@@ -13,7 +13,7 @@ from src.pysatl_criterion.statistics.beta import (
     SkewnessKurtosisBetaGofStatistic,
     WatsonBetaGofStatistic,
 )
-from src.pysatl_criterion.statistics.common import (
+from pysatl_criterion.statistics.common import (
     ADStatistic,
     Chi2Statistic,
     CrammerVonMisesStatistic,
@@ -21,7 +21,7 @@ from src.pysatl_criterion.statistics.common import (
     LillieforsTest,
     MinToshiyukiStatistic,
 )
-from src.pysatl_criterion.statistics.exponent import (
+from pysatl_criterion.statistics.exponent import (
     AbstractExponentialityGofStatistic,
     AhsanullahExponentialityGofStatistic,
     AtkinsonExponentialityGofStatistic,
@@ -48,7 +48,7 @@ from src.pysatl_criterion.statistics.exponent import (
     WeExponentialityGofStatistic,
     WongWongExponentialityGofStatistic,
 )
-from src.pysatl_criterion.statistics.gamma import (
+from pysatl_criterion.statistics.gamma import (
     AbstractGammaGofStatistic,
     AndersonDarlingGammaGofStatistic,
     Chi2PearsonGammaGofStatistic,
@@ -70,7 +70,7 @@ from src.pysatl_criterion.statistics.gamma import (
     ProbabilityPlotCorrelationGammaGofStatistic,
     WatsonGammaGofStatistic,
 )
-from src.pysatl_criterion.statistics.log_normal import (  # type: ignore[attr-defined]
+from pysatl_criterion.statistics.log_normal import (  # type: ignore[attr-defined]
     AbstractLogNormalGofStatistic,
     AndersonDarlingLogNormalGofStatistic,
     BonettSeierLogNormalGofStatistic,
@@ -114,8 +114,8 @@ from src.pysatl_criterion.statistics.log_normal import (  # type: ignore[attr-de
     ZhangWuALogNormalGofStatistic,
     ZhangWuCLogNormalGofStatistic,
 )
-from src.pysatl_criterion.statistics.models import AbstractStatistic
-from src.pysatl_criterion.statistics.normal import (
+from pysatl_criterion.statistics.models import AbstractStatistic
+from pysatl_criterion.statistics.normal import (
     AbstractNormalityGofStatistic,
     AndersonDarlingNormalityGofStatistic,
     BHSNormalityGofStatistic,
@@ -157,7 +157,7 @@ from src.pysatl_criterion.statistics.normal import (
     ZhangWuANormalityGofStatistic,
     ZhangWuCNormalityGofStatistic,
 )
-from src.pysatl_criterion.statistics.student import (
+from pysatl_criterion.statistics.student import (
     AbstractStudentGofStatistic,
     AndersonDarlingStudentGofStatistic,
     ChiSquareStudentGofStatistic,
@@ -169,7 +169,7 @@ from src.pysatl_criterion.statistics.student import (
     ZhangZaStudentGofStatistic,
     ZhangZcStudentGofStatistic,
 )
-from src.pysatl_criterion.statistics.uniform import (
+from pysatl_criterion.statistics.uniform import (
     AbstractUniformGofStatistic,
     AndersonDarlingUniformGofStatistic,
     BickelRosenblattUniformGofStatistic,
@@ -187,7 +187,7 @@ from src.pysatl_criterion.statistics.uniform import (
     WatsonUniformGofStatistic,
     ZhangTestsUniformGofStatistic,
 )
-from src.pysatl_criterion.statistics.weibull import (
+from pysatl_criterion.statistics.weibull import (
     AbstractWeibullGofStatistic,
     AndersonDarlingWeibullGofStatistic,
     Chi2PearsonWeibullGofStatistic,
@@ -398,7 +398,7 @@ __all__ = [
     "ZhangQStarLogNormalGofStatistic",
     "ZhangWuALogNormalGofStatistic",
     "ZhangWuCLogNormalGofStatistic",
-    #Uniform
+    # Uniform
     "AbstractUniformGofStatistic",
     "KolmogorovSmirnovUniformGofStatistic",
     "AndersonDarlingUniformGofStatistic",

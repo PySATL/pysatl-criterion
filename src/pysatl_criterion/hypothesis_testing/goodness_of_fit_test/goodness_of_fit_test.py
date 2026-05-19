@@ -1,24 +1,24 @@
-from src.pysatl_criterion.hypothesis_testing.critical_values.loader.remote_loader import (
+from pysatl_criterion.hypothesis_testing.critical_values.loader.remote_loader import (
     CriticalValueLoader,
 )
-from src.pysatl_criterion.hypothesis_testing.critical_values.resolver.composite_resolver import (
+from pysatl_criterion.hypothesis_testing.critical_values.resolver.composite_resolver import (
     CompositeCriticalValueResolver,
 )
-from src.pysatl_criterion.hypothesis_testing.critical_values.resolver.model import (
+from pysatl_criterion.hypothesis_testing.critical_values.resolver.model import (
     CriticalValueResolver,
 )
-from src.pysatl_criterion.hypothesis_testing.critical_values.resolver.storage_resolver import (
+from pysatl_criterion.hypothesis_testing.critical_values.resolver.storage_resolver import (
     StorageCriticalValueResolver,
 )
-from src.pysatl_criterion.hypothesis_testing.model import TestMethod
-from src.pysatl_criterion.hypothesis_testing.p_value.resolver.calculation_resolver import (
+from pysatl_criterion.hypothesis_testing.model import TestMethod
+from pysatl_criterion.hypothesis_testing.p_value.resolver.calculation_resolver import (
     CalculationPValueResolver,
 )
-from src.pysatl_criterion.hypothesis_testing.p_value.resolver.model import PValueResolver
-from src.pysatl_criterion.persistence.sqlalchemy.datastorage import AlchemyLimitDistributionStorage
-from src.pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
-from src.pysatl_criterion.statistics.models import HypothesisType
-from src.pysatl_criterion.utils.constants import LOCAL_PYSATL_URL, REMOTE_PYSATL_URL
+from pysatl_criterion.hypothesis_testing.p_value.resolver.model import PValueResolver
+from pysatl_criterion.persistence.sqlalchemy.datastorage import AlchemyLimitDistributionStorage
+from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.models import HypothesisType
+from pysatl_criterion.utils.constants import LOCAL_PYSATL_URL, REMOTE_PYSATL_URL
 
 
 class GoodnessOfFitTest:

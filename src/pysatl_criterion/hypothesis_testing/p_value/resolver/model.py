@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from src.pysatl_criterion.statistics.models import HypothesisType
+from pysatl_criterion.statistics.models import HypothesisType
 
 
 class PValueResolver(ABC):

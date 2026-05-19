@@ -1,13 +1,13 @@
 import logging
 
-from src.pysatl_criterion.hypothesis_testing.critical_values.critical_area.model import CriticalArea
-from src.pysatl_criterion.hypothesis_testing.critical_values.loader.remote_loader import (
+from pysatl_criterion.hypothesis_testing.critical_values.critical_area.model import CriticalArea
+from pysatl_criterion.hypothesis_testing.critical_values.loader.remote_loader import (
     CriticalValueLoader,
 )
-from src.pysatl_criterion.hypothesis_testing.critical_values.resolver.storage_resolver import (
+from pysatl_criterion.hypothesis_testing.critical_values.resolver.storage_resolver import (
     StorageCriticalValueResolver,
 )
-from src.pysatl_criterion.statistics.models import HypothesisType
+from pysatl_criterion.statistics.models import HypothesisType
 
 from .model import CriticalValueResolver
 

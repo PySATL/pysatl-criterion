@@ -1,6 +1,6 @@
 import pytest
 
-from src.pysatl_criterion.hypothesis_testing.critical_values.critical_area.critical_areas import (
+from pysatl_criterion.hypothesis_testing.critical_values.critical_area.critical_areas import (
     LeftCriticalArea,
     RightCriticalArea,
     TwoSidedCriticalArea,

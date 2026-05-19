@@ -2,14 +2,14 @@ import numpy as np
 import scipy.stats as scipy_stats
 from typing_extensions import override
 
-from src.pysatl_criterion.hypothesis_testing.critical_values.critical_area.critical_areas import (
+from pysatl_criterion.hypothesis_testing.critical_values.critical_area.critical_areas import (
     LeftCriticalArea,
     RightCriticalArea,
     TwoSidedCriticalArea,
 )
-from src.pysatl_criterion.hypothesis_testing.critical_values.critical_area.model import CriticalArea
-from src.pysatl_criterion.persistence.models.limit_distribution import ILimitDistributionStorage
-from src.pysatl_criterion.statistics.models import HypothesisType
+from pysatl_criterion.hypothesis_testing.critical_values.critical_area.model import CriticalArea
+from pysatl_criterion.persistence.models.limit_distribution import ILimitDistributionStorage
+from pysatl_criterion.statistics.models import HypothesisType
 
 from .model import CriticalValueResolver
 
