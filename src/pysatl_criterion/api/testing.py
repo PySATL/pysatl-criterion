@@ -3,6 +3,7 @@ from pysatl_criterion import (
     BonferroniMultipleTesting,
     CriticalValueResolver,
     GoodnessOfFitTest,
+    Holm,
     PValueResolver,
     SidakHolm,
     SidakMultipleTesting,

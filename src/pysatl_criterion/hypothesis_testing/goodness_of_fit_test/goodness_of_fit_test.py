@@ -4,9 +4,7 @@ from pysatl_criterion.hypothesis_testing.critical_values.loader.remote_loader im
 from pysatl_criterion.hypothesis_testing.critical_values.resolver.composite_resolver import (
     CompositeCriticalValueResolver,
 )
-from pysatl_criterion.hypothesis_testing.critical_values.resolver.model import (
-    CriticalValueResolver,
-)
+from pysatl_criterion.hypothesis_testing.critical_values.resolver.model import CriticalValueResolver
 from pysatl_criterion.hypothesis_testing.critical_values.resolver.storage_resolver import (
     StorageCriticalValueResolver,
 )
