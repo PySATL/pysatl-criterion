@@ -1,4 +1,10 @@
-__version__ = "0.0.3-alpha"
+from importlib.metadata import PackageNotFoundError, version
+
+
+try:
+    __version__ = version("pysatl-criterion")
+except PackageNotFoundError:
+    __version__ = "0+unknown"
 
 from .hypothesis_testing.critical_values.resolver.model import CriticalValueResolver
 from .hypothesis_testing.goodness_of_fit_test.goodness_of_fit_test import GoodnessOfFitTest

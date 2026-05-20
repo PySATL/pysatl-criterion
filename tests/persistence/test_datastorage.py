@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 from sqlalchemy import inspect
 
 from pysatl_criterion.persistence.sqlalchemy.datastorage import AlchemyLimitDistributionStorage
