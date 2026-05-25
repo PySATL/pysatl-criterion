@@ -14,7 +14,7 @@ dependencies = [
     "pandas>=2.2.1",
     "typing-extensions>=4.12.2",
     "networkx == 3.4.2",
-    "sqlalchemy == 2.0.49",
+    "sqlalchemy == 2.0.50",
     "zstandard == 0.25.0",
     "python-dotenv>=1.0.0",
     "psycopg2-binary (>=2.9.12,<3.0.0)"
@@ -48,7 +48,7 @@ coveralls = "4.1.0"
 pytest = "9.0.3"
 pytest-cov = "7.1.0"
 pytest-random-order = "1.2.0"
-ruff = "0.15.13"
+ruff = "0.15.14"
 pytest-mock = "3.15.1"
 pre-commit = "4.6.0"
 mypy = "2.1.0"
