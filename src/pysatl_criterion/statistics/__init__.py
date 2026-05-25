@@ -79,6 +79,16 @@ from pysatl_criterion.statistics.gamma import (
     ProbabilityPlotCorrelationGammaGofStatistic,
     WatsonGammaGofStatistic,
 )
+from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.graph_goodness_of_fit import (
+    AbstractGraphTestStatistic,
+    GraphAverageDegreeTestStatistic,
+    GraphCliqueNumberTestStatistic,
+    GraphConnectedComponentsTestStatistic,
+    GraphEdgesNumberTestStatistic,
+    GraphIndependenceNumberTestStatistic,
+    GraphMaxDegreeTestStatistic,
+)
 from pysatl_criterion.statistics.log_normal import (  # type: ignore[attr-defined]
     AbstractLogNormalGofStatistic,
     AndersonDarlingLogNormalGofStatistic,
@@ -122,16 +132,6 @@ from pysatl_criterion.statistics.log_normal import (  # type: ignore[attr-define
     ZhangQStarLogNormalGofStatistic,
     ZhangWuALogNormalGofStatistic,
     ZhangWuCLogNormalGofStatistic,
-)
-from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
-from pysatl_criterion.statistics.graph_goodness_of_fit import (
-    AbstractGraphTestStatistic,
-    GraphAverageDegreeTestStatistic,
-    GraphCliqueNumberTestStatistic,
-    GraphConnectedComponentsTestStatistic,
-    GraphEdgesNumberTestStatistic,
-    GraphIndependenceNumberTestStatistic,
-    GraphMaxDegreeTestStatistic,
 )
 from pysatl_criterion.statistics.models import AbstractStatistic
 from pysatl_criterion.statistics.normal import (
@@ -244,12 +244,12 @@ from pysatl_criterion.statistics.weibull import (
     WPPWeibullGofStatistic,
 )
 
+
 __all__ = [
     # Base and Models
     "AbstractStatistic",
     "AbstractGoodnessOfFitStatistic",
     "AbstractGraphTestStatistic",
-
     # Common Aliases
     "ADStatistic",
     "Chi2Statistic",
@@ -257,7 +257,6 @@ __all__ = [
     "KSStatistic",
     "LillieforsTest",
     "MinToshiyukiStatistic",
-
     # Graph-based general
     "GraphAverageDegreeTestStatistic",
     "GraphCliqueNumberTestStatistic",
@@ -265,7 +264,6 @@ __all__ = [
     "GraphEdgesNumberTestStatistic",
     "GraphIndependenceNumberTestStatistic",
     "GraphMaxDegreeTestStatistic",
-
     # Beta distribution statistics
     "AbstractBetaGofStatistic",
     "AndersonDarlingBetaGofStatistic",
@@ -280,7 +278,6 @@ __all__ = [
     "RatioBetaGofStatistic",
     "SkewnessKurtosisBetaGofStatistic",
     "WatsonBetaGofStatistic",
-
     # Exponential distribution statistics
     "AbstractExponentialityGofStatistic",
     "AbstractGraphExponentialityGofStatistic",
@@ -314,7 +311,6 @@ __all__ = [
     "ShapiroWilkExponentialityGofStatistic",
     "WeExponentialityGofStatistic",
     "WongWongExponentialityGofStatistic",
-
     # Gamma distribution statistics
     "AbstractBinnedGammaGofStatistic",
     "AbstractGammaGofStatistic",
@@ -338,7 +334,6 @@ __all__ = [
     "MoranGammaGofStatistic",
     "ProbabilityPlotCorrelationGammaGofStatistic",
     "WatsonGammaGofStatistic",
-
     # Log-Normal distribution statistics
     "AbstractLogNormalGofStatistic",
     "AndersonDarlingLogNormalGofStatistic",
@@ -382,7 +377,6 @@ __all__ = [
     "ZhangQStarLogNormalGofStatistic",
     "ZhangWuALogNormalGofStatistic",
     "ZhangWuCLogNormalGofStatistic",
-
     # Normal distribution statistics
     "AbstractGraphNormalityGofStatistic",
     "AbstractNormalityGofStatistic",
@@ -431,7 +425,6 @@ __all__ = [
     "ZhangQStarNormalityGofStatistic",
     "ZhangWuANormalityGofStatistic",
     "ZhangWuCNormalityGofStatistic",
-
     # Student distribution statistics
     "AbstractStudentGofStatistic",
     "AndersonDarlingStudentGofStatistic",
@@ -443,7 +436,6 @@ __all__ = [
     "WatsonStudentGofStatistic",
     "ZhangZaStudentGofStatistic",
     "ZhangZcStudentGofStatistic",
-
     # Uniform distribution statistics
     "AbstractUniformGofStatistic",
     "AndersonDarlingUniformGofStatistic",
@@ -461,7 +453,6 @@ __all__ = [
     "SteinUniformGofStatistic",
     "WatsonUniformGofStatistic",
     "ZhangTestsUniformGofStatistic",
-
     # Weibull distribution statistics
     "AbstractWeibullGofStatistic",
     "AndersonDarlingWeibullGofStatistic",
