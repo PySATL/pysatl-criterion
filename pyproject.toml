@@ -5,7 +5,7 @@ description = "Package with statistic criteria for PySATL"
 authors = [
     {name = "PySATL Team", email = "pysatl@yahoo.com"},
 ]
-license = {text = "MIT"}
+license = {text = "Apache-2.0"}
 readme = "README.md"
 requires-python = ">=3.10,<3.13"
 dependencies = [
