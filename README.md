@@ -120,4 +120,4 @@ poetry run pre-commit run --all-files --color always --verbose --show-diff-on-fa
 
 ## License
 
-This project is licensed under the terms of the **Apache License Version 2.0**. See the [LICENSE](LICENSE) for more information.
+This project is licensed under the terms of the **Apache-2.0** license. See the [LICENSE](LICENSE) for more information.
