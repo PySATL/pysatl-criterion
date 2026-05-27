@@ -1,6 +1,5 @@
 import math
 
-import numpy as np
 from scipy.stats import lognorm
 
 
@@ -22,9 +21,8 @@ def generate_lognorm(size, mu=0, s=1):
         Mean of the underlying normal distribution (in log-space).
         The scale parameter is computed as ``exp(mu)``. Default is 0.
     s : float, optional
-        Variance (or dispersion parameter) of the underlying normal
-        distribution. The standard deviation used by SciPy is
-        ``sqrt(s)``. Default is 1.
+        Shape parameter (standard deviation of the underlying normal
+        distribution). Default is 1.
 
     Returns
     -------
@@ -47,4 +45,4 @@ def generate_lognorm(size, mu=0, s=1):
     array([...])
     """
     scale = math.exp(mu)
-    return lognorm.rvs(s=np.sqrt(s), size=size, scale=scale)
+    return lognorm.rvs(s=s, size=size, scale=scale)
