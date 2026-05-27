@@ -1,27 +1,27 @@
-[project]
+[tool.poetry]
+packages = [
+    { include = "pysatl_criterion", from = "src" },
+]
 name = "pysatl-criterion"
 version = "0.0.0"
-dynamic = ["version"]
 description = "Package with statistic criteria for PySATL"
-authors = [
-    {name = "PySATL Team", email = "pysatl@yahoo.com"},
-]
-license = {text = "MIT"}
+authors = ["PySATL Team <pysatl@yahoo.com>"]
+license = "Apache License 2.0"
 readme = "README.md"
-requires-python = ">=3.10,<3.13"
-dependencies = [
-    "numpy>=1.25.1",
-    "scipy>=1.11.2",
-    "pandas>=2.2.1",
-    "typing-extensions>=4.12.2",
-    "networkx == 3.4.2",
-    "sqlalchemy == 2.0.50",
-    "zstandard == 0.25.0",
-    "python-dotenv>=1.0.0",
-    "psycopg2-binary (>=2.9.12,<3.0.0)"
-]
 
-[project.urls]
+[tool.poetry.dependencies]
+numpy = ">=1.25.1"
+scipy = ">=1.11.2"
+pandas = ">=2.2.1"
+typing-extensions = ">=4.12.2"
+networkx = "==3.4.2"
+sqlalchemy = "==2.0.50"
+zstandard = "==0.25.0"
+python-dotenv = ">=1.0.0"
+psycopg2-binary = ">=2.9.12,<3.0.0"
+python = ">=3.10,<3.13"
+
+[tool.poetry.urls]
 Homepage = "https://github.com/PySATL/pysatl-criterion"
 Issues = "https://github.com/PySATL/pysatl-criterion/issues"
 
@@ -31,13 +31,6 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.requires-plugins]
 poetry-dynamic-versioning = { version = ">=1.8.0,<2.0.0", extras = ["plugin"] }
-
-[tool.poetry]
-name = "pysatl_criterion"
-packages = [
-    { include = "pysatl_criterion", from = "src" },
-]
-package-mode = true
 
 [tool.poetry.group.dev.dependencies]
 markdown = "3.10.2"
