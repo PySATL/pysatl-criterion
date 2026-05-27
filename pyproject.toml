@@ -105,6 +105,6 @@ format-jinja = """
 {%- if distance == 0 -%}
     {{ base }}
 {%- else -%}
-    {{ base }}.dev{{ distance }}+{{ commit }}
+    {{ base }}.dev{{ distance }}
 {%- endif -%}
 """
