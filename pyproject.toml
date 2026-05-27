@@ -1,6 +1,7 @@
 [project]
 name = "pysatl-criterion"
-version = "1.0.0"
+version = "0.0.0"
+dynamic = ["version"]
 description = "Package with statistic criteria for PySATL"
 authors = [
     {name = "PySATL Team", email = "pysatl@yahoo.com"},
@@ -27,6 +28,9 @@ Issues = "https://github.com/PySATL/pysatl-criterion/issues"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.requires-plugins]
+poetry-dynamic-versioning = { version = ">=1.8.0,<2.0.0", extras = ["plugin"] }
 
 [tool.poetry]
 name = "pysatl_criterion"
@@ -97,3 +101,17 @@ exclude = [".git", "__pycache__", ".eggs", "user_data", ".venv", ".env"]
 "tests/**/*.py" = [
   "S101", "S104", "S311", "S105", "S106", "S110"
 ]
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "pep440"
+
+# Формат для НЕ tagged commits
+format-jinja = """
+{%- if distance == 0 -%}
+    {{ base }}
+{%- else -%}
+    {{ base }}.dev{{ distance }}+{{ commit }}
+{%- endif -%}
+"""
