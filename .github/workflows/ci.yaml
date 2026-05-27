@@ -118,10 +118,19 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install dynamic versioning plugin
+        run: poetry self add poetry-dynamic-versioning[plugin]
+
       - name: Build distribution
         run: |
           pip install poetry==2.1.1
           poetry build
+
+      - name: Build distribution
+        run: poetry build
+
+      - name: Show version
+        run: poetry version
 
       - name: Upload artifacts 📦
         uses: actions/upload-artifact@v7
