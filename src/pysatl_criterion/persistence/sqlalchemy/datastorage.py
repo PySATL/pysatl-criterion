@@ -28,7 +28,7 @@ class AlchemyLimitDistributionStorage(ILimitDistributionStorage):
 
     def __init__(self, connection_string: str):
         self.connection_string = connection_string
-        self.engine = create_engine(connection_string, echo=True, future=True)
+        self.engine = create_engine(connection_string, future=True)
         self.Session = sessionmaker(bind=self.engine, future=True)
 
     def init(self) -> None:
