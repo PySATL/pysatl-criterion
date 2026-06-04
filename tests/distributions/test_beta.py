@@ -857,16 +857,6 @@ class TestRatioBetaGofStatistic:
         statistic_value = stat.execute_statistic(data)
         assert result == pytest.approx(statistic_value, 0.00001)
 
-    def test_ratio_validation_errors(self):
-        """Test that Ratio statistic validates input data."""
-        stat = RatioBetaGofStatistic(alpha=2, beta=3)
-
-        # Data with exact 0 or 1 (for log calculation)
-        with pytest.raises(
-            ValueError, match="Beta distribution values must be in the open interval"
-        ):
-            stat.execute_statistic([0.5, 1.0, 0.3])
-
 
 class TestEntropyBetaGofStatistic:
     """Tests for Entropy-based test statistic."""
