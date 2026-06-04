@@ -31,18 +31,11 @@ class AbstractBetaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
         self.beta = beta
 
     @staticmethod
-    def _validate_rvs(rvs, open_interval=False):
+    def _validate_rvs(rvs):
         rvs = np.asarray(rvs)
-        if open_interval:
-            # All values strictly between 0 and 1
-            if np.any((rvs <= 0) | (rvs >= 1)):
-                raise ValueError(
-                    "Beta distribution values must be in the open interval (0, 1) for this test"
-                )
-        else:
-            # All values in [0, 1]
-            if np.any((rvs < 0) | (rvs > 1)):
-                raise ValueError("Beta distribution values must be in the interval [0, 1]")
+        # All values in [0, 1]
+        if np.any((rvs < 0) | (rvs > 1)):
+            raise ValueError("Beta distribution values must be in the interval [0, 1]")
         return rvs
 
     @staticmethod
@@ -576,7 +569,7 @@ class RatioBetaGofStatistic(AbstractBetaGofStatistic):
         :return: ratio test statistic value.
         :raises ValueError: if arithmetic mean is zero.
         """
-        rvs = self._validate_rvs(rvs, open_interval=True)
+        rvs = self._validate_rvs(rvs)
 
         n = len(rvs)
 
