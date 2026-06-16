@@ -1,7 +1,7 @@
 from scipy.stats import gompertz
 
 
-def generate_gompertz(size, eta=0, b=1):
+def generate_gompertz(size, eta=1, b=1):
     """
     Generate random samples from the Gompertz distribution.
 
@@ -16,7 +16,7 @@ def generate_gompertz(size, eta=0, b=1):
         returns an array with the specified shape.
     eta : float, optional
         Shape parameter of the Gompertz distribution.
-        Must be greater than 0. Default is 0.
+        Must be greater than 0. Default is 1.
     b : float, optional
         Scale parameter of the distribution.
         Must be greater than 0. Default is 1.

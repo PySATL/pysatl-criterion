@@ -1,6 +1,11 @@
 import inspect
+from typing import Generic, TypeVar
 
-from .distribution import DistributionType
+from pysatl_criterion import DistributionType
+from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
+
+
+C = TypeVar("C", bound=AbstractGoodnessOfFitStatistic)
 
 
 def get_available_criteria(distribution: DistributionType) -> list[str]:
@@ -20,6 +25,25 @@ def get_available_criteria(distribution: DistributionType) -> list[str]:
     """
     return [
         cls.short_code()
-        for cls in distribution.base_class.__subclasses__()
-        if not inspect.isabstract(cls)
+        for cls in get_all_subclasses(AbstractGoodnessOfFitStatistic)
+        if not inspect.isabstract(cls) and cls.distribution() == distribution
     ]
+
+
+def get_all_subclasses(cls: Generic[C]) -> set[C]:
+    """
+    Return all direct and indirect subclasses of a class.
+
+    The search walks the full subclass tree recursively and returns each discovered
+    subclass once.
+
+    :param cls: root class whose subclass hierarchy should be inspected.
+    :return: set containing all subclasses below the root class.
+    """
+    subclasses = set()
+
+    for subclass in cls.__subclasses__():
+        subclasses.add(subclass)
+        subclasses.update(get_all_subclasses(subclass))
+
+    return subclasses

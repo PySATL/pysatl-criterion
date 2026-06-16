@@ -6,6 +6,7 @@ import scipy.special as scipy_special
 import scipy.stats as scipy_stats
 from typing_extensions import override
 
+from pysatl_criterion import DistributionType
 from pysatl_criterion.statistics.common import KSStatistic
 from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.graph_goodness_of_fit import (
@@ -39,6 +40,16 @@ class AbstractExponentialityGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
         :return: string code in format "EXPONENTIALITY_{parent_code}".
         """
         return f"EXPONENTIALITY_{AbstractGoodnessOfFitStatistic.code()}"
+
+    @staticmethod
+    @override
+    def distribution() -> DistributionType:
+        """
+        Get distribution type.
+
+        :return: DistributionType.
+        """
+        return DistributionType.EXPONENTIAL
 
 
 class EppsPulleyExponentialityGofStatistic(AbstractExponentialityGofStatistic):

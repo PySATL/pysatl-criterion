@@ -6,6 +6,7 @@ try:
 except PackageNotFoundError:
     __version__ = "0+unknown"
 
+from .distribution.distribution_type import DistributionParameterDescriptor, DistributionType
 from .hypothesis_testing.critical_values.resolver.model import CriticalValueResolver
 from .hypothesis_testing.goodness_of_fit_test.goodness_of_fit_test import GoodnessOfFitTest
 from .hypothesis_testing.model import TestMethod
@@ -17,13 +18,13 @@ from .hypothesis_testing.multiple_testing.fwer import (
     SidakMultipleTesting,
 )
 from .hypothesis_testing.p_value.resolver.model import PValueResolver
-from .utils.distribution import DistributionType
 
 
 __all__ = [
     "GoodnessOfFitTest",
     "TestMethod",
     "DistributionType",
+    "DistributionParameterDescriptor",
     "BonferroniMultipleTesting",
     "Holm",
     "SidakMultipleTesting",

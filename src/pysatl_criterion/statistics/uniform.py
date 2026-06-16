@@ -4,6 +4,7 @@ import numpy as np
 import scipy.stats as scipy_stats
 from typing_extensions import override
 
+from pysatl_criterion import DistributionType
 from pysatl_criterion.statistics.common import (
     ADStatistic,
     Chi2Statistic,
@@ -24,6 +25,16 @@ class AbstractUniformGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
             raise ValueError("b must be greater than a")
         self.a = a
         self.b = b
+
+    @staticmethod
+    @override
+    def distribution() -> DistributionType:
+        """
+        Get distribution type.
+
+        :return: DistributionType.
+        """
+        return DistributionType.UNIFORM
 
     @staticmethod
     @override

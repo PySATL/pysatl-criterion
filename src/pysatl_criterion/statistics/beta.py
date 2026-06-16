@@ -4,6 +4,7 @@ import numpy as np
 import scipy.stats as scipy_stats
 from typing_extensions import override
 
+from pysatl_criterion import DistributionType
 from pysatl_criterion.statistics.common import (
     ADStatistic,
     Chi2Statistic,
@@ -37,6 +38,16 @@ class AbstractBetaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
         if np.any((rvs < 0) | (rvs > 1)):
             raise ValueError("Beta distribution values must be in the interval [0, 1]")
         return rvs
+
+    @staticmethod
+    @override
+    def distribution() -> DistributionType:
+        """
+        Get distribution type.
+
+        :return: DistributionType.
+        """
+        return DistributionType.BETA
 
     @staticmethod
     @override
