@@ -6,6 +6,7 @@ import pandas as pd
 import scipy.stats as scipy_stats
 from typing_extensions import override
 
+from pysatl_criterion import DistributionType
 from pysatl_criterion.statistics.common import ADStatistic, KSStatistic, LillieforsTest
 from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.graph_goodness_of_fit import (
@@ -24,6 +25,16 @@ class AbstractNormalityGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     def __init__(self, mean=0, var=1):
         self.mean = mean
         self.var = var
+
+    @staticmethod
+    @override
+    def distribution() -> DistributionType:
+        """
+        Get distribution type.
+
+        :return: DistributionType.
+        """
+        return DistributionType.NORMAL
 
     @staticmethod
     @override

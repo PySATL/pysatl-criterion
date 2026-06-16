@@ -1,46 +1,39 @@
-from enum import Enum
+import inspect
+from collections.abc import Iterator
+from typing import Any, cast
 
-from pysatl_criterion.statistics import (
-    AbstractBetaGofStatistic,
-    AbstractExponentialityGofStatistic,
-    AbstractGammaGofStatistic,
-    AbstractLogNormalGofStatistic,
-    AbstractNormalityGofStatistic,
-    AbstractStudentGofStatistic,
-    AbstractUniformGofStatistic,
-    AbstractWeibullGofStatistic,
-)
-from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
+from pysatl_criterion import DistributionType
+from pysatl_criterion.distribution.distributions import DistributionDescriptor
 
 
-class DistributionType(Enum):
+def get_available_distribution_descriptor(distribution: DistributionType) -> DistributionDescriptor:
+    return next(
+        _instantiate_descriptor(cls)
+        for cls in _iter_distribution_descriptor_classes(DistributionDescriptor)
+        if cls.type() == distribution
+    )
+
+
+def _iter_distribution_descriptor_classes(
+    cls: type[Any],
+) -> Iterator[type[DistributionDescriptor]]:
     """
-    Distribution type.
+    Yield concrete descriptor subclasses from the descriptor hierarchy.
+
+    Abstract classes are skipped because they cannot be instantiated.
     """
+    for subclass in cls.__subclasses__():
+        yield from _iter_distribution_descriptor_classes(subclass)
 
-    base_class: type[AbstractGoodnessOfFitStatistic]
+        if not inspect.isabstract(subclass):
+            yield cast(type[DistributionDescriptor], subclass)
 
-    NORMAL = ("normal", AbstractNormalityGofStatistic)
-    EXPONENTIAL = ("exponential", AbstractExponentialityGofStatistic)
-    WEIBULL = ("weibull", AbstractWeibullGofStatistic)
-    UNIFORM = ("uniform", AbstractUniformGofStatistic)
-    STUDENT = ("student", AbstractStudentGofStatistic)
-    GAMMA = ("gamma", AbstractGammaGofStatistic)
-    BETA = ("beta", AbstractBetaGofStatistic)
-    LOG_NORMAL = ("log_normal", AbstractLogNormalGofStatistic)
 
-    def __new__(cls, value: str, base_class: type[AbstractGoodnessOfFitStatistic]):
-        obj = object.__new__(cls)
-        # The first item in the tuple becomes the canonical .value
-        obj._value_ = value
-        obj.base_class = base_class
-        return obj
+def _instantiate_descriptor(cls: type[DistributionDescriptor]) -> DistributionDescriptor:
+    """
+    Instantiate a descriptor class known to be concrete.
 
-    @classmethod
-    def list(cls):
-        """
-        Get a list of all distribution string identifiers.
-
-        :return: list of string values for all members in the enum.
-        """
-        return [member.value for member in cls]
+    Mypy cannot infer that ``inspect.isabstract`` filters out abstract classes,
+    so the instantiation is cast in this small helper.
+    """
+    return cast(DistributionDescriptor, cast(Any, cls)())

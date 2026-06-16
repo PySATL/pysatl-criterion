@@ -7,6 +7,7 @@ from scipy.special import gamma
 from scipy.stats import distributions
 from typing_extensions import override
 
+from pysatl_criterion import DistributionType
 from pysatl_criterion.core.distributions.weibull import generate_weibull_cdf
 from pysatl_criterion.statistics.common import (
     ADStatistic,
@@ -27,6 +28,16 @@ class AbstractWeibullGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     def __init__(self, a=1, k=1):
         self.a = a
         self.k = k
+
+    @staticmethod
+    @override
+    def distribution() -> DistributionType:
+        """
+        Get distribution type.
+
+        :return: DistributionType.
+        """
+        return DistributionType.WEIBULL
 
     @staticmethod
     @override

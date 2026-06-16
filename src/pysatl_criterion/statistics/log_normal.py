@@ -8,6 +8,7 @@ import scipy.stats as scipy_stats
 from scipy import integrate
 from typing_extensions import override
 
+from pysatl_criterion import DistributionType
 from pysatl_criterion.statistics import normal
 from pysatl_criterion.statistics.common import CrammerVonMisesStatistic, KSStatistic
 from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
@@ -27,6 +28,16 @@ class AbstractLogNormalGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
 
         self.s = s
         self.scale = scale
+
+    @staticmethod
+    @override
+    def distribution() -> DistributionType:
+        """
+        Get distribution type.
+
+        :return: DistributionType.
+        """
+        return DistributionType.LOG_NORMAL
 
     @staticmethod
     @override
@@ -182,7 +193,7 @@ class QuesenberryMillerLogNormalGofStatistic(AbstractLogNormalGofStatistic):
         return q
 
 
-class KLSupremumLogNormalGoFStatistic(AbstractGoodnessOfFitStatistic):
+class KLSupremumLogNormalGoFStatistic(AbstractLogNormalGofStatistic):
     """
     Supremum test for lognormality based on Kullback-Leibler divergences.
     """

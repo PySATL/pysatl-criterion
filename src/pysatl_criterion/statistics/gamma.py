@@ -6,6 +6,7 @@ import numpy as np
 import scipy.stats as scipy_stats
 from typing_extensions import override
 
+from pysatl_criterion import DistributionType
 from pysatl_criterion.statistics.common import (
     ADStatistic,
     Chi2Statistic,
@@ -45,6 +46,16 @@ class AbstractGammaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
             raise ValueError("Scale must be positive.")
         self.shape = shape
         self.scale = scale
+
+    @staticmethod
+    @override
+    def distribution() -> DistributionType:
+        """
+        Get distribution type.
+
+        :return: DistributionType.
+        """
+        return DistributionType.GAMMA
 
     @staticmethod
     @override
