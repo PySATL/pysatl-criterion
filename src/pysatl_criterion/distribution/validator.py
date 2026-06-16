@@ -8,12 +8,11 @@ Each validator returns ``True`` when a value satisfies the constraint and
 """
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable
 
 from typing_extensions import override
 
 
-class Validator(ABC, Callable[[float], bool]):
+class Validator(ABC):
     """
     Abstract callable validator for a single numeric distribution parameter.
 

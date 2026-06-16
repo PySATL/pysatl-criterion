@@ -193,7 +193,7 @@ class QuesenberryMillerLogNormalGofStatistic(AbstractLogNormalGofStatistic):
         return q
 
 
-class KLSupremumLogNormalGoFStatistic(AbstractGoodnessOfFitStatistic):
+class KLSupremumLogNormalGoFStatistic(AbstractLogNormalGofStatistic):
     """
     Supremum test for lognormality based on Kullback-Leibler divergences.
     """
