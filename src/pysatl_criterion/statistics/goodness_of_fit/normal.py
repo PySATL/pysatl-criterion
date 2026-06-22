@@ -7,9 +7,21 @@ import scipy.stats as scipy_stats
 from typing_extensions import override
 
 from pysatl_criterion import DistributionType
-from pysatl_criterion.statistics.common import ADStatistic, KSStatistic, LillieforsTest
-from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
-from pysatl_criterion.statistics.graph_goodness_of_fit import (
+from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.alternative import (
+    Alternative,
+    AlternativeType,
+    LeftAlternative,
+    RightAlternative,
+    TwoSidedAlternative,
+)
+from pysatl_criterion.statistics.goodness_of_fit.common import (
+    ADStatistic,
+    CrammerVonMisesStatistic,
+    KSStatistic,
+    LillieforsTest,
+)
+from pysatl_criterion.statistics.goodness_of_fit.graph_goodness_of_fit import (
     AbstractGraphTestStatistic,
     GraphAverageDegreeTestStatistic,
     GraphCliqueNumberTestStatistic,
@@ -18,6 +30,7 @@ from pysatl_criterion.statistics.graph_goodness_of_fit import (
     GraphIndependenceNumberTestStatistic,
     GraphMaxDegreeTestStatistic,
 )
+from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
 class AbstractNormalityGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
@@ -25,6 +38,10 @@ class AbstractNormalityGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     def __init__(self, mean=0, var=1):
         self.mean = mean
         self.var = var
+
+    @override
+    def hypothesis(self) -> GoodnessOfFitHypothesis:
+        return GoodnessOfFitHypothesis({"mean": self.mean, "var": self.var})
 
     @staticmethod
     @override
@@ -44,9 +61,15 @@ class AbstractNormalityGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
 
 class KolmogorovSmirnovNormalityGofStatistic(AbstractNormalityGofStatistic, KSStatistic):
     @override
-    def __init__(self, alternative="two-sided", mode="auto", mean=0, var=1):
+    def __init__(
+        self,
+        alternative_type: AlternativeType = AlternativeType.TWO_TAILED,
+        mode="auto",
+        mean=0,
+        var=1,
+    ):
         AbstractNormalityGofStatistic.__init__(self)
-        KSStatistic.__init__(self, alternative, mode)
+        KSStatistic.__init__(self, alternative_type, mode)
 
         self.mean = mean
         self.var = var
@@ -66,7 +89,7 @@ class KolmogorovSmirnovNormalityGofStatistic(AbstractNormalityGofStatistic, KSSt
     def execute_statistic(self, rvs, **kwargs):
         rvs = np.sort(rvs)
         cdf_vals = scipy_stats.norm.cdf(rvs)
-        return KSStatistic.execute_statistic(self, rvs, cdf_vals)
+        return KSStatistic.do_execute_statistic(self, rvs, cdf_vals)
 
 
 """""
@@ -111,10 +134,14 @@ class AndersonDarlingNormalityGofStatistic(AbstractNormalityGofStatistic, ADStat
         w = (y - xbar) / s
         logcdf = scipy_stats.distributions.norm.logcdf(w)
         logsf = scipy_stats.distributions.norm.logsf(w)
-        return super().execute_statistic(rvs, log_cdf=logcdf, log_sf=logsf, w=w)
+        return super().do_execute_statistic(rvs, log_cdf=logcdf, log_sf=logsf)
 
 
 class ShapiroWilkNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return LeftAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -127,7 +154,7 @@ class ShapiroWilkNormalityGofStatistic(AbstractNormalityGofStatistic):
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
+    def execute_statistic(self, rvs):
         f_obs = np.asanyarray(rvs)
         f_obs_sorted = np.sort(f_obs)
         x_mean = np.mean(f_obs)
@@ -177,7 +204,7 @@ class ShapiroWilkNormalityGofStatistic(AbstractNormalityGofStatistic):
             return np.concatenate([[w1, w2], result, [wn1, wn]])
 
 
-class CramerVonMiseNormalityGofStatistic(AbstractNormalityGofStatistic):
+class CramerVonMiseNormalityGofStatistic(AbstractNormalityGofStatistic, CrammerVonMisesStatistic):
     @staticmethod
     @override
     def short_code():
@@ -191,16 +218,11 @@ class CramerVonMiseNormalityGofStatistic(AbstractNormalityGofStatistic):
         return f"{short_code}_{base_code}"
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
-        n = len(rvs)
+    def execute_statistic(self, rvs):
+        sorted_rvs = np.sort(np.asarray(rvs))
+        cdf_vals = scipy_stats.norm.cdf(sorted_rvs)
 
-        rvs = np.sort(rvs)
-        vals = np.sort(np.asarray(rvs))
-        cdf_vals = scipy_stats.norm.cdf(vals)
-
-        u = (2 * np.arange(1, n + 1) - 1) / (2 * n)
-        cm = 1 / (12 * n) + np.sum((u - cdf_vals) ** 2)
-        return cm
+        return CrammerVonMisesStatistic.do_execute_statistic(self, sorted_rvs, cdf_vals)
 
 
 class LillieforsNormalityGofStatistic(AbstractNormalityGofStatistic, LillieforsTest):
@@ -220,7 +242,7 @@ class LillieforsNormalityGofStatistic(AbstractNormalityGofStatistic, LillieforsT
         x = np.asarray(rvs)
         z = (x - x.mean()) / x.std(ddof=1)
         cdf_vals = scipy_stats.norm.cdf(np.sort(z))
-        return super(LillieforsTest, self).execute_statistic(rvs, cdf_vals)
+        return super(LillieforsTest, self).do_execute_statistic(rvs, cdf_vals)
 
 
 """
@@ -249,6 +271,10 @@ class DANormalityTest(AbstractNormalityTestStatistic):  # TODO: check for correc
 
 
 class JBNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -279,6 +305,10 @@ class JBNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class SkewNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -323,6 +353,10 @@ class SkewNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class KurtosisNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -408,6 +442,10 @@ class DAPNormalityGofStatistic(SkewNormalityGofStatistic, KurtosisNormalityGofSt
 
 # https://github.com/puzzle-in-a-mug/normtest
 class FilliNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return LeftAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -449,6 +487,10 @@ class FilliNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 # https://github.com/puzzle-in-a-mug/normtest
 class LooneyGulledgeNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return LeftAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -515,6 +557,10 @@ class RyanJoinerNormalityGofStatistic(AbstractNormalityGofStatistic):
         super(AbstractNormalityGofStatistic).__init__()
         self.weighted = weighted
         self.cte_alpha = cte_alpha
+
+    @override
+    def alternative(self) -> Alternative:
+        return LeftAlternative()
 
     @staticmethod
     @override
@@ -583,6 +629,10 @@ class RyanJoinerNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class SFNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return LeftAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -610,6 +660,10 @@ class SFNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 # https://habr.com/ru/articles/685582/
 class EppsPulleyNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -638,6 +692,10 @@ class EppsPulleyNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class Hosking2NormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return TwoSidedAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -697,6 +755,10 @@ class Hosking2NormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class Hosking1NormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return TwoSidedAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -754,6 +816,10 @@ class Hosking1NormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class Hosking3NormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return TwoSidedAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -818,6 +884,10 @@ class Hosking3NormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class Hosking4NormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return TwoSidedAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -882,6 +952,10 @@ class Hosking4NormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class ZhangWuCNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -912,6 +986,10 @@ class ZhangWuCNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class ZhangWuANormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -946,6 +1024,10 @@ class ZhangWuANormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class GlenLeemisBarrNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -981,6 +1063,10 @@ class GlenLeemisBarrNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class DoornikHansenNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -1041,6 +1127,10 @@ class DoornikHansenNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class RobustJarqueBeraNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -1066,6 +1156,10 @@ class RobustJarqueBeraNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class BontempsMeddahi1NormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -1109,6 +1203,10 @@ class BontempsMeddahi1NormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class BontempsMeddahi2NormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -1144,6 +1242,10 @@ class BontempsMeddahi2NormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class BonettSeierNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return TwoSidedAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -1185,6 +1287,10 @@ class BonettSeierNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class MartinezIglewiczNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -1232,6 +1338,10 @@ class MartinezIglewiczNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class CabanaCabana1NormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -1284,6 +1394,10 @@ class CabanaCabana1NormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class CabanaCabana2NormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -1389,6 +1503,10 @@ class CabanaCabana2NormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class ChenShapiroNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -1419,6 +1537,10 @@ class ChenShapiroNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class ZhangQNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -1465,6 +1587,10 @@ class ZhangQNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -1600,6 +1726,10 @@ class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class DagostinoNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return TwoSidedAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -1626,6 +1756,10 @@ class DagostinoNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class ZhangQStarNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -1719,6 +1853,10 @@ class ZhangQQStarNormalityTest(AbstractNormalityTestStatistic):  # TODO: check f
 
 
 class SWRGNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -1755,6 +1893,10 @@ class SWRGNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class GMGNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -1822,6 +1964,10 @@ a robust measure of skewness, Computational Statistics, Vol. 23, Issue 3, pp. 42
 
 
 class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -2161,6 +2307,10 @@ class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class SpiegelhalterNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return TwoSidedAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -2215,6 +2365,10 @@ class SpiegelhalterNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class DesgagneLafayeNormalityGofStatistic(AbstractNormalityGofStatistic):
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -2272,6 +2426,10 @@ class DesgagneLafayeNormalityGofStatistic(AbstractNormalityGofStatistic):
 class AbstractGraphNormalityGofStatistic(
     AbstractNormalityGofStatistic, AbstractGraphTestStatistic, ABC
 ):
+    @override
+    def alternative(self) -> Alternative:
+        return TwoSidedAlternative()
+
     @staticmethod
     @override
     def code():

@@ -5,7 +5,7 @@ from pysatl_criterion.persistence.models.limit_distribution import (
     CriticalValueQuery,
     ILimitDistributionStorage,
 )
-from pysatl_criterion.statistics.models import HypothesisType
+from pysatl_criterion.statistics.alternative import AlternativeType
 
 from .model import PValueResolver
 
@@ -26,7 +26,7 @@ class CalculationPValueResolver(PValueResolver):
         criterion_code: str,
         sample_size: int,
         statistics_value: float,
-        alternative: HypothesisType = HypothesisType.RIGHT,
+        alternative: AlternativeType = AlternativeType.RIGHT,
     ) -> float:
         """
         Calculate p-value.
@@ -54,11 +54,11 @@ class CalculationPValueResolver(PValueResolver):
 
         cdf_value = float(ecdf.cdf.evaluate(statistics_value))
 
-        if alternative == HypothesisType.RIGHT:
+        if alternative == AlternativeType.RIGHT:
             return 1.0 - cdf_value
-        elif alternative == HypothesisType.TWO_TAILED:
+        elif alternative == AlternativeType.TWO_TAILED:
             return 2.0 * min(cdf_value, 1.0 - cdf_value)
-        elif alternative == HypothesisType.LEFT:
+        elif alternative == AlternativeType.LEFT:
             return cdf_value
         else:
             raise ValueError(f"Unknown alternative {alternative}")

@@ -5,8 +5,15 @@ import scipy.stats as scipy_stats
 from typing_extensions import override
 
 from pysatl_criterion import DistributionType
-from pysatl_criterion.statistics.common import ADStatistic, CrammerVonMisesStatistic, KSStatistic
-from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.alternative import Alternative, AlternativeType, RightAlternative
+from pysatl_criterion.statistics.goodness_of_fit.common import (
+    ADStatistic,
+    CrammerVonMisesStatistic,
+    KSStatistic,
+    LillieforsTest,
+)
+from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
 class AbstractStudentGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
@@ -22,6 +29,10 @@ class AbstractStudentGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
         self.df = df
         self.loc = loc
         self.scale = scale
+
+    @override
+    def hypothesis(self) -> GoodnessOfFitHypothesis:
+        return GoodnessOfFitHypothesis({"df": self.df})
 
     @staticmethod
     @override
@@ -65,10 +76,10 @@ class KolmogorovSmirnovStudentGofStatistic(AbstractStudentGofStatistic, KSStatis
         df: float = 1,
         loc: float = 0,
         scale: float = 1,
-        alternative: str = "two-sided",
+        alternative_type: AlternativeType = AlternativeType.TWO_TAILED,
     ):
         AbstractStudentGofStatistic.__init__(self, df, loc, scale)
-        KSStatistic.__init__(self, alternative)
+        KSStatistic.__init__(self, alternative_type)
 
     @staticmethod
     @override
@@ -103,7 +114,7 @@ class KolmogorovSmirnovStudentGofStatistic(AbstractStudentGofStatistic, KSStatis
         # Standardize the data
         standardized = (rvs - self.loc) / self.scale
         cdf_vals = scipy_stats.t.cdf(standardized, self.df)
-        return KSStatistic.execute_statistic(self, rvs, cdf_vals)
+        return KSStatistic.do_execute_statistic(self, rvs, cdf_vals)
 
 
 class AndersonDarlingStudentGofStatistic(AbstractStudentGofStatistic, ADStatistic):
@@ -145,7 +156,7 @@ class AndersonDarlingStudentGofStatistic(AbstractStudentGofStatistic, ADStatisti
         standardized = (y - self.loc) / self.scale
         logcdf = scipy_stats.t.logcdf(standardized, self.df)
         logsf = scipy_stats.t.logsf(standardized, self.df)
-        return ADStatistic.execute_statistic(self, y, log_cdf=logcdf, log_sf=logsf)
+        return ADStatistic.do_execute_statistic(self, y, log_cdf=logcdf, log_sf=logsf)
 
 
 class CramerVonMisesStudentGofStatistic(AbstractStudentGofStatistic, CrammerVonMisesStatistic):
@@ -186,13 +197,17 @@ class CramerVonMisesStudentGofStatistic(AbstractStudentGofStatistic, CrammerVonM
         # Standardize the data
         standardized = (rvs - self.loc) / self.scale
         cdf_vals = scipy_stats.t.cdf(standardized, self.df)
-        return CrammerVonMisesStatistic.execute_statistic(self, rvs, cdf_vals)
+        return CrammerVonMisesStatistic.do_execute_statistic(self, rvs, cdf_vals)
 
 
 class KuiperStudentGofStatistic(AbstractStudentGofStatistic):
     """
     Kuiper's test statistic for the Student's t-distribution.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -240,6 +255,10 @@ class WatsonStudentGofStatistic(AbstractStudentGofStatistic):
     """
     Watson's U^2 test statistic for the Student's t-distribution.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -294,6 +313,10 @@ class ZhangZcStudentGofStatistic(AbstractStudentGofStatistic):
     Zhang's Zc test statistic for the Student's t-distribution.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -345,6 +368,10 @@ class ZhangZaStudentGofStatistic(AbstractStudentGofStatistic):
     Zhang's Za test statistic for the Student's t-distribution.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -387,14 +414,13 @@ class ZhangZaStudentGofStatistic(AbstractStudentGofStatistic):
         return za
 
 
-class LillieforsStudentGofStatistic(AbstractStudentGofStatistic, KSStatistic):
+class LillieforsStudentGofStatistic(AbstractStudentGofStatistic, LillieforsTest):
     """
     Lilliefors-type test statistic for the Student's t-distribution.
     """
 
     def __init__(self, df: float = 1):
         AbstractStudentGofStatistic.__init__(self, df, 0, 1)
-        KSStatistic.__init__(self, "two-sided")
 
     @staticmethod
     @override
@@ -418,7 +444,7 @@ class LillieforsStudentGofStatistic(AbstractStudentGofStatistic, KSStatistic):
         return f"{short_code}_{AbstractStudentGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
+    def execute_statistic(self, rvs):
         """
         Calculate the Lilliefors statistic for testing fit to Student's t-distribution.
 
@@ -428,22 +454,19 @@ class LillieforsStudentGofStatistic(AbstractStudentGofStatistic, KSStatistic):
         :return: Lilliefors test statistic value.
         :raises ValueError: if sample standard deviation is zero.
         """
-        x = np.asarray(rvs)
-        # Estimate location and scale from data
-        loc = np.mean(x)
-        scale = np.std(x, ddof=1)
-        if scale == 0:
-            raise ValueError("Sample standard deviation is zero; Lilliefors undefined")
-        # Standardize
-        z = (x - loc) / scale
-        cdf_vals = scipy_stats.t.cdf(z, self.df)
-        return KSStatistic.execute_statistic(self, z, cdf_vals)
+        rvs_sorted = np.sort(rvs)
+        cdf_vals = scipy_stats.t.cdf(rvs_sorted, self.df)
+        return LillieforsTest.do_execute_statistic(self, rvs_sorted, cdf_vals)
 
 
 class ChiSquareStudentGofStatistic(AbstractStudentGofStatistic):
     """
     Chi-square goodness-of-fit test statistic for the Student's t-distribution.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     def __init__(
         self,

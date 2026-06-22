@@ -5,7 +5,7 @@ from pysatl_criterion.persistence.models.limit_distribution import (
     CriticalValueQuery,
     ILimitDistributionStorage,
 )
-from pysatl_criterion.statistics.models import HypothesisType
+from pysatl_criterion.statistics.alternative import AlternativeType
 
 
 class CVCalculator:
@@ -21,7 +21,7 @@ class CVCalculator:
         criterion_code: str,
         sample_size: int,
         sl: float,
-        alternative: HypothesisType = HypothesisType.RIGHT,
+        alternative: AlternativeType = AlternativeType.RIGHT,
     ) -> float | tuple[float, float]:
         """
         Calculate critical value for given criterion.
@@ -45,11 +45,11 @@ class CVCalculator:
 
         ecdf = scipy_stats.ecdf(statistics_values)
 
-        if alternative == HypothesisType.RIGHT:
+        if alternative == AlternativeType.RIGHT:
             return float(np.quantile(ecdf.cdf.quantiles, q=1 - sl))
-        elif alternative == HypothesisType.LEFT:
+        elif alternative == AlternativeType.LEFT:
             return float(np.quantile(ecdf.cdf.quantiles, q=sl))
-        elif alternative == HypothesisType.TWO_TAILED:
+        elif alternative == AlternativeType.TWO_TAILED:
             left = float(np.quantile(ecdf.cdf.quantiles, q=sl / 2))
             right = float(np.quantile(ecdf.cdf.quantiles, q=1 - sl / 2))
             return left, right

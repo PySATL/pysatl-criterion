@@ -7,7 +7,7 @@ from pysatl_criterion.hypothesis_testing.critical_values.loader.remote_loader im
 from pysatl_criterion.hypothesis_testing.critical_values.resolver.storage_resolver import (
     StorageCriticalValueResolver,
 )
-from pysatl_criterion.statistics.models import HypothesisType
+from pysatl_criterion.statistics.alternative import AlternativeType
 
 from .model import CriticalValueResolver
 
@@ -34,7 +34,7 @@ class CompositeCriticalValueResolver(CriticalValueResolver):
         criterion_codes: list[str],
         sample_size: int,
         sl: float,
-        alternative: HypothesisType = HypothesisType.RIGHT,
+        alternative: AlternativeType = AlternativeType.RIGHT,
     ) -> dict[str, CriticalArea]:
         """
         Resolve multiple critical values using cache and bulk loader.

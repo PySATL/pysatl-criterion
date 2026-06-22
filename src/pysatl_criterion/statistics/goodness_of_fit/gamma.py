@@ -7,7 +7,15 @@ import scipy.stats as scipy_stats
 from typing_extensions import override
 
 from pysatl_criterion import DistributionType
-from pysatl_criterion.statistics.common import (
+from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.alternative import (
+    Alternative,
+    AlternativeType,
+    LeftAlternative,
+    RightAlternative,
+    TwoSidedAlternative,
+)
+from pysatl_criterion.statistics.goodness_of_fit.common import (
     ADStatistic,
     Chi2Statistic,
     CrammerVonMisesStatistic,
@@ -15,8 +23,7 @@ from pysatl_criterion.statistics.common import (
     LillieforsTest,
     MinToshiyukiStatistic,
 )
-from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
-from pysatl_criterion.statistics.graph_goodness_of_fit import (
+from pysatl_criterion.statistics.goodness_of_fit.graph_goodness_of_fit import (
     AbstractGraphTestStatistic,
     GraphAverageDegreeTestStatistic,
     GraphCliqueNumberTestStatistic,
@@ -25,6 +32,7 @@ from pysatl_criterion.statistics.graph_goodness_of_fit import (
     GraphIndependenceNumberTestStatistic,
     GraphMaxDegreeTestStatistic,
 )
+from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
 class AbstractGammaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
@@ -32,20 +40,24 @@ class AbstractGammaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     Abstract base class for Gamma distribution goodness-of-fit statistics.
     """
 
-    def __init__(self, shape: float = 1.0, scale: float = 1.0):
+    def __init__(self, alpha: float = 1.0, beta: float = 1.0):
         """
         Initialize Gamma distribution goodness-of-fit statistic.
 
-        :param shape: shape parameter (alpha) > 0.
-        :param scale: scale parameter (theta) > 0.
+        :param alpha: shape parameter (alpha) > 0.
+        :param beta: scale parameter (beta) > 0.
         :raises ValueError: if shape or scale is not positive.
         """
-        if shape <= 0:
+        if alpha <= 0:
             raise ValueError("Shape must be positive.")
-        if scale <= 0:
+        if beta <= 0:
             raise ValueError("Scale must be positive.")
-        self.shape = shape
-        self.scale = scale
+        self.alpha = alpha
+        self.beta = beta
+
+    @override
+    def hypothesis(self) -> GoodnessOfFitHypothesis:
+        return GoodnessOfFitHypothesis({"alpha": self.alpha, "beta": self.beta})
 
     @staticmethod
     @override
@@ -79,13 +91,13 @@ class KolmogorovSmirnovGammaGofStatistic(AbstractGammaGofStatistic, KSStatistic)
     @override
     def __init__(
         self,
-        alternative="two-sided",
+        alternative_type: AlternativeType = AlternativeType.TWO_TAILED,
         mode="auto",
-        shape: float = 1.0,
-        scale: float = 1.0,
+        alpha: float = 1.0,
+        beta: float = 1.0,
     ):
-        AbstractGammaGofStatistic.__init__(self, shape=shape, scale=scale)
-        KSStatistic.__init__(self, alternative=alternative, mode=mode)
+        AbstractGammaGofStatistic.__init__(self, alpha=alpha, beta=beta)
+        KSStatistic.__init__(self, alternative_type=alternative_type, mode=mode)
 
     @staticmethod
     @override
@@ -118,8 +130,8 @@ class KolmogorovSmirnovGammaGofStatistic(AbstractGammaGofStatistic, KSStatistic)
         """
 
         sorted_rvs = np.sort(np.asarray(rvs))
-        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.shape, scale=self.scale)
-        return KSStatistic.execute_statistic(self, sorted_rvs, cdf_vals)
+        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.alpha, scale=1 / self.beta)
+        return KSStatistic.do_execute_statistic(self, sorted_rvs, cdf_vals)
 
 
 class LillieforsGammaGofStatistic(AbstractGammaGofStatistic, LillieforsTest):
@@ -152,7 +164,7 @@ class LillieforsGammaGofStatistic(AbstractGammaGofStatistic, LillieforsTest):
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
+    def execute_statistic(self, rvs):
         """
         Execute the Lilliefors test statistic for Gamma distribution.
 
@@ -177,7 +189,7 @@ class LillieforsGammaGofStatistic(AbstractGammaGofStatistic, LillieforsTest):
         scale_hat = var / mean
         sorted_sample = np.sort(sample)
         cdf_vals = scipy_stats.gamma.cdf(sorted_sample, a=shape_hat, scale=scale_hat)
-        return super(LillieforsTest, self).execute_statistic(sorted_sample, cdf_vals)
+        return super(LillieforsTest, self).do_execute_statistic(sorted_sample, cdf_vals)
 
 
 class AndersonDarlingGammaGofStatistic(AbstractGammaGofStatistic, ADStatistic):
@@ -219,9 +231,9 @@ class AndersonDarlingGammaGofStatistic(AbstractGammaGofStatistic, ADStatistic):
         """
 
         sorted_rvs = np.sort(np.asarray(rvs))
-        log_cdf = scipy_stats.gamma.logcdf(sorted_rvs, a=self.shape, scale=self.scale)
-        log_sf = scipy_stats.gamma.logsf(sorted_rvs, a=self.shape, scale=self.scale)
-        return super().execute_statistic(sorted_rvs, log_cdf=log_cdf, log_sf=log_sf)
+        log_cdf = scipy_stats.gamma.logcdf(sorted_rvs, a=self.alpha, scale=1 / self.beta)
+        log_sf = scipy_stats.gamma.logsf(sorted_rvs, a=self.alpha, scale=1 / self.beta)
+        return super().do_execute_statistic(sorted_rvs, log_cdf=log_cdf, log_sf=log_sf)
 
 
 class CramerVonMisesGammaGofStatistic(AbstractGammaGofStatistic, CrammerVonMisesStatistic):
@@ -263,8 +275,8 @@ class CramerVonMisesGammaGofStatistic(AbstractGammaGofStatistic, CrammerVonMises
         """
 
         sorted_rvs = np.sort(np.asarray(rvs))
-        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.shape, scale=self.scale)
-        return CrammerVonMisesStatistic.execute_statistic(self, sorted_rvs, cdf_vals)
+        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.alpha, scale=1 / self.beta)
+        return CrammerVonMisesStatistic.do_execute_statistic(self, sorted_rvs, cdf_vals)
 
 
 class WatsonGammaGofStatistic(AbstractGammaGofStatistic):
@@ -274,6 +286,10 @@ class WatsonGammaGofStatistic(AbstractGammaGofStatistic):
     Modification of Cramér-von Mises test that is invariant under location changes,
     making it suitable for circular data analysis.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -313,7 +329,7 @@ class WatsonGammaGofStatistic(AbstractGammaGofStatistic):
                 "At least one observation is required to compute the Watson statistic."
             )
 
-        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.shape, scale=self.scale)
+        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.alpha, scale=1/self.beta)
         u = (2 * np.arange(1, n + 1) - 1) / (2 * n)
         diff = cdf_vals - u
         w_squared = 1.0 / (12 * n) + np.sum(diff**2)
@@ -328,6 +344,10 @@ class KuiperGammaGofStatistic(AbstractGammaGofStatistic):
     Variant of Kolmogorov-Smirnov test that sums the maximum positive and negative
     deviations, making it equally sensitive to deviations in both tails.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -351,7 +371,7 @@ class KuiperGammaGofStatistic(AbstractGammaGofStatistic):
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
+    def execute_statistic(self, rvs):
         """
         Execute the Kuiper test statistic for Gamma distribution.
 
@@ -361,7 +381,7 @@ class KuiperGammaGofStatistic(AbstractGammaGofStatistic):
         """
 
         sorted_rvs = np.sort(np.asarray(rvs))
-        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.shape, scale=self.scale)
+        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.alpha, scale=1 / self.beta)
 
         n = len(sorted_rvs)
         if n == 0:
@@ -382,6 +402,10 @@ class GreenwoodGammaGofStatistic(AbstractGammaGofStatistic):
     Test based on sum of squared spacings between consecutive Gamma CDF values.
     Sensitive to clustering of observations.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -416,7 +440,7 @@ class GreenwoodGammaGofStatistic(AbstractGammaGofStatistic):
         """
 
         sorted_rvs = np.sort(np.asarray(rvs))
-        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.shape, scale=self.scale)
+        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.alpha, scale=1/self.beta)
         spacings = np.diff(np.concatenate(([0.0], cdf_vals, [1.0])))
         if np.any(spacings < 0):
             raise ValueError("Spacings must be non-negative; check input data ordering.")
@@ -430,6 +454,10 @@ class MoranGammaGofStatistic(AbstractGammaGofStatistic):
     Test based on sum of log-transformed spacings between consecutive Gamma CDF values.
     Sensitive to uniformity of probability integral transform.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -467,7 +495,7 @@ class MoranGammaGofStatistic(AbstractGammaGofStatistic):
         if n == 0:
             raise ValueError("At least one observation is required to compute the Moran statistic.")
 
-        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.shape, scale=self.scale)
+        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.alpha, scale=1/self.beta)
         spacings = np.diff(np.concatenate(([0.0], cdf_vals, [1.0])))
         if np.any(spacings <= 0):
             raise ValueError("Spacings must be strictly positive for the Moran statistic.")
@@ -516,8 +544,8 @@ class MinToshiyukiGammaGofStatistic(AbstractGammaGofStatistic, MinToshiyukiStati
         """
 
         sorted_rvs = np.sort(np.asarray(rvs))
-        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.shape, scale=self.scale)
-        return MinToshiyukiStatistic.execute_statistic(self, cdf_vals)
+        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.alpha, scale=1/self.beta)
+        return MinToshiyukiStatistic.do_execute_statistic(self, cdf_vals)
 
 
 class AbstractBinnedGammaGofStatistic(AbstractGammaGofStatistic, Chi2Statistic, ABC):
@@ -530,11 +558,11 @@ class AbstractBinnedGammaGofStatistic(AbstractGammaGofStatistic, Chi2Statistic, 
 
     lambda_value: float = 1.0
 
-    def __init__(self, bins: int = 8, shape: float = 1.0, scale: float = 1.0):
+    def __init__(self, bins: int = 8, alpha: float = 1.0, beta: float = 1.0):
         if bins < 2:
             raise ValueError("At least two bins are required for binned Gamma statistics.")
         self.bins = bins
-        super().__init__(shape=shape, scale=scale)
+        AbstractGammaGofStatistic.__init__(self, alpha=alpha, beta=beta)
         self.lambda_value = getattr(self, "lambda_value", 1.0)
 
     def _counts_and_expected(self, rvs):
@@ -544,7 +572,7 @@ class AbstractBinnedGammaGofStatistic(AbstractGammaGofStatistic, Chi2Statistic, 
             raise ValueError("At least one observation is required for binned Gamma statistics.")
 
         quantiles = np.linspace(0.0, 1.0, self.bins + 1)
-        edges = scipy_stats.gamma.ppf(quantiles, a=self.shape, scale=self.scale)
+        edges = scipy_stats.gamma.ppf(quantiles, a=self.alpha, scale=1/self.beta)
         edges[0] = -np.inf
         edges[-1] = np.inf
         counts, _ = np.histogram(sample, bins=edges)
@@ -552,7 +580,7 @@ class AbstractBinnedGammaGofStatistic(AbstractGammaGofStatistic, Chi2Statistic, 
         return counts, expected
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
+    def execute_statistic(self, rvs):
         """
         Execute the binned chi-squared test statistic for Gamma distribution.
 
@@ -562,7 +590,7 @@ class AbstractBinnedGammaGofStatistic(AbstractGammaGofStatistic, Chi2Statistic, 
         """
         counts, expected = self._counts_and_expected(rvs)
         return float(
-            Chi2Statistic.execute_statistic(self, counts, expected, lambda_=self.lambda_value)
+            Chi2Statistic.do_execute_statistic(self, counts, expected, lambda_=self.lambda_value)
         )
 
 
@@ -598,7 +626,7 @@ class Chi2PearsonGammaGofStatistic(AbstractBinnedGammaGofStatistic):
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
+    def execute_statistic(self, rvs):
         """
         Execute Pearson chi-square statistic for Gamma distribution.
 
@@ -606,7 +634,7 @@ class Chi2PearsonGammaGofStatistic(AbstractBinnedGammaGofStatistic):
         :return: Pearson chi-square statistic computed on equiprobable Gamma bins.
         """
 
-        return super().execute_statistic(rvs, **kwargs)
+        return super().execute_statistic(rvs)
 
 
 class LikelihoodRatioGammaGofStatistic(AbstractBinnedGammaGofStatistic):
@@ -641,7 +669,7 @@ class LikelihoodRatioGammaGofStatistic(AbstractBinnedGammaGofStatistic):
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
+    def execute_statistic(self, rvs):
         """
         Execute likelihood-ratio statistic for Gamma distribution.
 
@@ -649,7 +677,7 @@ class LikelihoodRatioGammaGofStatistic(AbstractBinnedGammaGofStatistic):
         :return: likelihood-ratio statistic using equiprobable Gamma quantile bins.
         """
 
-        return super().execute_statistic(rvs, **kwargs)
+        return super().execute_statistic(rvs)
 
 
 class CressieReadGammaGofStatistic(AbstractBinnedGammaGofStatistic):
@@ -664,11 +692,11 @@ class CressieReadGammaGofStatistic(AbstractBinnedGammaGofStatistic):
         self,
         power: float = 2 / 3,
         bins: int = 8,
-        shape: float = 1.0,
-        scale: float = 1.0,
+        alpha: float = 1.0,
+        beta: float = 1.0,
     ):
         self.lambda_value = power
-        super().__init__(bins=bins, shape=shape, scale=scale)
+        super().__init__(bins=bins, alpha=alpha, beta=beta)
 
     @staticmethod
     @override
@@ -692,7 +720,7 @@ class CressieReadGammaGofStatistic(AbstractBinnedGammaGofStatistic):
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
+    def execute_statistic(self, rvs):
         """
         Execute Cressie-Read power-divergence statistic for Gamma distribution.
 
@@ -700,7 +728,7 @@ class CressieReadGammaGofStatistic(AbstractBinnedGammaGofStatistic):
         :return: power-divergence statistic bridging Pearson and G-tests.
         """
 
-        return super().execute_statistic(rvs, **kwargs)
+        return super().execute_statistic(rvs)
 
 
 class ProbabilityPlotCorrelationGammaGofStatistic(AbstractGammaGofStatistic):
@@ -710,6 +738,10 @@ class ProbabilityPlotCorrelationGammaGofStatistic(AbstractGammaGofStatistic):
     Probability plot correlation coefficient test that measures linear alignment
     between ordered sample values and theoretical Gamma quantiles.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return LeftAlternative()
 
     @staticmethod
     @override
@@ -749,7 +781,7 @@ class ProbabilityPlotCorrelationGammaGofStatistic(AbstractGammaGofStatistic):
             raise ValueError("At least two observations are required for the PPCC statistic.")
 
         plotting_positions = (np.arange(1, n + 1) - 0.375) / (n + 0.25)
-        expected = scipy_stats.gamma.ppf(plotting_positions, a=self.shape, scale=self.scale)
+        expected = scipy_stats.gamma.ppf(plotting_positions, a=self.alpha, scale=1/self.beta)
 
         sample_centered = sample - np.mean(sample)
         expected_centered = expected - np.mean(expected)
@@ -770,6 +802,10 @@ class AbstractGraphGammaGofStatistic(AbstractGammaGofStatistic, AbstractGraphTes
     transforming data through Gamma CDF and analyzing resulting structure.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return TwoSidedAlternative()
+
     @staticmethod
     @override
     def code():
@@ -789,7 +825,7 @@ class AbstractGraphGammaGofStatistic(AbstractGammaGofStatistic, AbstractGraphTes
             )
 
         sorted_sample = np.sort(sample)
-        uniformized = scipy_stats.gamma.cdf(sorted_sample, a=self.shape, scale=self.scale)
+        uniformized = scipy_stats.gamma.cdf(sorted_sample, a=self.alpha, scale=1/self.beta)
         return uniformized.tolist()
 
     def _evaluate_graph_statistic(self, transformed_sample, **kwargs):

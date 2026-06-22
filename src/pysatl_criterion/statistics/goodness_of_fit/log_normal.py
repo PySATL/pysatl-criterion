@@ -9,10 +9,12 @@ from scipy import integrate
 from typing_extensions import override
 
 from pysatl_criterion import DistributionType
-from pysatl_criterion.statistics import normal
-from pysatl_criterion.statistics.common import CrammerVonMisesStatistic, KSStatistic
-from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
-from pysatl_criterion.statistics.normal import AbstractNormalityGofStatistic
+from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.alternative import Alternative, AlternativeType, RightAlternative
+from pysatl_criterion.statistics.goodness_of_fit import normal
+from pysatl_criterion.statistics.goodness_of_fit.common import CrammerVonMisesStatistic, KSStatistic
+from pysatl_criterion.statistics.goodness_of_fit.normal import AbstractNormalityGofStatistic
+from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
 class AbstractLogNormalGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
@@ -28,6 +30,10 @@ class AbstractLogNormalGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
 
         self.s = s
         self.scale = scale
+
+    @override
+    def hypothesis(self) -> GoodnessOfFitHypothesis:
+        return GoodnessOfFitHypothesis({"s": self.s, "scale": self.scale})
 
     @staticmethod
     @override
@@ -61,9 +67,15 @@ class KolmogorovSmirnovLogNormalGofStatistic(AbstractLogNormalGofStatistic, KSSt
     """
 
     @override
-    def __init__(self, alternative="two-sided", mode="auto", s=1, scale=1):
+    def __init__(
+        self,
+        alternative_type: AlternativeType = AlternativeType.TWO_TAILED,
+        mode="auto",
+        s=1,
+        scale=1,
+    ):
         AbstractLogNormalGofStatistic.__init__(self, s=s, scale=scale)
-        KSStatistic.__init__(self, alternative, mode)
+        KSStatistic.__init__(self, alternative_type, mode)
 
     @staticmethod
     @override
@@ -96,7 +108,7 @@ class KolmogorovSmirnovLogNormalGofStatistic(AbstractLogNormalGofStatistic, KSSt
         """
         rvs = np.sort(rvs)
         cdf_vals = scipy_stats.lognorm.cdf(rvs, s=self.s, scale=self.scale)
-        return KSStatistic.execute_statistic(self, rvs, cdf_vals)
+        return KSStatistic.do_execute_statistic(self, rvs, cdf_vals)
 
 
 class CramerVonMiseLogNormalGofStatistic(AbstractLogNormalGofStatistic, CrammerVonMisesStatistic):
@@ -135,13 +147,17 @@ class CramerVonMiseLogNormalGofStatistic(AbstractLogNormalGofStatistic, CrammerV
         """
         rvs_sorted = np.sort(rvs)
         cdf_vals = scipy_stats.lognorm.cdf(rvs_sorted, s=self.s, scale=self.scale)
-        return super().execute_statistic(rvs, cdf_vals)
+        return super().do_execute_statistic(rvs, cdf_vals)
 
 
 class QuesenberryMillerLogNormalGofStatistic(AbstractLogNormalGofStatistic):
     """
     Quesenberry and Miller's Q-test for Log-Normal distribution.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -197,6 +213,10 @@ class KLSupremumLogNormalGoFStatistic(AbstractLogNormalGofStatistic):
     """
     Supremum test for lognormality based on Kullback-Leibler divergences.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -321,6 +341,10 @@ class KLIntegralLogNormalGoFStatistic(AbstractLogNormalGofStatistic):
     """
     Integral test for lognormality based on Kullback-Leibler divergences.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -456,9 +480,13 @@ def _create_lognormal_class(normal_cls):
     class_code = normal_cls.code().replace("NORMALITY", "LOGNORMAL")
     class_short_code = normal_cls.short_code()
 
-    class LogNormalClass(AbstractLogNormalGofStatistic):
+    class LogNormalClass(AbstractLogNormalGofStatistic, ABC):
         @override
-        def execute_statistic(self, rvs, **kwargs):
+        def alternative(self) -> Alternative:
+            return normal_cls().alternative()
+
+        @override
+        def execute_statistic(self, rvs):
             """
             Execute the wrapped normality test on log-transformed data.
 
@@ -473,7 +501,7 @@ def _create_lognormal_class(normal_cls):
             log_rvs = np.log(rvs_arr)
             standardized_log_rvs = (log_rvs - np.log(self.scale)) / self.s
 
-            return normal_cls().execute_statistic(standardized_log_rvs, **kwargs)
+            return normal_cls().execute_statistic(standardized_log_rvs)
 
         @staticmethod
         @override

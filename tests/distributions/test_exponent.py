@@ -1,6 +1,6 @@
 import pytest as pytest
 
-from pysatl_criterion.statistics.exponent import (
+from pysatl_criterion.statistics.goodness_of_fit.exponent import (
     AbstractExponentialityGofStatistic,
     AhsanullahExponentialityGofStatistic,
     AtkinsonExponentialityGofStatistic,
@@ -89,14 +89,14 @@ def test_co_exponentiality_criterion_code():
 
 
 @pytest.mark.parametrize(
-    ("data", "result"),
+    ("data", "lam", "result"),
     [
-        ([1, 2, 3, 4, 5, 6, 7], 0.12851),
-        ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 0.15712),
+        ([1, 2, 3, 4, 5, 6, 7], 0.25, 0.12851),
+        ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 0.1818, 0.15712),
     ],
 )
-def test_cvm_exponentiality_criterion(data, result):
-    statistic = CramerVonMisesExponentialityGofStatistic().execute_statistic(data)
+def test_cvm_exponentiality_criterion(data, lam, result):
+    statistic = CramerVonMisesExponentialityGofStatistic(lam=lam).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 

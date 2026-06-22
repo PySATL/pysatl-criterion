@@ -7,9 +7,17 @@ import scipy.stats as scipy_stats
 from typing_extensions import override
 
 from pysatl_criterion import DistributionType
-from pysatl_criterion.statistics.common import KSStatistic
-from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
-from pysatl_criterion.statistics.graph_goodness_of_fit import (
+from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.alternative import (
+    Alternative,
+    AlternativeType,
+    LeftAlternative,
+    RightAlternative,
+    TwoSidedAlternative,
+)
+from pysatl_criterion.statistics.goodness_of_fit import CrammerVonMisesStatistic
+from pysatl_criterion.statistics.goodness_of_fit.common import KSStatistic
+from pysatl_criterion.statistics.goodness_of_fit.graph_goodness_of_fit import (
     AbstractGraphTestStatistic,
     GraphAverageDegreeTestStatistic,
     GraphCliqueNumberTestStatistic,
@@ -18,6 +26,7 @@ from pysatl_criterion.statistics.graph_goodness_of_fit import (
     GraphIndependenceNumberTestStatistic,
     GraphMaxDegreeTestStatistic,
 )
+from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
 class AbstractExponentialityGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
@@ -30,6 +39,10 @@ class AbstractExponentialityGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
 
     def __init__(self, lam=1):
         self.lam = lam
+
+    @override
+    def hypothesis(self) -> GoodnessOfFitHypothesis:
+        return GoodnessOfFitHypothesis({"lam": self.lam})
 
     @staticmethod
     @override
@@ -58,6 +71,10 @@ class EppsPulleyExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Test based on characteristic function approach for testing exponentiality.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -103,10 +120,9 @@ class KolmogorovSmirnovExponentialityGofStatistic(AbstractExponentialityGofStati
     Applies the KS test to check if data follows exponential distribution.
     """
 
-    def __init__(self, alternative="two-sided", lam=1):
-        super().__init__()
-        self.alternative = alternative
-        self.lam = lam
+    def __init__(self, alternative_type: AlternativeType = AlternativeType.TWO_TAILED, lam=1):
+        AbstractExponentialityGofStatistic.__init__(self, lam=lam)
+        KSStatistic.__init__(self, alternative_type)
 
     @staticmethod
     @override
@@ -140,7 +156,7 @@ class KolmogorovSmirnovExponentialityGofStatistic(AbstractExponentialityGofStati
 
         rvs = np.sort(rvs)
         cdf_vals = scipy_stats.expon.cdf(rvs)
-        return KSStatistic.execute_statistic(self, rvs, cdf_vals)
+        return KSStatistic.do_execute_statistic(self, rvs, cdf_vals)
 
 
 class AhsanullahExponentialityGofStatistic(AbstractExponentialityGofStatistic):
@@ -150,6 +166,10 @@ class AhsanullahExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     Test based on Ahsanullah's characterization of exponential distribution
     using order statistics properties.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -204,6 +224,10 @@ class AtkinsonExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     of exponential distribution using power transformation.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -252,6 +276,10 @@ class CoxOakesExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     against increasing failure rate alternatives.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return TwoSidedAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -290,7 +318,9 @@ class CoxOakesExponentialityGofStatistic(AbstractExponentialityGofStatistic):
         return co
 
 
-class CramerVonMisesExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+class CramerVonMisesExponentialityGofStatistic(
+    AbstractExponentialityGofStatistic, CrammerVonMisesStatistic
+):
     """
     Cramér-von Mises test statistic for exponentiality.
 
@@ -320,7 +350,7 @@ class CramerVonMisesExponentialityGofStatistic(AbstractExponentialityGofStatisti
         return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
+    def execute_statistic(self, rvs):
         """
         Execute the Cramér-von Mises test statistic for exponentiality.
 
@@ -335,7 +365,10 @@ class CramerVonMisesExponentialityGofStatistic(AbstractExponentialityGofStatisti
         z = (z - c) ** 2
         cvm = 1 / (12 * n) + np.sum(z)
 
-        return cvm
+        rvs_sorted = np.sort(rvs)
+        cdf_vals = scipy_stats.expon.cdf(rvs_sorted, scale=1 / self.lam)
+
+        return CrammerVonMisesStatistic.do_execute_statistic(self, rvs_sorted, cdf_vals)
 
 
 class DeshpandeExponentialityGofStatistic(AbstractExponentialityGofStatistic):
@@ -344,6 +377,10 @@ class DeshpandeExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Test based on spacings and order statistics for testing exponentiality.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -394,6 +431,10 @@ class EpsteinExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     Test based on normalized spacings between order statistics.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return TwoSidedAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -439,6 +480,10 @@ class FroziniExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Test based on empirical distribution function comparison with exponential CDF.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -488,6 +533,10 @@ class GiniExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     Test based on Gini's mean difference applied to exponential distribution testing.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return TwoSidedAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -535,6 +584,10 @@ class GnedenkoExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Test based on ratio of mean spacings for testing exponentiality.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -584,6 +637,10 @@ class HarrisExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     Improved version of Gnedenko test using symmetric spacing comparison.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -632,6 +689,10 @@ class HegazyGreen1ExponentialityGofStatistic(AbstractExponentialityGofStatistic)
     Test based on L1 distance between ordered sample and theoretical quantiles.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return LeftAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -677,6 +738,10 @@ class HollanderProshanExponentialityGofStatistic(AbstractExponentialityGofStatis
 
     Test based on total time on test transform for testing exponentiality.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -727,6 +792,10 @@ class KimberMichaelExponentialityGofStatistic(AbstractExponentialityGofStatistic
     Test based on arcsine transformation of empirical and theoretical CDFs.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return LeftAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -774,6 +843,10 @@ class KocharExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     Test based on weighted linear combination of order statistics.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -820,6 +893,10 @@ class LorenzExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     Test based on Lorenz curve comparison for testing exponentiality.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -865,6 +942,10 @@ class MoranExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     Test based on digamma function and log-transformed data for testing exponentiality.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -908,6 +989,10 @@ class PietraExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Test based on mean absolute deviation for testing exponentiality.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return TwoSidedAlternative()
 
     @staticmethod
     @override
@@ -953,6 +1038,10 @@ class ShapiroWilkExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     Adaptation of Shapiro-Wilk test for testing exponential distribution.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return LeftAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -997,6 +1086,10 @@ class RossbergExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Test based on Rossberg's characterization using triplets of order statistics.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -1068,6 +1161,10 @@ class WeExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     Test based on coefficient of variation for testing exponentiality.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -1113,6 +1210,10 @@ class WongWongExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     Test based on ratio of maximum to minimum observation for testing exponentiality.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -1155,6 +1256,10 @@ class HegazyGreen2ExponentialityGofStatistic(AbstractExponentialityGofStatistic)
 
     Test based on L2 distance between ordered sample and theoretical quantiles.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return LeftAlternative()
 
     @staticmethod
     @override
@@ -1203,6 +1308,10 @@ class AbstractGraphExponentialityGofStatistic(
     Combines exponentiality testing with graph-theoretic statistics
     for analyzing data structure properties.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return TwoSidedAlternative()
 
     @staticmethod
     @override

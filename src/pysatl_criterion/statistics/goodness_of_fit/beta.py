@@ -5,14 +5,16 @@ import scipy.stats as scipy_stats
 from typing_extensions import override
 
 from pysatl_criterion import DistributionType
-from pysatl_criterion.statistics.common import (
+from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.alternative import Alternative, AlternativeType, RightAlternative
+from pysatl_criterion.statistics.goodness_of_fit.common import (
     ADStatistic,
     Chi2Statistic,
     CrammerVonMisesStatistic,
     KSStatistic,
     LillieforsTest,
 )
-from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
 class AbstractBetaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
@@ -30,6 +32,10 @@ class AbstractBetaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
             raise ValueError("beta must be positive")
         self.alpha = alpha
         self.beta = beta
+
+    @override
+    def hypothesis(self) -> GoodnessOfFitHypothesis:
+        return GoodnessOfFitHypothesis({"alpha": self.alpha, "beta": self.beta})
 
     @staticmethod
     def _validate_rvs(rvs):
@@ -68,9 +74,19 @@ class KolmogorovSmirnovBetaGofStatistic(AbstractBetaGofStatistic, KSStatistic):
     with the theoretical Beta distribution function.
     """
 
-    def __init__(self, alpha=1, beta=1, alternative="two-sided", mode="auto"):
+    def __init__(
+        self,
+        alpha=1,
+        beta=1,
+        alternative_type: AlternativeType = AlternativeType.TWO_TAILED,
+        mode="auto",
+    ):
         AbstractBetaGofStatistic.__init__(self, alpha, beta)
-        KSStatistic.__init__(self, alternative, mode)
+        KSStatistic.__init__(self, alternative_type, mode)
+
+    @override
+    def alternative(self) -> Alternative:
+        return Alternative.get_alternative(self.alternative_type)
 
     @staticmethod
     @override
@@ -105,7 +121,7 @@ class KolmogorovSmirnovBetaGofStatistic(AbstractBetaGofStatistic, KSStatistic):
 
         rvs_sorted = np.sort(rvs)
         cdf_vals = scipy_stats.beta.cdf(rvs_sorted, self.alpha, self.beta)
-        return KSStatistic.execute_statistic(self, rvs_sorted, cdf_vals)
+        return KSStatistic.do_execute_statistic(self, rvs_sorted, cdf_vals)
 
 
 class AndersonDarlingBetaGofStatistic(AbstractBetaGofStatistic, ADStatistic):
@@ -196,7 +212,7 @@ class CrammerVonMisesBetaGofStatistic(AbstractBetaGofStatistic, CrammerVonMisesS
 
         rvs_sorted = np.sort(rvs)
         cdf_vals = scipy_stats.beta.cdf(rvs_sorted, self.alpha, self.beta)
-        return CrammerVonMisesStatistic.execute_statistic(self, rvs_sorted, cdf_vals)
+        return CrammerVonMisesStatistic.do_execute_statistic(self, rvs_sorted, cdf_vals)
 
 
 class LillieforsTestBetaGofStatistic(AbstractBetaGofStatistic, LillieforsTest):
@@ -240,7 +256,7 @@ class LillieforsTestBetaGofStatistic(AbstractBetaGofStatistic, LillieforsTest):
 
         rvs_sorted = np.sort(rvs)
         cdf_vals = scipy_stats.beta.cdf(rvs_sorted, self.alpha, self.beta)
-        return LillieforsTest.execute_statistic(self, rvs_sorted, cdf_vals)
+        return LillieforsTest.do_execute_statistic(self, rvs_sorted, cdf_vals)
 
 
 class Chi2PearsonBetaGofStatistic(AbstractBetaGofStatistic, Chi2Statistic):
@@ -300,7 +316,7 @@ class Chi2PearsonBetaGofStatistic(AbstractBetaGofStatistic, Chi2Statistic):
         expected_cdf = scipy_stats.beta.cdf(bin_edges, self.alpha, self.beta)
         expected = np.diff(expected_cdf) * n
 
-        return Chi2Statistic.execute_statistic(self, observed, expected, self.lambda_)
+        return Chi2Statistic.do_execute_statistic(self, observed, expected, self.lambda_)
 
 
 class WatsonBetaGofStatistic(AbstractBetaGofStatistic):
@@ -310,6 +326,10 @@ class WatsonBetaGofStatistic(AbstractBetaGofStatistic):
     The Watson test is a modification of the Cramér-von Mises test that is
     invariant under location changes.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -365,6 +385,10 @@ class KuiperBetaGofStatistic(AbstractBetaGofStatistic):
     more sensitive to deviations in the tails of the distribution.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -417,6 +441,10 @@ class MomentBasedBetaGofStatistic(AbstractBetaGofStatistic):
     This test compares the sample moments with the theoretical moments of
     the Beta distribution. It uses the first two moments (mean and variance).
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -477,6 +505,10 @@ class SkewnessKurtosisBetaGofStatistic(AbstractBetaGofStatistic):
     This test compares the sample skewness and kurtosis with the theoretical
     values of the Beta distribution.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -550,6 +582,10 @@ class RatioBetaGofStatistic(AbstractBetaGofStatistic):
     which has a known relationship for the Beta distribution.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -616,6 +652,10 @@ class EntropyBetaGofStatistic(AbstractBetaGofStatistic):
     This test compares the sample entropy (estimated using kernel density)
     with the theoretical entropy of the Beta distribution.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -688,6 +728,10 @@ class ModeBetaGofStatistic(AbstractBetaGofStatistic):
     For Beta(α, β) with α, β > 1, the mode is (α-1)/(α+β-2).
     This test compares the sample mode (estimated) with the theoretical mode.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     def __init__(self, alpha=2, beta=2):
         if alpha <= 1:

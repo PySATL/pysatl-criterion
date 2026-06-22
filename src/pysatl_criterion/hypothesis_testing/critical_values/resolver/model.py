@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from pysatl_criterion.hypothesis_testing.critical_values.critical_area.model import CriticalArea
-from pysatl_criterion.statistics.models import HypothesisType
+from pysatl_criterion.statistics.alternative import AlternativeType
 
 
 class CriticalValueResolver(ABC):
@@ -14,7 +14,7 @@ class CriticalValueResolver(ABC):
         criterion_code: str,
         sample_size: int,
         sl: float,
-        alternative: HypothesisType = HypothesisType.RIGHT,
+        alternative: AlternativeType = AlternativeType.RIGHT,
     ) -> CriticalArea | None:
         """
         Resolver critical value for given criterion from storage.
@@ -35,7 +35,7 @@ class CriticalValueResolver(ABC):
         criterion_codes: list[str],
         sample_size: int,
         sl: float,
-        alternative: HypothesisType = HypothesisType.RIGHT,
+        alternative: AlternativeType = AlternativeType.RIGHT,
     ) -> dict[str, CriticalArea]:
         """
         Resolve multiple critical areas for a fixed sample size and alpha.

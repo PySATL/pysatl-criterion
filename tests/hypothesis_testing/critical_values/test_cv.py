@@ -6,7 +6,7 @@ import pytest
 from pysatl_criterion.hypothesis_testing.critical_values.cv_calculator.cv_calculator import (
     CVCalculator,
 )
-from pysatl_criterion.statistics.models import HypothesisType
+from pysatl_criterion.statistics.alternative import AlternativeType
 
 
 def test_calc_critical_value_right_tailed():
@@ -19,7 +19,7 @@ def test_calc_critical_value_right_tailed():
     calculator = CVCalculator(limit_distribution_storage=mock_storage)
 
     critical_value = calculator.calculate_critical_value(
-        criterion_code="any_code", sample_size=100, sl=0.05, alternative=HypothesisType.RIGHT
+        criterion_code="any_code", sample_size=100, sl=0.05, alternative=AlternativeType.RIGHT
     )
     assert critical_value == pytest.approx(94.05)
 
@@ -34,7 +34,7 @@ def test_calc_critical_value_left_tailed():
     calculator = CVCalculator(limit_distribution_storage=mock_storage)
 
     critical_value = calculator.calculate_critical_value(
-        criterion_code="any_code", sample_size=100, sl=0.05, alternative=HypothesisType.LEFT
+        criterion_code="any_code", sample_size=100, sl=0.05, alternative=AlternativeType.LEFT
     )
     assert critical_value == pytest.approx(4.95)
 
@@ -48,7 +48,7 @@ def test_calc_critical_value_two_tailed():
     mock_storage.get_data_for_cv.return_value = mock_distribution
     calculator = CVCalculator(limit_distribution_storage=mock_storage)
     critical_value = calculator.calculate_critical_value(
-        criterion_code="any_code", sample_size=100, sl=0.05, alternative=HypothesisType.TWO_TAILED
+        criterion_code="any_code", sample_size=100, sl=0.05, alternative=AlternativeType.TWO_TAILED
     )
     values = (2.475, 96.525)
     assert critical_value == pytest.approx(values)

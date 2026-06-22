@@ -1,5 +1,5 @@
 import inspect
-from typing import Any, cast
+from typing import Any
 
 from pysatl_criterion import DistributionType
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
@@ -22,12 +22,12 @@ def get_available_criteria(distribution: DistributionType) -> list[str]:
     """
     return [
         cls.short_code()
-        for cls in get_all_subclasses(AbstractGoodnessOfFitStatistic)
+        for cls in __get_all_subclasses(AbstractGoodnessOfFitStatistic)
         if not inspect.isabstract(cls) and cls.distribution() == distribution
     ]
 
 
-def get_all_subclasses(cls: type[Any]) -> set[type[AbstractGoodnessOfFitStatistic]]:
+def __get_all_subclasses(cls: type[Any]) -> set[type[AbstractGoodnessOfFitStatistic]]:
     """
     Return all direct and indirect subclasses of a class.
 
@@ -40,9 +40,9 @@ def get_all_subclasses(cls: type[Any]) -> set[type[AbstractGoodnessOfFitStatisti
     subclasses: set[type[AbstractGoodnessOfFitStatistic]] = set()
 
     for subclass in cls.__subclasses__():
-        subclasses.update(get_all_subclasses(subclass))
+        subclasses.update(__get_all_subclasses(subclass))
 
         if issubclass(subclass, AbstractGoodnessOfFitStatistic):
-            subclasses.add(cast(type[AbstractGoodnessOfFitStatistic], subclass))
+            subclasses.add(subclass)
 
     return subclasses

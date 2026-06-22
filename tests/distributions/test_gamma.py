@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pysatl_criterion.statistics.gamma import (
+from pysatl_criterion.statistics.goodness_of_fit.gamma import (
     AbstractGammaGofStatistic,
     AndersonDarlingGammaGofStatistic,
     Chi2PearsonGammaGofStatistic,
@@ -51,14 +51,14 @@ def test_gamma_positive_shape_required():
     """Stat constructors should reject non-positive shape parameters."""
 
     with pytest.raises(ValueError, match="Shape must be positive."):
-        KolmogorovSmirnovGammaGofStatistic(shape=0.0)
+        KolmogorovSmirnovGammaGofStatistic(alpha=0.0)
 
 
 def test_gamma_positive_scale_required():
     """Stat constructors should reject non-positive scale parameters."""
 
     with pytest.raises(ValueError, match="Scale must be positive."):
-        KolmogorovSmirnovGammaGofStatistic(scale=-1.0)
+        KolmogorovSmirnovGammaGofStatistic(beta=-1.0)
 
 
 def test_kolmogorov_smirnov_gamma_statistic():
@@ -76,7 +76,7 @@ def test_kolmogorov_smirnov_gamma_statistic():
         reported in Kolmogorov (1933) and Smirnov (1948).
     """
 
-    statistic = KolmogorovSmirnovGammaGofStatistic(shape=_SHAPE, scale=_SCALE).execute_statistic(
+    statistic = KolmogorovSmirnovGammaGofStatistic(alpha=_SHAPE, beta=1 / _SCALE).execute_statistic(
         _SAMPLE
     )
     assert statistic == pytest.approx(0.2814182084684763, rel=1e-9)
@@ -115,7 +115,7 @@ def test_anderson_darling_gamma_statistic():
         Anderson & Darling (1952).
     """
 
-    statistic = AndersonDarlingGammaGofStatistic(shape=_SHAPE, scale=_SCALE).execute_statistic(
+    statistic = AndersonDarlingGammaGofStatistic(alpha=_SHAPE, beta=1 / _SCALE).execute_statistic(
         _SAMPLE
     )
     assert statistic == pytest.approx(1.5834952876091002, rel=1e-9)
@@ -135,7 +135,7 @@ def test_cramervonmises_gamma_statistic():
         Expected value 0.3047570587738219 per Cramér (1928) and von Mises (1931).
     """
 
-    statistic = CramerVonMisesGammaGofStatistic(shape=_SHAPE, scale=_SCALE).execute_statistic(
+    statistic = CramerVonMisesGammaGofStatistic(alpha=_SHAPE, beta=1 / _SCALE).execute_statistic(
         _SAMPLE
     )
     assert statistic == pytest.approx(0.3047570587738219, rel=1e-9)
@@ -155,7 +155,7 @@ def test_kuiper_gamma_statistic():
         Sum of extreme deviations (expected 0.3021236878101907) after Kuiper (1960).
     """
 
-    statistic = KuiperGammaGofStatistic(shape=_SHAPE, scale=_SCALE).execute_statistic(_SAMPLE)
+    statistic = KuiperGammaGofStatistic(alpha=_SHAPE, beta=1 / _SCALE).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(0.3021236878101907, rel=1e-9)
 
 
@@ -173,7 +173,7 @@ def test_greenwood_gamma_statistic():
         Sum of squared spacings (expected 0.14183310386065612) from Greenwood (1946).
     """
 
-    statistic = GreenwoodGammaGofStatistic(shape=_SHAPE, scale=_SCALE).execute_statistic(_SAMPLE)
+    statistic = GreenwoodGammaGofStatistic(alpha=_SHAPE, beta=1 / _SCALE).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(0.14183310386065612, rel=1e-9)
 
 
@@ -191,7 +191,9 @@ def test_min_toshiyuki_gamma_statistic():
         Tail-sensitive score (expected 1.586859983429235) from Min & Toshiyuki (2015).
     """
 
-    statistic = MinToshiyukiGammaGofStatistic(shape=_SHAPE, scale=_SCALE).execute_statistic(_SAMPLE)
+    statistic = MinToshiyukiGammaGofStatistic(alpha=_SHAPE, beta=1 / _SCALE).execute_statistic(
+        _SAMPLE
+    )
     assert statistic == pytest.approx(1.586859983429235, rel=1e-9)
 
 
@@ -209,7 +211,7 @@ def test_watson_gamma_statistic():
         Expected value 0.06149897222339809 after Watson (1961).
     """
 
-    statistic = WatsonGammaGofStatistic(shape=_SHAPE, scale=_SCALE).execute_statistic(_SAMPLE)
+    statistic = WatsonGammaGofStatistic(alpha=_SHAPE, beta=1 / _SCALE).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(0.06149897222339809, rel=1e-9)
 
 
@@ -228,8 +230,8 @@ def test_moran_gamma_statistic():
     """
 
     statistic = MoranGammaGofStatistic(
-        shape=_SHAPE,
-        scale=_SCALE,
+        alpha=_SHAPE,
+        beta=1 / _SCALE,
     ).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(3.906045589439027, rel=1e-9)
 
@@ -250,8 +252,8 @@ def test_chi2_pearson_gamma_statistic():
 
     statistic = Chi2PearsonGammaGofStatistic(
         bins=5,
-        shape=_SHAPE,
-        scale=_SCALE,
+        alpha=_SHAPE,
+        beta=1 / _SCALE,
     ).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(3.0, rel=1e-9)
 
@@ -261,8 +263,8 @@ def test_likelihood_ratio_gamma_statistic():
 
     statistic = LikelihoodRatioGammaGofStatistic(
         bins=5,
-        shape=_SHAPE,
-        scale=_SCALE,
+        alpha=_SHAPE,
+        beta=1 / _SCALE,
     ).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(4.865581297297973, rel=1e-9)
 
@@ -273,8 +275,8 @@ def test_cressie_read_gamma_statistic():
     statistic = CressieReadGammaGofStatistic(
         power=2 / 3,
         bins=5,
-        shape=_SHAPE,
-        scale=_SCALE,
+        alpha=_SHAPE,
+        beta=1 / _SCALE,
     ).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(3.352003528728041, rel=1e-9)
 
@@ -283,8 +285,8 @@ def test_probability_plot_correlation_gamma_statistic():
     """Probability-plot correlation coefficient deviation under Gamma fit."""
 
     statistic = ProbabilityPlotCorrelationGammaGofStatistic(
-        shape=_SHAPE,
-        scale=_SCALE,
+        alpha=_SHAPE,
+        beta=1 / _SCALE,
     ).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(0.012272781981296887, rel=1e-9)
 
@@ -292,7 +294,7 @@ def test_probability_plot_correlation_gamma_statistic():
 def test_graph_edges_number_gamma_statistic():
     """Graph edges count on Gamma-CDF transformed sample."""
 
-    statistic = GraphEdgesNumberGammaGofStatistic(shape=_SHAPE, scale=_SCALE).execute_statistic(
+    statistic = GraphEdgesNumberGammaGofStatistic(alpha=_SHAPE, beta=1 / _SCALE).execute_statistic(
         _SAMPLE
     )
     assert statistic == pytest.approx(4.0, rel=1e-12)
@@ -301,7 +303,7 @@ def test_graph_edges_number_gamma_statistic():
 def test_graph_max_degree_gamma_statistic():
     """Maximum node degree observed in the Gamma proximity graph."""
 
-    statistic = GraphMaxDegreeGammaGofStatistic(shape=_SHAPE, scale=_SCALE).execute_statistic(
+    statistic = GraphMaxDegreeGammaGofStatistic(alpha=_SHAPE, beta=1 / _SCALE).execute_statistic(
         _SAMPLE
     )
     assert statistic == pytest.approx(2.0, rel=1e-12)
@@ -311,8 +313,8 @@ def test_graph_average_degree_gamma_statistic():
     """Average vertex degree after Gamma probability integral transform."""
 
     statistic = GraphAverageDegreeGammaGofStatistic(
-        shape=_SHAPE,
-        scale=_SCALE,
+        alpha=_SHAPE,
+        beta=1 / _SCALE,
     ).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(0.8, rel=1e-12)
 
@@ -321,8 +323,8 @@ def test_graph_connected_components_gamma_statistic():
     """Connected components count on the Gamma-derived proximity graph."""
 
     statistic = GraphConnectedComponentsGammaGofStatistic(
-        shape=_SHAPE,
-        scale=_SCALE,
+        alpha=_SHAPE,
+        beta=1 / _SCALE,
     ).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(6.0, rel=1e-12)
 
@@ -331,8 +333,8 @@ def test_graph_clique_number_gamma_statistic():
     """Largest clique size after transforming the sample via the Gamma CDF."""
 
     statistic = GraphCliqueNumberGammaGofStatistic(
-        shape=_SHAPE,
-        scale=_SCALE,
+        alpha=_SHAPE,
+        beta=1 / _SCALE,
     ).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(2.0, rel=1e-12)
 
@@ -341,8 +343,8 @@ def test_graph_independence_number_gamma_statistic():
     """Independence number computed on the Gamma-induced proximity graph."""
 
     statistic = GraphIndependenceNumberGammaGofStatistic(
-        shape=_SHAPE,
-        scale=_SCALE,
+        alpha=_SHAPE,
+        beta=1 / _SCALE,
     ).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(7.0, rel=1e-12)
 
@@ -405,7 +407,7 @@ def test_gamma_statistic_codes(stat_class, expected_code):
 def test_gamma_statistics_require_observations(stat_class):
     """Statistics that rely on EDF spacings should reject empty samples."""
 
-    statistic = stat_class(shape=_SHAPE, scale=_SCALE)
+    statistic = stat_class(alpha=_SHAPE, beta=1 / _SCALE)
     with pytest.raises(ValueError, match="At least one observation"):
         statistic.execute_statistic([])
 
@@ -429,7 +431,7 @@ def test_lilliefors_gamma_requires_positive_moments():
 def test_moran_gamma_detects_non_positive_spacings():
     """Duplicate-valued samples cause zero spacings and should error out."""
 
-    statistic = MoranGammaGofStatistic(shape=_SHAPE, scale=_SCALE)
+    statistic = MoranGammaGofStatistic(alpha=_SHAPE, beta=1 / _SCALE)
     with pytest.raises(ValueError, match="Spacings must be strictly positive"):
         statistic.execute_statistic([1.0, 1.0, 1.0])
 
@@ -438,13 +440,13 @@ def test_gamma_binned_statistics_validate_bin_count():
     """Binned statistics require at least two histogram bins."""
 
     with pytest.raises(ValueError, match="At least two bins"):
-        Chi2PearsonGammaGofStatistic(bins=1, shape=_SHAPE, scale=_SCALE)
+        Chi2PearsonGammaGofStatistic(bins=1, alpha=_SHAPE, beta=1 / _SCALE)
 
 
 def test_gamma_binned_statistics_require_sample():
     """Histogram-based tests must receive observations."""
 
-    statistic = Chi2PearsonGammaGofStatistic(bins=5, shape=_SHAPE, scale=_SCALE)
+    statistic = Chi2PearsonGammaGofStatistic(bins=5, alpha=_SHAPE, beta=1 / _SCALE)
     with pytest.raises(ValueError, match="At least one observation"):
         statistic.execute_statistic([])
 
@@ -452,7 +454,7 @@ def test_gamma_binned_statistics_require_sample():
 def test_probability_plot_gamma_requires_minimum_sample():
     """PPCC metric needs at least two points to compute a correlation."""
 
-    statistic = ProbabilityPlotCorrelationGammaGofStatistic(shape=_SHAPE, scale=_SCALE)
+    statistic = ProbabilityPlotCorrelationGammaGofStatistic(alpha=_SHAPE, beta=1 / _SCALE)
     with pytest.raises(ValueError, match="At least two observations"):
         statistic.execute_statistic([1.0])
 
@@ -460,7 +462,7 @@ def test_probability_plot_gamma_requires_minimum_sample():
 def test_probability_plot_gamma_detects_degenerate_sample():
     """Identical points yield zero variance and should fail PPCC computation."""
 
-    statistic = ProbabilityPlotCorrelationGammaGofStatistic(shape=_SHAPE, scale=_SCALE)
+    statistic = ProbabilityPlotCorrelationGammaGofStatistic(alpha=_SHAPE, beta=1 / _SCALE)
     with pytest.raises(ValueError, match="Degenerate data"):
         statistic.execute_statistic([1.0, 1.0, 1.0])
 
@@ -468,7 +470,7 @@ def test_probability_plot_gamma_detects_degenerate_sample():
 def test_graph_gamma_statistics_require_sample():
     """Graph-based Gamma tests should reject empty datasets."""
 
-    statistic = GraphEdgesNumberGammaGofStatistic(shape=_SHAPE, scale=_SCALE)
+    statistic = GraphEdgesNumberGammaGofStatistic(alpha=_SHAPE, beta=1 / _SCALE)
     with pytest.raises(ValueError, match="Gamma graph statistics"):
         statistic.execute_statistic([])
 
@@ -476,9 +478,9 @@ def test_graph_gamma_statistics_require_sample():
 def test_greenwood_gamma_detects_negative_spacings(monkeypatch):
     """Artificially broken CDF should trigger the spacing guard."""
 
-    from pysatl_criterion.statistics import gamma as gamma_module
+    from pysatl_criterion.statistics.goodness_of_fit import gamma as gamma_module
 
-    statistic = GreenwoodGammaGofStatistic(shape=_SHAPE, scale=_SCALE)
+    statistic = GreenwoodGammaGofStatistic(alpha=_SHAPE, beta=1 / _SCALE)
 
     def fake_cdf(values, **kwargs):
         values = np.asarray(values, dtype=float)

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import scipy.stats as scipy_stats
 
-from pysatl_criterion.statistics.log_normal import (
+from pysatl_criterion.statistics.goodness_of_fit.log_normal import (
     CramerVonMiseLogNormalGofStatistic,
     KLIntegralLogNormalGoFStatistic,
     KLSupremumLogNormalGoFStatistic,
@@ -352,8 +352,8 @@ def test_kl_int_lognormal_criterion_code():
 
 
 def get_dynamic_lognormal_classes():
-    from pysatl_criterion.statistics import log_normal as log_normal_module
-    from pysatl_criterion.statistics import normal as normal_module
+    from pysatl_criterion.statistics.goodness_of_fit import log_normal as log_normal_module
+    from pysatl_criterion.statistics.goodness_of_fit import normal as normal_module
 
     excluded_classes = {
         "KolmogorovSmirnovLogNormalGofStatistic",
@@ -417,7 +417,7 @@ def test_dynamic_lognormal_negative_data_handling(log_normal_cls, normal_cls):
 
 
 def test_dynamic_lognormal_example_code_method():
-    from pysatl_criterion.statistics.log_normal import (
+    from pysatl_criterion.statistics.goodness_of_fit import (
         LillieforsLogNormalGofStatistic,
         ShapiroWilkLogNormalGofStatistic,
     )

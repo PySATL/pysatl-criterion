@@ -13,7 +13,7 @@ import pytest
 from pysatl_criterion.hypothesis_testing.p_value.resolver.calculation_resolver import (
     CalculationPValueResolver,
 )
-from pysatl_criterion.statistics.models import HypothesisType
+from pysatl_criterion.statistics.alternative import AlternativeType
 
 
 @patch(
@@ -35,9 +35,9 @@ def test_calculate_p_value_for_different_alternatives(mock_storage_cls):
     calculator = CalculationPValueResolver(mock_storage)
 
     test_cases = [
-        (HypothesisType.RIGHT, 0.1, "right_tailed"),
-        (HypothesisType.LEFT, 0.9, "left_tailed"),
-        (HypothesisType.TWO_TAILED, 0.2, "two_tailed"),
+        (AlternativeType.RIGHT, 0.1, "right_tailed"),
+        (AlternativeType.LEFT, 0.9, "left_tailed"),
+        (AlternativeType.TWO_TAILED, 0.2, "two_tailed"),
     ]
 
     for alternative, expected_p_value, test_name in test_cases:
@@ -153,7 +153,7 @@ def test_p_value_calculation_with_different_distributions(
         criterion_code="test_criterion",
         sample_size=len(statistics_array),
         statistics_value=statistics_value,
-        alternative=HypothesisType.RIGHT,
+        alternative=AlternativeType.RIGHT,
     )
 
     assert p_value == pytest.approx(expected_p_value), (

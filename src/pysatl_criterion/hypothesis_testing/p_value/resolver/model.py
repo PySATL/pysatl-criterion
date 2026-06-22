@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from pysatl_criterion.statistics.models import HypothesisType
+from pysatl_criterion.statistics.alternative import AlternativeType
 
 
 class PValueResolver(ABC):
@@ -14,7 +14,7 @@ class PValueResolver(ABC):
         criterion_code: str,
         sample_size: int,
         statistics_value: float,
-        alternative: HypothesisType = HypothesisType.RIGHT,
+        alternative: AlternativeType = AlternativeType.RIGHT,
     ) -> float | None:
         """
         Resolve p-value.

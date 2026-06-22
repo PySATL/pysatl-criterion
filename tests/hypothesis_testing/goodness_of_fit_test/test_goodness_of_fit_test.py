@@ -8,8 +8,8 @@ from pysatl_criterion.hypothesis_testing.critical_values.resolver.composite_reso
     CompositeCriticalValueResolver,
 )
 from pysatl_criterion.hypothesis_testing.model import TestMethod
-from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
-from pysatl_criterion.statistics.models import HypothesisType
+from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.alternative import AlternativeType
 
 
 @patch("pysatl_criterion.hypothesis_testing.critical_values.resolver.model.CriticalValueResolver")
@@ -28,7 +28,7 @@ def test_goodness_of_fit_cv_path_accepts_hypothesis(mock_stat_cls, mock_cv_cls):
         statistics=[mock_stat],
         significance_level=0.05,
         test_method=TestMethod.CRITICAL_VALUE,
-        alternative=HypothesisType.RIGHT,
+        alternative=AlternativeType.RIGHT,
         cv_resolver=mock_cv,
     )
 
@@ -55,7 +55,7 @@ def test_goodness_of_fit_cv_path_rejects_hypothesis(mock_stat_cls, mock_cv_cls):
         statistics=[mock_stat],
         significance_level=0.05,
         test_method=TestMethod.CRITICAL_VALUE,
-        alternative=HypothesisType.RIGHT,
+        alternative=AlternativeType.RIGHT,
         cv_resolver=mock_cv,
     )
 

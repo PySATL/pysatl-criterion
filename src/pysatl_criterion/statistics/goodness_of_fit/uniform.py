@@ -5,14 +5,16 @@ import scipy.stats as scipy_stats
 from typing_extensions import override
 
 from pysatl_criterion import DistributionType
-from pysatl_criterion.statistics.common import (
+from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.alternative import Alternative, AlternativeType, RightAlternative
+from pysatl_criterion.statistics.goodness_of_fit.common import (
     ADStatistic,
     Chi2Statistic,
     CrammerVonMisesStatistic,
     KSStatistic,
     LillieforsTest,
 )
-from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
 class AbstractUniformGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
@@ -25,6 +27,10 @@ class AbstractUniformGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
             raise ValueError("b must be greater than a")
         self.a = a
         self.b = b
+
+    @override
+    def hypothesis(self) -> GoodnessOfFitHypothesis:
+        return GoodnessOfFitHypothesis({"a": self.a, "b": self.b})
 
     @staticmethod
     @override
@@ -67,9 +73,11 @@ class KolmogorovSmirnovUniformGofStatistic(AbstractUniformGofStatistic, KSStatis
     Kolmogorov-Smirnov test statistic for Uniform distribution.
     """
 
-    def __init__(self, a=0, b=1, alternative="two-sided", mode="auto"):
+    def __init__(
+        self, a=0, b=1, alternative_type: AlternativeType = AlternativeType.TWO_TAILED, mode="auto"
+    ):
         AbstractUniformGofStatistic.__init__(self, a, b)
-        KSStatistic.__init__(self, alternative, mode)
+        KSStatistic.__init__(self, alternative_type, mode)
 
     @staticmethod
     @override
@@ -104,7 +112,7 @@ class KolmogorovSmirnovUniformGofStatistic(AbstractUniformGofStatistic, KSStatis
 
         rvs_sorted = np.sort(rvs)
         cdf_vals = scipy_stats.uniform.cdf(rvs_sorted, loc=self.a, scale=self.b - self.a)
-        return KSStatistic.execute_statistic(self, rvs_sorted, cdf_vals)
+        return KSStatistic.do_execute_statistic(self, rvs_sorted, cdf_vals)
 
 
 class AndersonDarlingUniformGofStatistic(AbstractUniformGofStatistic, ADStatistic):
@@ -146,7 +154,7 @@ class AndersonDarlingUniformGofStatistic(AbstractUniformGofStatistic, ADStatisti
         rvs_sorted = np.sort(rvs)
         logcdf = scipy_stats.uniform.logcdf(rvs_sorted, loc=self.a, scale=self.b - self.a)
         logsf = scipy_stats.uniform.logsf(rvs_sorted, loc=self.a, scale=self.b - self.a)
-        return ADStatistic.execute_statistic(self, rvs=rvs, log_cdf=logcdf, log_sf=logsf)
+        return ADStatistic.do_execute_statistic(self, rvs=rvs, log_cdf=logcdf, log_sf=logsf)
 
 
 class CrammerVonMisesUniformGofStatistic(AbstractUniformGofStatistic, CrammerVonMisesStatistic):
@@ -187,7 +195,7 @@ class CrammerVonMisesUniformGofStatistic(AbstractUniformGofStatistic, CrammerVon
 
         rvs_sorted = np.sort(rvs)
         cdf_vals = scipy_stats.uniform.cdf(rvs_sorted, loc=self.a, scale=self.b - self.a)
-        return CrammerVonMisesStatistic.execute_statistic(self, rvs_sorted, cdf_vals)
+        return CrammerVonMisesStatistic.do_execute_statistic(self, rvs_sorted, cdf_vals)
 
 
 class LillieforsTestUniformGofStatistic(AbstractUniformGofStatistic, LillieforsTest):
@@ -228,7 +236,7 @@ class LillieforsTestUniformGofStatistic(AbstractUniformGofStatistic, LillieforsT
 
         rvs_sorted = np.sort(rvs)
         cdf_vals = scipy_stats.uniform.cdf(rvs_sorted, loc=self.a, scale=self.b - self.a)
-        return LillieforsTest.execute_statistic(self, rvs_sorted, cdf_vals)
+        return LillieforsTest.do_execute_statistic(self, rvs_sorted, cdf_vals)
 
 
 class Chi2PearsonUniformGofStatistic(AbstractUniformGofStatistic, Chi2Statistic):
@@ -291,7 +299,7 @@ class Chi2PearsonUniformGofStatistic(AbstractUniformGofStatistic, Chi2Statistic)
         observed, bin_edges = np.histogram(rvs, bins=num_bins, range=(self.a, self.b))
         expected = np.full(num_bins, n / num_bins)
 
-        return Chi2Statistic.execute_statistic(self, observed, expected, self.lambda_)
+        return Chi2Statistic.do_execute_statistic(self, observed, expected, self.lambda_)
 
 
 class WatsonUniformGofStatistic(AbstractUniformGofStatistic):
@@ -301,6 +309,10 @@ class WatsonUniformGofStatistic(AbstractUniformGofStatistic):
 
     def __init__(self, a=0, b=1):
         AbstractUniformGofStatistic.__init__(self, a, b)
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -352,6 +364,10 @@ class KuiperUniformGofStatistic(AbstractUniformGofStatistic):
 
     def __init__(self, a=0, b=1):
         AbstractUniformGofStatistic.__init__(self, a, b)
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -406,6 +422,10 @@ class GreenwoodTestUniformGofStatistic(AbstractUniformGofStatistic):
     Greenwood's test for Uniform distribution.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -451,6 +471,10 @@ class BickelRosenblattUniformGofStatistic(AbstractUniformGofStatistic):
     """
     Bickel-Rosenblatt test for Uniform distribution.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     def __init__(self, a=0, b=1, bandwidth="auto"):
         AbstractUniformGofStatistic.__init__(self, a, b)
@@ -513,6 +537,10 @@ class ZhangTestsUniformGofStatistic(AbstractUniformGofStatistic):
     """
     Zhang's tests (Z_A, Z_C, Z_K) for Uniform distribution.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     def __init__(self, a=0, b=1, test_type="A"):
         AbstractUniformGofStatistic.__init__(self, a, b)
@@ -584,6 +612,10 @@ class SteinUniformGofStatistic(AbstractUniformGofStatistic):
     def __init__(self, a=0, b=1):
         AbstractUniformGofStatistic.__init__(self, a, b)
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -653,6 +685,10 @@ class CensoredSteinUniformGofStatistic(AbstractUniformGofStatistic):
 
     def __init__(self, a=0, b=1):
         AbstractUniformGofStatistic.__init__(self, a, b)
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -763,6 +799,10 @@ class NeymanSmoothTestUniformGofStatistic(AbstractUniformGofStatistic):
     Neyman's smooth test for Uniform distribution.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     def __init__(self, a=0, b=1, k=4):
         AbstractUniformGofStatistic.__init__(self, a, b)
         self.k = k
@@ -829,6 +869,10 @@ class ShermanUniformGofStatistic(AbstractUniformGofStatistic):
     Sherman's test for Uniform distribution.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -877,6 +921,10 @@ class QuesenberryMillerUniformGofStatistic(AbstractUniformGofStatistic):
     """
     Quesenberry and Miller's Q-test for Uniform distribution.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override

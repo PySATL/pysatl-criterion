@@ -9,7 +9,14 @@ from typing_extensions import override
 
 from pysatl_criterion import DistributionType
 from pysatl_criterion.core.distributions.weibull import generate_weibull_cdf
-from pysatl_criterion.statistics.common import (
+from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.alternative import (
+    Alternative,
+    AlternativeType,
+    LeftAlternative,
+    RightAlternative,
+)
+from pysatl_criterion.statistics.goodness_of_fit.common import (
     ADStatistic,
     Chi2Statistic,
     CrammerVonMisesStatistic,
@@ -17,7 +24,7 @@ from pysatl_criterion.statistics.common import (
     LillieforsTest,
     MinToshiyukiStatistic,
 )
-from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
 class AbstractWeibullGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
@@ -28,6 +35,10 @@ class AbstractWeibullGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     def __init__(self, a=1, k=1):
         self.a = a
         self.k = k
+
+    @override
+    def hypothesis(self) -> GoodnessOfFitHypothesis:
+        return GoodnessOfFitHypothesis({"a": self.a, "k": self.k})
 
     @staticmethod
     @override
@@ -87,7 +98,7 @@ class MinToshiyukiWeibullGofStatistic(AbstractWeibullGofStatistic, MinToshiyukiS
         """
         rvs = np.sort(rvs)
         cdf_vals = generate_weibull_cdf(rvs, a=self.a, k=self.k)
-        return super().execute_statistic(cdf_vals)
+        return super().do_execute_statistic(cdf_vals)
 
 
 class Chi2PearsonWeibullGofStatistic(AbstractWeibullGofStatistic, Chi2Statistic):
@@ -117,7 +128,7 @@ class Chi2PearsonWeibullGofStatistic(AbstractWeibullGofStatistic, Chi2Statistic)
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
+    def execute_statistic(self, rvs):
         """
         Execute Pearson's Chi-squared test statistic for Weibull distribution.
 
@@ -130,7 +141,7 @@ class Chi2PearsonWeibullGofStatistic(AbstractWeibullGofStatistic, Chi2Statistic)
         observed = observed / n
         expected = generate_weibull_cdf(bin_edges, a=self.a, k=self.k)
         expected = np.diff(expected)
-        return super().execute_statistic(observed, expected, 1)
+        return super().do_execute_statistic(observed, expected, 1)
 
 
 class LillieforsWeibullGofStatistic(AbstractWeibullGofStatistic, LillieforsTest):
@@ -169,7 +180,7 @@ class LillieforsWeibullGofStatistic(AbstractWeibullGofStatistic, LillieforsTest)
         """
         rvs_sorted = np.sort(rvs)
         cdf_vals = generate_weibull_cdf(rvs_sorted, a=self.a, k=self.k)
-        return super().execute_statistic(rvs, cdf_vals)
+        return super().do_execute_statistic(rvs, cdf_vals)
 
 
 class CrammerVonMisesWeibullGofStatistic(AbstractWeibullGofStatistic, CrammerVonMisesStatistic):
@@ -207,7 +218,7 @@ class CrammerVonMisesWeibullGofStatistic(AbstractWeibullGofStatistic, CrammerVon
         """
         rvs_sorted = np.sort(rvs)
         cdf_vals = generate_weibull_cdf(rvs_sorted, a=self.a, k=self.k)
-        return super().execute_statistic(rvs, cdf_vals)
+        return super().do_execute_statistic(rvs, cdf_vals)
 
 
 class AndersonDarlingWeibullGofStatistic(AbstractWeibullGofStatistic, ADStatistic):
@@ -251,7 +262,7 @@ class AndersonDarlingWeibullGofStatistic(AbstractWeibullGofStatistic, ADStatisti
         logcdf = distributions.gumbel_l.logcdf(w)
         logsf = distributions.gumbel_l.logsf(w)
 
-        return super().execute_statistic(rvs, log_cdf=logcdf, log_sf=logsf, w=w)
+        return super().do_execute_statistic(rvs, log_cdf=logcdf, log_sf=logsf, w=w)
 
 
 class KolmogorovSmirnovWeibullGofStatistic(AbstractWeibullGofStatistic, KSStatistic):
@@ -260,9 +271,11 @@ class KolmogorovSmirnovWeibullGofStatistic(AbstractWeibullGofStatistic, KSStatis
     """
 
     @override
-    def __init__(self, alternative="two-sided", mode="auto", a=1, k=5):
+    def __init__(
+        self, alternative_type: AlternativeType = AlternativeType.TWO_TAILED, mode="auto", a=1, k=5
+    ):
         AbstractWeibullGofStatistic.__init__(self, None)
-        KSStatistic.__init__(self, alternative, mode)
+        KSStatistic.__init__(self, alternative_type, mode)
 
         self.a = a
         self.k = k
@@ -298,13 +311,17 @@ class KolmogorovSmirnovWeibullGofStatistic(AbstractWeibullGofStatistic, KSStatis
         """
         rvs = np.sort(rvs)
         cdf_vals = generate_weibull_cdf(rvs, a=self.a, k=self.k)
-        return super().execute_statistic(rvs, cdf_vals)
+        return super().do_execute_statistic(rvs, cdf_vals)
 
 
 class SbWeibullGofStatistic(AbstractWeibullGofStatistic):
     """
     Shapiro-Wilk type test statistic for Weibull distribution (SB variant).
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return LeftAlternative()
 
     @staticmethod
     @override
@@ -359,6 +376,10 @@ class ST2WeibullGofStatistic(AbstractWeibullGofStatistic):
     Smooth test statistic based on kurtosis for Weibull distribution.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -407,6 +428,10 @@ class ST1WeibullGofStatistic(AbstractWeibullGofStatistic):
     Smooth test statistic based on skewness for Weibull distribution.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -454,6 +479,10 @@ class RSBWeibullGofStatistic(AbstractWeibullGofStatistic):
     """
     Smith-Bain test statistic for Weibull distribution.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -504,6 +533,10 @@ class NormalizeSpaceWeibullGofStatistic(AbstractWeibullGofStatistic):
     """
     Base class for tests based on normalized spacings for Weibull distribution.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     def GoFNS(t, n, m):
@@ -709,6 +742,10 @@ class WPPWeibullGofStatistic(AbstractWeibullGofStatistic):
     Family of Weibull Probability Plot (WPP) test statistics.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     def MLEst(x):
         """
@@ -833,6 +870,10 @@ class OKWeibullGofStatistic(WPPWeibullGofStatistic):
     Reference: Öztürk A. (1986).
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -873,6 +914,10 @@ class SBWeibullGofStatistic(WPPWeibullGofStatistic):
     Reference: See SbWeibullGofStatistic.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return LeftAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -911,6 +956,10 @@ class REJGWeibullGofStatistic(WPPWeibullGofStatistic):
     Evans-Johnson-Green test statistic for Weibull distribution.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return LeftAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -948,6 +997,10 @@ class SPPWeibullGofStatistic(WPPWeibullGofStatistic):
     """
     Stabilized Probability Plot test statistic for Weibull distribution.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return LeftAlternative()
 
     @staticmethod
     @override
@@ -991,6 +1044,10 @@ class MahdiDoostparastWeibullGofStatistic(AbstractWeibullGofStatistic):
 
     Reference: Doostparast M. (2011).
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -1043,6 +1100,10 @@ class WatsonWeibullGofStatistic(CrammerVonMisesWeibullGofStatistic):
     Watson test statistic for Weibull distribution.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -1091,6 +1152,10 @@ class LiaoShimokawaWeibullGofStatistic(AbstractWeibullGofStatistic):
     Goodness-of-fit test based on weighted deviations of CDF.
     Reference: Liao M. and Shimokawa T. (1999).
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -1142,6 +1207,10 @@ class KullbackLeiblerWeibullGofStatistic(AbstractWeibullGofStatistic):
     """
     Kullback-Leibler divergence test statistic for Weibull distribution.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -1199,6 +1268,11 @@ class LaplaceTransformWeibullGofStatistic(AbstractWeibullGofStatistic):
     Family of test statistics based on Laplace transform for Weibull distribution.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
+    @override
     def execute_statistic(self, rvs, m=100, a=-5, _type="LT3_WEIBULL"):
         """
         Execute the Laplace transform test statistic.
@@ -1239,6 +1313,10 @@ class LaplaceTransform2WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
     Laplace Transform type 2 test statistic for Weibull distribution.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -1260,6 +1338,7 @@ class LaplaceTransform2WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
         short_code = LaplaceTransform2WeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
+    @override
     def execute_statistic(self, rvs, m=100, a=-5):
         """
         Execute the LT2 test statistic.
@@ -1276,6 +1355,10 @@ class LaplaceTransform3WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
     """
     Laplace Transform type 3 test statistic for Weibull distribution.
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -1316,6 +1399,10 @@ class CabanaQuirozWeibullGofStatistic(AbstractWeibullGofStatistic):
     Cabana-Quiroz test statistic for Weibull distribution.
     """
 
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
     @staticmethod
     @override
     def short_code():
@@ -1334,8 +1421,9 @@ class CabanaQuirozWeibullGofStatistic(AbstractWeibullGofStatistic):
 
         :return: string code in format "CQ*_WEIBULL_{parent_code}".
         """
-        short_code = CabanaQuirozWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
+        return (
+            f"{CabanaQuirozWeibullGofStatistic.short_code()}_{AbstractWeibullGofStatistic.code()}"
+        )
 
     # Test statistic of Cabana and Quiroz
     def execute_statistic(self, rvs):

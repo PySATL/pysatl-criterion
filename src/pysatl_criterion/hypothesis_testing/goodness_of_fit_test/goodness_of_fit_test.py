@@ -14,8 +14,8 @@ from pysatl_criterion.hypothesis_testing.p_value.resolver.calculation_resolver i
 )
 from pysatl_criterion.hypothesis_testing.p_value.resolver.model import PValueResolver
 from pysatl_criterion.persistence.sqlalchemy.datastorage import AlchemyLimitDistributionStorage
-from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
-from pysatl_criterion.statistics.models import HypothesisType
+from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.alternative import AlternativeType
 from pysatl_criterion.utils.constants import LOCAL_PYSATL_URL, REMOTE_PYSATL_URL
 
 
@@ -36,7 +36,7 @@ class GoodnessOfFitTest:
         cv_resolver: CriticalValueResolver | None = None,
         p_value_resolver: PValueResolver | None = None,
         test_method: TestMethod = TestMethod.CRITICAL_VALUE,
-        alternative: HypothesisType = HypothesisType.RIGHT,
+        alternative: AlternativeType = AlternativeType.RIGHT,
     ):
         self.statistics_list = statistics
         self.significance_level = significance_level
