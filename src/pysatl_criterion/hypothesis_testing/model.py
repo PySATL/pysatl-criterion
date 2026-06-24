@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TypeVar
+from typing import ClassVar, TypeVar
 
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 
@@ -11,6 +11,8 @@ CriticalValueT = TypeVar("CriticalValueT", float, tuple[float, float])
 
 @dataclass(frozen=True)
 class TestResult:
+    __test__: ClassVar[bool] = False
+
     statistic: float
     p_value: float | None
     critical_value: CriticalValue | None

@@ -1,140 +1,128 @@
-from unittest.mock import MagicMock, patch
-
-from pysatl_criterion import GoodnessOfFitTest
-from pysatl_criterion.hypothesis_testing.critical_values.critical_area.critical_areas import (
-    RightCriticalArea,
+from pysatl_criterion import DistributionType
+from pysatl_criterion.hypothesis_testing.goodness_of_fit_test import (
+    goodness_of_fit_test as gof_module,
 )
-from pysatl_criterion.hypothesis_testing.critical_values.resolver.composite_resolver import (
-    CompositeCriticalValueResolver,
+from pysatl_criterion.hypothesis_testing.goodness_of_fit_test.goodness_of_fit_test import (
+    CriticalValueDecisionMethod,
+    GoodnessOfFitTest,
+    PValueDecisionMethod,
 )
-from pysatl_criterion.hypothesis_testing.model import TestMethod
-from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
-from pysatl_criterion.statistics.alternative import AlternativeType
+from pysatl_criterion.hypothesis_testing.model import DecisionMethod, TestResult
+from pysatl_criterion.statistics.alternative import Alternative, AlternativeType
+from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
-@patch("pysatl_criterion.hypothesis_testing.critical_values.resolver.model.CriticalValueResolver")
-@patch("pysatl_criterion.statistics.goodness_of_fit.AbstractGoodnessOfFitStatistic")
-def test_goodness_of_fit_cv_path_accepts_hypothesis(mock_stat_cls, mock_cv_cls):
-    # Setup mocks
-    mock_stat = mock_stat_cls.return_value
-    mock_stat.code.return_value = "test_criterion"
-    mock_stat.execute_statistic.return_value = 10.0
+class FakeResolver:
+    def __init__(self, limit_distribution):
+        self.limit_distribution = limit_distribution
+        self.calls = []
 
-    mock_cv = mock_cv_cls.return_value
-    mock_area = RightCriticalArea(15.0)
-    mock_cv.resolve_bulk.return_value = {"test_criterion": mock_area}
+    def resolve(self, statistic, sample_size):
+        self.calls.append((statistic, sample_size))
+        return self.limit_distribution
 
-    gof_test = GoodnessOfFitTest(
-        statistics=[mock_stat],
+
+class FakeStatistic:
+    def __init__(self, statistic_value=2.0, alternative_type=AlternativeType.RIGHT):
+        self.statistic_value = statistic_value
+        self.alternative_type = alternative_type
+        self.executed_with = None
+
+    def hypothesis(self):
+        return GoodnessOfFitHypothesis(DistributionType.NORMAL, {})
+
+    def alternative(self):
+        return Alternative.get_alternative(self.alternative_type)
+
+    @staticmethod
+    def distribution():
+        return DistributionType.NORMAL
+
+    def execute_statistic(self, rvs):
+        self.executed_with = rvs
+        return self.statistic_value
+
+
+class RecordingDecisionMethod(DecisionMethod):
+    def __init__(self):
+        self.calls = []
+
+    def decide(self, statistic, statistic_value, significance_level, sample_size):
+        self.calls.append((statistic, statistic_value, significance_level, sample_size))
+        return TestResult(
+            statistic=statistic_value,
+            significance_level=significance_level,
+            p_value=None,
+            critical_value=10.0,
+            rejected=False,
+        )
+
+
+def test_goodness_of_fit_test_delegates_to_supplied_decision_method():
+    statistic = FakeStatistic(statistic_value=3.5)
+    method = RecordingDecisionMethod()
+    rvs = [1.0, 2.0, 3.0]
+
+    result = GoodnessOfFitTest(statistic).test(rvs, 0.05, method)
+
+    assert statistic.executed_with == rvs
+    assert method.calls == [(statistic, 3.5, 0.05, 3)]
+    assert result == TestResult(
+        statistic=3.5,
         significance_level=0.05,
-        test_method=TestMethod.CRITICAL_VALUE,
-        alternative=AlternativeType.RIGHT,
-        cv_resolver=mock_cv,
+        p_value=None,
+        critical_value=10.0,
+        rejected=False,
     )
 
-    # Act
-    result_dict = gof_test.test(data=[1, 2, 3])
 
-    # Assert
-    assert isinstance(result_dict, dict)
-    assert result_dict["test_criterion"] is True
+def test_goodness_of_fit_test_uses_critical_value_method_by_default(monkeypatch):
+    created_methods = []
+
+    class FakeDefaultDecisionMethod(RecordingDecisionMethod):
+        def __init__(self):
+            super().__init__()
+            created_methods.append(self)
+
+    monkeypatch.setattr(gof_module, "CriticalValueDecisionMethod", FakeDefaultDecisionMethod)
+
+    statistic = FakeStatistic(statistic_value=4.0)
+    result = GoodnessOfFitTest(statistic).test([10.0, 20.0], 0.1)
+
+    assert len(created_methods) == 1
+    assert created_methods[0].calls == [(statistic, 4.0, 0.1, 2)]
+    assert result.critical_value == 10.0
 
 
-@patch("pysatl_criterion.hypothesis_testing.critical_values.resolver.model.CriticalValueResolver")
-@patch("pysatl_criterion.statistics.goodness_of_fit.AbstractGoodnessOfFitStatistic")
-def test_goodness_of_fit_cv_path_rejects_hypothesis(mock_stat_cls, mock_cv_cls):
-    mock_stat = mock_stat_cls.return_value
-    mock_stat.code.return_value = "test_criterion"
-    mock_stat.execute_statistic.return_value = 10.0
+def test_p_value_decision_method_resolves_distribution_and_rejects_on_boundary():
+    statistic = FakeStatistic(statistic_value=2.0, alternative_type=AlternativeType.RIGHT)
+    resolver = FakeResolver([1.0, 2.0, 3.0, 4.0])
+    method = PValueDecisionMethod(resolver)
 
-    mock_cv = mock_cv_cls.return_value
-    mock_area = RightCriticalArea(9.0)
-    mock_cv.resolve_bulk.return_value = {"test_criterion": mock_area}
+    result = method.decide(statistic, 2.0, 0.5, sample_size=4)
 
-    gof_test = GoodnessOfFitTest(
-        statistics=[mock_stat],
-        significance_level=0.05,
-        test_method=TestMethod.CRITICAL_VALUE,
-        alternative=AlternativeType.RIGHT,
-        cv_resolver=mock_cv,
+    assert resolver.calls == [(statistic, 4)]
+    assert result == TestResult(
+        statistic=2.0,
+        significance_level=0.5,
+        p_value=0.5,
+        critical_value=None,
+        rejected=True,
     )
 
-    # Act
-    result_dict = gof_test.test(data=[1, 2, 3])
 
-    # Assert
-    assert isinstance(result_dict, dict)
-    assert result_dict["test_criterion"] is False
+def test_critical_value_decision_method_uses_significance_level_for_calculation():
+    statistic = FakeStatistic(statistic_value=2.5, alternative_type=AlternativeType.RIGHT)
+    resolver = FakeResolver([0.0, 1.0, 2.0, 3.0])
+    method = CriticalValueDecisionMethod(resolver)
 
+    result = method.decide(statistic, 2.5, 0.25, sample_size=4)
 
-@patch("pysatl_criterion.hypothesis_testing.p_value.resolver.model.PValueResolver")
-@patch("pysatl_criterion.statistics.goodness_of_fit.AbstractGoodnessOfFitStatistic")
-def test_goodness_of_fit_p_value_path_accepts_hypothesis(mock_stat_cls, mock_p_value_cls):
-    mock_stat = mock_stat_cls.return_value
-    mock_stat.code.return_value = "test_criterion"
-    mock_stat.execute_statistic.return_value = 10.0
-
-    mock_p_value = mock_p_value_cls.return_value
-    mock_p_value.resolve.return_value = 0.1
-
-    gof_test = GoodnessOfFitTest(
-        statistics=[mock_stat],
-        significance_level=0.05,
-        test_method=TestMethod.P_VALUE,
-        p_value_resolver=mock_p_value,
+    assert resolver.calls == [(statistic, 4)]
+    assert result == TestResult(
+        statistic=2.5,
+        significance_level=0.25,
+        p_value=None,
+        critical_value=2.25,
+        rejected=True,
     )
-
-    # Act
-    result_dict = gof_test.test(data=[1, 2, 3])
-
-    # Assert
-    assert isinstance(result_dict, dict)
-    assert result_dict["test_criterion"] is True
-
-
-@patch("pysatl_criterion.hypothesis_testing.p_value.resolver.model.PValueResolver")
-@patch("pysatl_criterion.statistics.goodness_of_fit.AbstractGoodnessOfFitStatistic")
-def test_goodness_of_fit_p_value_path_rejects_hypothesis(mock_stat_cls, mock_p_value_cls):
-    mock_stat = mock_stat_cls.return_value
-    mock_stat.code.return_value = "test_criterion"
-    mock_stat.execute_statistic.return_value = 10.0
-
-    mock_p_value = mock_p_value_cls.return_value
-    mock_p_value.resolve.return_value = 0.01
-
-    gof_test = GoodnessOfFitTest(
-        statistics=[mock_stat],
-        significance_level=0.05,
-        test_method=TestMethod.P_VALUE,
-        p_value_resolver=mock_p_value,
-    )
-
-    # Act
-    result_dict = gof_test.test(data=[1, 2, 3])
-
-    # Assert
-    assert isinstance(result_dict, dict)
-    assert result_dict["test_criterion"] is False
-
-
-@patch(
-    "pysatl_criterion.hypothesis_testing.goodness_of_fit_test.goodness_of_fit_test."
-    "AlchemyLimitDistributionStorage"
-)
-def test_goodness_of_fit_default_resolver_initialization(mock_storage_cls):
-    mock_instance = MagicMock()
-    mock_storage_cls.create_safe.return_value = mock_instance
-
-    mock_stat = MagicMock()
-    mock_stat.code.return_value = "dummy_code"
-
-    gof_test = GoodnessOfFitTest(
-        statistics=[mock_stat], significance_level=0.05, test_method=TestMethod.CRITICAL_VALUE
-    )
-
-    assert isinstance(gof_test.cv_calculator, CompositeCriticalValueResolver)
-    assert mock_storage_cls.create_safe.called
-
-
-def test_gof_criterion_code():
-    assert "GOODNESS_OF_FIT" == AbstractGoodnessOfFitStatistic.code()
