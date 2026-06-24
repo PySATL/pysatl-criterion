@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from pysatl_criterion.hypothesis_testing.p_value.resolver.calculation_resolver import (
+from pysatl_criterion.hypothesis_testing.p_value.calculator.p_value_calculator import (
     CalculationPValueResolver,
 )
 from pysatl_criterion.statistics.alternative import AlternativeType

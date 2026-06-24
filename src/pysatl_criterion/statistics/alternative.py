@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
+from typing import Literal, overload
 
 from typing_extensions import override
 
@@ -20,9 +21,27 @@ class Alternative(ABC):
     def type() -> AlternativeType:
         raise NotImplementedError("Method is not implemented")
 
-    @abstractmethod
-    def check(self, statistic_value: float, cv: float) -> bool:
-        raise NotImplementedError("Method is not implemented")
+    @overload
+    @classmethod
+    def get_alternative(
+        cls, alternative_type: Literal[AlternativeType.LEFT]
+    ) -> "LeftAlternative": ...
+
+    @overload
+    @classmethod
+    def get_alternative(
+        cls, alternative_type: Literal[AlternativeType.RIGHT]
+    ) -> "RightAlternative": ...
+
+    @overload
+    @classmethod
+    def get_alternative(
+        cls, alternative_type: Literal[AlternativeType.TWO_TAILED]
+    ) -> "TwoSidedAlternative": ...
+
+    @overload
+    @classmethod
+    def get_alternative(cls, alternative_type: AlternativeType) -> "Alternative": ...
 
     @classmethod
     def get_alternative(cls, alternative_type: AlternativeType) -> "Alternative":
@@ -42,10 +61,6 @@ class RightAlternative(Alternative):
     def type() -> AlternativeType:
         return AlternativeType.RIGHT
 
-    @override
-    def check(self, statistic_value: float, cv: float) -> bool:
-        return statistic_value <= cv
-
 
 class LeftAlternative(Alternative):
     @staticmethod
@@ -53,20 +68,9 @@ class LeftAlternative(Alternative):
     def type() -> AlternativeType:
         return AlternativeType.LEFT
 
-    @override
-    def check(self, statistic_value: float, cv: float) -> bool:
-        return statistic_value >= cv
-
 
 class TwoSidedAlternative(Alternative):
     @staticmethod
     @override
     def type() -> AlternativeType:
         return AlternativeType.TWO_TAILED
-
-    @override
-    def check(self, statistic_value: float, cv: tuple[float, float]) -> bool:
-        if not isinstance(cv, tuple):
-            raise TypeError("For a TWO_SIDED hypothesis, 'cv' must be a tuple of two floats.")
-        left_cv, right_cv = cv
-        return left_cv <= statistic_value <= right_cv
