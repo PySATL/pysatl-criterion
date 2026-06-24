@@ -21,7 +21,7 @@ class AbstractLimitDistributionResolver(ABC):
         self,
         statistic: AbstractGoodnessOfFitStatistic,
         sample_size: int,
-    ) -> list[float]:
+    ) -> list[float] | None:
         """
         Resolve limit distribution values for a statistic and sample size.
 
@@ -71,7 +71,7 @@ class MonteCarloLimitDistributionResolver(AbstractLimitDistributionResolver):
         statistics = np.empty(self.monte_carlo_count)
 
         rvs_generator = get_available_generator(
-            statistic.distribution(), statistic.hypothesis().parameters
+            statistic.distribution(), statistic.hypothesis().params
         )
 
         for i in range(self.monte_carlo_count):
@@ -98,7 +98,7 @@ class StorageLimitDistributionResolver(AbstractLimitDistributionResolver):
         self,
         statistic: AbstractGoodnessOfFitStatistic,
         sample_size: int,
-    ) -> list[float]:
+    ) -> list[float] | None:
         """
         Resolve limit distribution values from storage.
 
@@ -115,7 +115,10 @@ class StorageLimitDistributionResolver(AbstractLimitDistributionResolver):
             )
         )
 
-        return list(limit_distribution.result_statistic) if limit_distribution is not None else None
+        return (
+            list(limit_distribution.results_statistics) if limit_distribution is not None else None
+        )
+
 
 """"
 class CompositeLimitDistributionResolver(AbstractLimitDistributionResolver):

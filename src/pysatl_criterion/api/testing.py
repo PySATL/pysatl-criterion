@@ -1,24 +1,22 @@
 from pysatl_criterion import (
     BenjaminiYekutieli,
     BonferroniMultipleTesting,
-    CriticalValueResolver,
+    CriticalValueCalculator,
     GoodnessOfFitTest,
     Holm,
-    PValueResolver,
+    PValueCalculator,
     SidakHolm,
     SidakMultipleTesting,
-    TestMethod,
 )
 
 
 __all__ = [
     "GoodnessOfFitTest",
-    "TestMethod",
     "BonferroniMultipleTesting",
     "Holm",  # noqa: F822
     "SidakMultipleTesting",
     "SidakHolm",
     "BenjaminiYekutieli",
-    "PValueResolver",
-    "CriticalValueResolver",
+    "PValueCalculator",
+    "CriticalValueCalculator",
 ]

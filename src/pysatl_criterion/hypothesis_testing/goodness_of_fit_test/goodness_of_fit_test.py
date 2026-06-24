@@ -7,10 +7,7 @@ from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     AbstractLimitDistributionResolver,
     MonteCarloLimitDistributionResolver,
 )
-from pysatl_criterion.hypothesis_testing.model import (
-    DecisionMethod,
-    TestResult,
-)
+from pysatl_criterion.hypothesis_testing.model import DecisionMethod, TestResult
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 
 
@@ -49,6 +46,10 @@ class PValueDecisionMethod(DecisionMethod):
         limit_distribution = self.resolver.resolve(statistic, sample_size)
         factory = AbstractAlternativeFactory.get_concrete_factory(statistic.alternative().type())
         calculator = factory.get_p_value_calculator()
+
+        if limit_distribution is None:
+            raise ValueError("Limit distribution cannot be None.")
+
         p_value = calculator.calculate(limit_distribution, statistic_value)
 
         return TestResult(
@@ -95,6 +96,10 @@ class CriticalValueDecisionMethod(DecisionMethod):
         limit_distribution = self.resolver.resolve(statistic, sample_size)
         factory = AbstractAlternativeFactory.get_concrete_factory(statistic.alternative().type())
         calculator = factory.get_critical_value_calculator()
+
+        if limit_distribution is None:
+            raise ValueError("Limit distribution cannot be None.")
+
         critical_value = calculator.calculate(limit_distribution, significance_level)
         region = factory.get_critical_area(critical_value)
 

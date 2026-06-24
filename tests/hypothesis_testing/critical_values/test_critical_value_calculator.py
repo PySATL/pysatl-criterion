@@ -1,9 +1,7 @@
 import pytest
 
-from pysatl_criterion.hypothesis_testing.critical_values.calculator.critical_value_calculator import (
-    LeftCriticalValueCalculator,
-    RightCriticalValueCalculator,
-    TwoSidedCriticalValueCalculator,
+from pysatl_criterion.hypothesis_testing.critical_values.calculator import (
+    critical_value_calculator as calculators,
 )
 from pysatl_criterion.hypothesis_testing.critical_values.calculator.model import (
     CriticalValueCalculator,
@@ -13,9 +11,9 @@ from pysatl_criterion.hypothesis_testing.critical_values.calculator.model import
 @pytest.mark.parametrize(
     ("calculator", "significance_level", "expected_critical_value"),
     [
-        (LeftCriticalValueCalculator(), 0.25, 1.75),
-        (RightCriticalValueCalculator(), 0.25, 3.25),
-        (TwoSidedCriticalValueCalculator(), 0.5, (1.75, 3.25)),
+        (calculators.LeftCriticalValueCalculator(), 0.25, 1.75),
+        (calculators.RightCriticalValueCalculator(), 0.25, 3.25),
+        (calculators.TwoSidedCriticalValueCalculator(), 0.5, (1.75, 3.25)),
     ],
 )
 def test_critical_value_calculators_return_expected_values(

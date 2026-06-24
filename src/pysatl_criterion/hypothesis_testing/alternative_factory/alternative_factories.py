@@ -1,10 +1,8 @@
 from typing_extensions import override
 
 from pysatl_criterion.hypothesis_testing.alternative_factory.model import AlternativeFactory
-from pysatl_criterion.hypothesis_testing.critical_values.calculator.critical_value_calculator import (
-    LeftCriticalValueCalculator,
-    RightCriticalValueCalculator,
-    TwoSidedCriticalValueCalculator,
+from pysatl_criterion.hypothesis_testing.critical_values.calculator import (
+    critical_value_calculator as cv_calculators,
 )
 from pysatl_criterion.hypothesis_testing.critical_values.calculator.model import (
     CriticalValueCalculator,
@@ -36,7 +34,7 @@ class LeftAlternativeFactory(AlternativeFactory[float]):
 
         :return: left-tailed critical value calculator.
         """
-        return LeftCriticalValueCalculator()
+        return cv_calculators.LeftCriticalValueCalculator()
 
     @override
     def get_p_value_calculator(self) -> PValueCalculator:
@@ -70,7 +68,7 @@ class RightAlternativeFactory(AlternativeFactory[float]):
 
         :return: right-tailed critical value calculator.
         """
-        return RightCriticalValueCalculator()
+        return cv_calculators.RightCriticalValueCalculator()
 
     @override
     def get_p_value_calculator(self) -> PValueCalculator:
@@ -104,7 +102,7 @@ class TwoSidedAlternativeFactory(AlternativeFactory[tuple[float, float]]):
 
         :return: two-sided critical value calculator.
         """
-        return TwoSidedCriticalValueCalculator()
+        return cv_calculators.TwoSidedCriticalValueCalculator()
 
     @override
     def get_p_value_calculator(self) -> PValueCalculator:

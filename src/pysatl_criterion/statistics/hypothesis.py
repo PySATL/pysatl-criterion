@@ -1,19 +1,16 @@
-from abc import ABC
-
-
-class Hypothesis(ABC):
+class Hypothesis:
     pass
 
 
 class GoodnessOfFitHypothesis(Hypothesis):
     def __init__(self, parameters: dict[str, float] | None):
-        self.parameters = parameters
+        self.params = parameters
 
     def parameters(self) -> list[float]:
-        if self.parameters is None:
+        if self.params is None:
             return []
 
-        return list(self.parameters.values())
+        return list(self.params.values())
 
 
 class IndependenceHypothesis(Hypothesis):

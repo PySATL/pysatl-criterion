@@ -329,7 +329,7 @@ class WatsonGammaGofStatistic(AbstractGammaGofStatistic):
                 "At least one observation is required to compute the Watson statistic."
             )
 
-        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.alpha, scale=1/self.beta)
+        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.alpha, scale=1 / self.beta)
         u = (2 * np.arange(1, n + 1) - 1) / (2 * n)
         diff = cdf_vals - u
         w_squared = 1.0 / (12 * n) + np.sum(diff**2)
@@ -440,7 +440,7 @@ class GreenwoodGammaGofStatistic(AbstractGammaGofStatistic):
         """
 
         sorted_rvs = np.sort(np.asarray(rvs))
-        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.alpha, scale=1/self.beta)
+        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.alpha, scale=1 / self.beta)
         spacings = np.diff(np.concatenate(([0.0], cdf_vals, [1.0])))
         if np.any(spacings < 0):
             raise ValueError("Spacings must be non-negative; check input data ordering.")
@@ -495,7 +495,7 @@ class MoranGammaGofStatistic(AbstractGammaGofStatistic):
         if n == 0:
             raise ValueError("At least one observation is required to compute the Moran statistic.")
 
-        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.alpha, scale=1/self.beta)
+        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.alpha, scale=1 / self.beta)
         spacings = np.diff(np.concatenate(([0.0], cdf_vals, [1.0])))
         if np.any(spacings <= 0):
             raise ValueError("Spacings must be strictly positive for the Moran statistic.")
@@ -544,7 +544,7 @@ class MinToshiyukiGammaGofStatistic(AbstractGammaGofStatistic, MinToshiyukiStati
         """
 
         sorted_rvs = np.sort(np.asarray(rvs))
-        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.alpha, scale=1/self.beta)
+        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.alpha, scale=1 / self.beta)
         return MinToshiyukiStatistic.do_execute_statistic(self, cdf_vals)
 
 
@@ -572,7 +572,7 @@ class AbstractBinnedGammaGofStatistic(AbstractGammaGofStatistic, Chi2Statistic, 
             raise ValueError("At least one observation is required for binned Gamma statistics.")
 
         quantiles = np.linspace(0.0, 1.0, self.bins + 1)
-        edges = scipy_stats.gamma.ppf(quantiles, a=self.alpha, scale=1/self.beta)
+        edges = scipy_stats.gamma.ppf(quantiles, a=self.alpha, scale=1 / self.beta)
         edges[0] = -np.inf
         edges[-1] = np.inf
         counts, _ = np.histogram(sample, bins=edges)
@@ -781,7 +781,7 @@ class ProbabilityPlotCorrelationGammaGofStatistic(AbstractGammaGofStatistic):
             raise ValueError("At least two observations are required for the PPCC statistic.")
 
         plotting_positions = (np.arange(1, n + 1) - 0.375) / (n + 0.25)
-        expected = scipy_stats.gamma.ppf(plotting_positions, a=self.alpha, scale=1/self.beta)
+        expected = scipy_stats.gamma.ppf(plotting_positions, a=self.alpha, scale=1 / self.beta)
 
         sample_centered = sample - np.mean(sample)
         expected_centered = expected - np.mean(expected)
@@ -825,7 +825,7 @@ class AbstractGraphGammaGofStatistic(AbstractGammaGofStatistic, AbstractGraphTes
             )
 
         sorted_sample = np.sort(sample)
-        uniformized = scipy_stats.gamma.cdf(sorted_sample, a=self.alpha, scale=1/self.beta)
+        uniformized = scipy_stats.gamma.cdf(sorted_sample, a=self.alpha, scale=1 / self.beta)
         return uniformized.tolist()
 
     def _evaluate_graph_statistic(self, transformed_sample, **kwargs):

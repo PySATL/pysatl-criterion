@@ -358,13 +358,6 @@ class CramerVonMisesExponentialityGofStatistic(
         :return: Cramér-von Mises test statistic value.
         """
 
-        n = len(rvs)
-        y = rvs / np.mean(rvs)
-        z = np.sort(1 - np.exp(-y))
-        c = (2 * np.arange(1, n + 1) - 1) / (2 * n)
-        z = (z - c) ** 2
-        cvm = 1 / (12 * n) + np.sum(z)
-
         rvs_sorted = np.sort(rvs)
         cdf_vals = scipy_stats.expon.cdf(rvs_sorted, scale=1 / self.lam)
 
