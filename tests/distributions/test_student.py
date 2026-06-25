@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 import scipy.stats as scipy_stats
 
-from pysatl_criterion.statistics.student import (
+from pysatl_criterion.statistics.goodness_of_fit.student import (
     AbstractStudentGofStatistic,
     AndersonDarlingStudentGofStatistic,
     ChiSquareStudentGofStatistic,
@@ -103,9 +103,9 @@ class TestKolmogorovSmirnovStudent:
         """Test KS statistic with different alternatives."""
         data = [0.5, 1.0, -0.5, 0.0, 2.0]
 
-        stat_two = KolmogorovSmirnovStudentGofStatistic(df=5, alternative="two-sided")
-        stat_less = KolmogorovSmirnovStudentGofStatistic(df=5, alternative="less")
-        stat_greater = KolmogorovSmirnovStudentGofStatistic(df=5, alternative="greater")
+        stat_two = KolmogorovSmirnovStudentGofStatistic(df=5, alternative_type="two-sided")
+        stat_less = KolmogorovSmirnovStudentGofStatistic(df=5, alternative_type="less")
+        stat_greater = KolmogorovSmirnovStudentGofStatistic(df=5, alternative_type="greater")
 
         result_two = stat_two.execute_statistic(data)
         result_less = stat_less.execute_statistic(data)

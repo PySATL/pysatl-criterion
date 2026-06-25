@@ -1,9 +1,8 @@
-from dataclasses import dataclass
+from typing_extensions import override
 
 from pysatl_criterion.hypothesis_testing.critical_values.critical_area.model import CriticalArea
 
 
-@dataclass
 class LeftCriticalArea(CriticalArea):
     """
     Critical area for left-tailed hypothesis test.
@@ -14,6 +13,7 @@ class LeftCriticalArea(CriticalArea):
     def __init__(self, critical_value: float):
         self.critical_value = critical_value
 
+    @override
     def contains(self, value: float) -> bool:
         """
         Check if value falls within acceptance region.
@@ -24,7 +24,6 @@ class LeftCriticalArea(CriticalArea):
         return value >= self.critical_value
 
 
-@dataclass
 class RightCriticalArea(CriticalArea):
     """
     Critical area for right-tailed hypothesis test.
@@ -35,6 +34,7 @@ class RightCriticalArea(CriticalArea):
     def __init__(self, critical_value: float):
         self.critical_value = critical_value
 
+    @override
     def contains(self, value: float) -> bool:
         """
         Check if given value falls within acceptance region.
@@ -45,7 +45,6 @@ class RightCriticalArea(CriticalArea):
         return value <= self.critical_value
 
 
-@dataclass
 class TwoSidedCriticalArea(CriticalArea):
     """
     Critical area for two-tailed hypothesis test.
@@ -58,6 +57,7 @@ class TwoSidedCriticalArea(CriticalArea):
         self.left_cv = left_cv
         self.right_cv = right_cv
 
+    @override
     def contains(self, value: float) -> bool:
         """
         Check if given value falls within acceptance region.

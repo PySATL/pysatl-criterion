@@ -1,6 +1,6 @@
 import pytest
 
-from pysatl_criterion.statistics.weibull import (
+from pysatl_criterion.statistics.goodness_of_fit.weibull import (
     AndersonDarlingWeibullGofStatistic,
     CrammerVonMisesWeibullGofStatistic,
     KolmogorovSmirnovWeibullGofStatistic,

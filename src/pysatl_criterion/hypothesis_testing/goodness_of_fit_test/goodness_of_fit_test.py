@@ -1,107 +1,147 @@
-from pysatl_criterion.hypothesis_testing.critical_values.loader.remote_loader import (
-    CriticalValueLoader,
+from typing_extensions import override
+
+from pysatl_criterion.hypothesis_testing.alternative_factory.alternative_factories import (
+    AbstractAlternativeFactory,
 )
-from pysatl_criterion.hypothesis_testing.critical_values.resolver.composite_resolver import (
-    CompositeCriticalValueResolver,
+from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
+    AbstractLimitDistributionResolver,
+    MonteCarloLimitDistributionResolver,
 )
-from pysatl_criterion.hypothesis_testing.critical_values.resolver.model import CriticalValueResolver
-from pysatl_criterion.hypothesis_testing.critical_values.resolver.storage_resolver import (
-    StorageCriticalValueResolver,
-)
-from pysatl_criterion.hypothesis_testing.model import TestMethod
-from pysatl_criterion.hypothesis_testing.p_value.resolver.calculation_resolver import (
-    CalculationPValueResolver,
-)
-from pysatl_criterion.hypothesis_testing.p_value.resolver.model import PValueResolver
-from pysatl_criterion.persistence.sqlalchemy.datastorage import AlchemyLimitDistributionStorage
-from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
-from pysatl_criterion.statistics.models import HypothesisType
-from pysatl_criterion.utils.constants import LOCAL_PYSATL_URL, REMOTE_PYSATL_URL
+from pysatl_criterion.hypothesis_testing.model import DecisionMethod, TestResult
+from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
+
+
+class PValueDecisionMethod(DecisionMethod):
+    """
+    Decision method that rejects a hypothesis by comparing p-value with significance level.
+    """
+
+    def __init__(self, resolver: AbstractLimitDistributionResolver | None = None):
+        """
+        Initialize the p-value decision method.
+
+        :param resolver: limit distribution resolver. Uses Monte Carlo resolver by default.
+        """
+        if resolver is None:
+            resolver = MonteCarloLimitDistributionResolver(10_000)
+        self.resolver = resolver
+
+    @override
+    def decide(
+        self,
+        statistic: AbstractGoodnessOfFitStatistic,
+        statistic_value: float,
+        significance_level: float,
+        sample_size: int,
+    ) -> TestResult:
+        """
+        Decide whether to reject the hypothesis using a p-value.
+
+        :param statistic: goodness-of-fit statistic definition.
+        :param statistic_value: computed statistic value for the observed sample.
+        :param significance_level: test significance level.
+        :param sample_size: observed sample size.
+        :return: test result with p-value and rejection flag.
+        """
+        limit_distribution = self.resolver.resolve(statistic, sample_size)
+        factory = AbstractAlternativeFactory.get_concrete_factory(statistic.alternative().type())
+        calculator = factory.get_p_value_calculator()
+
+        if limit_distribution is None:
+            raise ValueError("Limit distribution cannot be None.")
+
+        p_value = calculator.calculate(limit_distribution, statistic_value)
+
+        return TestResult(
+            statistic=statistic_value,
+            significance_level=significance_level,
+            p_value=p_value,
+            critical_value=None,
+            rejected=p_value <= significance_level,
+        )
+
+
+class CriticalValueDecisionMethod(DecisionMethod):
+    """
+    Decision method that rejects a hypothesis using critical values and a critical area.
+    """
+
+    def __init__(self, resolver: AbstractLimitDistributionResolver | None = None):
+        """
+        Initialize the critical value decision method.
+
+        :param resolver: limit distribution resolver. Uses Monte Carlo resolver by default.
+        """
+        if resolver is None:
+            resolver = MonteCarloLimitDistributionResolver(10_000)
+        self.resolver = resolver
+
+    @override
+    def decide(
+        self,
+        statistic: AbstractGoodnessOfFitStatistic,
+        statistic_value: float,
+        significance_level: float,
+        sample_size: int,
+    ) -> TestResult:
+        """
+        Decide whether to reject the hypothesis using critical values.
+
+        :param statistic: goodness-of-fit statistic definition.
+        :param statistic_value: computed statistic value for the observed sample.
+        :param significance_level: test significance level.
+        :param sample_size: observed sample size.
+        :return: test result with critical value and rejection flag.
+        """
+        limit_distribution = self.resolver.resolve(statistic, sample_size)
+        factory = AbstractAlternativeFactory.get_concrete_factory(statistic.alternative().type())
+        calculator = factory.get_critical_value_calculator()
+
+        if limit_distribution is None:
+            raise ValueError("Limit distribution cannot be None.")
+
+        critical_value = calculator.calculate(limit_distribution, significance_level)
+        region = factory.get_critical_area(critical_value)
+
+        return TestResult(
+            statistic=statistic_value,
+            significance_level=significance_level,
+            p_value=None,
+            critical_value=critical_value,
+            rejected=not region.contains(statistic_value),
+        )
 
 
 class GoodnessOfFitTest:
     """
-    Goodness of fit test.
-
-    :param statistics: statistics.
-    :param significance_level: significance level.
-    :param test_method: test method either 'critical_value' or 'p_value'.
-    :param alternative: test alternative.
+    Goodness-of-fit test runner for a configured statistic.
     """
 
-    def __init__(
+    def __init__(self, statistic: AbstractGoodnessOfFitStatistic):
+        """
+        Initialize the goodness-of-fit test.
+
+        :param statistic: statistic used to evaluate observed samples.
+        """
+        self.statistic = statistic
+
+    def test(
         self,
-        statistics: list[AbstractGoodnessOfFitStatistic],
+        rvs: list[float],
         significance_level: float,
-        cv_resolver: CriticalValueResolver | None = None,
-        p_value_resolver: PValueResolver | None = None,
-        test_method: TestMethod = TestMethod.CRITICAL_VALUE,
-        alternative: HypothesisType = HypothesisType.RIGHT,
-    ):
-        self.statistics_list = statistics
-        self.significance_level = significance_level
-        self.test_method = test_method
-        self.alternative = alternative
-        self.cv_calculator = cv_resolver
-        self.p_value_resolver = p_value_resolver
-
-        if self.cv_calculator is None and test_method == TestMethod.CRITICAL_VALUE:
-            cv_local_storage = AlchemyLimitDistributionStorage.create_safe(
-                LOCAL_PYSATL_URL, label="Local CV Storage"
-            )
-            if cv_local_storage is None:
-                raise RuntimeError(
-                    "Local storage is required for caching, but could not be initialized."
-                )
-            cv_remote_storage = AlchemyLimitDistributionStorage.create_safe(
-                REMOTE_PYSATL_URL, label="Remote CV Storage"
-            )
-            cv_loader = CriticalValueLoader(cv_local_storage, cv_remote_storage)
-            cv_local_resolver = StorageCriticalValueResolver(cv_local_storage)
-            self.cv_calculator = CompositeCriticalValueResolver(cv_local_resolver, cv_loader)
-
-        if self.p_value_resolver is None and test_method == TestMethod.P_VALUE:
-            p_storage = AlchemyLimitDistributionStorage.create_safe(
-                REMOTE_PYSATL_URL, "Remote P-Storage"
-            ) or AlchemyLimitDistributionStorage.create_safe(LOCAL_PYSATL_URL, "Local P-Storage")
-
-            if p_storage is None:
-                raise RuntimeError("No available storage for P-value calculation.")
-
-            self.p_value_resolver = CalculationPValueResolver(p_storage)
-
-    def test(self, data: list[float]) -> dict[str, bool]:
+        method: DecisionMethod | None = None,
+    ) -> TestResult:
         """
-        Perform goodness of fit.
+        Run the goodness-of-fit test on observed values.
 
-        :param data: data to test.
-
-        :return: a dictionary mapping criterion code to test result (True/False).
+        :param rvs: observed random values.
+        :param significance_level: test significance level.
+        :param method: decision method. Uses critical value method by default.
+        :return: goodness-of-fit test result.
         """
+        if method is None:
+            method = CriticalValueDecisionMethod()
 
-        data_size = len(data)
-        stats_map = {s.code(): s.execute_statistic(data) for s in self.statistics_list}
-        codes = list(stats_map.keys())
-
-        if self.cv_calculator and self.test_method == TestMethod.CRITICAL_VALUE:
-            critical_areas = self.cv_calculator.resolve_bulk(
-                codes, data_size, self.significance_level, self.alternative
-            )
-            return {
-                code: (
-                    critical_areas[code].contains(stats_map[code])
-                    if code in critical_areas
-                    else False
-                )
-                for code in codes
-            }
-
-        elif self.p_value_resolver and self.test_method == TestMethod.P_VALUE:
-            results = {}
-            for code, stat in stats_map.items():
-                p_value = self.p_value_resolver.resolve(code, data_size, stat, self.alternative)
-                results[code] = p_value is not None and p_value >= self.significance_level
-            return results
-
-        else:
-            raise ValueError(f"Invalid test method {self.test_method}.")
+        return method.decide(
+            self.statistic, self.statistic.execute_statistic(rvs), significance_level, len(rvs)
+        )

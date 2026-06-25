@@ -1,13 +1,32 @@
-from enum import Enum
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import ClassVar, TypeVar
+
+from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 
 
-class TestMethod(Enum):
-    """
-    Test methods for hypotheses.
-    """
+CriticalValue = float | tuple[float, float]
+CriticalValueT = TypeVar("CriticalValueT", float, tuple[float, float])
 
-    # Disables this test from being run
-    __test__ = False
 
-    CRITICAL_VALUE = "critical_value"
-    P_VALUE = "p_value"
+@dataclass(frozen=True)
+class TestResult:
+    __test__: ClassVar[bool] = False
+
+    statistic: float
+    p_value: float | None
+    critical_value: CriticalValue | None
+    rejected: bool
+    significance_level: float
+
+
+class DecisionMethod(ABC):
+    @abstractmethod
+    def decide(
+        self,
+        statistic: AbstractGoodnessOfFitStatistic,
+        statistic_value: float,
+        significance_level: float,
+        sample_size: int,
+    ) -> TestResult:
+        pass
