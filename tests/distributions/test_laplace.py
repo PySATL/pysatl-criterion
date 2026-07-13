@@ -47,10 +47,14 @@ _SCALE = 1.0
 
 
 def test_laplace_base_code():
+    """Ensure Laplace GOF statistics expose the expected code identifier."""
+
     assert AbstractLaplaceGofStatistic.code() == "LAPLACE_GOODNESS_OF_FIT"
 
 
 def test_laplace_hypothesis():
+    """Ensure the Laplace location and scale are stored in the hypothesis."""
+
     statistic = KolmogorovSmirnovLaplaceGofStatistic(t=_LOCATION, s=_SCALE)
 
     hypothesis = statistic.hypothesis()
@@ -59,6 +63,8 @@ def test_laplace_hypothesis():
 
 
 def test_kolmogorov_smirnov_laplace_statistic():
+    """Verify the Kolmogorov--Smirnov statistic for a Laplace sample."""
+
     statistic = KolmogorovSmirnovLaplaceGofStatistic(
         t=_LOCATION,
         s=_SCALE,
@@ -70,6 +76,8 @@ def test_kolmogorov_smirnov_laplace_statistic():
 
 
 def test_cramer_von_mises_laplace_statistic():
+    """Verify the Cramer--von Mises statistic for a Laplace sample."""
+
     statistic = CramerVonMisesLaplaceGofStatistic(
         t=_LOCATION,
         s=_SCALE,
@@ -81,6 +89,8 @@ def test_cramer_von_mises_laplace_statistic():
 
 
 def test_anderson_darling_laplace_statistic():
+    """Verify the Anderson--Darling statistic for a Laplace sample."""
+
     statistic = AndersonDarlingLaplaceGofStatistic(
         t=_LOCATION,
         s=_SCALE,
@@ -100,6 +110,8 @@ def test_anderson_darling_laplace_statistic():
     ],
 )
 def test_laplace_statistics_on_large_sample(statistic_class, expected_value):
+    """Check all Laplace EDF statistics against a larger reference sample."""
+
     statistic = statistic_class(t=_LOCATION, s=_SCALE)
 
     result = statistic.execute_statistic(_LARGE_SAMPLE)
@@ -125,20 +137,28 @@ def test_laplace_statistics_on_large_sample(statistic_class, expected_value):
     ],
 )
 def test_laplace_statistic_codes(statistic_class, expected_code):
+    """Ensure every Laplace statistic exposes a stable code identifier."""
+
     assert statistic_class.code() == expected_code
 
 
 def test_laplace_distribution_type():
+    """Ensure Laplace statistics report the Laplace distribution type."""
+
     assert AbstractLaplaceGofStatistic.distribution() == DistributionType.LAPLACE
 
 
 @pytest.mark.parametrize("scale", [0.0, -1.0])
 def test_laplace_positive_scale_required(scale):
+    """Laplace statistic constructors should reject non-positive scales."""
+
     with pytest.raises(ValueError, match="Scale must be positive."):
         KolmogorovSmirnovLaplaceGofStatistic(s=scale)
 
 
 def test_laplace_parameters_affect_statistic():
+    """Changing location and scale should change the resulting KS statistic."""
+
     default_statistic = KolmogorovSmirnovLaplaceGofStatistic(t=0.0, s=1.0)
     shifted_statistic = KolmogorovSmirnovLaplaceGofStatistic(t=1.0, s=2.0)
 
