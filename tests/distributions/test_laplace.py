@@ -5,7 +5,10 @@ from pysatl_criterion.statistics.goodness_of_fit.laplace import (
     AbstractLaplaceGofStatistic,
     AndersonDarlingLaplaceGofStatistic,
     CramerVonMisesLaplaceGofStatistic,
+    GreenwoodLaplaceGofStatistic,
     KolmogorovSmirnovLaplaceGofStatistic,
+    KuiperLaplaceGofStatistic,
+    WatsonLaplaceGofStatistic,
 )
 
 
@@ -107,6 +110,9 @@ def test_anderson_darling_laplace_statistic():
         (KolmogorovSmirnovLaplaceGofStatistic, 0.10023112481762697),
         (CramerVonMisesLaplaceGofStatistic, 0.06360683737580435),
         (AndersonDarlingLaplaceGofStatistic, 0.4993990825244552),
+        (GreenwoodLaplaceGofStatistic, 0.03654367524062204),
+        (KuiperLaplaceGofStatistic, 0.16712891630192053),
+        (WatsonLaplaceGofStatistic, 0.05656030222478137),
     ],
 )
 def test_laplace_statistics_on_large_sample(statistic_class, expected_value):
@@ -133,6 +139,18 @@ def test_laplace_statistics_on_large_sample(statistic_class, expected_value):
         (
             AndersonDarlingLaplaceGofStatistic,
             "AD_LAPLACE_GOODNESS_OF_FIT",
+        ),
+        (
+            GreenwoodLaplaceGofStatistic,
+            "GRW_LAPLACE_GOODNESS_OF_FIT",
+        ),
+        (
+            KuiperLaplaceGofStatistic,
+            "KUI_LAPLACE_GOODNESS_OF_FIT",
+        ),
+        (
+            WatsonLaplaceGofStatistic,
+            "WAT_LAPLACE_GOODNESS_OF_FIT",
         ),
     ],
 )
@@ -166,3 +184,18 @@ def test_laplace_parameters_affect_statistic():
     shifted_result = shifted_statistic.execute_statistic(_SAMPLE)
 
     assert default_result != pytest.approx(shifted_result)
+
+
+@pytest.mark.parametrize(
+    "statistic_class",
+    [
+        KuiperLaplaceGofStatistic,
+        WatsonLaplaceGofStatistic,
+        GreenwoodLaplaceGofStatistic,
+    ],
+)
+def test_additional_laplace_statistics_require_non_empty_sample(statistic_class):
+    """Additional Laplace statistics should reject an empty sample."""
+
+    with pytest.raises(ValueError, match="At least one observation is required"):
+        statistic_class(t=_LOCATION, s=_SCALE).execute_statistic([])
