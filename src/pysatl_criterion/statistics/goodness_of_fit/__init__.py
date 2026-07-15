@@ -88,6 +88,15 @@ from pysatl_criterion.statistics.goodness_of_fit.graph_goodness_of_fit import (
     GraphIndependenceNumberTestStatistic,
     GraphMaxDegreeTestStatistic,
 )
+from pysatl_criterion.statistics.goodness_of_fit.laplace import (
+    AbstractLaplaceGofStatistic,
+    AndersonDarlingLaplaceGofStatistic,
+    CramerVonMisesLaplaceGofStatistic,
+    GreenwoodLaplaceGofStatistic,
+    KolmogorovSmirnovLaplaceGofStatistic,
+    KuiperLaplaceGofStatistic,
+    WatsonLaplaceGofStatistic,
+)
 from pysatl_criterion.statistics.goodness_of_fit.log_normal import (  # type: ignore[attr-defined]
     AbstractLogNormalGofStatistic,
     AndersonDarlingLogNormalGofStatistic,
@@ -330,6 +339,14 @@ __all__ = [
     "MoranGammaGofStatistic",
     "ProbabilityPlotCorrelationGammaGofStatistic",
     "WatsonGammaGofStatistic",
+    # Laplace distribution statistics
+    "AbstractLaplaceGofStatistic",
+    "AndersonDarlingLaplaceGofStatistic",
+    "CramerVonMisesLaplaceGofStatistic",
+    "KolmogorovSmirnovLaplaceGofStatistic",
+    "GreenwoodLaplaceGofStatistic",
+    "KuiperLaplaceGofStatistic",
+    "WatsonLaplaceGofStatistic",
     # Log-Normal distribution statistics
     "AbstractLogNormalGofStatistic",
     "AndersonDarlingLogNormalGofStatistic",
