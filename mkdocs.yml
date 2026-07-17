@@ -35,6 +35,22 @@ nav:
                 - Rossberg: criteria/goodness-of-fit/exponentiality/rossberg_exp_criterion.md
                 - Graph edges number: criteria/goodness-of-fit/exponentiality/graph_edges_number_exp_criterion.md
                 - Graph max degree: criteria/goodness-of-fit/exponentiality/graph_max_degree_exp_criterion.md
+            - Uniformity:
+                - Kolmogorov-Smirnov: criteria/goodness-of-fit/uniformity/kolmogorov_smirnov_uniform_criterion.md
+                - Anderson-Darling: criteria/goodness-of-fit/uniformity/anderson_darling_uniform_criterion.md
+                - Cramer-von Mises: criteria/goodness-of-fit/uniformity/cvm_uniform_criterion.md
+                - Lilliefors: criteria/goodness-of-fit/uniformity/lilliefors_uniform_criterion.md
+                - Pearson chi-squared: criteria/goodness-of-fit/uniformity/chi2_pearson_uniform_criterion.md
+                - Watson: criteria/goodness-of-fit/uniformity/watson_uniform_criterion.md
+                - Kuiper: criteria/goodness-of-fit/uniformity/kuiper_uniform_criterion.md
+                - Greenwood: criteria/goodness-of-fit/uniformity/greenwood_uniform_criterion.md
+                - Bickel-Rosenblatt: criteria/goodness-of-fit/uniformity/bickel_rosenblatt_uniform_criterion.md
+                - Zhang: criteria/goodness-of-fit/uniformity/zhang_uniform_criterion.md
+                - Stein: criteria/goodness-of-fit/uniformity/stein_uniform_criterion.md
+                - Censored Stein: criteria/goodness-of-fit/uniformity/censored_stein_uniform_criterion.md
+                - Neyman smooth: criteria/goodness-of-fit/uniformity/neyman_smooth_uniform_criterion.md
+                - Sherman: criteria/goodness-of-fit/uniformity/sherman_uniform_criterion.md
+                - Quesenberry-Miller: criteria/goodness-of-fit/uniformity/quesenberry_miller_uniform_criterion.md
 theme:
   name: material
   logo: "images/logo.jpeg"
