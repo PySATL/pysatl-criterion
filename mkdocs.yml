@@ -91,6 +91,16 @@ nav:
                 - Kuiper: criteria/goodness-of-fit/laplace/kuiper_laplace_criterion.md
                 - Watson: criteria/goodness-of-fit/laplace/watson_laplace_criterion.md
                 - Greenwood: criteria/goodness-of-fit/laplace/greenwood_laplace_criterion.md
+            - Student distribution:
+                - Kolmogorov-Smirnov: criteria/goodness-of-fit/student/kolmogorov_smirnov_student_criterion.md
+                - Anderson-Darling: criteria/goodness-of-fit/student/anderson_darling_student_criterion.md
+                - Cramer-von Mises: criteria/goodness-of-fit/student/cvm_student_criterion.md
+                - Kuiper: criteria/goodness-of-fit/student/kuiper_student_criterion.md
+                - Watson: criteria/goodness-of-fit/student/watson_student_criterion.md
+                - Zhang Zc: criteria/goodness-of-fit/student/zhang_zc_student_criterion.md
+                - Zhang Za: criteria/goodness-of-fit/student/zhang_za_student_criterion.md
+                - Lilliefors: criteria/goodness-of-fit/student/lilliefors_student_criterion.md
+                - Chi-square: criteria/goodness-of-fit/student/chi_square_student_criterion.md
             - Normality:
                 - Kolmogorov-Smirnov: criteria/goodness-of-fit/normality/kolmogorov_smirnov_normality_criterion.md
                 - Anderson-Darling: criteria/goodness-of-fit/normality/anderson_darling_normality_criterion.md
