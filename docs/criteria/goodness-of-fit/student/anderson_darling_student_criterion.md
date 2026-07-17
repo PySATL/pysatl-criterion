@@ -36,7 +36,7 @@ The implementation standardizes the ordered observations and evaluates Student `
 These values are passed to the common Anderson-Darling statistic implementation.
 
 ## Author(s)
-Alexey Mironov
+Dmitriy Rusanov, Alexey Mironov
 
 ## References
 Anderson, T.W. and Darling, D.A. (1952): Asymptotic theory of certain goodness of fit criteria based on stochastic processes. - Annals of Mathematical Statistics, vol. 23, pp. 193-212.

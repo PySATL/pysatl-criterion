@@ -36,7 +36,7 @@ $$ \int_0^1 \left(\hat f(x) - 1\right)^2 dx. $$
 Large values indicate stronger deviation from the uniform density.
 
 ## Author(s)
-Alexey Mironov
+Aleksandr Podmarev, Alexey Mironov
 
 ## References
 Bickel, P.J. and Rosenblatt, M. (1973): On some global measures of the deviations of density function estimates. - Annals of Statistics, vol. 1, pp. 1071-1095.

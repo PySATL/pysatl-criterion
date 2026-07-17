@@ -38,7 +38,7 @@ $$ D^+ = \max_i\left(\frac{i}{n} - U_{(i)}\right), \quad D^- = \max_i\left(U_{(i
 Large values indicate stronger deviation from the uniform model.
 
 ## Author(s)
-Alexey Mironov
+Aleksandr Podmarev, Alexey Mironov
 
 ## References
 Kuiper, N.H. (1960): Tests concerning random points on a circle. - Proceedings of the Koninklijke Nederlandse Akademie van Wetenschappen, Series A, vol. 63, pp. 38-47.

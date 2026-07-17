@@ -34,7 +34,7 @@ print(statistic_result)
 The implementation standardizes observations, builds bin edges from Student quantiles, and compares observed bin counts with equal expected counts.
 
 ## Author(s)
-Alexey Mironov
+Dmitriy Rusanov, Alexey Mironov
 
 ## References
 Pearson, K. (1900): On the criterion that a given system of deviations from the probable in the case of a correlated system of variables is such that it can be reasonably supposed to have arisen from random sampling. - Philosophical Magazine, vol. 50, pp. 157-175.

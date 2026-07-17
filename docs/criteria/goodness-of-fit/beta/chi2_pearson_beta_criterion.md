@@ -33,7 +33,7 @@ The implementation uses approximately $\sqrt n$ bins on $[0, 1]$.
 Expected frequencies are computed from beta CDF differences at the bin edges.
 
 ## Author(s)
-Alexey Mironov
+Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
 
 ## References
 Pearson, K. (1900): On the criterion that a given system of deviations from the probable in the case of a correlated system of variables is such that it can be reasonably supposed to have arisen from random sampling. - Philosophical Magazine, vol. 50, pp. 157-175.

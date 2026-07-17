@@ -34,7 +34,7 @@ print(statistic_result)
 The implementation uses equiprobable gamma quantile bins and passes observed and expected counts to the common chi-squared statistic implementation with the selected power-divergence parameter.
 
 ## Author(s)
-Alexey Mironov
+Sergey Golovachev, Alexey Mironov
 
 ## References
 Cressie, N. and Read, T.R.C. (1984): Multinomial goodness-of-fit tests. - Journal of the Royal Statistical Society, Series B, vol. 46, pp. 440-464.

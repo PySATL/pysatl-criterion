@@ -34,7 +34,7 @@ $$ M = -\sum_i \log(nD_i). $$
 Spacings must be strictly positive.
 
 ## Author(s)
-Alexey Mironov
+Sergey Golovachev, Alexey Mironov
 
 ## References
 Moran, P.A.P. (1951): The random division of an interval. - Journal of the Royal Statistical Society, Series B, vol. 13, pp. 147-150.

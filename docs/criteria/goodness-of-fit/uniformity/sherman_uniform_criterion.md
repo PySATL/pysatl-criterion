@@ -34,7 +34,7 @@ $$ S = \frac{1}{2}\sum_i \left|D_i - \frac{b - a}{n + 1}\right|. $$
 Large values indicate uneven spacing relative to the uniform model.
 
 ## Author(s)
-Alexey Mironov
+Aleksandr Podmarev, Alexey Mironov
 
 ## References
 Sherman, B. (1950): A random variable related to the spacing of sample values. - Annals of Mathematical Statistics, vol. 21, pp. 339-361.

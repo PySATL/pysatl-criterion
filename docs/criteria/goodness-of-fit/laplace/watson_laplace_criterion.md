@@ -34,7 +34,7 @@ The implementation computes Cramer-von Mises terms from Laplace CDF values and s
 Large values indicate stronger deviation from the Laplace model.
 
 ## Author(s)
-Alexey Mironov
+Kirill Tahmazidi, Alexey Mironov
 
 ## References
 Watson, G.S. (1961): Goodness-of-fit tests on a circle. - Biometrika, vol. 48, pp. 109-114.

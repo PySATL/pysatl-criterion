@@ -33,7 +33,7 @@ The implementation standardizes observations, evaluates clipped Student CDF valu
 CDF values are clipped to avoid logarithms of zero.
 
 ## Author(s)
-Alexey Mironov
+Dmitriy Rusanov, Alexey Mironov
 
 ## References
 Zhang, J. (2002): Powerful goodness-of-fit tests based on the likelihood ratio. - Journal of the Royal Statistical Society, Series B, vol. 64, pp. 281-294.

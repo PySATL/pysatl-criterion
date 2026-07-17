@@ -34,7 +34,7 @@ $$ h(x, y) = \frac{1}{2}\left(2\max(x, y) - 2x - 2y + x^2 + y^2\right). $$
 The returned statistic is the average of this kernel over unordered pairs.
 
 ## Author(s)
-Alexey Mironov
+Aleksandr Podmarev, Alexey Mironov
 
 ## References
 Stein, C. (1972): A bound for the error in the normal approximation to the distribution of a sum of dependent random variables. - Proceedings of the Sixth Berkeley Symposium on Mathematical Statistics and Probability, vol. 2, pp. 583-602.

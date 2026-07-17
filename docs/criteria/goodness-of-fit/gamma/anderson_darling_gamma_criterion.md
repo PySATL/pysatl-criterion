@@ -30,7 +30,7 @@ print(statistic_result)
 The implementation evaluates gamma `logcdf` and `logsf` values for the ordered sample and passes them to the common Anderson-Darling statistic implementation.
 
 ## Author(s)
-Alexey Mironov
+Sergey Golovachev, Alexey Mironov
 
 ## References
 Anderson, T.W. and Darling, D.A. (1952): Asymptotic theory of certain goodness of fit criteria based on stochastic processes. - Annals of Mathematical Statistics, vol. 23, pp. 193-212.

@@ -33,7 +33,7 @@ The bin edges are gamma quantiles, so each bin has equal theoretical probability
 Observed bin counts are compared with equal expected counts.
 
 ## Author(s)
-Alexey Mironov
+Sergey Golovachev, Alexey Mironov
 
 ## References
 Pearson, K. (1900): On the criterion that a given system of deviations from the probable in the case of a correlated system of variables is such that it can be reasonably supposed to have arisen from random sampling. - Philosophical Magazine, vol. 50, pp. 157-175.

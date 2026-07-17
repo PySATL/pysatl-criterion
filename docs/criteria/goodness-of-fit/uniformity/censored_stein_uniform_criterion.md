@@ -36,7 +36,7 @@ The implementation standardizes observations to $[0, 1]$.
 For censored data, it estimates survival with a Kaplan-Meier-style estimator and computes a weighted pairwise Stein kernel statistic over uncensored observations.
 
 ## Author(s)
-Alexey Mironov
+Aleksandr Podmarev, Alexey Mironov
 
 ## References
 Stein, C. (1972): A bound for the error in the normal approximation to the distribution of a sum of dependent random variables. - Proceedings of the Sixth Berkeley Symposium on Mathematical Statistics and Probability, vol. 2, pp. 583-602.

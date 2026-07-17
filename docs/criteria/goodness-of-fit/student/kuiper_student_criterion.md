@@ -39,7 +39,7 @@ $$ V = D^+ + D^- $$
 where $D^+$ and $D^-$ are one-sided deviations between empirical plotting positions and Student CDF values.
 
 ## Author(s)
-Alexey Mironov
+Dmitriy Rusanov, Alexey Mironov
 
 ## References
 Kuiper, N.H. (1960): Tests concerning random points on a circle. - Proceedings of the Koninklijke Nederlandse Akademie van Wetenschappen, Series A, vol. 63, pp. 38-47.

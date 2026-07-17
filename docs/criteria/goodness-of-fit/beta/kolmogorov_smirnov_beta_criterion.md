@@ -41,7 +41,7 @@ $$ F_0(x) = I_x(\alpha, \beta), \quad 0 \le x \le 1. $$
 The transformed values are passed to the common Kolmogorov-Smirnov statistic implementation.
 
 ## Author(s)
-Alexey Mironov
+Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
 
 ## References
 Kolmogorov, A.N. (1933): Sulla determinazione empirica di una legge di distribuzione. - Giornale dell'Istituto Italiano degli Attuari, vol. 4, pp. 83-91.

@@ -34,7 +34,7 @@ $$ G = \sum_i D_i^2. $$
 Large values are associated with uneven spacings.
 
 ## Author(s)
-Alexey Mironov
+Aleksandr Podmarev, Alexey Mironov
 
 ## References
 Greenwood, M. (1946): The statistical study of infectious diseases. - Journal of the Royal Statistical Society, Series A, vol. 109, pp. 85-110.

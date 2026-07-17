@@ -37,7 +37,7 @@ $$ A_n^2 = -n - \sum_{i=1}^{n}\frac{2i - 1}{n}\left(\log F_0(X_{(i)}) + \log(1 -
 Large values indicate stronger deviation from the beta model.
 
 ## Author(s)
-Alexey Mironov
+Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
 
 ## References
 Anderson, T.W. and Darling, D.A. (1952): Asymptotic theory of certain goodness of fit criteria based on stochastic processes. - Annals of Mathematical Statistics, vol. 23, pp. 193-212.

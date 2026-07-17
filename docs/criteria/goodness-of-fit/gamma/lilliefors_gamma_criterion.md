@@ -34,7 +34,7 @@ $$ \hat\alpha = \frac{\bar X^2}{S^2}, \quad \hat\theta = \frac{S^2}{\bar X}. $$
 The sorted sample is then transformed by the estimated gamma cumulative distribution function.
 
 ## Author(s)
-Alexey Mironov
+Sergey Golovachev, Alexey Mironov
 
 ## References
 Lilliefors, H.W. (1967): On the Kolmogorov-Smirnov test for normality with mean and variance unknown. - Journal of the American Statistical Association, vol. 62, pp. 399-402.

@@ -38,7 +38,7 @@ The implementation evaluates `logcdf` and `logsf` for ordered observations and p
 Large values indicate stronger deviation from the uniform model.
 
 ## Author(s)
-Alexey Mironov
+Aleksandr Podmarev, Alexey Mironov
 
 ## References
 Anderson, T.W. and Darling, D.A. (1952): Asymptotic theory of certain goodness of fit criteria based on stochastic processes. - Annals of Mathematical Statistics, vol. 23, pp. 193-212.

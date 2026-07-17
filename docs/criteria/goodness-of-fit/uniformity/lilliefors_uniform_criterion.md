@@ -34,7 +34,7 @@ $$ F_0(x) = \frac{x - a}{b - a}. $$
 The transformed values are passed to the common Lilliefors statistic implementation.
 
 ## Author(s)
-Alexey Mironov
+Aleksandr Podmarev, Alexey Mironov
 
 ## References
 Lilliefors, H.W. (1967): On the Kolmogorov-Smirnov test for normality with mean and variance unknown. - Journal of the American Statistical Association, vol. 62, pp. 399-402.

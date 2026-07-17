@@ -32,7 +32,7 @@ print(statistic_result)
 The implementation standardizes observations, evaluates clipped Student CDF values, and computes Zhang's $Z_A$ statistic from weighted log-CDF and log-survival terms.
 
 ## Author(s)
-Alexey Mironov
+Dmitriy Rusanov, Alexey Mironov
 
 ## References
 Zhang, J. (2002): Powerful goodness-of-fit tests based on the likelihood ratio. - Journal of the Royal Statistical Society, Series B, vol. 64, pp. 281-294.

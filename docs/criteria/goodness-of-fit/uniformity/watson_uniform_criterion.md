@@ -34,7 +34,7 @@ $$ U^2 = \frac{1}{n}\sum_{i=1}^{n}\left(U_{(i)} - \frac{i}{n} + \frac{1}{2n} - \
 Large values indicate stronger deviation from the uniform model.
 
 ## Author(s)
-Alexey Mironov
+Aleksandr Podmarev, Alexey Mironov
 
 ## References
 Watson, G.S. (1961): Goodness-of-fit tests on a circle. - Biometrika, vol. 48, pp. 109-114.

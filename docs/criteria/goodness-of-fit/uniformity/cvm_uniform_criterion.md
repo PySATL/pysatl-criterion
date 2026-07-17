@@ -38,7 +38,7 @@ where $X_{(i)}$ is the $i$-th order statistic and $F_0$ is the reference uniform
 Large values indicate stronger deviation from the uniform model.
 
 ## Author(s)
-Alexey Mironov
+Aleksandr Podmarev, Alexey Mironov
 
 ## References
 Cramer, H. (1928): On the composition of elementary errors. - Skandinavisk Aktuarietidskrift, vol. 11, pp. 141-180.

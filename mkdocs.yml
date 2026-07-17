@@ -126,6 +126,48 @@ nav:
                 - Laplace transform 2: criteria/goodness-of-fit/weibull/laplace_transform2_weibull_criterion.md
                 - Laplace transform 3: criteria/goodness-of-fit/weibull/laplace_transform3_weibull_criterion.md
                 - Cabana-Quiroz: criteria/goodness-of-fit/weibull/cabana_quiroz_weibull_criterion.md
+            - Log-normal distribution:
+                - Kolmogorov-Smirnov: criteria/goodness-of-fit/log-normal/kolmogorov_smirnov_log_normal_criterion.md
+                - Cramer-von Mises: criteria/goodness-of-fit/log-normal/cvm_log_normal_criterion.md
+                - Quesenberry-Miller: criteria/goodness-of-fit/log-normal/quesenberry_miller_log_normal_criterion.md
+                - KL supremum: criteria/goodness-of-fit/log-normal/kl_supremum_log_normal_criterion.md
+                - KL integral: criteria/goodness-of-fit/log-normal/kl_integral_log_normal_criterion.md
+                - Anderson-Darling: criteria/goodness-of-fit/log-normal/anderson_darling_log_normal_criterion.md
+                - Bonett-Seier: criteria/goodness-of-fit/log-normal/bonett_seier_log_normal_criterion.md
+                - Bontemps-Meddahi1: criteria/goodness-of-fit/log-normal/bontemps_meddahi1_log_normal_criterion.md
+                - Bontemps-Meddahi2: criteria/goodness-of-fit/log-normal/bontemps_meddahi2_log_normal_criterion.md
+                - Cabana-Cabana1: criteria/goodness-of-fit/log-normal/cabana_cabana1_log_normal_criterion.md
+                - Cabana-Cabana2: criteria/goodness-of-fit/log-normal/cabana_cabana2_log_normal_criterion.md
+                - Chen-Shapiro: criteria/goodness-of-fit/log-normal/chen_shapiro_log_normal_criterion.md
+                - Coin: criteria/goodness-of-fit/log-normal/coin_log_normal_criterion.md
+                - D'Agostino-Pearson: criteria/goodness-of-fit/log-normal/dagostino_pearson_log_normal_criterion.md
+                - D'Agostino: criteria/goodness-of-fit/log-normal/dagostino_log_normal_criterion.md
+                - Desgagne-Lafaye: criteria/goodness-of-fit/log-normal/desgagne_lafaye_log_normal_criterion.md
+                - Doornik-Hansen: criteria/goodness-of-fit/log-normal/doornik_hansen_log_normal_criterion.md
+                - Epps-Pulley: criteria/goodness-of-fit/log-normal/epps_pulley_log_normal_criterion.md
+                - Filliben: criteria/goodness-of-fit/log-normal/filliben_log_normal_criterion.md
+                - GMG: criteria/goodness-of-fit/log-normal/gmg_log_normal_criterion.md
+                - Glen-Leemis-Barr: criteria/goodness-of-fit/log-normal/glen_leemis_barr_log_normal_criterion.md
+                - Hosking1: criteria/goodness-of-fit/log-normal/hosking1_log_normal_criterion.md
+                - Hosking2: criteria/goodness-of-fit/log-normal/hosking2_log_normal_criterion.md
+                - Hosking3: criteria/goodness-of-fit/log-normal/hosking3_log_normal_criterion.md
+                - Hosking4: criteria/goodness-of-fit/log-normal/hosking4_log_normal_criterion.md
+                - Jarque-Bera: criteria/goodness-of-fit/log-normal/jarque_bera_log_normal_criterion.md
+                - Kurtosis: criteria/goodness-of-fit/log-normal/kurtosis_log_normal_criterion.md
+                - Lilliefors: criteria/goodness-of-fit/log-normal/lilliefors_log_normal_criterion.md
+                - Looney-Gulledge: criteria/goodness-of-fit/log-normal/looney_gulledge_log_normal_criterion.md
+                - Martinez-Iglewicz: criteria/goodness-of-fit/log-normal/martinez_iglewicz_log_normal_criterion.md
+                - Robust Jarque-Bera: criteria/goodness-of-fit/log-normal/robust_jarque_bera_log_normal_criterion.md
+                - Ryan-Joiner: criteria/goodness-of-fit/log-normal/ryan_joiner_log_normal_criterion.md
+                - SF: criteria/goodness-of-fit/log-normal/sf_log_normal_criterion.md
+                - SWRG: criteria/goodness-of-fit/log-normal/swrg_log_normal_criterion.md
+                - Shapiro-Wilk: criteria/goodness-of-fit/log-normal/shapiro_wilk_log_normal_criterion.md
+                - Skewness: criteria/goodness-of-fit/log-normal/skew_log_normal_criterion.md
+                - Spiegelhalter: criteria/goodness-of-fit/log-normal/spiegelhalter_log_normal_criterion.md
+                - Zhang Q: criteria/goodness-of-fit/log-normal/zhang_q_log_normal_criterion.md
+                - Zhang Q-star: criteria/goodness-of-fit/log-normal/zhang_q_star_log_normal_criterion.md
+                - Zhang-Wu A: criteria/goodness-of-fit/log-normal/zhang_wu_a_log_normal_criterion.md
+                - Zhang-Wu C: criteria/goodness-of-fit/log-normal/zhang_wu_c_log_normal_criterion.md
             - Normality:
                 - Kolmogorov-Smirnov: criteria/goodness-of-fit/normality/kolmogorov_smirnov_normality_criterion.md
                 - Anderson-Darling: criteria/goodness-of-fit/normality/anderson_darling_normality_criterion.md

@@ -31,7 +31,7 @@ The implementation computes plotting positions, evaluates theoretical gamma quan
 Values near zero indicate stronger linear alignment with the gamma model.
 
 ## Author(s)
-Alexey Mironov
+Sergey Golovachev, Alexey Mironov
 
 ## References
 Filliben, J.J. (1975): The probability plot correlation coefficient test for normality. - Technometrics, vol. 17, pp. 111-117.

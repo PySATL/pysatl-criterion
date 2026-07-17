@@ -41,7 +41,7 @@ $$ F_0(x) = F_{\mathrm{Laplace}(t, s)}(x) $$
 for the ordered observations and passes these values to the common Kolmogorov-Smirnov statistic implementation.
 
 ## Author(s)
-Alexey Mironov
+Kirill Tahmazidi, Alexey Mironov
 
 ## References
 Kolmogorov, A.N. (1933): Sulla determinazione empirica di una legge di distribuzione. - Giornale dell'Istituto Italiano degli Attuari, vol. 4, pp. 83-91.

@@ -38,7 +38,7 @@ $$ Var(X) = \frac{\alpha\beta}{(\alpha + \beta)^2(\alpha + \beta + 1)}. $$
 The implementation combines squared standardized differences for the sample mean and sample variance.
 
 ## Author(s)
-Alexey Mironov
+Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
 
 ## References
 The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.beta`.

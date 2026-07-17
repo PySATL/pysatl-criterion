@@ -31,7 +31,7 @@ The implementation computes sample skewness and kurtosis and compares them with 
 The squared differences are combined in a Jarque-Bera-like statistic.
 
 ## Author(s)
-Alexey Mironov
+Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
 
 ## References
 The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.beta`.

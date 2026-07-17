@@ -36,7 +36,7 @@ For $m$ bins and sample size $n$, each bin has expected count $n / m$ under the 
 The observed and expected counts are passed to the common chi-squared statistic implementation.
 
 ## Author(s)
-Alexey Mironov
+Aleksandr Podmarev, Alexey Mironov
 
 ## References
 Pearson, K. (1900): On the criterion that a given system of deviations from the probable in the case of a correlated system of variables is such that it can be reasonably supposed to have arisen from random sampling. - Philosophical Magazine, vol. 50, pp. 157-175.

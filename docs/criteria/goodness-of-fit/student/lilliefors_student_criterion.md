@@ -29,7 +29,7 @@ The sorted sample is transformed with the Student cumulative distribution functi
 The transformed values are passed to the common Lilliefors statistic implementation.
 
 ## Author(s)
-Alexey Mironov
+Dmitriy Rusanov, Alexey Mironov
 
 ## References
 Lilliefors, H.W. (1967): On the Kolmogorov-Smirnov test for normality with mean and variance unknown. - Journal of the American Statistical Association, vol. 62, pp. 399-402.

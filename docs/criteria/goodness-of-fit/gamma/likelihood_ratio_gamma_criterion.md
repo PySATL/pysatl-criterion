@@ -32,7 +32,7 @@ print(statistic_result)
 The implementation uses equiprobable gamma quantile bins and the power-divergence statistic with `lambda = 0`.
 
 ## Author(s)
-Alexey Mironov
+Sergey Golovachev, Alexey Mironov
 
 ## References
 Wilks, S.S. (1935): The likelihood test of independence in contingency tables. - Annals of Mathematical Statistics, vol. 6, pp. 190-196.

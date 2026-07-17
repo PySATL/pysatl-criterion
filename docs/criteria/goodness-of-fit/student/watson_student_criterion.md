@@ -37,7 +37,7 @@ The implementation computes Cramer-von Mises terms from Student CDF values and s
 $$ n\left(\bar F_0 - \frac{1}{2}\right)^2. $$
 
 ## Author(s)
-Alexey Mironov
+Dmitriy Rusanov, Alexey Mironov
 
 ## References
 Watson, G.S. (1961): Goodness-of-fit tests on a circle. - Biometrika, vol. 48, pp. 109-114.

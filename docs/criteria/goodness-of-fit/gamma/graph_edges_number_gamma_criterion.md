@@ -30,7 +30,7 @@ print(statistic_result)
 The sample is transformed to gamma CDF values. A proximity graph is built on the transformed values, and the statistic is the number of undirected edges.
 
 ## Author(s)
-Alexey Mironov
+Sergey Golovachev, Alexey Mironov
 
 ## References
 The statistic follows the graph-based implementation in `pysatl_criterion.statistics.goodness_of_fit.gamma`.

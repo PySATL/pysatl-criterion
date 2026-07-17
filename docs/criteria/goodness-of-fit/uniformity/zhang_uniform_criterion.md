@@ -33,7 +33,7 @@ The implementation standardizes ordered observations to $U_{(i)} \in [0, 1]$ and
 Large values indicate stronger deviation from the uniform model.
 
 ## Author(s)
-Alexey Mironov
+Aleksandr Podmarev, Alexey Mironov
 
 ## References
 Zhang, J. (2002): Powerful goodness-of-fit tests based on the likelihood ratio. - Journal of the Royal Statistical Society, Series B, vol. 64, pp. 281-294.

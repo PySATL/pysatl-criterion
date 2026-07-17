@@ -33,7 +33,7 @@ The implementation uses a Vasicek-style spacing entropy estimator on the sorted 
 It compares this estimate with the theoretical beta entropy computed from `betaln` and digamma terms.
 
 ## Author(s)
-Alexey Mironov
+Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
 
 ## References
 Vasicek, O. (1976): A test for normality based on sample entropy. - Journal of the Royal Statistical Society, Series B, vol. 38, pp. 54-59.

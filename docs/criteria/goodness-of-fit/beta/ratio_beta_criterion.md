@@ -39,7 +39,7 @@ $$ E[\log X] = \psi(\alpha) - \psi(\alpha + \beta), $$
 where $\psi$ is the digamma function.
 
 ## Author(s)
-Alexey Mironov
+Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
 
 ## References
 The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.beta`.

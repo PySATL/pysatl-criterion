@@ -34,7 +34,7 @@ $$ \frac{\alpha - 1}{\alpha + \beta - 2}. $$
 The implementation estimates the sample mode with a Gaussian kernel density estimate on a grid and returns a scaled absolute difference from the theoretical mode.
 
 ## Author(s)
-Alexey Mironov
+Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
 
 ## References
 The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.beta`.

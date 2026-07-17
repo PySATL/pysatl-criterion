@@ -37,7 +37,7 @@ $$ W_n^2 = \frac{1}{12n} + \sum_{i=1}^{n} \left(F_0(X_{(i)}) - \frac{2i - 1}{2n}
 where $F_0$ is the reference Laplace cumulative distribution function.
 
 ## Author(s)
-Alexey Mironov
+Kirill Tahmazidi, Alexey Mironov
 
 ## References
 Cramer, H. (1928): On the composition of elementary errors. - Skandinavisk Aktuarietidskrift, vol. 11, pp. 141-180.

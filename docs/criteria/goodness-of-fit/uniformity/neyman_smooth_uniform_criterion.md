@@ -36,7 +36,7 @@ $$ \sum_{j=1}^{k} V_j^2, \quad V_j = \frac{1}{\sqrt n}\sum_{i=1}^{n}\phi_j(U_i).
 The first components are implemented explicitly, and higher-order components use Legendre polynomials.
 
 ## Author(s)
-Alexey Mironov
+Aleksandr Podmarev, Alexey Mironov
 
 ## References
 Neyman, J. (1937): Smooth test for goodness of fit. - Skandinavisk Aktuarietidskrift, vol. 20, pp. 149-199.

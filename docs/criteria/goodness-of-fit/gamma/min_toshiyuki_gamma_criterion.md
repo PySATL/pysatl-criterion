@@ -30,7 +30,7 @@ print(statistic_result)
 The implementation transforms observations with the gamma cumulative distribution function and passes the resulting values to the common Min-Toshiyuki statistic implementation.
 
 ## Author(s)
-Alexey Mironov
+Sergey Golovachev, Alexey Mironov
 
 ## References
 The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.gamma`.

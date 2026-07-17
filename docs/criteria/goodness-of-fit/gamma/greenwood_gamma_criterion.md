@@ -32,7 +32,7 @@ The implementation computes spacings $D_i$ between consecutive gamma CDF values 
 $$ G = \sum_i D_i^2. $$
 
 ## Author(s)
-Alexey Mironov
+Sergey Golovachev, Alexey Mironov
 
 ## References
 Greenwood, M. (1946): The statistical study of infectious diseases. - Journal of the Royal Statistical Society, Series A, vol. 109, pp. 85-110.

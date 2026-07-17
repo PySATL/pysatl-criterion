@@ -34,7 +34,7 @@ $$ Q = \sum_i D_i^2 + \sum_i D_iD_{i+1}. $$
 Large values indicate stronger deviation from the uniform spacing pattern.
 
 ## Author(s)
-Alexey Mironov
+Aleksandr Podmarev, Alexey Mironov
 
 ## References
 Quesenberry, C.P. and Miller, F.L. (1977): Power studies of some tests for uniformity. - Journal of Statistical Computation and Simulation, vol. 5, pp. 169-191.

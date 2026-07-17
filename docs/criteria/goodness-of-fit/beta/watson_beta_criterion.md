@@ -34,7 +34,7 @@ $$ n\left(\bar F_0 - \frac{1}{2}\right)^2. $$
 Large values indicate stronger deviation from the beta model.
 
 ## Author(s)
-Alexey Mironov
+Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
 
 ## References
 Watson, G.S. (1961): Goodness-of-fit tests on a circle. - Biometrika, vol. 48, pp. 109-114.

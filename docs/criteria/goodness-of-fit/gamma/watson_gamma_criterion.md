@@ -31,7 +31,7 @@ The implementation computes Cramer-von Mises terms from gamma CDF values and sub
 Large values indicate stronger deviation from the gamma model.
 
 ## Author(s)
-Alexey Mironov
+Sergey Golovachev, Alexey Mironov
 
 ## References
 Watson, G.S. (1961): Goodness-of-fit tests on a circle. - Biometrika, vol. 48, pp. 109-114.

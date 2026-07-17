@@ -41,7 +41,7 @@ $$ Z_i = \frac{X_{(i)} - loc}{scale} $$
 and evaluates the Student CDF with `df` degrees of freedom.
 
 ## Author(s)
-Alexey Mironov
+Dmitriy Rusanov, Alexey Mironov
 
 ## References
 Kolmogorov, A.N. (1933): Sulla determinazione empirica di una legge di distribuzione. - Giornale dell'Istituto Italiano degli Attuari, vol. 4, pp. 83-91.
