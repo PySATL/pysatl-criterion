@@ -51,6 +51,52 @@ nav:
                 - Neyman smooth: criteria/goodness-of-fit/uniformity/neyman_smooth_uniform_criterion.md
                 - Sherman: criteria/goodness-of-fit/uniformity/sherman_uniform_criterion.md
                 - Quesenberry-Miller: criteria/goodness-of-fit/uniformity/quesenberry_miller_uniform_criterion.md
+            - Normality:
+                - Kolmogorov-Smirnov: criteria/goodness-of-fit/normality/kolmogorov_smirnov_normality_criterion.md
+                - Anderson-Darling: criteria/goodness-of-fit/normality/anderson_darling_normality_criterion.md
+                - Shapiro-Wilk: criteria/goodness-of-fit/normality/shapiro_wilk_normality_criterion.md
+                - Cramer-von Mises: criteria/goodness-of-fit/normality/cvm_normality_criterion.md
+                - Lilliefors: criteria/goodness-of-fit/normality/lilliefors_normality_criterion.md
+                - Jarque-Bera: criteria/goodness-of-fit/normality/jarque_bera_normality_criterion.md
+                - Skewness: criteria/goodness-of-fit/normality/skew_normality_criterion.md
+                - Kurtosis: criteria/goodness-of-fit/normality/kurtosis_normality_criterion.md
+                - D'Agostino-Pearson: criteria/goodness-of-fit/normality/dagostino_pearson_normality_criterion.md
+                - Filliben: criteria/goodness-of-fit/normality/filliben_normality_criterion.md
+                - Looney-Gulledge: criteria/goodness-of-fit/normality/looney_gulledge_normality_criterion.md
+                - Ryan-Joiner: criteria/goodness-of-fit/normality/ryan_joiner_normality_criterion.md
+                - SF: criteria/goodness-of-fit/normality/sf_normality_criterion.md
+                - Epps-Pulley: criteria/goodness-of-fit/normality/epps_pulley_normality_criterion.md
+                - Hosking1: criteria/goodness-of-fit/normality/hosking1_normality_criterion.md
+                - Hosking2: criteria/goodness-of-fit/normality/hosking2_normality_criterion.md
+                - Hosking3: criteria/goodness-of-fit/normality/hosking3_normality_criterion.md
+                - Hosking4: criteria/goodness-of-fit/normality/hosking4_normality_criterion.md
+                - Zhang-Wu C: criteria/goodness-of-fit/normality/zhang_wu_c_normality_criterion.md
+                - Zhang-Wu A: criteria/goodness-of-fit/normality/zhang_wu_a_normality_criterion.md
+                - Glen-Leemis-Barr: criteria/goodness-of-fit/normality/glen_leemis_barr_normality_criterion.md
+                - Doornik-Hansen: criteria/goodness-of-fit/normality/doornik_hansen_normality_criterion.md
+                - Robust Jarque-Bera: criteria/goodness-of-fit/normality/robust_jarque_bera_normality_criterion.md
+                - Bontemps-Meddahi1: criteria/goodness-of-fit/normality/bontemps_meddahi1_normality_criterion.md
+                - Bontemps-Meddahi2: criteria/goodness-of-fit/normality/bontemps_meddahi2_normality_criterion.md
+                - Bonett-Seier: criteria/goodness-of-fit/normality/bonett_seier_normality_criterion.md
+                - Martinez-Iglewicz: criteria/goodness-of-fit/normality/martinez_iglewicz_normality_criterion.md
+                - Cabana-Cabana1: criteria/goodness-of-fit/normality/cabana_cabana1_normality_criterion.md
+                - Cabana-Cabana2: criteria/goodness-of-fit/normality/cabana_cabana2_normality_criterion.md
+                - Chen-Shapiro: criteria/goodness-of-fit/normality/chen_shapiro_normality_criterion.md
+                - Zhang Q: criteria/goodness-of-fit/normality/zhang_q_normality_criterion.md
+                - Coin: criteria/goodness-of-fit/normality/coin_normality_criterion.md
+                - D'Agostino: criteria/goodness-of-fit/normality/dagostino_normality_criterion.md
+                - Zhang Q-star: criteria/goodness-of-fit/normality/zhang_q_star_normality_criterion.md
+                - SWRG: criteria/goodness-of-fit/normality/swrg_normality_criterion.md
+                - GMG: criteria/goodness-of-fit/normality/gmg_normality_criterion.md
+                - BHS: criteria/goodness-of-fit/normality/bhs_normality_criterion.md
+                - Spiegelhalter: criteria/goodness-of-fit/normality/spiegelhalter_normality_criterion.md
+                - Desgagne-Lafaye: criteria/goodness-of-fit/normality/desgagne_lafaye_normality_criterion.md
+                - Graph edges number: criteria/goodness-of-fit/normality/graph_edges_number_normality_criterion.md
+                - Graph max degree: criteria/goodness-of-fit/normality/graph_max_degree_normality_criterion.md
+                - Graph average degree: criteria/goodness-of-fit/normality/graph_average_degree_normality_criterion.md
+                - Graph connected components: criteria/goodness-of-fit/normality/graph_connected_components_normality_criterion.md
+                - Graph clique number: criteria/goodness-of-fit/normality/graph_clique_number_normality_criterion.md
+                - Graph independence number: criteria/goodness-of-fit/normality/graph_independence_number_normality_criterion.md
 theme:
   name: material
   logo: "images/logo.jpeg"
