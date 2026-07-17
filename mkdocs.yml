@@ -9,32 +9,32 @@ nav:
     - Criteria:
         - Goodness-of-fit:
             - Exponentiality:
-                - Epps and Pulley: epps_pulley_exp_criterion.md
-                - Kolmogorov-Smirnov: kolmogorov_smirnov_exp_criterion.md
-                - Wong and Wong: wong_wong_exp_criterion.md
-                - WE: we_exp_criterion.md
-                - Ahsanullah: ahsanullah_exp_criterion.md
-                - Atkinson: atkinson_exp_criterion.md
-                - Cox and Oakes: cox_oakes_exp_criterion.md
-                - Cramer-von Mises: cvm_exp_criterion.md
-                - Deshpande: deshpande_exp_criterion.md
-                - Epstein: epstein_exp_criterion.md
-                - Frozini: frozini_exp_criterion.md
-                - Gini: gini_exp_criterion.md
-                - Gnedenko: gnedenko_exp_criterion.md
-                - Harris: harris_exp_criterion.md
-                - Hegazy1: hegazy1_exp_criterion.md
-                - Hegazy2: hegazy2_exp_criterion.md
-                - Holander-Proshan: holander_proshan_exp_criterion.md
-                - Kimber-Michael: kimber_michael_exp_criterion.md
-                - Kochar: kochar_exp_criterion.md
-                - Lorenz: lorenz_exp_criterion.md
-                - Moran: moran_exp_criterion.md
-                - Pietra: pietra_exp_criterion.md
-                - Shapiro-Wilk: shapiro_wilk_exp_criterion.md
-                - Rossberg: rossberg_exp_criterion.md
-                - Graph edges number: graph_edges_number_exp_criterion.md
-                - Graph max degree: graph_max_degree_exp_criterion.md
+                - Epps and Pulley: criteria/goodness-of-fit/exponentiality/epps_pulley_exp_criterion.md
+                - Kolmogorov-Smirnov: criteria/goodness-of-fit/exponentiality/kolmogorov_smirnov_exp_criterion.md
+                - Wong and Wong: criteria/goodness-of-fit/exponentiality/wong_wong_exp_criterion.md
+                - WE: criteria/goodness-of-fit/exponentiality/we_exp_criterion.md
+                - Ahsanullah: criteria/goodness-of-fit/exponentiality/ahsanullah_exp_criterion.md
+                - Atkinson: criteria/goodness-of-fit/exponentiality/atkinson_exp_criterion.md
+                - Cox and Oakes: criteria/goodness-of-fit/exponentiality/cox_oakes_exp_criterion.md
+                - Cramer-von Mises: criteria/goodness-of-fit/exponentiality/cvm_exp_criterion.md
+                - Deshpande: criteria/goodness-of-fit/exponentiality/deshpande_exp_criterion.md
+                - Epstein: criteria/goodness-of-fit/exponentiality/epstein_exp_criterion.md
+                - Frozini: criteria/goodness-of-fit/exponentiality/frozini_exp_criterion.md
+                - Gini: criteria/goodness-of-fit/exponentiality/gini_exp_criterion.md
+                - Gnedenko: criteria/goodness-of-fit/exponentiality/gnedenko_exp_criterion.md
+                - Harris: criteria/goodness-of-fit/exponentiality/harris_exp_criterion.md
+                - Hegazy1: criteria/goodness-of-fit/exponentiality/hegazy1_exp_criterion.md
+                - Hegazy2: criteria/goodness-of-fit/exponentiality/hegazy2_exp_criterion.md
+                - Holander-Proshan: criteria/goodness-of-fit/exponentiality/holander_proshan_exp_criterion.md
+                - Kimber-Michael: criteria/goodness-of-fit/exponentiality/kimber_michael_exp_criterion.md
+                - Kochar: criteria/goodness-of-fit/exponentiality/kochar_exp_criterion.md
+                - Lorenz: criteria/goodness-of-fit/exponentiality/lorenz_exp_criterion.md
+                - Moran: criteria/goodness-of-fit/exponentiality/moran_exp_criterion.md
+                - Pietra: criteria/goodness-of-fit/exponentiality/pietra_exp_criterion.md
+                - Shapiro-Wilk: criteria/goodness-of-fit/exponentiality/shapiro_wilk_exp_criterion.md
+                - Rossberg: criteria/goodness-of-fit/exponentiality/rossberg_exp_criterion.md
+                - Graph edges number: criteria/goodness-of-fit/exponentiality/graph_edges_number_exp_criterion.md
+                - Graph max degree: criteria/goodness-of-fit/exponentiality/graph_max_degree_exp_criterion.md
 theme:
   name: material
   logo: "images/logo.jpeg"
