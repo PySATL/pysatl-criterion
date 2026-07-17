@@ -51,6 +51,19 @@ nav:
                 - Neyman smooth: criteria/goodness-of-fit/uniformity/neyman_smooth_uniform_criterion.md
                 - Sherman: criteria/goodness-of-fit/uniformity/sherman_uniform_criterion.md
                 - Quesenberry-Miller: criteria/goodness-of-fit/uniformity/quesenberry_miller_uniform_criterion.md
+            - Beta distribution:
+                - Kolmogorov-Smirnov: criteria/goodness-of-fit/beta/kolmogorov_smirnov_beta_criterion.md
+                - Anderson-Darling: criteria/goodness-of-fit/beta/anderson_darling_beta_criterion.md
+                - Cramer-von Mises: criteria/goodness-of-fit/beta/cvm_beta_criterion.md
+                - Lilliefors: criteria/goodness-of-fit/beta/lilliefors_beta_criterion.md
+                - Pearson chi-squared: criteria/goodness-of-fit/beta/chi2_pearson_beta_criterion.md
+                - Watson: criteria/goodness-of-fit/beta/watson_beta_criterion.md
+                - Kuiper: criteria/goodness-of-fit/beta/kuiper_beta_criterion.md
+                - Moment-based: criteria/goodness-of-fit/beta/moment_based_beta_criterion.md
+                - Skewness-kurtosis: criteria/goodness-of-fit/beta/skewness_kurtosis_beta_criterion.md
+                - Ratio: criteria/goodness-of-fit/beta/ratio_beta_criterion.md
+                - Entropy: criteria/goodness-of-fit/beta/entropy_beta_criterion.md
+                - Mode: criteria/goodness-of-fit/beta/mode_beta_criterion.md
             - Normality:
                 - Kolmogorov-Smirnov: criteria/goodness-of-fit/normality/kolmogorov_smirnov_normality_criterion.md
                 - Anderson-Darling: criteria/goodness-of-fit/normality/anderson_darling_normality_criterion.md
