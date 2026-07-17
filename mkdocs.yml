@@ -101,6 +101,31 @@ nav:
                 - Zhang Za: criteria/goodness-of-fit/student/zhang_za_student_criterion.md
                 - Lilliefors: criteria/goodness-of-fit/student/lilliefors_student_criterion.md
                 - Chi-square: criteria/goodness-of-fit/student/chi_square_student_criterion.md
+            - Weibull distribution:
+                - Min-Toshiyuki: criteria/goodness-of-fit/weibull/min_toshiyuki_weibull_criterion.md
+                - Pearson chi-squared: criteria/goodness-of-fit/weibull/chi2_pearson_weibull_criterion.md
+                - Lilliefors: criteria/goodness-of-fit/weibull/lilliefors_weibull_criterion.md
+                - Cramer-von Mises: criteria/goodness-of-fit/weibull/cvm_weibull_criterion.md
+                - Anderson-Darling: criteria/goodness-of-fit/weibull/anderson_darling_weibull_criterion.md
+                - Kolmogorov-Smirnov: criteria/goodness-of-fit/weibull/kolmogorov_smirnov_weibull_criterion.md
+                - Sb: criteria/goodness-of-fit/weibull/sb_weibull_criterion.md
+                - ST2: criteria/goodness-of-fit/weibull/st2_weibull_criterion.md
+                - ST1: criteria/goodness-of-fit/weibull/st1_weibull_criterion.md
+                - RSB: criteria/goodness-of-fit/weibull/rsb_weibull_criterion.md
+                - Tiku-Singh: criteria/goodness-of-fit/weibull/tiku_singh_weibull_criterion.md
+                - Lockhart-OReilly-Stephens: criteria/goodness-of-fit/weibull/los_weibull_criterion.md
+                - Mann-Scheuer-Fertig: criteria/goodness-of-fit/weibull/msf_weibull_criterion.md
+                - Ozturk-Korukoglu: criteria/goodness-of-fit/weibull/ok_weibull_criterion.md
+                - SB WPP: criteria/goodness-of-fit/weibull/sb_wpp_weibull_criterion.md
+                - Evans-Johnson-Green: criteria/goodness-of-fit/weibull/rejg_weibull_criterion.md
+                - Stabilized probability plot: criteria/goodness-of-fit/weibull/spp_weibull_criterion.md
+                - Mahdi-Doostparast: criteria/goodness-of-fit/weibull/mahdi_doostparast_weibull_criterion.md
+                - Watson: criteria/goodness-of-fit/weibull/watson_weibull_criterion.md
+                - Liao-Shimokawa: criteria/goodness-of-fit/weibull/liao_shimokawa_weibull_criterion.md
+                - Kullback-Leibler: criteria/goodness-of-fit/weibull/kullback_leibler_weibull_criterion.md
+                - Laplace transform 2: criteria/goodness-of-fit/weibull/laplace_transform2_weibull_criterion.md
+                - Laplace transform 3: criteria/goodness-of-fit/weibull/laplace_transform3_weibull_criterion.md
+                - Cabana-Quiroz: criteria/goodness-of-fit/weibull/cabana_quiroz_weibull_criterion.md
             - Normality:
                 - Kolmogorov-Smirnov: criteria/goodness-of-fit/normality/kolmogorov_smirnov_normality_criterion.md
                 - Anderson-Darling: criteria/goodness-of-fit/normality/anderson_darling_normality_criterion.md
