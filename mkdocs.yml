@@ -84,6 +84,13 @@ nav:
                 - Graph connected components: criteria/goodness-of-fit/gamma/graph_connected_components_gamma_criterion.md
                 - Graph clique number: criteria/goodness-of-fit/gamma/graph_clique_number_gamma_criterion.md
                 - Graph independence number: criteria/goodness-of-fit/gamma/graph_independence_number_gamma_criterion.md
+            - Laplace distribution:
+                - Kolmogorov-Smirnov: criteria/goodness-of-fit/laplace/kolmogorov_smirnov_laplace_criterion.md
+                - Cramer-von Mises: criteria/goodness-of-fit/laplace/cvm_laplace_criterion.md
+                - Anderson-Darling: criteria/goodness-of-fit/laplace/anderson_darling_laplace_criterion.md
+                - Kuiper: criteria/goodness-of-fit/laplace/kuiper_laplace_criterion.md
+                - Watson: criteria/goodness-of-fit/laplace/watson_laplace_criterion.md
+                - Greenwood: criteria/goodness-of-fit/laplace/greenwood_laplace_criterion.md
             - Normality:
                 - Kolmogorov-Smirnov: criteria/goodness-of-fit/normality/kolmogorov_smirnov_normality_criterion.md
                 - Anderson-Darling: criteria/goodness-of-fit/normality/anderson_darling_normality_criterion.md
