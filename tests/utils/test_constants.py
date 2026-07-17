@@ -14,10 +14,7 @@ def test_database_urls_use_defaults_when_environment_is_missing(monkeypatch):
     constants = reload_constants()
 
     assert constants.LOCAL_PYSATL_URL == "sqlite:///pysatl.sqlite"
-    assert (
-        constants.REMOTE_PYSATL_URL
-        == "postgresql://postgres:postgres@db.pysatl.com:5432/pysatl"
-    )
+    assert constants.REMOTE_PYSATL_URL == "postgresql://postgres:postgres@db.pysatl.com:5432/pysatl"
 
 
 def test_database_urls_use_environment_values(monkeypatch):
