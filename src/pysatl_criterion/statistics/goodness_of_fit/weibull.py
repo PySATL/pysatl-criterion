@@ -262,7 +262,7 @@ class AndersonDarlingWeibullGofStatistic(AbstractWeibullGofStatistic, ADStatisti
         logcdf = distributions.gumbel_l.logcdf(w)
         logsf = distributions.gumbel_l.logsf(w)
 
-        return super().do_execute_statistic(rvs, log_cdf=logcdf, log_sf=logsf, w=w)
+        return super().do_execute_statistic(rvs, log_cdf=logcdf, log_sf=logsf)
 
 
 class KolmogorovSmirnovWeibullGofStatistic(AbstractWeibullGofStatistic, KSStatistic):
@@ -1286,10 +1286,10 @@ class LaplaceTransformWeibullGofStatistic(AbstractWeibullGofStatistic):
         """
         n = len(rvs)
 
-        if _type == "LT2_WEIBULL":
+        if _type == "LT2_WEIBULL" or _type.startswith("LT2_"):
             t_values = np.linspace(-m, -1, num=m) / m
 
-        elif _type == "LT3_WEIBULL":
+        elif _type == "LT3_WEIBULL" or _type.startswith("LT3_"):
             t_values = np.linspace(-2.5, 0.49, m)
 
         else:
@@ -1433,6 +1433,7 @@ class CabanaQuirozWeibullGofStatistic(AbstractWeibullGofStatistic):
         :param rvs: array of observed data samples.
         :return: CQ test statistic value.
         """
+        rvs = np.asarray(rvs)
         s1 = -0.1
         s2 = 0.02
         v1 = 1.59

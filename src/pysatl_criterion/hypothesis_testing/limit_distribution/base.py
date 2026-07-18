@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -9,6 +10,9 @@ from pysatl_criterion.persistence.models.limit_distribution import (
 )
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.utils.generator import get_available_generator
+
+
+logger = logging.getLogger(__name__)
 
 
 class AbstractLimitDistributionResolver(ABC):
@@ -120,17 +124,14 @@ class StorageLimitDistributionResolver(AbstractLimitDistributionResolver):
         )
 
 
-""""
 class CompositeLimitDistributionResolver(AbstractLimitDistributionResolver):
-
     def __init__(
         self,
         local_resolver: StorageLimitDistributionResolver,
-        cv_loader: CriticalValueLoader,
+        monte_carlo_resolver: MonteCarloLimitDistributionResolver,
     ):
         self._local_resolver = local_resolver
-        self._cv_loader = cv_loader
-        self._storage = local_resolver.limit_distribution_storage
+        self._monte_carlo_resolver = monte_carlo_resolver
 
     def resolve(
         self,
@@ -138,30 +139,12 @@ class CompositeLimitDistributionResolver(AbstractLimitDistributionResolver):
         sample_size: int,
     ) -> list[float]:
         # 1. Get all local results
-        results = self._local_resolver.resolve_bulk(criterion_codes, sample_size, sl, alternative)
+        results = self._local_resolver.resolve(statistic, sample_size)
 
-        # 2. Search for missing results
-        missing = [c for c in criterion_codes if c not in results]
+        if results is not None:
+            return results
 
-        # 3. Load missing results and update the results dictionary
-        if missing:
-            load_result = self._cv_loader.load_bulk(missing, sample_size)
-
-            if load_result.newly_cached_count > 0:
-                logger.info(
-                    f"Loaded {load_result.newly_cached_count} new criteria. "
-                    f"Retrying local resolution..."
-                )
-                codes_to_retry = [c for c in missing if c not in load_result.not_found_codes]
-                if codes_to_retry:
-                    new_results = self._local_resolver.resolve_bulk(
-                        codes_to_retry, sample_size, sl, alternative
-                    )
-                    results.update(new_results)
-            else:
-                logger.warning(
-                    f"Could not load any new data. Missing: {load_result.not_found_codes}"
-                )
+        # 2. Monte-Carlo limit distribution calculation
+        results = self._monte_carlo_resolver.resolve(statistic, sample_size)
 
         return results
-"""
