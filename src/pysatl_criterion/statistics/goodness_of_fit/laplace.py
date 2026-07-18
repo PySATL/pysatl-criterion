@@ -4,6 +4,7 @@ from abc import ABC
 
 import numpy as np
 import scipy.stats as scipy_stats
+from numba import njit
 from typing_extensions import override
 
 from pysatl_criterion import DistributionType
@@ -308,6 +309,32 @@ class WatsonLaplaceGofStatistic(AbstractLaplaceGofStatistic):
         return float(w_squared - (mean_adj**2) / n)
 
 
+@njit
+def _greenwood_laplace_statistic(rvs, t, s):
+    sorted_rvs = np.sort(rvs)
+    n = len(sorted_rvs)
+
+    total = 0.0
+    previous_cdf = 0.0
+
+    for i in range(n):
+        x = sorted_rvs[i]
+
+        if x < t:
+            current_cdf = 0.5 * np.exp((x - t) / s)
+        else:
+            current_cdf = 1.0 - 0.5 * np.exp(-(x - t) / s)
+
+        spacing = current_cdf - previous_cdf
+        total += spacing * spacing
+        previous_cdf = current_cdf
+
+    final_spacing = 1.0 - previous_cdf
+    total += final_spacing * final_spacing
+
+    return total
+
+
 class GreenwoodLaplaceGofStatistic(AbstractLaplaceGofStatistic):
     """Greenwood spacing statistic for the Laplace distribution.
 
@@ -351,17 +378,18 @@ class GreenwoodLaplaceGofStatistic(AbstractLaplaceGofStatistic):
         :return: Greenwood statistic computed from the spacings of the Laplace CDF.
         :raises ValueError: if the sample is empty.
         """
-        sorted_rvs = np.sort(np.asarray(rvs))
-        n = len(sorted_rvs)
-        if n == 0:
+
+        rvs_array = np.asarray(rvs, dtype=np.float64)
+
+        if len(rvs_array) == 0:
             raise ValueError(
                 "At least one observation is required to compute the Greenwood statistic."
             )
 
-        cdf_vals = scipy_stats.laplace.cdf(sorted_rvs, loc=self.t, scale=self.s)
-        spacings = np.diff(np.concatenate(([0.0], cdf_vals, [1.0])))
-
-        if np.any(spacings < 0):
-            raise ValueError("Spacings must be non-negative; check input data ordering.")
-
-        return float(np.sum(spacings**2))
+        return float(
+            _greenwood_laplace_statistic(
+                rvs_array,
+                self.t,
+                self.s,
+            )
+        )
