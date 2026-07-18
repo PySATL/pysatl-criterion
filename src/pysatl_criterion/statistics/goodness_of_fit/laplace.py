@@ -381,7 +381,10 @@ class GreenwoodLaplaceGofStatistic(AbstractLaplaceGofStatistic):
 
         rvs_array = np.asarray(rvs, dtype=np.float64)
 
-        if len(rvs_array) == 0:
+        if rvs_array.ndim != 1:
+            raise ValueError("Sample must be one-dimensional.")
+
+        if rvs_array.size == 0:
             raise ValueError(
                 "At least one observation is required to compute the Greenwood statistic."
             )

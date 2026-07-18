@@ -1,4 +1,6 @@
+import numpy as np
 import pytest
+import scipy.stats as scipy_stats
 
 from pysatl_criterion import DistributionType
 from pysatl_criterion.statistics.goodness_of_fit.laplace import (
@@ -199,3 +201,54 @@ def test_additional_laplace_statistics_require_non_empty_sample(statistic_class)
 
     with pytest.raises(ValueError, match="At least one observation is required"):
         statistic_class(t=_LOCATION, s=_SCALE).execute_statistic([])
+
+
+@pytest.mark.parametrize(
+    ("sample", "location", "scale"),
+    [
+        ([0.1], 0.0, 1.0),
+        ([2.0, -1.0, 0.5, 0.5], 0.0, 1.0),
+        ([-5.0, -2.0, 3.0, 8.0], 1.0, 2.5),
+        (np.array([1, -2, 3, 0], dtype=np.int64), -0.5, 1.5),
+    ],
+)
+def test_greenwood_laplace_matches_scipy_reference(sample, location, scale):
+    """Optimized Greenwood implementation should match the SciPy reference."""
+
+    sorted_sample = np.sort(np.asarray(sample, dtype=np.float64))
+    cdf_values = scipy_stats.laplace.cdf(
+        sorted_sample,
+        loc=location,
+        scale=scale,
+    )
+    spacings = np.diff(
+        np.concatenate(
+            (
+                [0.0],
+                cdf_values,
+                [1.0],
+            )
+        )
+    )
+    expected = np.sum(spacings**2)
+
+    statistic = GreenwoodLaplaceGofStatistic(
+        t=location,
+        s=scale,
+    )
+
+    result = statistic.execute_statistic(sample)
+
+    assert result == pytest.approx(expected)
+
+
+def test_greenwood_laplace_requires_one_dimensional_sample():
+    """Greenwood statistic should reject multidimensional samples."""
+
+    statistic = GreenwoodLaplaceGofStatistic(
+        t=_LOCATION,
+        s=_SCALE,
+    )
+
+    with pytest.raises(ValueError, match="Sample must be one-dimensional"):
+        statistic.execute_statistic([[0.1, 0.2], [0.3, 0.4]])
