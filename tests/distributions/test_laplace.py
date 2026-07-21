@@ -3,6 +3,7 @@ import pytest
 import scipy.stats as scipy_stats
 
 from pysatl_criterion import DistributionType
+from pysatl_criterion.statistics.alternative import RightAlternative
 from pysatl_criterion.statistics.goodness_of_fit.laplace import (
     AbstractLaplaceGofStatistic,
     AndersonDarlingLaplaceGofStatistic,
@@ -160,6 +161,12 @@ def test_laplace_statistic_codes(statistic_class, expected_code):
     """Ensure every Laplace statistic exposes a stable code identifier."""
 
     assert statistic_class.code() == expected_code
+
+
+def test_greenwood_laplace_alternative():
+    """Ensure Greenwood uses a right-tailed alternative."""
+
+    assert isinstance(GreenwoodLaplaceGofStatistic().alternative(), RightAlternative)
 
 
 def test_laplace_distribution_type():

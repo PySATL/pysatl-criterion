@@ -310,7 +310,7 @@ class WatsonLaplaceGofStatistic(AbstractLaplaceGofStatistic):
 
 
 @njit
-def _greenwood_laplace_statistic(sorted_rvs, t, s):
+def _greenwood_laplace_statistic(sorted_rvs, t, s):  # pragma: no cover
     n = len(sorted_rvs)
 
     total = 0.0
