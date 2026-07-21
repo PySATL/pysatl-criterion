@@ -2,6 +2,7 @@ from abc import ABC
 
 import numpy as np
 import scipy.stats as scipy_stats
+from numba import njit
 from typing_extensions import override
 
 from pysatl_criterion import DistributionType
@@ -604,6 +605,26 @@ class ZhangTestsUniformGofStatistic(AbstractUniformGofStatistic):
         return statistic
 
 
+@njit
+def _stein_uniform_statistic(rvs_std):
+    n = len(rvs_std)
+
+    if n <= 1:
+        return 0.0
+
+    total = 0.0
+
+    for i in range(n):
+        x = rvs_std[i]
+
+        for j in range(i + 1, n):
+            y = rvs_std[j]
+            maximum = x if x > y else y
+
+            total += 0.5 * (2.0 * maximum - 2.0 * x - 2.0 * y + x * x + y * y)
+    return 2.0 * total / (n * (n - 1))
+
+
 class SteinUniformGofStatistic(AbstractUniformGofStatistic):
     """
     Stein-type test statistic for Uniform distribution based on U-statistics.
@@ -663,19 +684,8 @@ class SteinUniformGofStatistic(AbstractUniformGofStatistic):
         :param rvs_std: array of standardized data in [0, 1].
         :return: U-statistic value.
         """
-        n = len(rvs_std)
-
-        def h1(x, y):
-            return 0.5 * (2 * max(x, y) - 2 * x - 2 * y + x**2 + y**2)
-
-        total = 0
-        for i in range(n):
-            for j in range(i + 1, n):
-                total += h1(rvs_std[i], rvs_std[j])
-
-        statistic = 2 * total / (n * (n - 1)) if n > 1 else 0
-
-        return statistic
+        rvs_array = np.asarray(rvs_std, dtype=np.float64)
+        return float(_stein_uniform_statistic(rvs_array))
 
 
 class CensoredSteinUniformGofStatistic(AbstractUniformGofStatistic):

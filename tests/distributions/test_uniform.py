@@ -19,6 +19,7 @@ from pysatl_criterion.statistics.goodness_of_fit.uniform import (
     SteinUniformGofStatistic,
     WatsonUniformGofStatistic,
     ZhangTestsUniformGofStatistic,
+    _stein_uniform_statistic,
 )
 
 
@@ -616,3 +617,20 @@ class TestUniformIntegration:
         value2 = stat.execute_statistic(data)
 
         assert value1 == value2
+
+
+def test_stein_uniform_numba_matches_python_reference():
+    sample = np.array([0.1, 0.3, 0.7, 0.9], dtype=np.float64)
+
+    expected = _stein_uniform_statistic.py_func(sample)
+    result = _stein_uniform_statistic(sample)
+
+    assert result == pytest.approx(expected)
+
+
+def test_stein_uniform_numba_zero_for_single_value():
+    sample = np.array([0.5], dtype=np.float64)
+
+    result = _stein_uniform_statistic.py_func(sample)
+
+    assert result == 0.0
