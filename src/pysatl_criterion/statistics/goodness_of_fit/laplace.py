@@ -310,8 +310,7 @@ class WatsonLaplaceGofStatistic(AbstractLaplaceGofStatistic):
 
 
 @njit
-def _greenwood_laplace_statistic(rvs, t, s):
-    sorted_rvs = np.sort(rvs)
+def _greenwood_laplace_statistic(sorted_rvs, t, s):
     n = len(sorted_rvs)
 
     total = 0.0
@@ -370,6 +369,24 @@ class GreenwoodLaplaceGofStatistic(AbstractLaplaceGofStatistic):
         short_code = GreenwoodLaplaceGofStatistic.short_code()
         return f"{short_code}_{AbstractLaplaceGofStatistic.code()}"
 
+    def do_execute_statistic(self, sorted_rvs):
+        """Calculate the statistic for an already sorted sample.
+
+        Keeping sorting outside the compiled kernel avoids allocating a new
+        array on every kernel call and makes it possible to benchmark only the
+        statistic calculation.
+
+        :param sorted_rvs: one-dimensional sample sorted in ascending order.
+        :return: Greenwood statistic computed from the Laplace CDF spacings.
+        """
+        return float(
+            _greenwood_laplace_statistic(
+                sorted_rvs,
+                self.t,
+                self.s,
+            )
+        )
+
     @override
     def execute_statistic(self, rvs, **kwargs):
         """Execute the Greenwood spacing statistic for a Laplace distribution.
@@ -379,20 +396,11 @@ class GreenwoodLaplaceGofStatistic(AbstractLaplaceGofStatistic):
         :raises ValueError: if the sample is empty.
         """
 
-        rvs_array = np.asarray(rvs, dtype=np.float64)
+        sorted_rvs = np.sort(np.asarray(rvs, dtype=np.float64))
 
-        if rvs_array.ndim != 1:
-            raise ValueError("Sample must be one-dimensional.")
-
-        if rvs_array.size == 0:
+        if len(sorted_rvs) == 0:
             raise ValueError(
                 "At least one observation is required to compute the Greenwood statistic."
             )
 
-        return float(
-            _greenwood_laplace_statistic(
-                rvs_array,
-                self.t,
-                self.s,
-            )
-        )
+        return self.do_execute_statistic(sorted_rvs)

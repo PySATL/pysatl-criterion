@@ -8,13 +8,12 @@ from pysatl_criterion.statistics.goodness_of_fit.laplace import GreenwoodLaplace
 
 
 def greenwood_laplace_reference(
-    sample: np.ndarray,
+    sorted_sample: np.ndarray,
     location: float,
     scale: float,
 ) -> float:
     """Calculate the Greenwood statistic using the original SciPy approach."""
 
-    sorted_sample = np.sort(sample)
     cdf_values = scipy_stats.laplace.cdf(
         sorted_sample,
         loc=location,
@@ -57,18 +56,18 @@ def main() -> None:
         scale=scale,
         size=10_000,
     )
+    sorted_sample = np.sort(sample)
 
     statistic = GreenwoodLaplaceGofStatistic(
         t=location,
         s=scale,
     )
 
-    # Compile the Numba function before measuring execution time.
-    statistic.execute_statistic(sample)
+    statistic.do_execute_statistic(sorted_sample)
 
     reference_elapsed = measure(
         lambda: greenwood_laplace_reference(
-            sample,
+            sorted_sample,
             location,
             scale,
         ),
@@ -76,7 +75,7 @@ def main() -> None:
     )
 
     optimized_elapsed = measure(
-        lambda: statistic.execute_statistic(sample),
+        lambda: statistic.do_execute_statistic(sorted_sample),
         calls,
     )
 

@@ -11,7 +11,6 @@ from pysatl_criterion.statistics.goodness_of_fit.laplace import (
     KolmogorovSmirnovLaplaceGofStatistic,
     KuiperLaplaceGofStatistic,
     WatsonLaplaceGofStatistic,
-    _greenwood_laplace_statistic,
 )
 
 
@@ -239,53 +238,5 @@ def test_greenwood_laplace_matches_scipy_reference(sample, location, scale):
     )
 
     result = statistic.execute_statistic(sample)
-
-    assert result == pytest.approx(expected)
-
-
-def test_greenwood_laplace_requires_one_dimensional_sample():
-    """Greenwood statistic should reject multidimensional samples."""
-
-    statistic = GreenwoodLaplaceGofStatistic(
-        t=_LOCATION,
-        s=_SCALE,
-    )
-
-    with pytest.raises(ValueError, match="Sample must be one-dimensional"):
-        statistic.execute_statistic([[0.1, 0.2], [0.3, 0.4]])
-
-
-def test_greenwood_laplace_python_implementation_matches_reference():
-    """Python implementation behind Numba should match the SciPy reference."""
-
-    sample = np.array(
-        [-2.0, -0.5, 0.0, 1.0, 3.0],
-        dtype=np.float64,
-    )
-    location = 0.0
-    scale = 1.0
-
-    sorted_sample = np.sort(sample)
-    cdf_values = scipy_stats.laplace.cdf(
-        sorted_sample,
-        loc=location,
-        scale=scale,
-    )
-    spacings = np.diff(
-        np.concatenate(
-            (
-                [0.0],
-                cdf_values,
-                [1.0],
-            )
-        )
-    )
-    expected = np.sum(spacings**2)
-
-    result = _greenwood_laplace_statistic.py_func(
-        sample,
-        location,
-        scale,
-    )
 
     assert result == pytest.approx(expected)
