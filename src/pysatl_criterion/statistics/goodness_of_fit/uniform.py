@@ -606,7 +606,7 @@ class ZhangTestsUniformGofStatistic(AbstractUniformGofStatistic):
 
 
 @njit
-def _stein_uniform_statistic(rvs_std):
+def _stein_uniform_statistic(rvs_std):  # pragma: no cover
     n = len(rvs_std)
 
     if n <= 1:
@@ -670,16 +670,15 @@ class SteinUniformGofStatistic(AbstractUniformGofStatistic):
         if self.a != 0 or self.b != 1:
             rvs_std = (rvs - self.a) / (self.b - self.a)
         else:
-            rvs_std = rvs.copy()
+            rvs_std = rvs
 
-        statistic = self._compute_u_statistic(rvs_std)
+        statistic = self.do_execute_statistic(rvs_std)
 
         return statistic
 
-    @staticmethod
-    def _compute_u_statistic(rvs_std):
+    def do_execute_statistic(self, rvs_std):
         """
-        Compute U-statistic directly using double sum.
+        Compute the U-statistic for an already standardized sample.
 
         :param rvs_std: array of standardized data in [0, 1].
         :return: U-statistic value.
