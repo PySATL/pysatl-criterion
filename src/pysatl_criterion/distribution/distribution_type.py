@@ -53,6 +53,8 @@ class DistributionType(Enum):
     SCALE_CON_NORMAL = "scale_con_normal"
     TRUNC_NORMAL = "trunc_normal"
     TUKEY = "tukey"
+    LOG_LOGISTIC = "log_logistic"
+    INVERSE_GAMMA = "inverse_gamma"
 
     def __new__(cls, value: str):
         """

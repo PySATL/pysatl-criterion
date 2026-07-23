@@ -42,9 +42,7 @@ class AbstractLogLogisticGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
         return f"LOG_LOGISTIC_{AbstractGoodnessOfFitStatistic.code()}"
 
 
-class KolmogorovSmirnovLogLogisticGofStatistic(
-    AbstractLogLogisticGofStatistic, KSStatistic
-):
+class KolmogorovSmirnovLogLogisticGofStatistic(AbstractLogLogisticGofStatistic, KSStatistic):
     def __init__(
         self,
         alternative_type: AlternativeType = AlternativeType.TWO_TAILED,
@@ -73,9 +71,7 @@ class KolmogorovSmirnovLogLogisticGofStatistic(
         return KSStatistic.do_execute_statistic(self, rvs, cdf_vals)
 
 
-class AndersonDarlingLogLogisticGofStatistic(
-    AbstractLogLogisticGofStatistic, ADStatistic
-):
+class AndersonDarlingLogLogisticGofStatistic(AbstractLogLogisticGofStatistic, ADStatistic):
     @staticmethod
     @override
     def short_code() -> str:
@@ -93,9 +89,7 @@ class AndersonDarlingLogLogisticGofStatistic(
 
         log_cdf = scipy_stats.fisk.logcdf(sorted_rvs, c=self.beta, scale=self.alpha)
         log_sf = scipy_stats.fisk.logsf(sorted_rvs, c=self.beta, scale=self.alpha)
-        return super().do_execute_statistic(
-            sorted_rvs, log_cdf=log_cdf, log_sf=log_sf
-        )
+        return super().do_execute_statistic(sorted_rvs, log_cdf=log_cdf, log_sf=log_sf)
 
 
 class CramerVonMisesLogLogisticGofStatistic(
@@ -117,21 +111,15 @@ class CramerVonMisesLogLogisticGofStatistic(
         sorted_rvs = np.sort(np.asarray(rvs))
 
         cdf_vals = scipy_stats.fisk.cdf(sorted_rvs, c=self.beta, scale=self.alpha)
-        return CrammerVonMisesStatistic.do_execute_statistic(
-            self, sorted_rvs, cdf_vals
-        )
+        return CrammerVonMisesStatistic.do_execute_statistic(self, sorted_rvs, cdf_vals)
 
 
-class AbstractBinnedLogLogisticGofStatistic(
-    AbstractLogLogisticGofStatistic, Chi2Statistic, ABC
-):
+class AbstractBinnedLogLogisticGofStatistic(AbstractLogLogisticGofStatistic, Chi2Statistic, ABC):
     lambda_value: float = 1.0
 
     def __init__(self, bins: int = 8, alpha: float = 1.0, beta: float = 2.0):
         if bins < 2:
-            raise ValueError(
-                "At least two bins are required for binned Log-Logistic statistics."
-            )
+            raise ValueError("At least two bins are required for binned Log-Logistic statistics.")
         self.bins = bins
         AbstractLogLogisticGofStatistic.__init__(self, alpha=alpha, beta=beta)
         self.lambda_value = getattr(self, "lambda_value", 1.0)
@@ -141,8 +129,7 @@ class AbstractBinnedLogLogisticGofStatistic(
         n = sample.size
         if n == 0:
             raise ValueError(
-                "At least one observation is required for binned "
-                "Log-Logistic statistics."
+                "At least one observation is required for binned Log-Logistic statistics."
             )
 
         quantiles = np.linspace(0.0, 1.0, self.bins + 1)
@@ -160,9 +147,7 @@ class AbstractBinnedLogLogisticGofStatistic(
     def execute_statistic(self, rvs):
         counts, expected = self._counts_and_expected(rvs)
         return float(
-            Chi2Statistic.do_execute_statistic(
-                self, counts, expected, lambda_=self.lambda_value
-            )
+            Chi2Statistic.do_execute_statistic(self, counts, expected, lambda_=self.lambda_value)
         )
 
 
@@ -223,12 +208,8 @@ class NikulinLogLogisticGofStatistic(Chi2PearsonLogLogisticGofStatistic):
         times, censored = self._extract_data(rvs)
         alpha_hat, beta_hat = self._fit_mle(times, censored)
         bounds = self._build_intervals(times, alpha_hat, beta_hat)
-        U_j, e_j = self._compute_frequencies(
-            times, censored, bounds, alpha_hat, beta_hat
-        )
-        QF = self._compute_qf(
-            times, censored, U_j, e_j, bounds, alpha_hat, beta_hat
-        )
+        U_j, e_j = self._compute_frequencies(times, censored, bounds, alpha_hat, beta_hat)
+        QF = self._compute_qf(times, censored, U_j, e_j, bounds, alpha_hat, beta_hat)
         return X2 + QF
 
     def _extract_data(self, rvs) -> tuple[np.ndarray, np.ndarray]:
@@ -287,9 +268,7 @@ class NikulinLogLogisticGofStatistic(Chi2PearsonLogLogisticGofStatistic):
 
         return result.x[0], result.x[1]
 
-    def _build_intervals(
-        self, times: np.ndarray, alpha: float, beta: float
-    ) -> np.ndarray:
+    def _build_intervals(self, times: np.ndarray, alpha: float, beta: float) -> np.ndarray:
         tau = np.max(times)
 
         quantiles = np.linspace(0.001, 0.95, self.n_intervals + 1)
@@ -415,9 +394,7 @@ class MirvalievLogLogisticGofStatistic(NikulinLogLogisticGofStatistic):
         times, censored = self._extract_data(rvs)
         alpha_hat, beta_hat = self._fit_mle(times, censored)
         bounds = self._build_intervals(times, alpha_hat, beta_hat)
-        U_j, e_j = self._compute_frequencies(
-            times, censored, bounds, alpha_hat, beta_hat
-        )
+        U_j, e_j = self._compute_frequencies(times, censored, bounds, alpha_hat, beta_hat)
         Z, A_inv, C, G, G_inv = self._compute_mirvaliev_matrices(
             times, censored, U_j, e_j, bounds, alpha_hat, beta_hat
         )
