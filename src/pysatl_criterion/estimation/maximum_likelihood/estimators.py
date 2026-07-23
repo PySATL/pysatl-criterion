@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from math import comb, exp, factorial, log, pi, sqrt
-
 import numpy as np
-from scipy.optimize import minimize_scalar, root_scalar
-from scipy.special import gammaln
-from scipy.stats import beta, cauchy, chi2, f, gamma, laplace, lognorm, pareto, rayleigh, t, weibull_min
+from scipy.optimize import minimize_scalar
+from scipy.stats import beta, cauchy, chi2, f, gamma, rayleigh, t, weibull_min
 
 from pysatl_criterion.distribution.distribution_type import DistributionType
 from pysatl_criterion.estimation.base import AbstractParameterEstimator, EstimationMethod
@@ -130,7 +127,9 @@ class BetaMleEstimator(AbstractParameterEstimator):
     def estimate(self, data: list[float] | tuple[float, ...] | np.ndarray) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if np.any((sample <= 0) | (sample >= 1)):
-            raise ValueError("Beta distribution requires values strictly inside the interval (0, 1).")
+            raise ValueError(
+                "Beta distribution requires values strictly inside the interval (0, 1)."
+            )
 
         alpha, beta_param, _, _ = beta.fit(sample, floc=0, fscale=1)
         return {"a": float(alpha), "b": float(beta_param)}
@@ -229,9 +228,12 @@ class RayleighMleEstimator(AbstractParameterEstimator):
 class WignerMleEstimator(AbstractParameterEstimator):
     @staticmethod
     def distribution_type() -> DistributionType:
-        return DistributionType.NORMAL
+        return DistributionType.WIGNER
 
     @staticmethod
+    def method() -> EstimationMethod:
+        return EstimationMethod.MLE
+
     def estimate(self, data: list[float] | tuple[float, ...] | np.ndarray) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if np.all(sample == sample[0]):
@@ -257,6 +259,7 @@ class WignerMleEstimator(AbstractParameterEstimator):
             raise ValueError("Failed to estimate Wigner parameter.")
 
         return {"R": float(result.x)}
+
 
 class ParetoMleEstimator(AbstractParameterEstimator):
     @staticmethod
@@ -345,7 +348,11 @@ class BinomialMleEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MLE
 
-    def estimate(self, data: list[float] | tuple[float, ...] | np.ndarray, n: int = 1) -> dict[str, float]:
+    def estimate(
+        self,
+        data: list[float] | tuple[float, ...] | np.ndarray,
+        n: int = 1,
+    ) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if np.any((sample < 0) | (sample > n) | (~np.equal(np.mod(sample, 1), 0))):
             raise ValueError("Binomial distribution requires integer counts in [0, n].")
