@@ -8,13 +8,13 @@ from pysatl_criterion.statistics.alternative import AlternativeType, RightAltern
 from pysatl_criterion.statistics.goodness_of_fit.pareto import (
     AbstractParetoGofStatistic,
     AndersonDarlingParetoGofStatistic,
-    KolmogorovSmirnovParetoGofStatistic,
     CramerVonMisesParetoGofStatistic,
+    GreenwoodParetoGofStatistic,
+    KolmogorovSmirnovParetoGofStatistic,
+    LequesneKlParetoGofStatistic,
     LillieforsParetoGofStatistic,
     MinToshiyukiParetoGofStatistic,
     ObradovicParetoGofStatistic,
-    GreenwoodParetoGofStatistic,
-    LequesneKlParetoGofStatistic,
 )
 
 
@@ -31,6 +31,7 @@ class ConcreteLequesneKlParetoGofStatistic(LequesneKlParetoGofStatistic):
 class ConcreteObradovicParetoGofStatistic(ObradovicParetoGofStatistic):
     def alternative(self):
         return RightAlternative()
+
 
 def test_abstract_pareto_criterion_code():
     assert "PARETO_GOODNESS_OF_FIT" == AbstractParetoGofStatistic.code()
@@ -63,7 +64,6 @@ def test_abstract_pareto_hypothesis():
     assert hypothesis.parameters() == [2.5, 1.5]
 
 
-
 @pytest.mark.parametrize(
     ("data", "shape", "scale", "expected"),
     [
@@ -75,7 +75,9 @@ def test_abstract_pareto_hypothesis():
     ],
 )
 def test_ks_pareto_criterion(data, shape, scale, expected):
-    statistic = KolmogorovSmirnovParetoGofStatistic(shape=shape, scale=scale).execute_statistic(data)
+    statistic = KolmogorovSmirnovParetoGofStatistic(shape=shape, scale=scale).execute_statistic(
+        data
+    )
     assert expected == pytest.approx(statistic, rel=0.01)
 
 
@@ -176,6 +178,7 @@ def test_cvm_pareto_positive():
     stat = CramerVonMisesParetoGofStatistic(shape=2.0, scale=1.0)
     result = stat.execute_statistic(sample)
     assert result > 0
+
 
 def test_lilliefors_pareto_criterion_code():
     assert "Lilliefors_PARETO_GOODNESS_OF_FIT" == LillieforsParetoGofStatistic().code()

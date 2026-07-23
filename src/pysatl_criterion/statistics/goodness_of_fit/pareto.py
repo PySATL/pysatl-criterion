@@ -51,7 +51,6 @@ class AbstractParetoGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
 
 
 class KolmogorovSmirnovParetoGofStatistic(AbstractParetoGofStatistic, KSStatistic):
-
     def __init__(
         self,
         alternative_type: AlternativeType = AlternativeType.TWO_TAILED,
@@ -101,7 +100,6 @@ class AndersonDarlingParetoGofStatistic(AbstractParetoGofStatistic, ADStatistic)
 
 
 class CramerVonMisesParetoGofStatistic(AbstractParetoGofStatistic, CrammerVonMisesStatistic):
-
     @staticmethod
     @override
     def short_code():
@@ -119,8 +117,8 @@ class CramerVonMisesParetoGofStatistic(AbstractParetoGofStatistic, CrammerVonMis
         cdf_vals = scipy_stats.pareto.cdf(sorted_rvs, b=self.shape, scale=self.scale)
         return CrammerVonMisesStatistic.do_execute_statistic(self, sorted_rvs, cdf_vals)
 
-class LillieforsParetoGofStatistic(AbstractParetoGofStatistic, LillieforsTest):
 
+class LillieforsParetoGofStatistic(AbstractParetoGofStatistic, LillieforsTest):
     def __init__(self, shape: float = 1.0, scale: float = 1.0):
         AbstractParetoGofStatistic.__init__(self, shape=shape, scale=scale)
 
@@ -141,7 +139,7 @@ class LillieforsParetoGofStatistic(AbstractParetoGofStatistic, LillieforsTest):
         n = sample.size
         if n == 0:
             raise ValueError("At least one observation is required for the Lilliefors statistic.")
-        
+
         if np.any(sample <= 0):
             raise ValueError("Sample values must be strictly positive for Pareto distribution.")
         scale_hat = float(np.min(sample))
@@ -152,7 +150,7 @@ class LillieforsParetoGofStatistic(AbstractParetoGofStatistic, LillieforsTest):
 
         sorted_sample = np.sort(sample)
         cdf_vals = scipy_stats.pareto.cdf(sorted_sample, b=shape_hat, scale=scale_hat)
-        
+
         return super().do_execute_statistic(sorted_sample, cdf_vals)
 
 
@@ -172,20 +170,21 @@ class MinToshiyukiParetoGofStatistic(AbstractParetoGofStatistic, MinToshiyukiSta
     def execute_statistic(self, rvs, **kwargs):
         sorted_rvs = np.sort(np.asarray(rvs, dtype=float))
         cdf_vals = scipy_stats.pareto.cdf(sorted_rvs, b=self.shape, scale=self.scale)
-        
+
         cdf_vals = np.clip(cdf_vals, 1e-15, 1.0 - 1e-15)
-        
+
         return super().do_execute_statistic(cdf_vals)
-    
+
+
 class ObradovicParetoGofStatistic(AbstractParetoGofStatistic):
     """
     Obradovic-Jovanovic-Milosevic U-statistic goodness-of-fit test for Pareto distribution.
-    
-    This statistic is based on a new characterization: X and max(X/Y, Y/X) are identically 
+
+    This statistic is based on a new characterization: X and max(X/Y, Y/X) are identically
     distributed if and only if X follows a Pareto distribution.
-    
+
     References:
-        - Obradovic M., Jovanovic M., Milosevic B. (2014). Goodness of Fit Tests 
+        - Obradovic M., Jovanovic M., Milosevic B. (2014). Goodness of Fit Tests
           for Pareto Distribution Based on a Characterization and their Asymptotics.
           arXiv:1310.5510v2
     """
@@ -205,7 +204,7 @@ class ObradovicParetoGofStatistic(AbstractParetoGofStatistic):
     def execute_statistic(self, rvs, **kwargs):
         """
         Execute the Obradovic et al. integral test statistic (Tn) for Pareto distribution.
-        
+
         :param rvs: array of observations.
         :return: Tn test statistic value.
         """
@@ -213,37 +212,39 @@ class ObradovicParetoGofStatistic(AbstractParetoGofStatistic):
         n = x.size
         if n < 2:
             raise ValueError("At least 2 observations are required for this statistic.")
-            
+
         if np.any(x <= 0):
             raise ValueError("Sample values must be strictly positive.")
 
         N = n * (n - 1) // 2
-        
+
         idx_j, idx_k = np.triu_indices(n, k=1)
         pairs_max = np.maximum(x[idx_j] / x[idx_k], x[idx_k] / x[idx_j])
-        
+
         pooled = np.concatenate([x, pairs_max])
-        
+
         from scipy.stats import rankdata
-        all_ranks = rankdata(pooled, method='average')
-        
+
+        all_ranks = rankdata(pooled, method="average")
+
         r_j = all_ranks[:n]
 
         numerator = 2 * np.sum(r_j) - (n + 1) * (n + N)
         denominator = 2 * n * N
-        
+
         return float(numerator / denominator)
-    
+
+
 class GreenwoodParetoGofStatistic(AbstractParetoGofStatistic):
     """
     Greenwood's goodness-of-fit statistic for the Pareto distribution.
 
     This statistic tests the Pareto assumption by transforming the sample
-    via Y_i = ln(X_i / min(X)) and evaluating Greenwood's statistic on the 
+    via Y_i = ln(X_i / min(X)) and evaluating Greenwood's statistic on the
     resulting exponentially distributed spacing candidates.
 
     References:
-        - Greenwood, M. (1946). The statistical study of infectious diseases. 
+        - Greenwood, M. (1946). The statistical study of infectious diseases.
           Journal of the Royal Statistical Society, 109(2), 85-110.
     """
 
@@ -285,14 +286,15 @@ class GreenwoodParetoGofStatistic(AbstractParetoGofStatistic):
         g = np.sum(y**2) / (sum_y**2)
 
         return float(g)
-    
+
+
 class LequesneKlParetoGofStatistic(AbstractParetoGofStatistic):
     """
     Lequesne's entropy-based goodness-of-fit test for Pareto distribution
     using Kullback-Leibler divergence and Vasicek's entropy estimator.
-    
+
     References:
-        - Lequesne, J. (2013). Entropy-based goodness-of-fit test: Application 
+        - Lequesne, J. (2013). Entropy-based goodness-of-fit test: Application
           to the Pareto distribution. AIP Conference Proceedings, 1553, 155-162.
     """
 
@@ -319,8 +321,7 @@ class LequesneKlParetoGofStatistic(AbstractParetoGofStatistic):
             raise ValueError("Sample values must be strictly positive.")
         beta_hat = n / np.sum(np.log(x / sigma_hat))
 
-
-        m = kwargs.get('m', int(np.floor(np.sqrt(n))))
+        m = kwargs.get("m", int(np.floor(np.sqrt(n))))
         if m < 1 or m >= n // 2:
             m = max(1, n // 4)
 
@@ -337,12 +338,12 @@ class LequesneKlParetoGofStatistic(AbstractParetoGofStatistic):
         for i in range(1, n + 1):
             diff = get_order_stat(i + m) - get_order_stat(i - m)
             if diff <= 0:
-                diff = 1e-10 
+                diff = 1e-10
             vasicek_sum += np.log((n / (2 * m)) * diff)
         v_mn = vasicek_sum / n
 
         mean_log_scaled = np.mean(np.log(x / sigma_hat))
 
-        kl_div = - v_mn - np.log(beta_hat) + np.log(sigma_hat) + (beta_hat + 1) * mean_log_scaled
+        kl_div = -v_mn - np.log(beta_hat) + np.log(sigma_hat) + (beta_hat + 1) * mean_log_scaled
 
         return float(np.abs(kl_div))
