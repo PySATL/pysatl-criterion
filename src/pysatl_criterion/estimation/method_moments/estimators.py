@@ -17,7 +17,9 @@ class NormalMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(self, data: list[float] | tuple[float, ...] | np.ndarray) -> dict[str, float]:
+    def estimate(
+        self, data: list[float] | tuple[float, ...] | np.ndarray | object
+    ) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         mean = float(np.mean(sample))
         variance = float(np.var(sample, ddof=0))
@@ -33,7 +35,9 @@ class UniformMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(self, data: list[float] | tuple[float, ...] | np.ndarray) -> dict[str, float]:
+    def estimate(
+        self, data: list[float] | tuple[float, ...] | np.ndarray | object
+    ) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 2:
             raise ValueError(
@@ -62,7 +66,9 @@ class LogNormalMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(self, data: list[float] | tuple[float, ...] | np.ndarray) -> dict[str, float]:
+    def estimate(
+        self, data: list[float] | tuple[float, ...] | np.ndarray | object
+    ) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 2:
             raise ValueError(
@@ -91,7 +97,9 @@ class ExponentialMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(self, data: list[float] | tuple[float, ...] | np.ndarray) -> dict[str, float]:
+    def estimate(
+        self, data: list[float] | tuple[float, ...] | np.ndarray | object
+    ) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 1:
             raise ValueError("Sample cannot be empty.")
@@ -117,7 +125,9 @@ class WeibullMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(self, data: list[float] | tuple[float, ...] | np.ndarray) -> dict[str, float]:
+    def estimate(
+        self, data: list[float] | tuple[float, ...] | np.ndarray | object
+    ) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 2:
             raise ValueError(
@@ -159,7 +169,9 @@ class GammaMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(self, data: list[float] | tuple[float, ...] | np.ndarray) -> dict[str, float]:
+    def estimate(
+        self, data: list[float] | tuple[float, ...] | np.ndarray | object
+    ) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 2:
             raise ValueError(
@@ -191,7 +203,9 @@ class BetaMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(self, data: list[float] | tuple[float, ...] | np.ndarray) -> dict[str, float]:
+    def estimate(
+        self, data: list[float] | tuple[float, ...] | np.ndarray | object
+    ) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 2:
             raise ValueError(
@@ -227,7 +241,9 @@ class Chi2MmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(self, data: list[float] | tuple[float, ...] | np.ndarray) -> dict[str, float]:
+    def estimate(
+        self, data: list[float] | tuple[float, ...] | np.ndarray | object
+    ) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 1:
             raise ValueError("Sample cannot be empty.")
@@ -252,7 +268,9 @@ class StudentMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(self, data: list[float] | tuple[float, ...] | np.ndarray) -> dict[str, float]:
+    def estimate(
+        self, data: list[float] | tuple[float, ...] | np.ndarray | object
+    ) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 2:
             raise ValueError(
@@ -279,7 +297,9 @@ class FisherMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(self, data: list[float] | tuple[float, ...] | np.ndarray) -> dict[str, float]:
+    def estimate(
+        self, data: list[float] | tuple[float, ...] | np.ndarray | object
+    ) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 2:
             raise ValueError(
@@ -326,7 +346,9 @@ class RayleighMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(self, data: list[float] | tuple[float, ...] | np.ndarray) -> dict[str, float]:
+    def estimate(
+        self, data: list[float] | tuple[float, ...] | np.ndarray | object
+    ) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 1:
             raise ValueError("Sample cannot be empty.")
@@ -352,7 +374,9 @@ class WignerMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(self, data: list[float] | tuple[float, ...] | np.ndarray) -> dict[str, float]:
+    def estimate(
+        self, data: list[float] | tuple[float, ...] | np.ndarray | object
+    ) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 2:
             raise ValueError(
@@ -378,7 +402,9 @@ class ParetoMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(self, data: list[float] | tuple[float, ...] | np.ndarray) -> dict[str, float]:
+    def estimate(
+        self, data: list[float] | tuple[float, ...] | np.ndarray | object
+    ) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 2:
             raise ValueError(
@@ -413,7 +439,9 @@ class LaplaceMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(self, data: list[float] | tuple[float, ...] | np.ndarray) -> dict[str, float]:
+    def estimate(
+        self, data: list[float] | tuple[float, ...] | np.ndarray | object
+    ) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 2:
             raise ValueError(

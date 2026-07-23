@@ -38,7 +38,7 @@ class AbstractParameterEstimator(ABC):
         """
 
     @abstractmethod
-    def estimate(self, data: list[float] | tuple[float, ...] | object) -> dict[str, float]:
+    def estimate(self, data) -> dict[str, float]:
         """
         Estimate distribution parameters from sample data.
 
