@@ -53,6 +53,10 @@ class DistributionType(Enum):
     SCALE_CON_NORMAL = "scale_con_normal"
     TRUNC_NORMAL = "trunc_normal"
     TUKEY = "tukey"
+    FISHER = "fisher"
+    RAYLEIGH = "rayleigh"
+    PARETO = "pareto"
+    WIGNER = "wigner"
 
     def __new__(cls, value: str):
         """
