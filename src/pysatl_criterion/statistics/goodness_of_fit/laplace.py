@@ -4,6 +4,7 @@ from abc import ABC
 
 import numpy as np
 import scipy.stats as scipy_stats
+from numba import njit
 from typing_extensions import override
 
 from pysatl_criterion import DistributionType
@@ -179,6 +180,32 @@ class AndersonDarlingLaplaceGofStatistic(AbstractLaplaceGofStatistic, ADStatisti
         short_code = AndersonDarlingLaplaceGofStatistic.short_code()
         return f"{short_code}_{AbstractLaplaceGofStatistic.code()}"
 
+    @staticmethod
+    @njit
+    def _calculate_statistic(
+        sorted_rvs: np.ndarray, t: float, s: float
+    ) -> float:  # pragma: no cover
+        n = len(sorted_rvs)
+        total = 0.0
+
+        for i in range(n):
+            lower = (sorted_rvs[i] - t) / s
+            upper = (sorted_rvs[n - i - 1] - t) / s
+
+            if lower < 0.0:
+                log_cdf = np.log(0.5 * np.exp(lower))
+            else:
+                log_cdf = np.log1p(-0.5 * np.exp(-lower))
+
+            if upper < 0.0:
+                log_sf = np.log1p(-0.5 * np.exp(upper))
+            else:
+                log_sf = np.log(0.5 * np.exp(-upper))
+
+            total += (2.0 * i + 1.0) / n * (log_cdf + log_sf)
+
+        return -n - total
+
     @override
     def execute_statistic(self, rvs, **kwargs):
         """Execute the Anderson--Darling statistic for a Laplace distribution.
@@ -186,10 +213,22 @@ class AndersonDarlingLaplaceGofStatistic(AbstractLaplaceGofStatistic, ADStatisti
         :param rvs: observations assumed to follow a Laplace distribution.
         :return: Anderson--Darling A^2 statistic computed from log-CDF values.
         """
-        sorted_rvs = np.sort(np.asarray(rvs))
-        log_cdf = scipy_stats.laplace.logcdf(sorted_rvs, loc=self.t, scale=self.s)
-        log_sf = scipy_stats.laplace.logsf(sorted_rvs, loc=self.t, scale=self.s)
-        return ADStatistic.do_execute_statistic(self, sorted_rvs, log_cdf=log_cdf, log_sf=log_sf)
+        sorted_rvs = np.sort(np.asarray(rvs, dtype=np.float64))
+        return self.do_execute_statistic(sorted_rvs)
+
+    def do_execute_statistic(self, sorted_rvs):
+        """Calculate the statistic for an already sorted sample.
+
+        :param sorted_rvs: one-dimensional sample sorted in ascending order.
+        :return: Anderson--Darling statistic computed from Laplace log probabilities.
+        """
+        return float(
+            self._calculate_statistic(
+                sorted_rvs,
+                self.t,
+                self.s,
+            )
+        )
 
 
 class KuiperLaplaceGofStatistic(AbstractLaplaceGofStatistic):
