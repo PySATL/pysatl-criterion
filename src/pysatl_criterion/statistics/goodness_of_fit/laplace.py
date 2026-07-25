@@ -309,31 +309,6 @@ class WatsonLaplaceGofStatistic(AbstractLaplaceGofStatistic):
         return float(w_squared - (mean_adj**2) / n)
 
 
-@njit
-def _greenwood_laplace_statistic(sorted_rvs, t, s):  # pragma: no cover
-    n = len(sorted_rvs)
-
-    total = 0.0
-    previous_cdf = 0.0
-
-    for i in range(n):
-        x = sorted_rvs[i]
-
-        if x < t:
-            current_cdf = 0.5 * np.exp((x - t) / s)
-        else:
-            current_cdf = 1.0 - 0.5 * np.exp(-(x - t) / s)
-
-        spacing = current_cdf - previous_cdf
-        total += spacing * spacing
-        previous_cdf = current_cdf
-
-    final_spacing = 1.0 - previous_cdf
-    total += final_spacing * final_spacing
-
-    return total
-
-
 class GreenwoodLaplaceGofStatistic(AbstractLaplaceGofStatistic):
     """Greenwood spacing statistic for the Laplace distribution.
 
@@ -369,23 +344,31 @@ class GreenwoodLaplaceGofStatistic(AbstractLaplaceGofStatistic):
         short_code = GreenwoodLaplaceGofStatistic.short_code()
         return f"{short_code}_{AbstractLaplaceGofStatistic.code()}"
 
-    def do_execute_statistic(self, sorted_rvs):
-        """Calculate the statistic for an already sorted sample.
+    @staticmethod
+    @njit
+    def _calculate_statistic(
+        sorted_rvs: np.ndarray, t: float, s: float
+    ) -> float:  # pragma: no cover
+        n = len(sorted_rvs)
+        total = 0.0
+        previous_cdf = 0.0
 
-        Keeping sorting outside the compiled kernel avoids allocating a new
-        array on every kernel call and makes it possible to benchmark only the
-        statistic calculation.
+        for i in range(n):
+            x = sorted_rvs[i]
 
-        :param sorted_rvs: one-dimensional sample sorted in ascending order.
-        :return: Greenwood statistic computed from the Laplace CDF spacings.
-        """
-        return float(
-            _greenwood_laplace_statistic(
-                sorted_rvs,
-                self.t,
-                self.s,
-            )
-        )
+            if x < t:
+                current_cdf = 0.5 * np.exp((x - t) / s)
+            else:
+                current_cdf = 1.0 - 0.5 * np.exp(-(x - t) / s)
+
+            spacing = current_cdf - previous_cdf
+            total += spacing * spacing
+            previous_cdf = current_cdf
+
+        final_spacing = 1.0 - previous_cdf
+        total += final_spacing * final_spacing
+
+        return total
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -404,3 +387,21 @@ class GreenwoodLaplaceGofStatistic(AbstractLaplaceGofStatistic):
             )
 
         return self.do_execute_statistic(sorted_rvs)
+
+    def do_execute_statistic(self, sorted_rvs):
+        """Calculate the statistic for an already sorted sample.
+
+        Keeping sorting outside the compiled kernel avoids allocating a new
+        array on every kernel call and makes it possible to benchmark only the
+        statistic calculation.
+
+        :param sorted_rvs: one-dimensional sample sorted in ascending order.
+        :return: Greenwood statistic computed from the Laplace CDF spacings.
+        """
+        return float(
+            self._calculate_statistic(
+                sorted_rvs,
+                self.t,
+                self.s,
+            )
+        )
