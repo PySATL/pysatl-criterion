@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 import scipy.stats as scipy_stats
 
+from pysatl_criterion.statistics.alternative import RightAlternative
 from pysatl_criterion.statistics.goodness_of_fit.uniform import (
     AbstractUniformGofStatistic,
     AndersonDarlingUniformGofStatistic,
@@ -20,6 +21,26 @@ from pysatl_criterion.statistics.goodness_of_fit.uniform import (
     WatsonUniformGofStatistic,
     ZhangTestsUniformGofStatistic,
 )
+
+
+def _stein_uniform_reference(rvs, a=0.0, b=1.0):
+    """Calculate the Stein statistic independently of the Numba implementation."""
+    rvs_array = np.asarray(rvs, dtype=np.float64)
+    rvs_std = (rvs_array - a) / (b - a)
+    n = len(rvs_std)
+
+    if n <= 1:
+        return 0.0
+
+    total = 0.0
+
+    for i in range(n):
+        for j in range(i + 1, n):
+            x = rvs_std[i]
+            y = rvs_std[j]
+            total += 0.5 * (2 * max(x, y) - 2 * x - 2 * y + x**2 + y**2)
+
+    return 2 * total / (n * (n - 1))
 
 
 def test_abstract_uniform_criterion_code():
@@ -373,6 +394,10 @@ class TestZhangTestsUniformGofStatistic:
 class TestSteinUniformGofStatistic:
     """Tests for Stein test statistic."""
 
+    def test_alternative(self):
+        """Test that the Stein statistic uses a right-tailed alternative."""
+        assert isinstance(SteinUniformGofStatistic().alternative(), RightAlternative)
+
     def test_code(self):
         """Test that the Stein statistic returns correct code."""
         assert "STEIN_U_UNIFORM_GOODNESS_OF_FIT" == SteinUniformGofStatistic.code()
@@ -394,13 +419,24 @@ class TestSteinUniformGofStatistic:
 
         assert abs(statistic_value) < 0.5
 
-    def test_stein_u_statistic_computation(self):
-        """Test the U-statistic computation directly."""
-        data = np.array([0.1, 0.3, 0.5, 0.7, 0.9])
-        statistic = SteinUniformGofStatistic._compute_u_statistic(data)
+    @pytest.mark.parametrize(
+        ("sample", "a", "b"),
+        [
+            ([0.1, 0.3, 0.7, 0.9], 0.0, 1.0),
+            ([0.5], 0.0, 1.0),
+            ([], 0.0, 1.0),
+            ([2.0, 2.75, 4.25, 5.0], 2.0, 5.0),
+            (np.array([0, 1, 1, 0], dtype=np.int64), 0.0, 1.0),
+            ([0.2, 0.2, 0.8, 0.8], 0.0, 1.0),
+        ],
+    )
+    def test_stein_matches_python_reference(self, sample, a, b):
+        """Test the public statistic against an independent Python formula."""
+        expected = _stein_uniform_reference(sample, a=a, b=b)
 
-        assert isinstance(statistic, float | np.floating)
-        assert np.isfinite(statistic)
+        result = SteinUniformGofStatistic(a=a, b=b).execute_statistic(sample)
+
+        assert result == pytest.approx(expected)
 
 
 class TestCensoredSteinUniformGofStatistic:
