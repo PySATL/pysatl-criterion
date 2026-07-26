@@ -4,6 +4,7 @@ from abc import ABC
 
 import numpy as np
 import scipy.stats as scipy_stats
+from numba import njit
 from typing_extensions import override
 
 from pysatl_criterion import DistributionType
@@ -343,6 +344,32 @@ class GreenwoodLaplaceGofStatistic(AbstractLaplaceGofStatistic):
         short_code = GreenwoodLaplaceGofStatistic.short_code()
         return f"{short_code}_{AbstractLaplaceGofStatistic.code()}"
 
+    @staticmethod
+    @njit
+    def _calculate_statistic(
+        sorted_rvs: np.ndarray, t: float, s: float
+    ) -> float:  # pragma: no cover
+        n = len(sorted_rvs)
+        total = 0.0
+        previous_cdf = 0.0
+
+        for i in range(n):
+            x = sorted_rvs[i]
+
+            if x < t:
+                current_cdf = 0.5 * np.exp((x - t) / s)
+            else:
+                current_cdf = 1.0 - 0.5 * np.exp(-(x - t) / s)
+
+            spacing = current_cdf - previous_cdf
+            total += spacing * spacing
+            previous_cdf = current_cdf
+
+        final_spacing = 1.0 - previous_cdf
+        total += final_spacing * final_spacing
+
+        return total
+
     @override
     def execute_statistic(self, rvs, **kwargs):
         """Execute the Greenwood spacing statistic for a Laplace distribution.
@@ -351,17 +378,30 @@ class GreenwoodLaplaceGofStatistic(AbstractLaplaceGofStatistic):
         :return: Greenwood statistic computed from the spacings of the Laplace CDF.
         :raises ValueError: if the sample is empty.
         """
-        sorted_rvs = np.sort(np.asarray(rvs))
-        n = len(sorted_rvs)
-        if n == 0:
+
+        sorted_rvs = np.sort(np.asarray(rvs, dtype=np.float64))
+
+        if len(sorted_rvs) == 0:
             raise ValueError(
                 "At least one observation is required to compute the Greenwood statistic."
             )
 
-        cdf_vals = scipy_stats.laplace.cdf(sorted_rvs, loc=self.t, scale=self.s)
-        spacings = np.diff(np.concatenate(([0.0], cdf_vals, [1.0])))
+        return self.do_execute_statistic(sorted_rvs)
 
-        if np.any(spacings < 0):
-            raise ValueError("Spacings must be non-negative; check input data ordering.")
+    def do_execute_statistic(self, sorted_rvs):
+        """Calculate the statistic for an already sorted sample.
 
-        return float(np.sum(spacings**2))
+        Keeping sorting outside the compiled kernel avoids allocating a new
+        array on every kernel call and makes it possible to benchmark only the
+        statistic calculation.
+
+        :param sorted_rvs: one-dimensional sample sorted in ascending order.
+        :return: Greenwood statistic computed from the Laplace CDF spacings.
+        """
+        return float(
+            self._calculate_statistic(
+                sorted_rvs,
+                self.t,
+                self.s,
+            )
+        )
