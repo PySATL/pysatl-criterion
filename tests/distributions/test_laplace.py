@@ -108,6 +108,46 @@ def test_anderson_darling_laplace_statistic():
 
 
 @pytest.mark.parametrize(
+    ("sample", "location", "scale"),
+    [
+        ([0.1], 0.0, 1.0),
+        ([2.0, -1.0, 0.5, 0.5], 0.0, 1.0),
+        ([-5.0, -2.0, 3.0, 8.0], 1.0, 2.5),
+        (np.array([1, -2, 3, 0], dtype=np.int64), -0.5, 1.5),
+        ([-1_000.0, -100.0, 0.0, 100.0, 1_000.0], 0.0, 1.0),
+        ([], 0.0, 1.0),
+    ],
+)
+def test_anderson_darling_laplace_matches_scipy_reference(sample, location, scale):
+    """Optimized Anderson--Darling implementation should match SciPy."""
+    sorted_sample = np.sort(np.asarray(sample, dtype=np.float64))
+    n = len(sorted_sample)
+
+    if n == 0:
+        expected = 0.0
+    else:
+        log_cdf = scipy_stats.laplace.logcdf(
+            sorted_sample,
+            loc=location,
+            scale=scale,
+        )
+        log_sf = scipy_stats.laplace.logsf(
+            sorted_sample,
+            loc=location,
+            scale=scale,
+        )
+        i = np.arange(1, n + 1)
+        expected = -n - np.sum((2 * i - 1.0) / n * (log_cdf + log_sf[::-1]))
+
+    result = AndersonDarlingLaplaceGofStatistic(
+        t=location,
+        s=scale,
+    ).execute_statistic(sample)
+
+    assert result == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
     ("statistic_class", "expected_value"),
     [
         (KolmogorovSmirnovLaplaceGofStatistic, 0.10023112481762697),
