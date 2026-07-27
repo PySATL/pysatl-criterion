@@ -54,6 +54,9 @@ class DistributionType(Enum):
     TRUNC_NORMAL = "trunc_normal"
     TUKEY = "tukey"
     INVERSE_GAMMA = "inverse_gamma"
+    FISHER = "fisher"
+    RAYLEIGH = "rayleigh"
+    PARETO = "pareto"
 
     def __new__(cls, value: str):
         """
