@@ -226,31 +226,34 @@ class NikulinLogLogisticGofStatistic(Chi2PearsonLogLogisticGofStatistic):
 
         return times, censored
 
-    def _fit_mle(self, times: np.ndarray, censored: np.ndarray) -> tuple[float, float]:
-        def neg_log_likelihood(params):
-            alpha, beta = params
-            if alpha <= 0 or beta <= 0:
-                return 1e10
+    def _neg_log_likelihood(
+        self, params: np.ndarray, times: np.ndarray, censored: np.ndarray
+    ) -> float:
+        alpha, beta = params
+        if alpha <= 0 or beta <= 0:
+            return 1e10
 
-            log_lik = 0.0
-            for t, delta in zip(times, censored, strict=False):
-                z = (t / alpha) ** beta
-                log_s = -np.log(1 + z)
+        log_lik = 0.0
+        for t, delta in zip(times, censored, strict=False):
+            z = (t / alpha) ** beta
+            log_s = -np.log(1 + z)
 
-                if delta == 1:
-                    log_f = (
-                        np.log(beta)
-                        - np.log(alpha)
-                        + (beta - 1) * np.log(t / alpha)
-                        - 2 * np.log(1 + z)
-                    )
-                    log_lik += log_f
-                else:
-                    log_lik += log_s
+            if delta == 1:
+                log_f = (
+                    np.log(beta)
+                    - np.log(alpha)
+                    + (beta - 1) * np.log(t / alpha)
+                    - 2 * np.log(1 + z)
+                )
+                log_lik += log_f
+            else:
+                log_lik += log_s
 
-            return -log_lik
+        return -log_lik
 
+    def _get_initial_guesses(self, times: np.ndarray, censored: np.ndarray) -> list[list[float]]:
         event_times = times[censored == 1]
+
         if len(event_times) > 0:
             log_times = np.log(event_times)
             alpha_init = np.exp(np.mean(log_times))
@@ -259,14 +262,39 @@ class NikulinLogLogisticGofStatistic(Chi2PearsonLogLogisticGofStatistic):
             alpha_init = np.median(times)
             beta_init = 1.0
 
-        result = minimize(
-            neg_log_likelihood,
+        return [
             [alpha_init, beta_init],
-            bounds=[(1e-6, None), (1e-6, None)],
-            method="L-BFGS-B",
-        )
+            [alpha_init * 0.5, beta_init * 0.5],
+            [alpha_init * 2.0, beta_init * 2.0],
+            [np.median(times), 1.0],
+            [np.mean(times), 1.5],
+        ]
 
-        return result.x[0], result.x[1]
+    def _fit_mle(self, times: np.ndarray, censored: np.ndarray) -> tuple[float, float]:
+
+        initial_guesses = self._get_initial_guesses(times, censored)
+        last_result = None
+
+        for i, guess in enumerate(initial_guesses):
+            result = minimize(
+                self._neg_log_likelihood,
+                guess,
+                args=(times, censored),
+                bounds=[(1e-6, None), (1e-6, None)],
+                method="L-BFGS-B",
+                options={"maxiter": 1000 * (i + 1)},
+            )
+
+            if result.success:
+                if 0.001 < result.x[0] < 1e6 and 0.001 < result.x[1] < 100:
+                    return result.x[0], result.x[1]
+
+            last_result = result
+
+        raise RuntimeError(
+            f"MLE optimization failed after {len(initial_guesses)} attempts. "
+            f"Last message: {last_result.message if last_result else 'No result'}"
+        )
 
     def _build_intervals(self, times: np.ndarray, alpha: float, beta: float) -> np.ndarray:
         tau = np.max(times)
