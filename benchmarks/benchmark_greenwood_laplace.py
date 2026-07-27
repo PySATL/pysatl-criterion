@@ -1,8 +1,6 @@
-import time
-from collections.abc import Callable
-
 import numpy as np
 import scipy.stats as scipy_stats
+from benchmark_runner import BenchmarkRunner
 
 from pysatl_criterion.statistics.goodness_of_fit.laplace import GreenwoodLaplaceGofStatistic
 
@@ -32,20 +30,6 @@ def greenwood_laplace_reference(
     return float(np.sum(spacings**2))
 
 
-def measure(
-    function: Callable[[], float],
-    calls: int,
-) -> float:
-    """Measure total execution time for the requested number of calls."""
-
-    start = time.perf_counter()
-
-    for _ in range(calls):
-        function()
-
-    return time.perf_counter() - start
-
-
 def main() -> None:
     location = 0.0
     scale = 1.0
@@ -64,35 +48,19 @@ def main() -> None:
     )
 
     statistic.do_execute_statistic(sorted_sample)
+    runner = BenchmarkRunner(calls)
 
-    reference_elapsed = measure(
-        lambda: greenwood_laplace_reference(
+    runner.run_comparison(
+        sample_size=sample.size,
+        reference_name="SciPy reference implementation",
+        reference_function=lambda: greenwood_laplace_reference(
             sorted_sample,
             location,
             scale,
         ),
-        calls,
+        optimized_name="Numba implementation",
+        optimized_function=lambda: statistic.do_execute_statistic(sorted_sample),
     )
-
-    optimized_elapsed = measure(
-        lambda: statistic.do_execute_statistic(sorted_sample),
-        calls,
-    )
-
-    speedup = reference_elapsed / optimized_elapsed
-
-    print(f"Sample size: {sample.size}")
-    print(f"Calls: {calls}")
-    print()
-    print("SciPy reference implementation:")
-    print(f"Total time: {reference_elapsed:.6f} seconds")
-    print(f"Average time per call: {reference_elapsed / calls:.9f} seconds")
-    print()
-    print("Numba implementation:")
-    print(f"Total time: {optimized_elapsed:.6f} seconds")
-    print(f"Average time per call: {optimized_elapsed / calls:.9f} seconds")
-    print()
-    print(f"Speedup: {speedup:.2f}x")
 
 
 if __name__ == "__main__":
