@@ -259,7 +259,7 @@ def test_greenwood_inverse_gamma_detects_negative_spacings(monkeypatch):
         values = np.asarray(values, dtype=float)
         artificial = np.linspace(0, 1, values.size, dtype=float)
         if artificial.size >= 2:
-            artificial[1] = artificial[0] - 0.1 
+            artificial[1] = artificial[0] - 0.1
         return artificial
 
     monkeypatch.setattr(invgamma_module.scipy_stats.invgamma, "cdf", fake_cdf)
@@ -285,7 +285,7 @@ def test_inverse_gamma_distribution():
     """Test that distribution returns correct type."""
     try:
         distribution = AbstractInverseGammaGofStatistic.distribution()
-       
+
         assert distribution == DistributionType.INVERSE_GAMMA
     except AttributeError:
         distribution = AbstractInverseGammaGofStatistic.distribution()
