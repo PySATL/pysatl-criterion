@@ -1,9 +1,11 @@
+import inspect
 from collections import Counter
 
 import pytest
 
 from pysatl_criterion import DistributionType
-from pysatl_criterion.utils.statistic import get_available_criteria
+from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.utils.statistic import get_available_criteria, get_available_criteria_codes
 
 
 @pytest.mark.parametrize(
@@ -174,5 +176,18 @@ from pysatl_criterion.utils.statistic import get_available_criteria
     ],
 )
 def test_get_available_criteria_all_criteria(distribution, result):
-    criteria = get_available_criteria(DistributionType(distribution))
+    criteria = get_available_criteria_codes(DistributionType(distribution))
     assert Counter(criteria) == Counter(result)
+
+
+@pytest.mark.parametrize(
+    "distribution",
+    ["normal", "exponential", "weibull", "uniform", "student", "gamma"],
+)
+def test_get_available_criteria_all_criteria_classes(distribution):
+    criteria = get_available_criteria(DistributionType(distribution))
+
+    assert criteria
+    assert all(issubclass(criterion, AbstractGoodnessOfFitStatistic) for criterion in criteria)
+    assert all(not inspect.isabstract(criterion) for criterion in criteria)
+    assert all(criterion.distribution() == DistributionType(distribution) for criterion in criteria)
