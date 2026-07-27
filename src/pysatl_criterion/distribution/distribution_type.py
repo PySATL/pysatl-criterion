@@ -57,6 +57,11 @@ class DistributionType(Enum):
     RAYLEIGH = "rayleigh"
     PARETO = "pareto"
     WIGNER = "wigner"
+    DISCRETE_UNIFORM = "discrete_uniform"
+    BERNOULLI = "bernoulli"
+    BINOMIAL = "binomial"
+    POISSON = "poisson"
+    GEOMETRIC = "geometric"
 
     def __new__(cls, value: str):
         """

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 from scipy.optimize import root_scalar
-from scipy.special import gamma
+from scipy.special import gammaln
 
 from pysatl_criterion.distribution.distribution_type import DistributionType
 from pysatl_criterion.estimation.base import AbstractParameterEstimator, EstimationMethod
@@ -17,9 +17,7 @@ class NormalMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(
-        self, data: list[float] | tuple[float, ...] | np.ndarray | object
-    ) -> dict[str, float]:
+    def estimate(self, data) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         mean = float(np.mean(sample))
         variance = float(np.var(sample, ddof=0))
@@ -35,9 +33,7 @@ class UniformMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(
-        self, data: list[float] | tuple[float, ...] | np.ndarray | object
-    ) -> dict[str, float]:
+    def estimate(self, data) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 2:
             raise ValueError(
@@ -45,7 +41,7 @@ class UniformMmEstimator(AbstractParameterEstimator):
             )
 
         mean = float(np.mean(sample))
-        var = float(np.var(sample, ddof=0))
+        var = max(0.0, float(np.var(sample, ddof=0)))
 
         if var < 0:
             raise ValueError("Variance of the sample cannot be negative.")
@@ -66,9 +62,7 @@ class LogNormalMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(
-        self, data: list[float] | tuple[float, ...] | np.ndarray | object
-    ) -> dict[str, float]:
+    def estimate(self, data) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 2:
             raise ValueError(
@@ -97,9 +91,7 @@ class ExponentialMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(
-        self, data: list[float] | tuple[float, ...] | np.ndarray | object
-    ) -> dict[str, float]:
+    def estimate(self, data) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 1:
             raise ValueError("Sample cannot be empty.")
@@ -109,8 +101,12 @@ class ExponentialMmEstimator(AbstractParameterEstimator):
             )
 
         mean = float(np.mean(sample))
-        if mean <= 0:
-            raise ValueError("Sample mean must be strictly positive.")
+
+        if mean == 0.0:
+            return {"rate": float(np.inf)}
+
+        if mean < 0:
+            raise ValueError("Sample mean cannot be negative.")
 
         rate = float(1.0 / mean)
         return {"rate": rate}
@@ -125,9 +121,7 @@ class WeibullMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(
-        self, data: list[float] | tuple[float, ...] | np.ndarray | object
-    ) -> dict[str, float]:
+    def estimate(self, data) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 2:
             raise ValueError(
@@ -141,23 +135,32 @@ class WeibullMmEstimator(AbstractParameterEstimator):
         mean = float(np.mean(sample))
         var = float(np.var(sample, ddof=0))
 
+        if var == 0.0:
+            raise ValueError("Sample variance cannot be zero for Weibull parameter estimation.")
+
         target_ratio = 1.0 + (var / (mean**2))
 
         def equation(k: float) -> float:
             if k <= 0:
                 return 1e9
-            g1 = gamma(1.0 + 1.0 / k)
-            g2 = gamma(1.0 + 2.0 / k)
-            return (g2 / (g1**2)) - target_ratio
 
-        sol = root_scalar(equation, bracket=[1e-3, 100.0], method="brentq")
-        if not sol.converged:
-            raise RuntimeError("Failed to determine parameter k for Weibull distribution.")
+            log_ratio = gammaln(1.0 + 2.0 / k) - 2.0 * gammaln(1.0 + 1.0 / k)
+            if log_ratio > 700:
+                return 1e9
+            return float(np.exp(log_ratio) - target_ratio)
 
-        shape = float(sol.root)
-        scale = float(mean / gamma(1.0 + 1.0 / shape))
+        try:
+            sol = root_scalar(equation, bracket=[0.01, 100.0], method="brentq")
+            if not sol.converged:
+                raise RuntimeError("Failed to determine parameter k for Weibull distribution.")
 
-        return {"shape": shape, "scale": scale}
+            shape = float(sol.root)
+            scale = mean / np.exp(gammaln(1.0 + 1.0 / shape))
+            return {"shape": shape, "scale": scale}
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to determine parameter k for Weibull distribution: {e}"
+            ) from e
 
 
 class GammaMmEstimator(AbstractParameterEstimator):
@@ -169,9 +172,7 @@ class GammaMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(
-        self, data: list[float] | tuple[float, ...] | np.ndarray | object
-    ) -> dict[str, float]:
+    def estimate(self, data) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 2:
             raise ValueError(
@@ -203,9 +204,7 @@ class BetaMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(
-        self, data: list[float] | tuple[float, ...] | np.ndarray | object
-    ) -> dict[str, float]:
+    def estimate(self, data) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 2:
             raise ValueError(
@@ -241,9 +240,7 @@ class Chi2MmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(
-        self, data: list[float] | tuple[float, ...] | np.ndarray | object
-    ) -> dict[str, float]:
+    def estimate(self, data) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 1:
             raise ValueError("Sample cannot be empty.")
@@ -268,9 +265,7 @@ class StudentMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(
-        self, data: list[float] | tuple[float, ...] | np.ndarray | object
-    ) -> dict[str, float]:
+    def estimate(self, data) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 2:
             raise ValueError(
@@ -297,9 +292,7 @@ class FisherMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(
-        self, data: list[float] | tuple[float, ...] | np.ndarray | object
-    ) -> dict[str, float]:
+    def estimate(self, data) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 2:
             raise ValueError(
@@ -346,9 +339,7 @@ class RayleighMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(
-        self, data: list[float] | tuple[float, ...] | np.ndarray | object
-    ) -> dict[str, float]:
+    def estimate(self, data) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 1:
             raise ValueError("Sample cannot be empty.")
@@ -374,16 +365,14 @@ class WignerMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(
-        self, data: list[float] | tuple[float, ...] | np.ndarray | object
-    ) -> dict[str, float]:
+    def estimate(self, data) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 2:
             raise ValueError(
                 "At least 2 elements are required to estimate Wigner distribution parameters."
             )
 
-        var = float(np.var(sample, ddof=0))
+        var = max(0.0, float(np.var(sample, ddof=0)))
         if var <= 0:
             raise ValueError(
                 "Sample variance must be strictly positive to estimate Wigner radius parameter."
@@ -402,9 +391,7 @@ class ParetoMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(
-        self, data: list[float] | tuple[float, ...] | np.ndarray | object
-    ) -> dict[str, float]:
+    def estimate(self, data) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 2:
             raise ValueError(
@@ -439,9 +426,7 @@ class LaplaceMmEstimator(AbstractParameterEstimator):
     def method() -> EstimationMethod:
         return EstimationMethod.MM
 
-    def estimate(
-        self, data: list[float] | tuple[float, ...] | np.ndarray | object
-    ) -> dict[str, float]:
+    def estimate(self, data) -> dict[str, float]:
         sample = np.asarray(data, dtype=float)
         if sample.size < 2:
             raise ValueError(
@@ -449,7 +434,7 @@ class LaplaceMmEstimator(AbstractParameterEstimator):
             )
 
         mean = float(np.mean(sample))
-        var = float(np.var(sample, ddof=0))
+        var = max(0.0, float(np.var(sample, ddof=0)))
 
         if var <= 0:
             raise ValueError(
