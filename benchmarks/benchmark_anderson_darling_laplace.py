@@ -1,8 +1,6 @@
-import time
-from collections.abc import Callable
-
 import numpy as np
 import scipy.stats as scipy_stats
+from benchmark_runner import BenchmarkRunner
 
 from pysatl_criterion.statistics.goodness_of_fit.laplace import AndersonDarlingLaplaceGofStatistic
 
@@ -24,16 +22,6 @@ def anderson_darling_laplace_reference(
     )
     i = np.arange(1, n + 1)
     return float(-n - np.sum((2 * i - 1.0) / n * (log_cdf + log_sf[::-1])))
-
-
-def measure(function: Callable[[], float], calls: int) -> float:
-    """Measure total execution time for the requested number of calls."""
-    start = time.perf_counter()
-
-    for _ in range(calls):
-        function()
-
-    return time.perf_counter() - start
 
 
 def main() -> None:
@@ -59,32 +47,19 @@ def main() -> None:
         scale,
     )
     np.testing.assert_allclose(optimized_result, reference_result)
+    runner = BenchmarkRunner(calls)
 
-    reference_elapsed = measure(
-        lambda: anderson_darling_laplace_reference(
+    runner.run_comparison(
+        sample_size=sample.size,
+        reference_name="SciPy reference implementation",
+        reference_function=lambda: anderson_darling_laplace_reference(
             sorted_sample,
             location,
             scale,
         ),
-        calls,
+        optimized_name="Numba implementation",
+        optimized_function=lambda: statistic.do_execute_statistic(sorted_sample),
     )
-    optimized_elapsed = measure(
-        lambda: statistic.do_execute_statistic(sorted_sample),
-        calls,
-    )
-
-    print(f"Sample size: {sample.size}")
-    print(f"Calls: {calls}")
-    print()
-    print("SciPy reference implementation:")
-    print(f"Total time: {reference_elapsed:.6f} seconds")
-    print(f"Average time per call: {reference_elapsed / calls:.9f} seconds")
-    print()
-    print("Numba implementation:")
-    print(f"Total time: {optimized_elapsed:.6f} seconds")
-    print(f"Average time per call: {optimized_elapsed / calls:.9f} seconds")
-    print()
-    print(f"Speedup: {reference_elapsed / optimized_elapsed:.2f}x")
 
 
 if __name__ == "__main__":
