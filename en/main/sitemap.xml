@@ -2,794 +2,794 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/beta/anderson_darling_beta_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/beta/chi2_pearson_beta_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/beta/cvm_beta_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/beta/entropy_beta_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/beta/kolmogorov_smirnov_beta_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/beta/kuiper_beta_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/beta/lilliefors_beta_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/beta/mode_beta_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/beta/moment_based_beta_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/beta/ratio_beta_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/beta/skewness_kurtosis_beta_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/beta/watson_beta_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/ahsanullah_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/atkinson_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/cox_oakes_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/cvm_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/deshpande_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/epps_pulley_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/epstein_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/frozini_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/gini_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/gnedenko_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/graph_edges_number_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/graph_max_degree_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/harris_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/hegazy1_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/hegazy2_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/holander_proshan_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/kimber_michael_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/kochar_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/kolmogorov_smirnov_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/lorenz_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/moran_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/pietra_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/rossberg_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/shapiro_wilk_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/we_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/exponentiality/wong_wong_exp_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/gamma/anderson_darling_gamma_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/gamma/chi2_pearson_gamma_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/gamma/cressie_read_gamma_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/gamma/cvm_gamma_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/gamma/graph_average_degree_gamma_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/gamma/graph_clique_number_gamma_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/gamma/graph_connected_components_gamma_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/gamma/graph_edges_number_gamma_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/gamma/graph_independence_number_gamma_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/gamma/graph_max_degree_gamma_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/gamma/greenwood_gamma_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/gamma/kolmogorov_smirnov_gamma_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/gamma/kuiper_gamma_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/gamma/likelihood_ratio_gamma_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/gamma/lilliefors_gamma_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/gamma/min_toshiyuki_gamma_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/gamma/moran_gamma_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/gamma/probability_plot_correlation_gamma_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/gamma/watson_gamma_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/laplace/anderson_darling_laplace_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/laplace/cvm_laplace_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/laplace/greenwood_laplace_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/laplace/kolmogorov_smirnov_laplace_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/laplace/kuiper_laplace_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/laplace/watson_laplace_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/anderson_darling_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/bonett_seier_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/bontemps_meddahi1_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/bontemps_meddahi2_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/cabana_cabana1_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/cabana_cabana2_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/chen_shapiro_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/coin_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/cvm_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/dagostino_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/dagostino_pearson_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/desgagne_lafaye_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/doornik_hansen_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/epps_pulley_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/filliben_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/glen_leemis_barr_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/gmg_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/hosking1_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/hosking2_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/hosking3_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/hosking4_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/jarque_bera_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/kl_integral_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/kl_supremum_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/kolmogorov_smirnov_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/kurtosis_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/lilliefors_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/looney_gulledge_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/martinez_iglewicz_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/quesenberry_miller_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/robust_jarque_bera_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/ryan_joiner_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/sf_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/shapiro_wilk_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/skew_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/spiegelhalter_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/swrg_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/zhang_q_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/zhang_q_star_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/zhang_wu_a_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/log-normal/zhang_wu_c_log_normal_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/anderson_darling_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/bhs_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/bonett_seier_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/bontemps_meddahi1_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/bontemps_meddahi2_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/cabana_cabana1_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/cabana_cabana2_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/chen_shapiro_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/coin_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/cvm_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/dagostino_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/dagostino_pearson_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/desgagne_lafaye_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/doornik_hansen_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/epps_pulley_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/filliben_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/glen_leemis_barr_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/gmg_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/graph_average_degree_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/graph_clique_number_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/graph_connected_components_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/graph_edges_number_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/graph_independence_number_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/graph_max_degree_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/hosking1_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/hosking2_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/hosking3_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/hosking4_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/jarque_bera_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/kolmogorov_smirnov_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/kurtosis_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/lilliefors_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/looney_gulledge_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/martinez_iglewicz_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/robust_jarque_bera_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/ryan_joiner_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/sf_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/shapiro_wilk_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/skew_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/spiegelhalter_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/swrg_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/zhang_q_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/zhang_q_star_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/zhang_wu_a_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/normality/zhang_wu_c_normality_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/student/anderson_darling_student_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/student/chi_square_student_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/student/cvm_student_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/student/kolmogorov_smirnov_student_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/student/kuiper_student_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/student/lilliefors_student_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/student/watson_student_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/student/zhang_za_student_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/student/zhang_zc_student_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/uniformity/anderson_darling_uniform_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/uniformity/bickel_rosenblatt_uniform_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/uniformity/censored_stein_uniform_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/uniformity/chi2_pearson_uniform_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/uniformity/cvm_uniform_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/uniformity/greenwood_uniform_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/uniformity/kolmogorov_smirnov_uniform_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/uniformity/kuiper_uniform_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/uniformity/lilliefors_uniform_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/uniformity/neyman_smooth_uniform_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/uniformity/quesenberry_miller_uniform_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/uniformity/sherman_uniform_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/uniformity/stein_uniform_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/uniformity/watson_uniform_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/uniformity/zhang_uniform_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/anderson_darling_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/cabana_quiroz_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/chi2_pearson_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/cvm_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/kolmogorov_smirnov_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/kullback_leibler_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/laplace_transform2_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/laplace_transform3_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/liao_shimokawa_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/lilliefors_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/los_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/mahdi_doostparast_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/min_toshiyuki_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/msf_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/ok_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/rejg_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/rsb_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/sb_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/sb_wpp_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/spp_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/st1_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/st2_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/tiku_singh_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
     <url>
          <loc>https://pysatl.github.io/pysatl-criterion/en/stable/criteria/goodness-of-fit/weibull/watson_weibull_criterion/</loc>
-         <lastmod>2026-07-28</lastmod>
+         <lastmod>2026-07-29</lastmod>
     </url>
 </urlset>
