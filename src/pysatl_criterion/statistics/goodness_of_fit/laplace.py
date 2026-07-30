@@ -142,6 +142,28 @@ class CramerVonMisesLaplaceGofStatistic(AbstractLaplaceGofStatistic, CrammerVonM
         short_code = CramerVonMisesLaplaceGofStatistic.short_code()
         return f"{short_code}_{AbstractLaplaceGofStatistic.code()}"
 
+    @staticmethod
+    @njit
+    def _calculate_statistic(
+        sorted_rvs: np.ndarray, t: float, s: float
+    ) -> float:  # pragma: no cover
+        n = len(sorted_rvs)
+        total = 1.0 / (12.0 * n)
+
+        for i in range(n):
+            x = sorted_rvs[i]
+
+            if x < t:
+                current_cdf = 0.5 * np.exp((x - t) / s)
+            else:
+                current_cdf = 1.0 - 0.5 * np.exp(-(x - t) / s)
+
+            expected_cdf = (2.0 * i + 1.0) / (2.0 * n)
+            difference = expected_cdf - current_cdf
+            total += difference * difference
+
+        return total
+
     @override
     def execute_statistic(self, rvs, **kwargs):
         """Execute the Cramer--von Mises statistic for a Laplace distribution.
@@ -149,9 +171,22 @@ class CramerVonMisesLaplaceGofStatistic(AbstractLaplaceGofStatistic, CrammerVonM
         :param rvs: observations assumed to follow a Laplace distribution.
         :return: Cramer--von Mises W^2 statistic computed with the Laplace CDF.
         """
-        sorted_rvs = np.sort(np.asarray(rvs))
-        cdf_vals = scipy_stats.laplace.cdf(sorted_rvs, loc=self.t, scale=self.s)
-        return CrammerVonMisesStatistic.do_execute_statistic(self, sorted_rvs, cdf_vals)
+        sorted_rvs = np.sort(np.asarray(rvs, dtype=np.float64))
+        return self.do_execute_statistic(sorted_rvs)
+
+    def do_execute_statistic(self, sorted_rvs):
+        """Calculate the statistic for an already sorted sample.
+
+        :param sorted_rvs: one-dimensional sample sorted in ascending order.
+        :return: Cramer--von Mises statistic computed from the Laplace CDF.
+        """
+        return float(
+            self._calculate_statistic(
+                sorted_rvs,
+                self.t,
+                self.s,
+            )
+        )
 
 
 class AndersonDarlingLaplaceGofStatistic(AbstractLaplaceGofStatistic, ADStatistic):

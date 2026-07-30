@@ -94,6 +94,42 @@ def test_cramer_von_mises_laplace_statistic():
     assert result == pytest.approx(0.2225993471193351)
 
 
+@pytest.mark.parametrize(
+    ("sample", "location", "scale"),
+    [
+        ([0.1], 0.0, 1.0),
+        ([2.0, -1.0, 0.5, 0.5], 0.0, 1.0),
+        ([-5.0, -2.0, 3.0, 8.0], 1.0, 2.5),
+        (np.array([1, -2, 3, 0], dtype=np.int64), -0.5, 1.5),
+        ([-1_000.0, -100.0, 0.0, 100.0, 1_000.0], 0.0, 1.0),
+    ],
+)
+def test_cramer_von_mises_laplace_matches_scipy_reference(sample, location, scale):
+    """Optimized Cramer--von Mises implementation should match SciPy."""
+    sorted_sample = np.sort(np.asarray(sample, dtype=np.float64))
+    n = len(sorted_sample)
+    cdf_values = scipy_stats.laplace.cdf(
+        sorted_sample,
+        loc=location,
+        scale=scale,
+    )
+    expected_cdf = (2 * np.arange(1, n + 1) - 1) / (2 * n)
+    expected = 1 / (12 * n) + np.sum((expected_cdf - cdf_values) ** 2)
+
+    result = CramerVonMisesLaplaceGofStatistic(
+        t=location,
+        s=scale,
+    ).execute_statistic(sample)
+
+    assert result == pytest.approx(expected)
+
+
+def test_cramer_von_mises_laplace_rejects_empty_sample():
+    """Keep the existing error for an empty sample."""
+    with pytest.raises(ZeroDivisionError):
+        CramerVonMisesLaplaceGofStatistic().execute_statistic([])
+
+
 def test_anderson_darling_laplace_statistic():
     """Verify the Anderson--Darling statistic for a Laplace sample."""
 
