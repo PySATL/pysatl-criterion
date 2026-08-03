@@ -288,6 +288,11 @@ def test_greenwood_laplace_alternative():
     assert isinstance(GreenwoodLaplaceGofStatistic().alternative(), RightAlternative)
 
 
+def test_kuiper_laplace_alternative():
+    """Ensure Kuiper uses a right-tailed alternative."""
+    assert isinstance(KuiperLaplaceGofStatistic().alternative(), RightAlternative)
+
+
 def test_laplace_distribution_type():
     """Ensure Laplace statistics report the Laplace distribution type."""
 
