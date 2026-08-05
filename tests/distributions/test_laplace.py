@@ -148,6 +148,41 @@ def test_anderson_darling_laplace_matches_scipy_reference(sample, location, scal
 
 
 @pytest.mark.parametrize(
+    ("sample", "location", "scale"),
+    [
+        ([0.1], 0.0, 1.0),
+        ([2.0, -1.0, 0.5, 0.5], 0.0, 1.0),
+        ([-5.0, -2.0, 3.0, 8.0], 1.0, 2.5),
+        (np.array([1, -2, 3, 0], dtype=np.int64), -0.5, 1.5),
+        ([-1_000.0, -100.0, 0.0, 100.0, 1_000.0], 0.0, 1.0),
+    ],
+)
+def test_watson_laplace_matches_scipy_reference(sample, location, scale):
+    """Optimized Watson implementation should match the SciPy reference."""
+    sorted_sample = np.sort(np.asarray(sample, dtype=np.float64))
+    n = len(sorted_sample)
+
+    cdf_values = scipy_stats.laplace.cdf(
+        sorted_sample,
+        loc=location,
+        scale=scale,
+    )
+    expected_cdf = (2 * np.arange(1, n + 1) - 1) / (2 * n)
+    differences = cdf_values - expected_cdf
+
+    w_squared = 1.0 / (12 * n) + np.sum(differences**2)
+    mean_adjustment = np.sum(cdf_values) - n / 2
+    expected = w_squared - mean_adjustment**2 / n
+
+    result = WatsonLaplaceGofStatistic(
+        t=location,
+        s=scale,
+    ).execute_statistic(sample)
+
+    assert result == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
     ("statistic_class", "expected_value"),
     [
         (KolmogorovSmirnovLaplaceGofStatistic, 0.10023112481762697),
@@ -207,6 +242,11 @@ def test_greenwood_laplace_alternative():
     """Ensure Greenwood uses a right-tailed alternative."""
 
     assert isinstance(GreenwoodLaplaceGofStatistic().alternative(), RightAlternative)
+
+
+def test_watson_laplace_alternative():
+    """Ensure Watson uses a right-tailed alternative."""
+    assert isinstance(WatsonLaplaceGofStatistic().alternative(), RightAlternative)
 
 
 def test_laplace_distribution_type():
