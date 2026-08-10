@@ -34,7 +34,7 @@ build-backend = "poetry.core.masonry.api"
 poetry-dynamic-versioning = { version = ">=1.8.0,<2.0.0", extras = ["plugin"] }
 
 [tool.poetry.group.dev.dependencies]
-markdown = "3.10.2"
+markdown = "3.10.3"
 mkdocs = "1.6.1"
 mkdocs-material = "9.7.7"
 mdx-truly-sane-lists = "1.3"
@@ -46,9 +46,9 @@ coveralls = "4.1.0"
 pytest = "9.1.1"
 pytest-cov = "7.1.0"
 pytest-random-order = "1.2.0"
-ruff = "0.15.22"
+ruff = "0.16.1"
 pytest-mock = "3.15.1"
-pre-commit = "4.6.0"
+pre-commit = "4.6.1"
 mypy = "2.3.0"
 
 [tool.isort]
