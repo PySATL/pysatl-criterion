@@ -3,7 +3,7 @@ packages = [
     { include = "pysatl_criterion", from = "src" },
 ]
 name = "pysatl-criterion"
-version = "0.0.0"
+version = "1.0.0"
 description = "Package with statistic criteria for PySATL"
 authors = ["PySATL Team <pysatl@yahoo.com>"]
 license = "Apache License 2.0"
@@ -101,7 +101,7 @@ enable = true
 vcs = "git"
 style = "pep440"
 
-# Формат для НЕ tagged commits
+# Format for NOT tagged commits
 format-jinja = """
 {%- if distance == 0 -%}
     {{ base }}
