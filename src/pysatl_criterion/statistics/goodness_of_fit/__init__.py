@@ -88,6 +88,14 @@ from pysatl_criterion.statistics.goodness_of_fit.graph_goodness_of_fit import (
     GraphIndependenceNumberTestStatistic,
     GraphMaxDegreeTestStatistic,
 )
+from pysatl_criterion.statistics.goodness_of_fit.hyperbolic import (
+    AbstractHyperbolicGofStatistic,
+    AndersonDarlingHyperbolicGofStatistic,
+    CramerVonMisesHyperbolicGofStatistic,
+    KolmogorovSmirnovHyperbolicGofStatistic,
+    KuiperHyperbolicGofStatistic,
+    WatsonHyperbolicGofStatistic,
+)
 from pysatl_criterion.statistics.goodness_of_fit.laplace import (
     AbstractLaplaceGofStatistic,
     AndersonDarlingLaplaceGofStatistic,
@@ -253,6 +261,13 @@ from pysatl_criterion.statistics.goodness_of_fit.weibull import (
 
 
 __all__ = [
+    # Hyperbolic distribution statistics
+    "AbstractHyperbolicGofStatistic",
+    "AndersonDarlingHyperbolicGofStatistic",
+    "CramerVonMisesHyperbolicGofStatistic",
+    "KolmogorovSmirnovHyperbolicGofStatistic",
+    "KuiperHyperbolicGofStatistic",
+    "WatsonHyperbolicGofStatistic",
     # Base and Models
     "AbstractGraphTestStatistic",
     # Common Aliases
