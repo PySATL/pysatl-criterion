@@ -142,6 +142,28 @@ class CramerVonMisesLaplaceGofStatistic(AbstractLaplaceGofStatistic, CrammerVonM
         short_code = CramerVonMisesLaplaceGofStatistic.short_code()
         return f"{short_code}_{AbstractLaplaceGofStatistic.code()}"
 
+    @staticmethod
+    @njit
+    def _calculate_statistic(
+        sorted_rvs: np.ndarray, t: float, s: float
+    ) -> float:  # pragma: no cover
+        n = len(sorted_rvs)
+        total = 1.0 / (12.0 * n)
+
+        for i in range(n):
+            x = sorted_rvs[i]
+
+            if x < t:
+                current_cdf = 0.5 * np.exp((x - t) / s)
+            else:
+                current_cdf = 1.0 - 0.5 * np.exp(-(x - t) / s)
+
+            expected_cdf = (2.0 * i + 1.0) / (2.0 * n)
+            difference = expected_cdf - current_cdf
+            total += difference * difference
+
+        return total
+
     @override
     def execute_statistic(self, rvs, **kwargs):
         """Execute the Cramer--von Mises statistic for a Laplace distribution.
@@ -149,9 +171,22 @@ class CramerVonMisesLaplaceGofStatistic(AbstractLaplaceGofStatistic, CrammerVonM
         :param rvs: observations assumed to follow a Laplace distribution.
         :return: Cramer--von Mises W^2 statistic computed with the Laplace CDF.
         """
-        sorted_rvs = np.sort(np.asarray(rvs))
-        cdf_vals = scipy_stats.laplace.cdf(sorted_rvs, loc=self.t, scale=self.s)
-        return CrammerVonMisesStatistic.do_execute_statistic(self, sorted_rvs, cdf_vals)
+        sorted_rvs = np.sort(np.asarray(rvs, dtype=np.float64))
+        return self.do_execute_statistic(sorted_rvs)
+
+    def do_execute_statistic(self, sorted_rvs):
+        """Calculate the statistic for an already sorted sample.
+
+        :param sorted_rvs: one-dimensional sample sorted in ascending order.
+        :return: Cramer--von Mises statistic computed from the Laplace CDF.
+        """
+        return float(
+            self._calculate_statistic(
+                sorted_rvs,
+                self.t,
+                self.s,
+            )
+        )
 
 
 class AndersonDarlingLaplaceGofStatistic(AbstractLaplaceGofStatistic, ADStatistic):
@@ -355,6 +390,33 @@ class WatsonLaplaceGofStatistic(AbstractLaplaceGofStatistic):
         short_code = WatsonLaplaceGofStatistic.short_code()
         return f"{short_code}_{AbstractLaplaceGofStatistic.code()}"
 
+    @staticmethod
+    @njit
+    def _calculate_statistic(
+        sorted_rvs: np.ndarray,
+        t: float,
+        s: float,
+    ) -> float:  # pragma: no cover
+        n = len(sorted_rvs)
+        total = 1.0 / (12.0 * n)
+        cdf_sum = 0.0
+
+        for i in range(n):
+            x = sorted_rvs[i]
+
+            if x < t:
+                current_cdf = 0.5 * np.exp((x - t) / s)
+            else:
+                current_cdf = 1.0 - 0.5 * np.exp(-(x - t) / s)
+
+            expected_cdf = (2.0 * i + 1.0) / (2.0 * n)
+            difference = current_cdf - expected_cdf
+            total += difference * difference
+            cdf_sum += current_cdf
+
+        mean_adjustment = cdf_sum - n / 2.0
+        return total - mean_adjustment * mean_adjustment / n
+
     @override
     def execute_statistic(self, rvs):
         """
@@ -365,19 +427,29 @@ class WatsonLaplaceGofStatistic(AbstractLaplaceGofStatistic):
         :raises ValueError: if sample is empty.
         """
 
-        sorted_rvs = np.sort(np.asarray(rvs))
+        sorted_rvs = np.sort(np.asarray(rvs, dtype=np.float64))
         n = len(sorted_rvs)
         if n == 0:
             raise ValueError(
                 "At least one observation is required to compute the Watson statistic."
             )
 
-        cdf_vals = scipy_stats.laplace.cdf(sorted_rvs, loc=self.t, scale=self.s)
-        u = (2 * np.arange(1, n + 1) - 1) / (2 * n)
-        diff = cdf_vals - u
-        w_squared = 1.0 / (12 * n) + np.sum(diff**2)
-        mean_adj = np.sum(cdf_vals) - n / 2
-        return float(w_squared - (mean_adj**2) / n)
+        return self.do_execute_statistic(sorted_rvs)
+
+    def do_execute_statistic(self, sorted_rvs):
+        """
+        Calculate the Watson statistic for an already sorted sample.
+
+        :param sorted_rvs: one-dimensional sample sorted in ascending order.
+        :return: Watson statistic computed from the Laplace CDF values.
+        """
+        return float(
+            self._calculate_statistic(
+                sorted_rvs,
+                self.t,
+                self.s,
+            )
+        )
 
 
 class GreenwoodLaplaceGofStatistic(AbstractLaplaceGofStatistic):
