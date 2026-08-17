@@ -15,12 +15,12 @@ scipy = ">=1.11.2"
 pandas = ">=2.2.1"
 typing-extensions = ">=4.12.2"
 networkx = "==3.4.2"
-sqlalchemy = "==2.0.51"
+sqlalchemy = "==2.0.52"
 zstandard = "==0.25.0"
 python-dotenv = ">=1.0.0"
 psycopg2-binary = ">=2.9.12,<3.0.0"
 python = ">=3.10,<3.13"
-numba = "^0.66.0"
+numba = ">=0.66,<0.68"
 
 [tool.poetry.urls]
 Homepage = "https://github.com/PySATL/pysatl-criterion"
@@ -34,7 +34,7 @@ build-backend = "poetry.core.masonry.api"
 poetry-dynamic-versioning = { version = ">=1.8.0,<2.0.0", extras = ["plugin"] }
 
 [tool.poetry.group.dev.dependencies]
-markdown = "3.10.2"
+markdown = "3.10.3"
 mkdocs = "1.6.1"
 mkdocs-material = "9.7.7"
 mdx-truly-sane-lists = "1.3"
@@ -46,9 +46,9 @@ coveralls = "4.1.0"
 pytest = "9.1.1"
 pytest-cov = "7.1.0"
 pytest-random-order = "1.2.0"
-ruff = "0.15.22"
+ruff = "0.16.3"
 pytest-mock = "3.15.1"
-pre-commit = "4.6.0"
+pre-commit = "4.6.2"
 mypy = "2.3.0"
 
 [tool.isort]
