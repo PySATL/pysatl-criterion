@@ -299,6 +299,33 @@ class KuiperLaplaceGofStatistic(AbstractLaplaceGofStatistic):
         short_code = KuiperLaplaceGofStatistic.short_code()
         return f"{short_code}_{AbstractLaplaceGofStatistic.code()}"
 
+    @staticmethod
+    @njit
+    def _calculate_statistic(
+        sorted_rvs: np.ndarray,
+        t: float,
+        s: float,
+    ) -> float:  # pragma: no cover
+        n = len(sorted_rvs)
+        d_plus = 0.0
+        d_minus = 0.0
+
+        for i in range(n):
+            x = sorted_rvs[i]
+
+            if x < t:
+                current_cdf = 0.5 * np.exp((x - t) / s)
+            else:
+                current_cdf = 1.0 - 0.5 * np.exp(-(x - t) / s)
+
+            if np.isnan(current_cdf):
+                return np.nan
+
+            d_plus = max(d_plus, (i + 1.0) / n - current_cdf)
+            d_minus = max(d_minus, current_cdf - i / n)
+
+        return d_plus + d_minus
+
     @override
     def execute_statistic(self, rvs):
         """
@@ -308,21 +335,27 @@ class KuiperLaplaceGofStatistic(AbstractLaplaceGofStatistic):
         :raises ValueError: if the sample is empty.
         """
 
-        sorted_rvs = np.sort(np.asarray(rvs))
-        n = len(sorted_rvs)
-
-        if n == 0:
+        sorted_rvs = np.sort(np.asarray(rvs, dtype=np.float64))
+        if len(sorted_rvs) == 0:
             raise ValueError(
                 "At least one observation is required to compute the Kuiper statistic."
             )
+        return self.do_execute_statistic(sorted_rvs)
 
-        cdf_vals = scipy_stats.laplace.cdf(sorted_rvs, loc=self.t, scale=self.s)
+    def do_execute_statistic(self, sorted_rvs):
+        """
+        Calculate the statistic for an already sorted sample.
 
-        i = np.arange(1, n + 1)
-        d_plus = np.max(i / n - cdf_vals)
-        d_minus = np.max(cdf_vals - (i - 1) / n)
-
-        return float(d_plus + d_minus)
+        :param sorted_rvs: one-dimensional sample sorted in ascending order.
+        :return: Kuiper statistic computed from the Laplace CDF.
+        """
+        return float(
+            self._calculate_statistic(
+                sorted_rvs,
+                self.t,
+                self.s,
+            )
+        )
 
 
 class WatsonLaplaceGofStatistic(AbstractLaplaceGofStatistic):

@@ -193,6 +193,39 @@ def test_anderson_darling_laplace_matches_scipy_reference(sample, location, scal
         ([-1_000.0, -100.0, 0.0, 100.0, 1_000.0], 0.0, 1.0),
     ],
 )
+def test_kuiper_laplace_matches_scipy_reference(sample, location, scale):
+    """Optimized Kuiper implementation should match the SciPy reference."""
+    sorted_sample = np.sort(np.asarray(sample, dtype=np.float64))
+    n = len(sorted_sample)
+
+    cdf_values = scipy_stats.laplace.cdf(
+        sorted_sample,
+        loc=location,
+        scale=scale,
+    )
+    indices = np.arange(1, n + 1)
+    d_plus = np.max(indices / n - cdf_values)
+    d_minus = np.max(cdf_values - (indices - 1) / n)
+    expected = d_plus + d_minus
+
+    result = KuiperLaplaceGofStatistic(
+        t=location,
+        s=scale,
+    ).execute_statistic(sample)
+
+    assert result == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    ("sample", "location", "scale"),
+    [
+        ([0.1], 0.0, 1.0),
+        ([2.0, -1.0, 0.5, 0.5], 0.0, 1.0),
+        ([-5.0, -2.0, 3.0, 8.0], 1.0, 2.5),
+        (np.array([1, -2, 3, 0], dtype=np.int64), -0.5, 1.5),
+        ([-1_000.0, -100.0, 0.0, 100.0, 1_000.0], 0.0, 1.0),
+    ],
+)
 def test_watson_laplace_matches_scipy_reference(sample, location, scale):
     """Optimized Watson implementation should match the SciPy reference."""
     sorted_sample = np.sort(np.asarray(sample, dtype=np.float64))
@@ -214,6 +247,52 @@ def test_watson_laplace_matches_scipy_reference(sample, location, scale):
         t=location,
         s=scale,
     ).execute_statistic(sample)
+
+    assert result == pytest.approx(expected)
+
+
+def test_kuiper_laplace_preserves_nan():
+    """Kuiper statistic should preserve NaN from the original implementation."""
+    result = KuiperLaplaceGofStatistic().execute_statistic([0.0, np.nan, 1.0])
+
+    assert np.isnan(result)
+
+
+@pytest.mark.parametrize(
+    ("sample", "location", "scale"),
+    [
+        ([0.1], 0.0, 1.0),
+        ([2.0, -1.0, 0.5, 0.5], 0.0, 1.0),
+        ([-5.0, -2.0, 3.0, 8.0], 1.0, 2.5),
+        (np.array([1, -2, 3, 0], dtype=np.int64), -0.5, 1.5),
+    ],
+)
+def test_greenwood_laplace_matches_scipy_reference(sample, location, scale):
+    """Optimized Greenwood implementation should match the SciPy reference."""
+
+    sorted_sample = np.sort(np.asarray(sample, dtype=np.float64))
+    cdf_values = scipy_stats.laplace.cdf(
+        sorted_sample,
+        loc=location,
+        scale=scale,
+    )
+    spacings = np.diff(
+        np.concatenate(
+            (
+                [0.0],
+                cdf_values,
+                [1.0],
+            )
+        )
+    )
+    expected = np.sum(spacings**2)
+
+    statistic = GreenwoodLaplaceGofStatistic(
+        t=location,
+        s=scale,
+    )
+
+    result = statistic.execute_statistic(sample)
 
     assert result == pytest.approx(expected)
 
@@ -280,8 +359,15 @@ def test_greenwood_laplace_alternative():
     assert isinstance(GreenwoodLaplaceGofStatistic().alternative(), RightAlternative)
 
 
+def test_kuiper_laplace_alternative():
+    """Ensure Kuiper uses a right-tailed alternative."""
+
+    assert isinstance(KuiperLaplaceGofStatistic().alternative(), RightAlternative)
+
+
 def test_watson_laplace_alternative():
     """Ensure Watson uses a right-tailed alternative."""
+
     assert isinstance(WatsonLaplaceGofStatistic().alternative(), RightAlternative)
 
 
@@ -324,42 +410,3 @@ def test_additional_laplace_statistics_require_non_empty_sample(statistic_class)
 
     with pytest.raises(ValueError, match="At least one observation is required"):
         statistic_class(t=_LOCATION, s=_SCALE).execute_statistic([])
-
-
-@pytest.mark.parametrize(
-    ("sample", "location", "scale"),
-    [
-        ([0.1], 0.0, 1.0),
-        ([2.0, -1.0, 0.5, 0.5], 0.0, 1.0),
-        ([-5.0, -2.0, 3.0, 8.0], 1.0, 2.5),
-        (np.array([1, -2, 3, 0], dtype=np.int64), -0.5, 1.5),
-    ],
-)
-def test_greenwood_laplace_matches_scipy_reference(sample, location, scale):
-    """Optimized Greenwood implementation should match the SciPy reference."""
-
-    sorted_sample = np.sort(np.asarray(sample, dtype=np.float64))
-    cdf_values = scipy_stats.laplace.cdf(
-        sorted_sample,
-        loc=location,
-        scale=scale,
-    )
-    spacings = np.diff(
-        np.concatenate(
-            (
-                [0.0],
-                cdf_values,
-                [1.0],
-            )
-        )
-    )
-    expected = np.sum(spacings**2)
-
-    statistic = GreenwoodLaplaceGofStatistic(
-        t=location,
-        s=scale,
-    )
-
-    result = statistic.execute_statistic(sample)
-
-    assert result == pytest.approx(expected)
