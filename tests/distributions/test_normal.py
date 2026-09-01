@@ -201,8 +201,12 @@ def test_ad_normality_criterion_code():
         ),
     ],
 )
-# TODO: remove skip
-@pytest.mark.skip(reason="no way of currently testing this")
+# TODO: the medcouple port in BHSNormalityGofStatistic.mc_c_d / whi_med_i is
+# incomplete: it does not terminate for samples of this size (n >= 5) and, when
+# forced to stop, returns values that disagree with the R robustbase reference
+# (e.g. 0.55 vs the expected 0.9122889). Unskip once the algorithm is ported
+# correctly.
+@pytest.mark.skip(reason="medcouple port incomplete: non-terminating / wrong result for n >= 5")
 def test_bhs_normality_criterion(data, result):
     statistic = BHSNormalityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
