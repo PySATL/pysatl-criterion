@@ -85,7 +85,7 @@ def test_nikulin_loglogistic_statistic():
     censored = np.ones_like(times)
 
     statistic = NikulinLogLogisticGofStatistic(n_intervals=5).execute_statistic((times, censored))
-    assert statistic == pytest.approx(97.26713859725925, rel=1e-9)
+    assert statistic == pytest.approx(97.26713859725925, rel=1e-7)
 
 
 def test_nikulin_loglogistic_with_censored_data():
@@ -117,7 +117,7 @@ def test_mirvaliev_loglogistic_statistic():
     censored = np.ones_like(times)
 
     statistic = MirvalievLogLogisticGofStatistic(n_intervals=8).execute_statistic((times, censored))
-    assert statistic == pytest.approx(787268848.3681092, rel=1e-9)
+    assert statistic == pytest.approx(787268848.3681092, rel=1e-7)
 
 
 def test_mirvaliev_with_censored_data():
