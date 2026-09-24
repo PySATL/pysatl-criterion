@@ -265,12 +265,12 @@ class LogNormalDistributionDescriptor(DistributionDescriptor):
         """
         Return parameters for the log normal distribution.
 
-        :return: descriptors for logarithmic mean and variance.
+        :return: descriptors for logarithmic location and standard deviation.
         """
         return [
-            DistributionParameterDescriptor("μ", "mean", "Logarithm of mean", 0),
+            DistributionParameterDescriptor("μ", "mu", "Logarithmic location", 0),
             DistributionParameterDescriptor(
-                "σ²", "var", "Logarithm of variance. σ² > 0", 1, PositiveNumberValidator()
+                "σ", "s", "Logarithmic standard deviation. σ > 0", 1, PositiveNumberValidator()
             ),
         ]
 
