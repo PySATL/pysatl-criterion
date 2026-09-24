@@ -1,7 +1,7 @@
 from scipy.stats import exponweib
 
 
-def generate_weibull(size, a=1, k=5):
+def generate_weibull(size, a=1, k=5, random_state=None):
     """
     Generate random samples from the exponentiated Weibull distribution.
 
@@ -18,6 +18,8 @@ def generate_weibull(size, a=1, k=5):
         Shape parameter of the distribution. Default is 1.
     k : float, optional
         Shape parameter controlling tail behavior. Default is 5.
+    random_state : object, optional
+        Random state forwarded to ``scipy.stats.exponweib.rvs``.
 
     Returns
     -------
@@ -34,7 +36,7 @@ def generate_weibull(size, a=1, k=5):
     >>> generate_weibull(5, a=1, k=2)
     array([...])
     """
-    return exponweib.rvs(a=a, c=k, size=size)
+    return exponweib.rvs(a=a, c=k, size=size, random_state=random_state)
 
 
 def generate_weibull_cdf(rvs, a=1, k=5):

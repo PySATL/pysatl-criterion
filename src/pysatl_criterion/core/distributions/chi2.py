@@ -1,7 +1,7 @@
 from scipy.stats import chi2
 
 
-def generate_chi2(size, df=2):
+def generate_chi2(size, df=2, random_state=None):
     """
     Generate random samples from the Chi-square distribution.
 
@@ -39,4 +39,4 @@ def generate_chi2(size, df=2):
     >>> generate_chi2(5, df=3)
     array([...])
     """
-    return chi2.rvs(df=df, size=size)
+    return chi2.rvs(df=df, size=size, random_state=random_state)

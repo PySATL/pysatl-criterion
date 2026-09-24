@@ -1,7 +1,7 @@
 from scipy.stats import invgauss
 
 
-def generate_invgauss(size, mu=0, lam=1):
+def generate_invgauss(size, mu=0, lam=1, random_state=None):
     """
     Generate random samples from the inverse Gaussian (Wald) distribution.
 
@@ -44,4 +44,4 @@ def generate_invgauss(size, mu=0, lam=1):
     >>> generate_invgauss(5, mu=1.0, lam=2.0)
     array([...])
     """
-    return invgauss.rvs(mu, size=size, scale=lam)
+    return invgauss.rvs(mu, size=size, scale=lam, random_state=random_state)

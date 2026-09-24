@@ -1,7 +1,7 @@
 from scipy.stats import laplace
 
 
-def generate_laplace(size, t=0, s=1):
+def generate_laplace(size, t=0, s=1, random_state=None):
     """
     Generate random samples from the Laplace (double exponential) distribution.
 
@@ -43,4 +43,4 @@ def generate_laplace(size, t=0, s=1):
     >>> generate_laplace(5, t=0.0, s=1.0)
     array([...])
     """
-    return laplace.rvs(size=size, loc=t, scale=s)
+    return laplace.rvs(size=size, loc=t, scale=s, random_state=random_state)

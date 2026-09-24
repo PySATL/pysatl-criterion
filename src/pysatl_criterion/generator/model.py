@@ -77,13 +77,15 @@ class AbstractRVSGenerator(ABC):
 
     @staticmethod
     @abstractmethod
-    def generate(size: int):
+    def generate(size: int, random_state=None):
         """Generate random sample.
 
         Parameters
         ----------
         size : int
             Sample size.
+        random_state : numpy.random.Generator | numpy.random.RandomState | int | None
+            State used for reproducible random sampling.
 
         Returns
         -------

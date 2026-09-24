@@ -1,7 +1,7 @@
 from scipy.stats import expon
 
 
-def generate_expon(size, lam=1):
+def generate_expon(size, lam=1, random_state=None):
     """
     Generate random samples from the exponential distribution.
 
@@ -19,6 +19,8 @@ def generate_expon(size, lam=1):
     lam : float, optional
         Rate parameter (λ) of the exponential distribution.
         Must be greater than 0. Default is 1.
+    random_state : object, optional
+        Random state forwarded to ``scipy.stats.expon.rvs``.
 
     Returns
     -------
@@ -41,7 +43,7 @@ def generate_expon(size, lam=1):
     array([...])
     """
     scale = 1 / lam
-    return expon.rvs(size=size, scale=scale)
+    return expon.rvs(size=size, scale=scale, random_state=random_state)
 
 
 def cdf_expon(rvs, lam=1):

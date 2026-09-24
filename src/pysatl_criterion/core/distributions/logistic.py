@@ -1,7 +1,7 @@
 from scipy.stats import logistic
 
 
-def generate_logistic(size, t=0, s=1):
+def generate_logistic(size, t=0, s=1, random_state=None):
     """
     Generate random samples from the logistic distribution.
 
@@ -43,4 +43,4 @@ def generate_logistic(size, t=0, s=1):
     >>> generate_logistic(5, t=0.0, s=1.0)
     array([...])
     """
-    return logistic.rvs(size=size, loc=t, scale=s)
+    return logistic.rvs(size=size, loc=t, scale=s, random_state=random_state)
