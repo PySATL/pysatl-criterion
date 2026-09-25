@@ -1,7 +1,7 @@
 from scipy.stats import beta
 
 
-def generate_beta(size, a=1.0, b=1.0):
+def generate_beta(size, a=1.0, b=1.0, random_state=None):
     """
     Generate random samples from the Beta distribution.
 
@@ -20,6 +20,8 @@ def generate_beta(size, a=1.0, b=1.0):
     b : float, optional
         Second shape parameter (beta) of the Beta distribution.
         Must be greater than 0. Default is 1.0.
+    random_state : object, optional
+        Random state forwarded to ``scipy.stats.beta.rvs``.
 
     Returns
     -------
@@ -41,4 +43,4 @@ def generate_beta(size, a=1.0, b=1.0):
     >>> generate_beta(5, a=2.0, b=5.0)
     array([...])
     """
-    return beta.rvs(a=a, b=b, size=size)
+    return beta.rvs(a=a, b=b, size=size, random_state=random_state)

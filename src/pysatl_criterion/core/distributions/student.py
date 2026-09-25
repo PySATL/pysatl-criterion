@@ -1,7 +1,7 @@
 from scipy.stats import t
 
 
-def generate_t(size, df=2):
+def generate_t(size, df=2, random_state=None):
     """
     Generate random samples from the Student's t-distribution.
 
@@ -17,6 +17,8 @@ def generate_t(size, df=2):
     df : float, optional
         Degrees of freedom of the distribution. Must be greater than 0.
         Default is 2.
+    random_state : object, optional
+        Random state forwarded to ``scipy.stats.t.rvs``.
 
     Returns
     -------
@@ -39,4 +41,4 @@ def generate_t(size, df=2):
     >>> generate_t(5, df=3)
     array([...])
     """
-    return t.rvs(df=df, size=size)
+    return t.rvs(df=df, size=size, random_state=random_state)

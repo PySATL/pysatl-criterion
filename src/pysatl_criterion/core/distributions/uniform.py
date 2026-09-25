@@ -1,7 +1,7 @@
 from scipy.stats import uniform
 
 
-def generate_uniform(size, a=0, b=1):
+def generate_uniform(size, a=0, b=1, random_state=None):
     """
     Generate random samples from the uniform distribution.
 
@@ -19,6 +19,8 @@ def generate_uniform(size, a=0, b=1):
     b : float, optional
         Upper bound of the distribution interval. Must be greater than ``a``.
         Default is 1.
+    random_state : object, optional
+        Random state forwarded to ``scipy.stats.uniform.rvs``.
 
     Returns
     -------
@@ -41,4 +43,4 @@ def generate_uniform(size, a=0, b=1):
     array([...])
     """
     scale = b - a
-    return uniform.rvs(size=size, loc=a, scale=scale)
+    return uniform.rvs(size=size, loc=a, scale=scale, random_state=random_state)

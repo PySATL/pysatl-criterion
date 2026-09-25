@@ -1,7 +1,7 @@
 from scipy.stats import rice
 
 
-def generate_rice(size, nu=0, sigma=1):
+def generate_rice(size, nu=0, sigma=1, random_state=None):
     """
     Generate random samples from the Rice distribution.
 
@@ -43,4 +43,4 @@ def generate_rice(size, nu=0, sigma=1):
     >>> generate_rice(5, nu=2.0, sigma=1.0)
     array([...])
     """
-    return rice.rvs(nu, size=size, scale=sigma)
+    return rice.rvs(nu, size=size, scale=sigma, random_state=random_state)

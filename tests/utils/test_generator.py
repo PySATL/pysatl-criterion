@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from pysatl_criterion import DistributionType
@@ -26,3 +27,12 @@ def test_get_available_generator_returns_matching_generator(
 def test_get_available_generator_raises_for_missing_generator():
     with pytest.raises(StopIteration):
         get_available_generator(object(), {})
+
+
+def test_available_generator_uses_caller_owned_random_state():
+    generator = get_available_generator(DistributionType.NORMAL, {"mean": 1, "var": 4})
+
+    first = generator.generate(20, random_state=123)
+    second = generator.generate(20, random_state=123)
+
+    assert np.array_equal(first, second)
