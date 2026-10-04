@@ -5,7 +5,14 @@ import pytest
 
 from pysatl_criterion import DistributionType
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
-from pysatl_criterion.utils.statistic import get_available_criteria, get_available_criteria_codes
+from pysatl_criterion.statistics.goodness_of_fit.beta import (
+    KolmogorovSmirnovBetaGofStatistic,
+)
+from pysatl_criterion.utils.statistic import (
+    get_available_criteria,
+    get_available_criteria_codes,
+    get_criterion_by_code,
+)
 
 
 @pytest.mark.parametrize(
@@ -191,3 +198,14 @@ def test_get_available_criteria_all_criteria_classes(distribution):
     assert all(issubclass(criterion, AbstractGoodnessOfFitStatistic) for criterion in criteria)
     assert all(not inspect.isabstract(criterion) for criterion in criteria)
     assert all(criterion.distribution() == DistributionType(distribution) for criterion in criteria)
+
+
+def test_get_criterion_by_code_returns_criterion_class():
+    criterion = get_criterion_by_code(KolmogorovSmirnovBetaGofStatistic.code())
+
+    assert criterion is KolmogorovSmirnovBetaGofStatistic
+
+
+def test_get_criterion_by_code_raises_for_unknown_code():
+    with pytest.raises(ValueError, match="UNKNOWN"):
+        get_criterion_by_code("UNKNOWN")

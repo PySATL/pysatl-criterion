@@ -61,7 +61,7 @@ def test_abstract_pareto_hypothesis():
     stat = KolmogorovSmirnovParetoGofStatistic(shape=2.5, scale=1.5)
     hypothesis = stat.hypothesis()
     assert hypothesis.params is not None
-    assert hypothesis.parameters() == [2.5, 1.5]
+    assert hypothesis.parameters() == {"scale": 1.5, "shape": 2.5}
 
 
 @pytest.mark.parametrize(

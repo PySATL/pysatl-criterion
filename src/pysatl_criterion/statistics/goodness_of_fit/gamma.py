@@ -45,13 +45,13 @@ class AbstractGammaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
         Initialize Gamma distribution goodness-of-fit statistic.
 
         :param alpha: shape parameter (alpha) > 0.
-        :param beta: scale parameter (beta) > 0.
-        :raises ValueError: if shape or scale is not positive.
+        :param beta: rate parameter (beta) > 0.
+        :raises ValueError: if shape or rate is not positive.
         """
         if alpha <= 0:
             raise ValueError("Shape must be positive.")
         if beta <= 0:
-            raise ValueError("Scale must be positive.")
+            raise ValueError("Rate must be positive.")
         self.alpha = alpha
         self.beta = beta
 

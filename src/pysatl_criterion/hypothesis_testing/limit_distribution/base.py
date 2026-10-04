@@ -4,12 +4,11 @@ from abc import ABC, abstractmethod
 import numpy as np
 from typing_extensions import override
 
-from pysatl_criterion.persistence.models.limit_distribution import (
-    ILimitDistributionStorage,
-    LimitDistributionQuery,
-)
+from pysatl_criterion.persistence.models.distribution_key import DistributionKey
+from pysatl_criterion.persistence.models.limit_distribution import LimitDistributionModel
+from pysatl_criterion.persistence.stores.base import IStoreReader
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
-from pysatl_criterion.utils.generator import get_available_generator
+from pysatl_criterion.utils.generator import get_hypothesis_generator
 
 
 logger = logging.getLogger(__name__)
@@ -74,9 +73,7 @@ class MonteCarloLimitDistributionResolver(AbstractLimitDistributionResolver):
 
         statistics = np.empty(self.monte_carlo_count)
 
-        rvs_generator = get_available_generator(
-            statistic.distribution(), statistic.hypothesis().params
-        )
+        rvs_generator = get_hypothesis_generator(statistic)
 
         for i in range(self.monte_carlo_count):
             statistics[i] = statistic.execute_statistic(rvs_generator.generate(sample_size))
@@ -89,7 +86,9 @@ class StorageLimitDistributionResolver(AbstractLimitDistributionResolver):
     Resolver that loads limit distributions from persistent storage.
     """
 
-    def __init__(self, limit_distribution_storage: ILimitDistributionStorage):
+    def __init__(
+        self, limit_distribution_storage: IStoreReader[LimitDistributionModel, DistributionKey]
+    ):
         """
         Initialize the storage-backed resolver.
 
@@ -110,12 +109,11 @@ class StorageLimitDistributionResolver(AbstractLimitDistributionResolver):
         :param sample_size: sample size used for the stored distribution.
         :return: stored statistic values, or None if no distribution is found.
         """
-        limit_distribution = self.limit_distribution_storage.get_data(
-            LimitDistributionQuery(
+        limit_distribution = self.limit_distribution_storage.get(
+            DistributionKey(
                 criterion_code=statistic.code(),
                 criterion_parameters=statistic.hypothesis().parameters(),
                 sample_size=sample_size,
-                monte_carlo_count=1,
             )
         )
 
@@ -125,26 +123,26 @@ class StorageLimitDistributionResolver(AbstractLimitDistributionResolver):
 
 
 class CompositeLimitDistributionResolver(AbstractLimitDistributionResolver):
+    """Try resolvers in order and return the first result that is not None."""
+
     def __init__(
         self,
-        local_resolver: StorageLimitDistributionResolver,
-        monte_carlo_resolver: MonteCarloLimitDistributionResolver,
-    ):
-        self._local_resolver = local_resolver
-        self._monte_carlo_resolver = monte_carlo_resolver
+        resolvers: list[AbstractLimitDistributionResolver],
+    ) -> None:
+        self._resolvers = list(resolvers)
 
+    @override
     def resolve(
         self,
         statistic: AbstractGoodnessOfFitStatistic,
         sample_size: int,
-    ) -> list[float]:
-        # 1. Get all local results
-        results = self._local_resolver.resolve(statistic, sample_size)
+    ) -> list[float] | None:
+        """Return None if no resolver has a result, including an empty resolver list.
 
-        if results is not None:
-            return results
-
-        # 2. Monte-Carlo limit distribution calculation
-        results = self._monte_carlo_resolver.resolve(statistic, sample_size)
-
-        return results
+        Empty results are returned as-is. Exceptions from resolvers propagate.
+        """
+        for resolver in self._resolvers:
+            results = resolver.resolve(statistic, sample_size)
+            if results is not None:
+                return results
+        return None

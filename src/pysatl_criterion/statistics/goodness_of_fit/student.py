@@ -32,7 +32,7 @@ class AbstractStudentGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
 
     @override
     def hypothesis(self) -> GoodnessOfFitHypothesis:
-        return GoodnessOfFitHypothesis({"df": self.df})
+        return GoodnessOfFitHypothesis({"df": self.df, "loc": self.loc, "scale": self.scale})
 
     @staticmethod
     @override

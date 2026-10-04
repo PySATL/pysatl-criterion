@@ -3,7 +3,7 @@ import struct
 
 import numpy as np
 import zstandard as zstd
-from sqlalchemy.types import BLOB, TypeDecorator
+from sqlalchemy.types import LargeBinary, TypeDecorator
 
 
 class CompressedFloatArray(TypeDecorator):
@@ -11,7 +11,7 @@ class CompressedFloatArray(TypeDecorator):
     SQLAlchemy column type that stores a list of floats compressed with zstd.
     """
 
-    impl = BLOB
+    impl = LargeBinary(length=2**31 - 1)
     cache_ok = True
 
     VERSION = 1

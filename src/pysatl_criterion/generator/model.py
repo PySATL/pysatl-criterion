@@ -22,6 +22,8 @@ class AbstractRVSGenerator(ABC):
 
     def __init__(self, **kwargs: Any) -> None:
         """Initialize generator base class."""
+        if kwargs:
+            raise TypeError(f"Unknown generator parameters: {', '.join(sorted(kwargs))}")
         super().__init__()
 
     @staticmethod

@@ -57,7 +57,7 @@ def test_gamma_positive_shape_required():
 def test_gamma_positive_scale_required():
     """Stat constructors should reject non-positive scale parameters."""
 
-    with pytest.raises(ValueError, match="Scale must be positive."):
+    with pytest.raises(ValueError, match="Rate must be positive."):
         KolmogorovSmirnovGammaGofStatistic(beta=-1.0)
 
 

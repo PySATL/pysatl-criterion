@@ -130,7 +130,7 @@ class BetaRVSGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.a, self.b])
+        return super()._convert_to_code([self.distribution_type().value, self.a, self.b])
 
     @override
     def generate(self, size, random_state=None):
@@ -168,7 +168,7 @@ class CauchyRVSGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.t, self.s])
+        return super()._convert_to_code([self.distribution_type().value, self.t, self.s])
 
     @override
     def generate(self, size, random_state=None):
@@ -206,7 +206,7 @@ class LaplaceRVSGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.t, self.s])
+        return super()._convert_to_code([self.distribution_type().value, self.t, self.s])
 
     @override
     def generate(self, size, random_state=None):
@@ -244,7 +244,7 @@ class LogisticRVSGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.t, self.s])
+        return super()._convert_to_code([self.distribution_type().value, self.t, self.s])
 
     @override
     def generate(self, size, random_state=None):
@@ -259,16 +259,22 @@ class TRVSGenerator(AbstractRVSGenerator):
     ----------
     df : float
         Degrees of freedom.
+    loc : float, optional
+        Location parameter. Default is 0.
+    scale : float, optional
+        Positive scale parameter. Default is 1.
     """
 
-    def __init__(self, df, **kwargs):
+    def __init__(self, df, *, loc=0, scale=1, **kwargs):
         super().__init__(**kwargs)
         self.df = df
+        self.loc = loc
+        self.scale = scale
 
     @override
     def parameters(self) -> dict[str, float]:
         """Return Student's t-distribution parameters."""
-        return {"df": self.df}
+        return {"df": self.df, "loc": self.loc, "scale": self.scale}
 
     @staticmethod
     @override
@@ -279,12 +285,17 @@ class TRVSGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.df])
+        parameters = [self.distribution_type().value, self.df]
+        if self.loc != 0 or self.scale != 1:
+            parameters.extend([self.loc, self.scale])
+        return super()._convert_to_code(parameters)
 
     @override
     def generate(self, size, random_state=None):
         """Generate Student's t-distributed random sample."""
-        return generate_t(size=size, df=self.df, random_state=random_state)
+        return generate_t(
+            size=size, df=self.df, loc=self.loc, scale=self.scale, random_state=random_state
+        )
 
 
 class TukeyRVSGenerator(AbstractRVSGenerator):
@@ -314,7 +325,7 @@ class TukeyRVSGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.lam])
+        return super()._convert_to_code([self.distribution_type().value, self.lam])
 
     @override
     def generate(self, size, random_state=None):
@@ -352,7 +363,7 @@ class LognormGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.s, self.mu])
+        return super()._convert_to_code([self.distribution_type().value, self.s, self.mu])
 
     @override
     def generate(self, size, random_state=None):
@@ -390,7 +401,7 @@ class GammaGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.alfa, self.beta])
+        return super()._convert_to_code([self.distribution_type().value, self.alfa, self.beta])
 
     @override
     def generate(self, size, random_state=None):
@@ -435,7 +446,7 @@ class TruncnormGenerator(AbstractRVSGenerator):
     def code(self):
         """Return unique generator code."""
         return super()._convert_to_code(
-            [self.distribution_type(), self.mean, self.var, self.a, self.b]
+            [self.distribution_type().value, self.mean, self.var, self.a, self.b]
         )
 
     @override
@@ -478,7 +489,7 @@ class Chi2Generator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.df])
+        return super()._convert_to_code([self.distribution_type().value, self.df])
 
     @override
     def generate(self, size, random_state=None):
@@ -516,7 +527,7 @@ class GumbelGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.mu, self.beta])
+        return super()._convert_to_code([self.distribution_type().value, self.mu, self.beta])
 
     @override
     def generate(self, size, random_state=None):
@@ -554,7 +565,7 @@ class WeibullGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.a, self.k])
+        return super()._convert_to_code([self.distribution_type().value, self.a, self.k])
 
     @override
     def generate(self, size, random_state=None):
@@ -592,7 +603,7 @@ class LoConNormGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.p, self.a])
+        return super()._convert_to_code([self.distribution_type().value, self.p, self.a])
 
     @override
     def generate(self, size, random_state=None):
@@ -630,7 +641,7 @@ class ScConNormGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.p, self.b])
+        return super()._convert_to_code([self.distribution_type().value, self.p, self.b])
 
     @override
     def generate(self, size, random_state=None):
@@ -671,7 +682,7 @@ class MixConNormGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.p, self.a, self.b])
+        return super()._convert_to_code([self.distribution_type().value, self.p, self.a, self.b])
 
     @override
     def generate(self, size, random_state=None):
@@ -708,7 +719,7 @@ class ExponentialGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.lam])
+        return super()._convert_to_code([self.distribution_type().value, self.lam])
 
     @override
     def generate(self, size, random_state=None):
@@ -746,7 +757,7 @@ class InvGaussGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.mu, self.lam])
+        return super()._convert_to_code([self.distribution_type().value, self.mu, self.lam])
 
     @override
     def generate(self, size, random_state=None):
@@ -784,7 +795,7 @@ class RiceGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.nu, self.sigma])
+        return super()._convert_to_code([self.distribution_type().value, self.nu, self.sigma])
 
     @override
     def generate(self, size, random_state=None):
@@ -822,7 +833,7 @@ class GompertzGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.eta, self.b])
+        return super()._convert_to_code([self.distribution_type().value, self.eta, self.b])
 
     @override
     def generate(self, size, random_state=None):
@@ -860,7 +871,7 @@ class NormalGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.mean, self.var])
+        return super()._convert_to_code([self.distribution_type().value, self.mean, self.var])
 
     @override
     def generate(self, size, random_state=None):
@@ -898,7 +909,7 @@ class UniformGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.a, self.b])
+        return super()._convert_to_code([self.distribution_type().value, self.a, self.b])
 
     @override
     def generate(self, size, random_state=None):

@@ -44,6 +44,23 @@ def get_available_criteria_codes(distribution: DistributionType) -> list[str]:
     return [criterion.short_code() for criterion in get_available_criteria(distribution)]
 
 
+def get_criterion_by_code(criterion_code: str) -> type[AbstractGoodnessOfFitStatistic]:
+    """
+    Return a non-abstract goodness-of-fit criterion class by its unique code.
+
+    :param criterion_code: unique criterion code returned by criterion.code().
+    :return: non-abstract subclass of AbstractGoodnessOfFitStatistic.
+    :raises ValueError: if criterion with the given code is not available.
+    """
+    __load_goodness_of_fit_statistics()
+
+    for criterion in __get_all_subclasses(AbstractGoodnessOfFitStatistic):
+        if not inspect.isabstract(criterion) and criterion.code() == criterion_code:
+            return criterion
+
+    raise ValueError(f"Criterion with code {criterion_code!r} is not available")
+
+
 def __load_goodness_of_fit_statistics() -> None:
     """
     Load goodness-of-fit statistic modules so subclasses are registered in Python runtime.

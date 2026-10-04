@@ -2,10 +2,35 @@
 
 import importlib
 import inspect
-from typing import Any
+import math
+from typing import TYPE_CHECKING, Any
 
 from pysatl_criterion import DistributionType
 from pysatl_criterion.generator.model import AbstractRVSGenerator
+
+
+if TYPE_CHECKING:
+    from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
+
+
+def get_hypothesis_generator(
+    statistic: "AbstractGoodnessOfFitStatistic",
+) -> AbstractRVSGenerator:
+    """Build a sampler using the statistic's hypothesis parameterization.
+
+    Hypothesis metadata retains its public names and units. Sampling uses
+    Beta's a/b, Gamma's alfa/rate, and log-normal's logarithmic location mu.
+    Direct calls to get_available_generator continue to use generator parameters.
+    """
+    distribution = statistic.distribution()
+    params = statistic.hypothesis().parameters()
+    if distribution == DistributionType.BETA:
+        params = {"a": params.pop("alpha"), "b": params.pop("beta"), **params}
+    elif distribution == DistributionType.GAMMA:
+        params = {"alfa": params.pop("alpha"), **params}
+    elif distribution == DistributionType.LOG_NORMAL:
+        params = {"mu": math.log(params.pop("scale")), **params}
+    return get_available_generator(distribution, params)
 
 
 def get_available_generator(

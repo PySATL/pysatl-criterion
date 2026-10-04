@@ -6,6 +6,10 @@ edit_uri: edit/main/docs/
 use_directory_urls: True
 nav:
     - Home: index.md
+    - Loading distributions:
+        - Usage guide: load/index.md
+        - Examples: load/examples.md
+        - Custom loaders: load/custom-loaders.md
     - Criteria:
         - Goodness-of-fit:
             - Exponentiality:
