@@ -446,6 +446,35 @@ class LaplaceDistributionDescriptor(DistributionDescriptor):
         ]
 
 
+class HyperbolicDistributionDescriptor(DistributionDescriptor):
+    """Descriptor for the hyperbolic distribution."""
+
+    @staticmethod
+    def type() -> DistributionType:
+        """Return the hyperbolic distribution type.
+
+        :return: hyperbolic distribution enum member.
+        """
+        return DistributionType.HYPERBOLIC
+
+    @staticmethod
+    def parameters() -> list[DistributionParameterDescriptor]:
+        """Return parameters for the hyperbolic distribution.
+
+        :return: descriptors for shape, skewness, scale, and location.
+        """
+        return [
+            DistributionParameterDescriptor(
+                "α", "alpha", "Shape. α > 0 and |β| < α", 1, PositiveNumberValidator()
+            ),
+            DistributionParameterDescriptor("β", "beta", "Skewness. |β| < α", 0),
+            DistributionParameterDescriptor(
+                "δ", "delta", "Scale. δ > 0", 1, PositiveNumberValidator()
+            ),
+            DistributionParameterDescriptor("μ", "mu", "Location", 0),
+        ]
+
+
 class LoConNormDistributionDescriptor(DistributionDescriptor):
     """
     Descriptor for the location-contaminated normal distribution.
