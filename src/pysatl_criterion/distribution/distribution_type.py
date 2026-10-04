@@ -58,6 +58,7 @@ class DistributionType(Enum):
     FISHER = "fisher"
     RAYLEIGH = "rayleigh"
     PARETO = "pareto"
+    HYPERBOLIC = "hyperbolic"
 
     def __new__(cls, value: str):
         """
