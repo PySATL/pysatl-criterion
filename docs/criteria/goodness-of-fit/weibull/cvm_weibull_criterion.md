@@ -2,7 +2,7 @@
 
 ## Description
 Performs Cramer-von Mises goodness-of-fit test for the hypothesis that the sample comes from a Weibull distribution.
-The implementation uses the Weibull distribution utilities from `pysatl_criterion.core.distributions.weibull` where applicable.
+The implementation uses the Weibull distribution utilities from `pysatl_criterion.core.distributions.continues.weibull` where applicable.
 
 Hypothesis of Weibull Distribution
 The null hypothesis is that the data comes from a Weibull distribution with parameters `a` and `k`.

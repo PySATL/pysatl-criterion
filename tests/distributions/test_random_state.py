@@ -5,14 +5,14 @@ from collections.abc import Callable
 import numpy as np
 import pytest
 
-from pysatl_criterion.core.distributions.beta import generate_beta
-from pysatl_criterion.core.distributions.expon import generate_expon
-from pysatl_criterion.core.distributions.gamma import generate_gamma
-from pysatl_criterion.core.distributions.lognormal import generate_lognorm
-from pysatl_criterion.core.distributions.norm import generate_norm
-from pysatl_criterion.core.distributions.student import generate_t
-from pysatl_criterion.core.distributions.uniform import generate_uniform
-from pysatl_criterion.core.distributions.weibull import generate_weibull
+from pysatl_criterion.core.distributions.continues.beta import generate_beta
+from pysatl_criterion.core.distributions.continues.expon import generate_expon
+from pysatl_criterion.core.distributions.continues.gamma import generate_gamma
+from pysatl_criterion.core.distributions.continues.lognormal import generate_lognorm
+from pysatl_criterion.core.distributions.continues.norm import generate_norm
+from pysatl_criterion.core.distributions.continues.student import generate_t
+from pysatl_criterion.core.distributions.continues.uniform import generate_uniform
+from pysatl_criterion.core.distributions.continues.weibull import generate_weibull
 
 
 @pytest.mark.parametrize(

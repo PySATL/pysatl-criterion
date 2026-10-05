@@ -8,7 +8,7 @@ from scipy.stats import distributions
 from typing_extensions import override
 
 from pysatl_criterion import DistributionType
-from pysatl_criterion.core.distributions.weibull import generate_weibull_cdf
+from pysatl_criterion.core.distributions.continues.weibull import generate_weibull_cdf
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.alternative import (
     Alternative,

@@ -6,7 +6,8 @@ import pytest
 from pysatl_criterion import DistributionType
 from pysatl_criterion.api import distributions as distributions_api
 from pysatl_criterion.api import testing as testing_api
-from pysatl_criterion.core.distributions import (
+from pysatl_criterion.core.distributions import sample
+from pysatl_criterion.core.distributions.continues import (
     beta,
     cauchy,
     chi2,
@@ -22,7 +23,6 @@ from pysatl_criterion.core.distributions import (
     mix_con_norm,
     norm,
     rice,
-    sample,
     scale_con_norm,
     student,
     truncnormal,
