@@ -31,11 +31,11 @@ class CriticalValueLoader:
         :return: True if data exists, False otherwise.
         """
 
-        logging.info(f"Load criterion {criterion_code} with size {sample_size} from remote")
+        logger.info(f"Load criterion {criterion_code} with size {sample_size} from remote")
         query = CriticalValueQuery(criterion_code, sample_size, sample_size_error)
 
         if self.__remote_storage is None:
-            logging.error("Cannot load data: remote storage is not initialized.")
+            logger.error("Cannot load data: remote storage is not initialized.")
             return False
 
         if self.__remote_storage.get_data_for_cv(query):
@@ -47,7 +47,7 @@ class CriticalValueLoader:
             logger.debug(f"Loaded {criterion_code} (n={sample_size}) from remote.")
             return True
 
-        logging.warning(
+        logger.warning(
             f"Remote data for criterion {criterion_code} with size {sample_size} not found"
         )
         return False
@@ -68,7 +68,7 @@ class CriticalValueLoader:
             return BulkLoadResult(0, 0, 0, [])
 
         if self.__remote_storage is None:
-            logging.error("Remote storage not initialized.")
+            logger.error("Remote storage not initialized.")
             return BulkLoadResult(len(criterion_codes), 0, 0, criterion_codes)
 
         # 1. Identify what's already in the local cache
@@ -83,7 +83,7 @@ class CriticalValueLoader:
                 missing_codes.append(code)
 
         if not missing_codes:
-            logging.info("All requested criteria are already in the local cache.")
+            logger.info("All requested criteria are already in the local cache.")
             return BulkLoadResult(len(criterion_codes), len(already_cached), 0)
 
         # 2. Fetch only missing data from remote
@@ -96,14 +96,14 @@ class CriticalValueLoader:
         try:
             self.__local_storage.insert_bulk_data(remote_models)
             logger.info(f"Successfully cached {len(remote_models)} new distributions.")
-        except Exception as e:
-            logger.error(f"Failed to save bulk data to local storage: {e}")
+        except Exception:
+            logger.exception("Failed to save bulk data to local storage")
 
         # 4. Calculate what's still missing (not found even on remote)
         found_codes = {m.criterion_code for m in remote_models}
         not_found = [c for c in missing_codes if c not in found_codes]
 
-        logging.info(
+        logger.info(
             f"Bulk load finished: {len(remote_models)} new, "
             f"{len(already_cached)} skipped, {len(not_found)} failed."
         )

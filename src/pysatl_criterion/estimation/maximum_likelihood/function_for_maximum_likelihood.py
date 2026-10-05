@@ -214,7 +214,7 @@ def likelihood_function_beta(dataArray):
     ):
         return 0
 
-    alpha, beta_param, loc, scale = beta.fit(dataArray, floc=0, fscale=1)
+    alpha, beta_param, _loc, _scale = beta.fit(dataArray, floc=0, fscale=1)
 
     n = len(dataArray)
 

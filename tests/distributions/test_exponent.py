@@ -1,4 +1,4 @@
-import pytest as pytest
+import pytest
 
 from pysatl_criterion.statistics.goodness_of_fit.exponent import (
     AbstractExponentialityGofStatistic,

@@ -99,7 +99,9 @@ class Holm(AbstractMultipleTesting):
             adjusted[idx] = min(1.0, adjusted_value)
 
         for i in range(n - 2, -1, -1):
-            adjusted[sorted_indices[i]] = min(adjusted[sorted_indices[i]], adjusted[sorted_indices[i + 1]])
+            adjusted[sorted_indices[i]] = min(
+                adjusted[sorted_indices[i]], adjusted[sorted_indices[i + 1]]
+            )
 
         return adjusted
 

@@ -1074,14 +1074,11 @@ class TestBetaIntegration:
         ]
 
         for stat in statistics:
-            try:
-                if isinstance(stat, RatioBetaGofStatistic):
-                    value = stat.execute_statistic(data_clipped)
-                else:
-                    value = stat.execute_statistic(data)
-                assert np.isfinite(value), f"Statistic {stat.code()} returned non-finite value"
-            except Exception as e:
-                pytest.fail(f"Statistic {stat.code()} raised an exception: {e}")
+            if isinstance(stat, RatioBetaGofStatistic):
+                value = stat.execute_statistic(data_clipped)
+            else:
+                value = stat.execute_statistic(data)
+            assert np.isfinite(value), f"Statistic {stat.code()} returned non-finite value"
 
         # Also test Ratio with clipped data
         ratio_stat = RatioBetaGofStatistic(alpha=2, beta=5)

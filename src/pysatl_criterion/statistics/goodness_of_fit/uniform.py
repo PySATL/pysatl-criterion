@@ -297,7 +297,7 @@ class Chi2PearsonUniformGofStatistic(AbstractUniformGofStatistic, Chi2Statistic)
             num_bins = int(self.bins)
         num_bins = max(2, num_bins)
 
-        observed, bin_edges = np.histogram(rvs, bins=num_bins, range=(self.a, self.b))
+        observed, _bin_edges = np.histogram(rvs, bins=num_bins, range=(self.a, self.b))
         expected = np.full(num_bins, n / num_bins)
 
         return Chi2Statistic.do_execute_statistic(self, observed, expected, self.lambda_)

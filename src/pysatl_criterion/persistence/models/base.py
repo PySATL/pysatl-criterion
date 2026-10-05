@@ -22,7 +22,6 @@ class DataModel:
     """
 
 
-
 @dataclass
 class DataQuery:
     """
@@ -30,18 +29,17 @@ class DataQuery:
     """
 
 
-
 M = TypeVar("M", bound=DataModel)
-Q = TypeVar("Q", contravariant=True, bound=DataQuery)
+Q_contra = TypeVar("Q_contra", contravariant=True, bound=DataQuery)
 
 
-class IDataStorage(IStorage, Generic[M, Q], ABC):
+class IDataStorage(IStorage, ABC, Generic[M, Q_contra]):
     """
     Data storage interface.
     """
 
     @abstractmethod
-    def get_data(self, query: Q) -> M | None:
+    def get_data(self, query: Q_contra) -> M | None:
         """
         Get data from data storage.
 
@@ -61,7 +59,7 @@ class IDataStorage(IStorage, Generic[M, Q], ABC):
         """
 
     @abstractmethod
-    def delete_data(self, query: Q) -> None:
+    def delete_data(self, query: Q_contra) -> None:
         """
         Delete data from data storage.
 

@@ -430,7 +430,7 @@ class KLIntegralLogNormalGoFStatistic(AbstractLogNormalGofStatistic):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
 
-            result, error = integrate.quad(integrand, -5, 5, limit=100)
+            result, _error = integrate.quad(integrand, -5, 5, limit=100)
 
         T2 = n * result
 

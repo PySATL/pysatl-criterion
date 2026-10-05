@@ -33,14 +33,14 @@ def storage(storage_factory):
 @pytest.fixture
 def model_factory():
     def _create(**overrides):
-        base = dict(
-            experiment_id=1,
-            criterion_code="test_code",
-            criterion_parameters=[-1],
-            sample_size=100,
-            monte_carlo_count=1000,
-            results_statistics=[-4.0],
-        )
+        base = {
+            "experiment_id": 1,
+            "criterion_code": "test_code",
+            "criterion_parameters": [-1],
+            "sample_size": 100,
+            "monte_carlo_count": 1000,
+            "results_statistics": [-4.0],
+        }
         base.update(overrides)
         return LimitDistributionModel(**base)
 
@@ -50,12 +50,12 @@ def model_factory():
 @pytest.fixture
 def query_factory():
     def _create(**overrides):
-        base = dict(
-            criterion_code="test_code",
-            criterion_parameters=[-1],
-            sample_size=100,
-            monte_carlo_count=1000,
-        )
+        base = {
+            "criterion_code": "test_code",
+            "criterion_parameters": [-1],
+            "sample_size": 100,
+            "monte_carlo_count": 1000,
+        }
         base.update(overrides)
         return LimitDistributionQuery(**base)
 

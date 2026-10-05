@@ -1,4 +1,4 @@
-import pytest as pytest
+import pytest
 
 from pysatl_criterion import BonferroniMultipleTesting, Holm, SidakHolm, SidakMultipleTesting
 

@@ -67,7 +67,6 @@ class ILimitDistributionStorage(IDataStorage[LimitDistributionModel, LimitDistri
         :return: limit distribution data.
         """
 
-
     @abstractmethod
     def get_bulk_data(
         self, criterion_codes: list[str], sample_size: int, sample_size_error: int = 0
