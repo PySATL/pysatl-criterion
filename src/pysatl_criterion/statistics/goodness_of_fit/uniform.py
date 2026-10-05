@@ -619,7 +619,7 @@ def _stein_uniform_statistic(rvs_std):  # pragma: no cover
 
         for j in range(i + 1, n):
             y = rvs_std[j]
-            maximum = x if x > y else y
+            maximum = max(y, x)
 
             total += 0.5 * (2.0 * maximum - 2.0 * x - 2.0 * y + x * x + y * y)
     return 2.0 * total / (n * (n - 1))

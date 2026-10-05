@@ -20,7 +20,6 @@ class AbstractStatistic(ABC):
 
         :return: alternative type.
         """
-        pass
 
     @abstractmethod
     def alternative(self) -> Alternative:
@@ -29,7 +28,6 @@ class AbstractStatistic(ABC):
 
         :return: alternative.
         """
-        pass
 
     @staticmethod
     @abstractmethod
@@ -60,7 +58,6 @@ class AbstractGoodnessOfFitStatistic(AbstractStatistic, ABC):
 
         :return: hypothesis.
         """
-        pass
 
     @staticmethod
     @abstractmethod
@@ -70,7 +67,6 @@ class AbstractGoodnessOfFitStatistic(AbstractStatistic, ABC):
 
         :return: DistributionType.
         """
-        pass
 
     @staticmethod
     @override
@@ -104,7 +100,6 @@ class AbstractIndependenceStatistic(AbstractStatistic, ABC):
 
         :return: hypothesis.
         """
-        pass
 
     @staticmethod
     @override

@@ -22,4 +22,3 @@ class CriticalValueCalculator(ABC, Generic[CriticalValueT]):
         :param significance_level: test significance level.
         :return: critical value representation for the calculator type.
         """
-        pass

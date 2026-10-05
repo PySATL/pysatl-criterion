@@ -542,11 +542,11 @@ EXPLICITLY_IMPLEMENTED_NORMAL_STATS = [
 current_module = sys.modules[__name__]
 __all__ = [
     "AbstractLogNormalGofStatistic",
-    "KolmogorovSmirnovLogNormalGofStatistic",
     "CramerVonMiseLogNormalGofStatistic",
-    "QuesenberryMillerLogNormalGofStatistic",
-    "KLSupremumLogNormalGoFStatistic",
     "KLIntegralLogNormalGoFStatistic",
+    "KLSupremumLogNormalGoFStatistic",
+    "KolmogorovSmirnovLogNormalGofStatistic",
+    "QuesenberryMillerLogNormalGofStatistic",
 ]
 
 for name, obj in inspect.getmembers(normal):

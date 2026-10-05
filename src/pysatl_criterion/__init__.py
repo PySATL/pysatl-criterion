@@ -21,14 +21,14 @@ from .hypothesis_testing.multiple_testing.fwer import (
 
 
 __all__ = [
-    "GoodnessOfFitTest",
-    "DistributionType",
-    "DistributionParameterDescriptor",
-    "BonferroniMultipleTesting",
-    "Holm",
-    "SidakMultipleTesting",
-    "SidakHolm",
     "BenjaminiYekutieli",
-    "PValueCalculator",
+    "BonferroniMultipleTesting",
     "CriticalValueCalculator",
+    "DistributionParameterDescriptor",
+    "DistributionType",
+    "GoodnessOfFitTest",
+    "Holm",
+    "PValueCalculator",
+    "SidakHolm",
+    "SidakMultipleTesting",
 ]

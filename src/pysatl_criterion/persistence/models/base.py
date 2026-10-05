@@ -13,7 +13,6 @@ class IStorage(ABC):
         """
         Initialize storage.
         """
-        pass
 
 
 @dataclass
@@ -22,7 +21,6 @@ class DataModel:
     Data model for data storage.
     """
 
-    pass
 
 
 @dataclass
@@ -31,7 +29,6 @@ class DataQuery:
     Query for data storage.
     """
 
-    pass
 
 
 M = TypeVar("M", bound=DataModel)
@@ -52,7 +49,6 @@ class IDataStorage(IStorage, Generic[M, Q], ABC):
 
         :return: data in storage
         """
-        pass
 
     @abstractmethod
     def insert_data(self, data: M) -> None:
@@ -63,7 +59,6 @@ class IDataStorage(IStorage, Generic[M, Q], ABC):
 
         :return: None
         """
-        pass
 
     @abstractmethod
     def delete_data(self, query: Q) -> None:

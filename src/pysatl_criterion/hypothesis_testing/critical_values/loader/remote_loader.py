@@ -98,7 +98,6 @@ class CriticalValueLoader:
             logger.info(f"Successfully cached {len(remote_models)} new distributions.")
         except Exception as e:
             logger.error(f"Failed to save bulk data to local storage: {e}")
-            pass
 
         # 4. Calculate what's still missing (not found even on remote)
         found_codes = {m.criterion_code for m in remote_models}

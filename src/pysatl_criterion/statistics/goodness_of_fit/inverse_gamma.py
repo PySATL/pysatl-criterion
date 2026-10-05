@@ -554,7 +554,6 @@ class ZhangKInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
             term2 = (n - i + 0.5) * np.log((n - i + 0.5) / (n * (1.0 - F_val)))
             term = term1 + term2
 
-            if term > zk:
-                zk = term
+            zk = max(zk, term)
 
         return float(zk)
