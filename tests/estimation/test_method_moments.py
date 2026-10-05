@@ -26,6 +26,7 @@ from pysatl_criterion.estimation.method_moments.estimators import (
 
 RNG = np.random.default_rng(42)
 
+
 class TestNormalMmEstimator:
     def test_metadata(self):
         assert NormalMmEstimator.distribution_type() == DistributionType.NORMAL
@@ -62,6 +63,7 @@ class TestNormalMmEstimator:
         assert res["mean"] == pytest.approx(12.5, rel=1e-2)
         assert res["var"] == pytest.approx(3.2, rel=1e-2)
 
+
 class TestUniformMmEstimator:
     def test_metadata(self):
         assert UniformMmEstimator.distribution_type() == DistributionType.UNIFORM
@@ -95,6 +97,7 @@ class TestUniformMmEstimator:
     def test_invalid_sample_size(self):
         with pytest.raises(ValueError, match="At least 2 elements"):
             UniformMmEstimator().estimate([5.0])
+
 
 class TestLogNormalMmEstimator:
     def test_metadata(self):
@@ -143,6 +146,7 @@ class TestExponentialMmEstimator:
         res = ExponentialMmEstimator().estimate([4.0, 4.0, 4.0])
         assert res["rate"] == pytest.approx(0.25)
 
+
 class TestWeibullMmEstimator:
     def test_metadata(self):
         assert WeibullMmEstimator.distribution_type() == DistributionType.WEIBULL
@@ -159,6 +163,7 @@ class TestWeibullMmEstimator:
     def test_negative_data(self):
         with pytest.raises(ValueError, match="strictly positive"):
             WeibullMmEstimator().estimate([1.0, -1.0])
+
 
 class TestGammaMmEstimator:
     def test_metadata(self):
@@ -177,6 +182,7 @@ class TestGammaMmEstimator:
         with pytest.raises(ValueError, match="Variance"):
             GammaMmEstimator().estimate([4.0, 4.0, 4.0])
 
+
 class TestBetaMmEstimator:
     def test_metadata(self):
         assert BetaMmEstimator.distribution_type() == DistributionType.BETA
@@ -194,6 +200,7 @@ class TestBetaMmEstimator:
         with pytest.raises(ValueError, match=r"strictly in \(0, 1\)"):
             BetaMmEstimator().estimate([-0.1, 0.5, 1.2])
 
+
 class TestChi2MmEstimator:
     def test_metadata(self):
         assert Chi2MmEstimator.distribution_type() == DistributionType.CHI_2
@@ -205,6 +212,7 @@ class TestChi2MmEstimator:
         res = Chi2MmEstimator().estimate(data)
 
         assert res["df"] == pytest.approx(df, rel=5e-2)
+
 
 class TestStudentMmEstimator:
     def test_metadata(self):
@@ -245,6 +253,7 @@ class TestRayleighMmEstimator:
 
         assert res["scale"] == pytest.approx(scale, rel=5e-2)
 
+
 class TestWignerMmEstimator:
     def test_metadata(self):
         assert WignerMmEstimator.distribution_type() == DistributionType.WIGNER
@@ -256,6 +265,7 @@ class TestWignerMmEstimator:
         res = WignerMmEstimator().estimate(data)
 
         assert res["radius"] == pytest.approx(radius, rel=5e-2)
+
 
 class TestParetoMmEstimator:
     def test_metadata(self):
@@ -269,6 +279,7 @@ class TestParetoMmEstimator:
 
         assert res["shape"] == pytest.approx(alpha, rel=0.1)
         assert res["scale"] == pytest.approx(scale, rel=0.1)
+
 
 class TestLaplaceMmEstimator:
     def test_metadata(self):
