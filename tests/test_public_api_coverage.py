@@ -64,7 +64,7 @@ def test_all_distribution_descriptors_expose_complete_metadata():
         and cls is not distributions.DistributionDescriptor
     ]
 
-    assert len(descriptor_classes) == 21
+    assert len(descriptor_classes) == 22
     assert {cls.type() for cls in descriptor_classes} <= set(DistributionType)
     for descriptor_class in descriptor_classes:
         for parameter in descriptor_class.parameters():
