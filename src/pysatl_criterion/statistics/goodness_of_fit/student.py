@@ -5,6 +5,8 @@ import scipy.stats as scipy_stats
 from typing_extensions import override
 
 from pysatl_criterion import DistributionType
+from pysatl_criterion.distribution.distributions import StudentDistributionDescriptor as Student
+from pysatl_criterion.distribution.parameters import HypothesisSupport, ParameterValues
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.alternative import Alternative, AlternativeType, RightAlternative
 from pysatl_criterion.statistics.goodness_of_fit.common import (
@@ -21,18 +23,48 @@ class AbstractStudentGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     Abstract base class for Student's t-distribution goodness-of-fit statistics.
     """
 
-    def __init__(self, df: float = 1, loc: float = 0, scale: float = 1):
+    def __init__(
+        self,
+        df: float = Student.DF.default_value,
+        loc: float = Student.LOCATION.default_value,
+        scale: float = Student.SCALE.default_value,
+    ):
         if df <= 0:
             raise ValueError("Degrees of freedom must be positive")
         if scale <= 0:
             raise ValueError("Scale must be positive")
+        Student.DEFAULT.parse({Student.DF: df, Student.LOCATION: loc, Student.SCALE: scale})
         self.df = df
         self.loc = loc
         self.scale = scale
 
     @override
     def hypothesis(self) -> GoodnessOfFitHypothesis:
-        return GoodnessOfFitHypothesis({"df": self.df, "loc": self.loc, "scale": self.scale})
+        return GoodnessOfFitHypothesis(
+            Student.DEFAULT.parse(
+                {
+                    Student.DF: self.df,
+                    Student.LOCATION: self.loc,
+                    Student.SCALE: self.scale,
+                }
+            )
+        )
+
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (HypothesisSupport(Student.DEFAULT, frozenset(Student.DEFAULT.parameters)),)
+
+    @classmethod
+    def from_parameters(cls, parameters: ParameterValues, **options):
+        """Construct from a complete hypothesis; unknown parameters are never defaulted."""
+        if not cls.supports_hypothesis(GoodnessOfFitHypothesis(parameters)):
+            raise ValueError("Unsupported Student hypothesis or parameterization")
+        return cls(
+            df=parameters[Student.DF],
+            loc=parameters[Student.LOCATION],
+            scale=parameters[Student.SCALE],
+            **options,
+        )
 
     @staticmethod
     @override
@@ -73,9 +105,9 @@ class KolmogorovSmirnovStudentGofStatistic(AbstractStudentGofStatistic, KSStatis
 
     def __init__(
         self,
-        df: float = 1,
-        loc: float = 0,
-        scale: float = 1,
+        df: float = Student.DF.default_value,
+        loc: float = Student.LOCATION.default_value,
+        scale: float = Student.SCALE.default_value,
         alternative_type: AlternativeType = AlternativeType.TWO_TAILED,
     ):
         AbstractStudentGofStatistic.__init__(self, df, loc, scale)
@@ -419,8 +451,22 @@ class LillieforsStudentGofStatistic(AbstractStudentGofStatistic, LillieforsTest)
     Lilliefors-type test statistic for the Student's t-distribution.
     """
 
-    def __init__(self, df: float = 1):
+    def __init__(self, df: float = Student.DF.default_value):
         AbstractStudentGofStatistic.__init__(self, df, 0, 1)
+
+    @classmethod
+    def from_parameters(cls, parameters: ParameterValues, **options):
+        """The current implementation only handles fixed location 0 and scale 1."""
+        if not cls.supports_hypothesis(GoodnessOfFitHypothesis(parameters)):
+            raise ValueError("Unsupported Student hypothesis or parameterization")
+        return cls(df=parameters[Student.DF], **options)
+
+    @classmethod
+    def supports_hypothesis(cls, hypothesis: GoodnessOfFitHypothesis) -> bool:
+        if not super().supports_hypothesis(hypothesis):
+            return False
+        values = hypothesis.parameter_values
+        return values is not None and values[Student.LOCATION] == 0 and values[Student.SCALE] == 1
 
     @staticmethod
     @override
@@ -448,7 +494,8 @@ class LillieforsStudentGofStatistic(AbstractStudentGofStatistic, LillieforsTest)
         """
         Calculate the Lilliefors statistic for testing fit to Student's t-distribution.
 
-        Location and scale parameters are estimated from the sample data.
+        The current implementation fixes location to 0 and scale to 1;
+        it does not estimate them from the sample.
 
         :param rvs: array of sample data.
         :return: Lilliefors test statistic value.
@@ -470,9 +517,9 @@ class ChiSquareStudentGofStatistic(AbstractStudentGofStatistic):
 
     def __init__(
         self,
-        df: float = 1,
-        loc: float = 0,
-        scale: float = 1,
+        df: float = Student.DF.default_value,
+        loc: float = Student.LOCATION.default_value,
+        scale: float = Student.SCALE.default_value,
         n_bins: int = 10,
     ):
         super().__init__(df, loc, scale)

@@ -14,6 +14,21 @@ class AbstractGraphTestStatistic(AbstractGoodnessOfFitStatistic, ABC):
 
     @override
     def execute_statistic(self, rvs, **kwargs) -> float | float64:
+        """Compute the statistic of the sample proximity graph.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Nonempty, one-dimensional sample of finite observations.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float or int
+            Graph statistic defined by the concrete subclass. No p-value
+            or hypothesis-test decision is returned.
+        """
         dist = self._compute_dist(rvs)
 
         adjacency_list = self._make_adjacency_list(rvs, dist)
@@ -181,11 +196,19 @@ class GraphCliqueNumberTestStatistic(AbstractGraphTestStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs) -> float | float64:
-        """
-        Execute the clique number test statistic for 1D data.
+        """Compute the clique-number statistic for one-dimensional data.
 
-        :param rvs: array of observed data samples.
-        :return: size of the maximum clique.
+        Parameters
+        ----------
+        rvs : list of float or ndarray, shape (n,)
+            Nonempty sample of finite observations. Sorted in place.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : int
+            Clique-number statistic from the sorted-window calculation.
         """
         dist = self._compute_dist(rvs)
         rvs.sort()
@@ -219,17 +242,25 @@ class GraphIndependenceNumberTestStatistic(AbstractGraphTestStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs) -> float | float64:
-        """
-        Execute the independence number test statistic for 1D data.
+        """Compute the independence number for one-dimensional data.
 
-        :param rvs: array of observed data samples.
-        :return: size of the maximum independent set.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Sample of finite observations. A sorted copy is used.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : int
+            Size of a maximum independent set, or zero for an empty sample.
         """
-        if not rvs:
+        if len(rvs) == 0:
             return 0
 
         dist = self._compute_dist(rvs)
-        rvs.sort()
+        rvs = np.sort(rvs)
 
         stat = 1
         last_chosen_position = rvs[0]

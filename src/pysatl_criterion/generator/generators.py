@@ -97,6 +97,8 @@ from pysatl_criterion.core.distributions.truncnormal import generate_truncnorm
 from pysatl_criterion.core.distributions.tukey import generate_tukey
 from pysatl_criterion.core.distributions.uniform import generate_uniform
 from pysatl_criterion.core.distributions.weibull import generate_weibull
+from pysatl_criterion.distribution.distributions import StudentDistributionDescriptor as Student
+from pysatl_criterion.distribution.parameters import ParameterValues
 from pysatl_criterion.generator.model import AbstractRVSGenerator
 
 
@@ -265,8 +267,11 @@ class TRVSGenerator(AbstractRVSGenerator):
         Positive scale parameter. Default is 1.
     """
 
-    def __init__(self, df, *, loc=0, scale=1, **kwargs):
+    def __init__(
+        self, df, *, loc=Student.LOCATION.default_value, scale=Student.SCALE.default_value, **kwargs
+    ):
         super().__init__(**kwargs)
+        Student.DEFAULT.parse({Student.DF: df, Student.LOCATION: loc, Student.SCALE: scale})
         self.df = df
         self.loc = loc
         self.scale = scale
@@ -274,7 +279,26 @@ class TRVSGenerator(AbstractRVSGenerator):
     @override
     def parameters(self) -> dict[str, float]:
         """Return Student's t-distribution parameters."""
-        return {"df": self.df, "loc": self.loc, "scale": self.scale}
+        return Student.DEFAULT.parse(
+            {
+                Student.DF: self.df,
+                Student.LOCATION: self.loc,
+                Student.SCALE: self.scale,
+            }
+        ).as_dict()
+
+    @classmethod
+    def from_parameters(cls, parameters: ParameterValues):
+        """Require complete values in the supported coordinate system."""
+        if parameters.parameterization != Student.DEFAULT or frozenset(parameters) != frozenset(
+            Student.DEFAULT.parameters
+        ):
+            raise ValueError("Expected complete Student parameters in the default parameterization")
+        return cls(
+            parameters[Student.DF],
+            loc=parameters[Student.LOCATION],
+            scale=parameters[Student.SCALE],
+        )
 
     @staticmethod
     @override

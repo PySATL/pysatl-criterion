@@ -4,6 +4,7 @@ from numpy import float64
 from typing_extensions import override
 
 from pysatl_criterion import DistributionType
+from pysatl_criterion.distribution.parameters import HypothesisSupport
 from pysatl_criterion.statistics.alternative import Alternative
 from pysatl_criterion.statistics.hypothesis import (
     GoodnessOfFitHypothesis,
@@ -52,6 +53,18 @@ class AbstractGoodnessOfFitStatistic(AbstractStatistic, ABC):
     """
     Abstract base class for goodness-of-fit statistics.
     """
+
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        """Explicit capabilities; empty means this class has not declared them yet."""
+        return ()
+
+    @classmethod
+    def supports_hypothesis(cls, hypothesis: GoodnessOfFitHypothesis) -> bool:
+        values = hypothesis.parameter_values
+        return values is not None and any(
+            support.supports(values) for support in cls.supported_hypotheses()
+        )
 
     @abstractmethod
     def hypothesis(self) -> GoodnessOfFitHypothesis:

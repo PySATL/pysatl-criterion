@@ -132,7 +132,10 @@ def test_log_normal_small_r_and_empty_grid_fallbacks(monkeypatch):
 
 
 def test_normality_validation_and_helper_branches(capsys):
-    assert normal.KolmogorovSmirnovNormalityGofStatistic().hypothesis().parameters() == [0, 1]
+    assert normal.KolmogorovSmirnovNormalityGofStatistic().hypothesis().parameters() == {
+        "mean": 0,
+        "var": 1,
+    }
     with pytest.raises(ValueError, match="observation"):
         normal.JBNormalityGofStatistic().execute_statistic([])
     with pytest.raises(ValueError, match="less than 8"):

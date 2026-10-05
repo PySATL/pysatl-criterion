@@ -1,6 +1,11 @@
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 
-from pysatl_criterion import DistributionParameterDescriptor, DistributionType
+from pysatl_criterion.distribution.distribution_type import (
+    DistributionParameterDescriptor,
+    DistributionType,
+)
+from pysatl_criterion.distribution.parameters import ParameterizationDescriptor, ParameterSpec
 from pysatl_criterion.distribution.validator import (
     NonNegativeNumberValidator,
     PositiveNumberValidator,
@@ -24,6 +29,11 @@ class DistributionDescriptor(ABC):
     needed to configure it.
     """
 
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        """Explicit schemas available on migrated descriptors."""
+        return ()
+
     @staticmethod
     @abstractmethod
     def type() -> DistributionType:
@@ -36,7 +46,7 @@ class DistributionDescriptor(ABC):
 
     @staticmethod
     @abstractmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
+    def parameters() -> Sequence[DistributionParameterDescriptor | ParameterSpec]:
         """
         Return metadata for parameters accepted by the distribution.
 
@@ -157,31 +167,40 @@ class UniformDistributionDescriptor(DistributionDescriptor):
 
 
 class StudentDistributionDescriptor(DistributionDescriptor):
-    """
-    Descriptor for Student's t-distribution.
-    """
+    """Student distribution in degrees-of-freedom/location/scale coordinates."""
+
+    DF = ParameterSpec(
+        "student.df",
+        "df",
+        "ν",
+        "Degrees of freedom. ν > 0",
+        1,
+        PositiveNumberValidator(),
+    )
+    LOCATION = ParameterSpec("student.location", "loc", "μ", "Location", 0)
+    SCALE = ParameterSpec(
+        "student.scale",
+        "scale",
+        "s",
+        "Scale. s > 0",
+        1,
+        PositiveNumberValidator(),
+    )
+    DEFAULT = ParameterizationDescriptor(
+        "student.df_loc_scale", DistributionType.STUDENT, (DF, LOCATION, SCALE)
+    )
 
     @staticmethod
     def type() -> DistributionType:
-        """
-        Return the Student's t-distribution type.
-
-        :return: Student's t-distribution enum member.
-        """
         return DistributionType.STUDENT
 
     @staticmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
-        """
-        Return parameters for Student's t-distribution.
+    def parameters() -> list[ParameterSpec]:
+        return list(StudentDistributionDescriptor.DEFAULT.parameters)
 
-        :return: descriptor for degrees of freedom.
-        """
-        return [
-            DistributionParameterDescriptor(
-                "ν", "df", "Degrees of freedom. ν > 0", 2, PositiveNumberValidator()
-            ),
-        ]
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
 
 
 class GammaDistributionDescriptor(DistributionDescriptor):

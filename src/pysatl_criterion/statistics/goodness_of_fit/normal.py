@@ -1,3 +1,17 @@
+"""Goodness-of-fit statistics for normal distributions.
+
+Hypothesis parameters contain only values fixed under the null. Family
+statistics leave the mean and variance free and report an empty dictionary.
+Kolmogorov-Smirnov and Cramer-von Mises fix both parameters. The graph
+statistics fix only the variance because their construction is invariant
+to location but depends on scale.
+
+For location-scale-invariant family statistics, Monte Carlo calibration
+can use standard normal samples. That sampling choice does not fix the
+parameters of the hypothesis. Constructor options controlling an algorithm,
+such as Ryan-Joiner plotting positions, are not distribution parameters.
+"""
+
 import math
 from abc import ABC
 
@@ -33,23 +47,49 @@ from pysatl_criterion.statistics.goodness_of_fit.graph_goodness_of_fit import (
 from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
+def _validate_normal_parameters(mean: float, var: float) -> None:
+    if not math.isfinite(mean):
+        raise ValueError("mean must be finite")
+    if not math.isfinite(var) or var <= 0:
+        raise ValueError("var must be positive and finite")
+
+
 class AbstractNormalityGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
+    """Base class for goodness-of-fit statistics for the normal family.
+
+    Notes
+    -----
+    The default null hypothesis allows any finite mean and positive variance.
+    Its parameter dictionary is empty. Subclasses testing a specified mean or
+    variance override ``hypothesis`` to declare those fixed parameters.
+    """
+
     @override
-    def __init__(self, mean=0, var=1):
-        self.mean = mean
-        self.var = var
+    def __init__(self):
+        """Initialize a statistic with no fixed distribution parameters."""
 
     @override
     def hypothesis(self) -> GoodnessOfFitHypothesis:
-        return GoodnessOfFitHypothesis({"mean": self.mean, "var": self.var})
+        """Return the composite null hypothesis of normality.
+
+        Returns
+        -------
+        GoodnessOfFitHypothesis
+            Normal family with unknown mean and variance; ``parameters()`` is
+            an empty dictionary.
+        """
+        return GoodnessOfFitHypothesis({})
 
     @staticmethod
     @override
     def distribution() -> DistributionType:
         """
-        Get distribution type.
+        Return the distribution family of the null hypothesis.
 
-        :return: DistributionType.
+        Returns
+        -------
+        DistributionType
+            ``DistributionType.NORMAL``.
         """
         return DistributionType.NORMAL
 
@@ -60,19 +100,73 @@ class AbstractNormalityGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
 
 
 class KolmogorovSmirnovNormalityGofStatistic(AbstractNormalityGofStatistic, KSStatistic):
+    """One-sample Kolmogorov-Smirnov statistic for a specified normal law.
+
+    Parameters
+    ----------
+    alternative_type : AlternativeType, optional
+        ``TWO_TAILED`` computes ``max(D_plus, D_minus)``; ``RIGHT`` computes
+        ``D_plus = sup(F_n - F_0)`` and ``LEFT`` computes
+        ``D_minus = sup(F_0 - F_n)``. Defaults to ``TWO_TAILED``.
+    mode : str, optional
+        Setting retained by the shared KS implementation. ``"auto"`` is
+        stored as ``"exact"``. It does not affect the statistic and this
+        class does not calculate a p-value.
+    mean : float, optional
+        Finite mean fixed by the null hypothesis. Default is 0.
+    var : float, optional
+        Positive, finite variance fixed by the null hypothesis. Default is 1.
+        The normal CDF uses ``scale=sqrt(var)``.
+
+    Raises
+    ------
+    ValueError
+        If the mean is nonfinite or the variance is nonpositive or nonfinite.
+
+    Notes
+    -----
+    The null is ``N(mean, var)`` with both parameters specified independently
+    of the observations. ``hypothesis().parameters()`` contains both values.
+    The empirical CDF of the unstandardized sample is compared with this
+    fixed CDF. Use ``LillieforsNormalityGofStatistic`` when both parameters
+    are estimated from the sample. Supply a nonempty, finite sample.
+
+    References
+    ----------
+    .. [1] Smirnov, N. (1948). Table for Estimating the Goodness of Fit of
+       Empirical Distributions. The Annals of Mathematical Statistics,
+       19(2), 279-281. https://doi.org/10.1214/aoms/1177730256
+
+    Examples
+    --------
+    >>> statistic = KolmogorovSmirnovNormalityGofStatistic(mean=3, var=4)
+    >>> statistic.hypothesis().parameters()
+    {'mean': 3, 'var': 4}
+    """
+
     @override
     def __init__(
         self,
         alternative_type: AlternativeType = AlternativeType.TWO_TAILED,
         mode="auto",
-        mean=0,
-        var=1,
+        mean: float = 0,
+        var: float = 1,
     ):
-        AbstractNormalityGofStatistic.__init__(self)
-        KSStatistic.__init__(self, alternative_type, mode)
-
+        _validate_normal_parameters(mean, var)
         self.mean = mean
         self.var = var
+        KSStatistic.__init__(self, alternative_type, mode)
+
+    @override
+    def hypothesis(self) -> GoodnessOfFitHypothesis:
+        """Return the normal null hypothesis with specified parameters.
+
+        Returns
+        -------
+        GoodnessOfFitHypothesis
+            Fixed ``mean`` and ``var``; neither is estimated from the sample.
+        """
+        return GoodnessOfFitHypothesis({"mean": self.mean, "var": self.var})
 
     @staticmethod
     @override
@@ -87,8 +181,24 @@ class KolmogorovSmirnovNormalityGofStatistic(AbstractNormalityGofStatistic, KSSt
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         rvs = np.sort(rvs)
-        cdf_vals = scipy_stats.norm.cdf(rvs)
+        cdf_vals = scipy_stats.norm.cdf(rvs, loc=self.mean, scale=np.sqrt(self.var))
         return KSStatistic.do_execute_statistic(self, rvs, cdf_vals)
 
 
@@ -115,6 +225,31 @@ class ChiSquareTest(AbstractNormalityTestStatistic):  # TODO: check test correct
 
 
 class AndersonDarlingNormalityGofStatistic(AbstractNormalityGofStatistic, ADStatistic):
+    """Anderson-Darling statistic for the normal location-scale family.
+
+    Notes
+    -----
+    The null allows any finite mean and positive variance;
+    ``hypothesis().parameters()`` is empty. Each sample is standardized
+    using its mean and standard deviation with ``ddof=1`` before computing
+    the tail-weighted empirical-CDF discrepancy ``A_squared``.
+
+    The returned value is the unadjusted statistic, without a finite-sample
+    correction or a p-value. Larger values indicate poorer fit, and
+    ``alternative()`` returns ``RightAlternative``. Supply at least two
+    finite observations with nonzero sample variance. Calibration must
+    account for estimating both normal parameters from every sample.
+
+    References
+    ----------
+    .. [1] Anderson, T. W. and Darling, D. A. (1954). A Test of Goodness
+       of Fit. Journal of the American Statistical Association, 49(268),
+       765-769. https://doi.org/10.1080/01621459.1954.10501232
+    .. [2] Stephens, M. A. (1976). Asymptotic Results for Goodness-of-Fit
+       Statistics with Unknown Parameters. The Annals of Statistics,
+       4(2), 357-369. https://doi.org/10.1214/aos/1176343411
+    """
+
     @staticmethod
     @override
     def short_code():
@@ -128,6 +263,22 @@ class AndersonDarlingNormalityGofStatistic(AbstractNormalityGofStatistic, ADStat
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         s = np.std(rvs, ddof=1, axis=0)
         y = np.sort(rvs)
         xbar = np.mean(rvs, axis=0)
@@ -138,6 +289,31 @@ class AndersonDarlingNormalityGofStatistic(AbstractNormalityGofStatistic, ADStat
 
 
 class ShapiroWilkNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Shapiro-Wilk ``W`` statistic for the normal location-scale family.
+
+    Notes
+    -----
+    The null leaves the mean and variance unspecified;
+    ``hypothesis().parameters()`` is empty. The statistic is a squared
+    weighted sum of ordered observations divided by their centered sum of
+    squares, and is invariant to changes of location and scale.
+
+    Order-statistic weights use a normal-quantile approximation with
+    polynomial adjustments, following the algorithmic approach in [2]_.
+    Smaller ``W`` values indicate departures from normality;
+    ``alternative()`` returns ``LeftAlternative``. Supply at least three
+    finite observations with nonzero sample variance. No p-value is returned.
+
+    References
+    ----------
+    .. [1] Shapiro, S. S. and Wilk, M. B. (1965). An analysis of variance
+       test for normality (complete samples). Biometrika, 52(3-4), 591-611.
+       https://doi.org/10.1093/biomet/52.3-4.591
+    .. [2] Royston, P. (1995). Remark AS R94: A Remark on Algorithm AS 181:
+       The W-test for Normality. Applied Statistics, 44(4), 547-551.
+       https://doi.org/10.2307/2986146
+    """
+
     @override
     def alternative(self) -> Alternative:
         return LeftAlternative()
@@ -155,6 +331,20 @@ class ShapiroWilkNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         f_obs = np.asanyarray(rvs)
         f_obs_sorted = np.sort(f_obs)
         x_mean = np.mean(f_obs)
@@ -205,6 +395,58 @@ class ShapiroWilkNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class CramerVonMiseNormalityGofStatistic(AbstractNormalityGofStatistic, CrammerVonMisesStatistic):
+    """Cramer-von Mises statistic for a specified normal distribution.
+
+    Parameters
+    ----------
+    mean : float, optional
+        Finite mean fixed by the null hypothesis. Default is 0.
+    var : float, optional
+        Positive, finite variance fixed by the null hypothesis. Default is 1.
+        This is a variance, not the standard deviation.
+
+    Raises
+    ------
+    ValueError
+        If the mean is nonfinite or the variance is nonpositive or nonfinite.
+
+    Notes
+    -----
+    The null is ``N(mean, var)`` and ``hypothesis().parameters()`` contains
+    both fixed values. The statistic is ``1/(12*n)`` plus the sum of squared
+    differences between ``F_0(x_sorted[i])`` and ``(2*i-1)/(2*n)``, with
+    one-based ranks. ``F_0`` uses ``scale=sqrt(var)`` without fitting the data.
+
+    Larger values indicate poorer fit; ``alternative()`` returns
+    ``RightAlternative``. Supply a nonempty, finite sample. Estimating the
+    constructor parameters from that sample changes the calibration and
+    does not turn this class into a composite-normality test.
+
+    References
+    ----------
+    .. [1] Cramer, H. (1928). On the composition of elementary errors.
+       Second paper: Statistical applications. Scandinavian Actuarial
+       Journal, 1928(1), 141-180.
+       https://doi.org/10.1080/03461238.1928.10416872
+    """
+
+    @override
+    def __init__(self, mean: float = 0, var: float = 1):
+        _validate_normal_parameters(mean, var)
+        self.mean = mean
+        self.var = var
+
+    @override
+    def hypothesis(self) -> GoodnessOfFitHypothesis:
+        """Return the normal null hypothesis with specified parameters.
+
+        Returns
+        -------
+        GoodnessOfFitHypothesis
+            Fixed ``mean`` and ``var``; neither is estimated from the sample.
+        """
+        return GoodnessOfFitHypothesis({"mean": self.mean, "var": self.var})
+
     @staticmethod
     @override
     def short_code():
@@ -219,13 +461,51 @@ class CramerVonMiseNormalityGofStatistic(AbstractNormalityGofStatistic, CrammerV
 
     @override
     def execute_statistic(self, rvs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         sorted_rvs = np.sort(np.asarray(rvs))
-        cdf_vals = scipy_stats.norm.cdf(sorted_rvs)
+        cdf_vals = scipy_stats.norm.cdf(sorted_rvs, loc=self.mean, scale=np.sqrt(self.var))
 
         return CrammerVonMisesStatistic.do_execute_statistic(self, sorted_rvs, cdf_vals)
 
 
 class LillieforsNormalityGofStatistic(AbstractNormalityGofStatistic, LillieforsTest):
+    """Lilliefors statistic for normality with unknown mean and variance.
+
+    Notes
+    -----
+    The null is the entire normal location-scale family;
+    ``hypothesis().parameters()`` is empty. The mean and standard deviation
+    with ``ddof=1`` are estimated from each sample. The maximum absolute
+    empirical-CDF discrepancy is then evaluated on standardized observations.
+
+    The statistic is invariant to location and scale. It requires a
+    nonconstant finite sample of at least two observations. Its null
+    distribution differs from that of KS with specified parameters [1]_.
+    Larger discrepancies indicate poorer fit. The current shared Lilliefors
+    interface reports ``TwoSidedAlternative``; this method returns only
+    the discrepancy, without a p-value.
+
+    References
+    ----------
+    .. [1] Lilliefors, H. W. (1967). On the Kolmogorov-Smirnov Test for
+       Normality with Mean and Variance Unknown. Journal of the American
+       Statistical Association, 62(318), 399-402.
+       https://doi.org/10.1080/01621459.1967.10482916
+    """
+
     @staticmethod
     @override
     def short_code():
@@ -239,6 +519,22 @@ class LillieforsNormalityGofStatistic(AbstractNormalityGofStatistic, LillieforsT
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         x = np.asarray(rvs)
         z = (x - x.mean()) / x.std(ddof=1)
         cdf_vals = scipy_stats.norm.cdf(np.sort(z))
@@ -271,6 +567,29 @@ class DANormalityTest(AbstractNormalityTestStatistic):  # TODO: check for correc
 
 
 class JBNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Jarque-Bera statistic based on sample skewness and excess kurtosis.
+
+    Notes
+    -----
+    The null allows every normal mean and positive variance;
+    ``hypothesis().parameters()`` is empty. Centered, standardized moments
+    remove location and scale. The implementation returns
+    ``n/6 * (skewness**2 + excess_kurtosis**2/4)`` using the biased moment
+    estimators in ``scipy.stats.skew`` and ``scipy.stats.kurtosis``.
+
+    Larger values indicate departures from normality;
+    ``alternative()`` returns ``RightAlternative``. The input is flattened.
+    Supply finite observations with nonzero variance. The asymptotic
+    chi-squared calibration described in [1]_ is not a finite-sample
+    identity, and this class computes no p-value.
+
+    References
+    ----------
+    .. [1] Jarque, C. M. and Bera, A. K. (1987). A Test for Normality of
+       Observations and Regression Residuals. International Statistical
+       Review, 55(2), 163-172. https://doi.org/10.2307/1403192
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -288,6 +607,22 @@ class JBNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         x = np.asarray(rvs)
         x = x.ravel()
         axis = 0
@@ -305,6 +640,29 @@ class JBNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class SkewNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """D'Agostino transformed-skewness statistic for the normal family.
+
+    Notes
+    -----
+    ``hypothesis().parameters()`` is empty: the mean and variance are
+    unrestricted. The standardized third central moment is transformed to
+    a signed ``Z`` score using the sample-size-dependent approximation
+    in [1]_. Location shifts and positive scale changes leave it unchanged.
+
+    At least eight finite observations and nonzero variance are required.
+    Positive and negative values correspond to opposite skewness directions.
+    The current ``alternative()`` is ``RightAlternative``, so its configured
+    rejection direction targets large positive scores. It is not an omnibus
+    normality statistic; ``DAPNormalityGofStatistic`` combines squared
+    skewness and kurtosis scores. This class returns no p-value.
+
+    References
+    ----------
+    .. [1] D'Agostino, R. B. (1970). Transformation to normality of the null
+       distribution of g1. Biometrika, 57(3), 679-681.
+       https://doi.org/10.1093/biomet/57.3.679
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -322,6 +680,22 @@ class SkewNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         x = np.asanyarray(rvs)
         y = np.sort(x)
 
@@ -353,6 +727,29 @@ class SkewNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class KurtosisNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Anscombe-Glynn transformed-kurtosis statistic for the normal family.
+
+    Notes
+    -----
+    The normal mean and variance are unrestricted;
+    ``hypothesis().parameters()`` is empty. The implementation transforms
+    the standardized fourth central moment to a signed ``Z`` score using
+    the finite-sample moment approximations in [1]_.
+
+    At least five finite observations with nonzero variance are required;
+    the normal approximation can be unreliable for small samples. Negative
+    and positive scores describe opposite kurtosis departures. The current
+    ``alternative()`` returns ``RightAlternative`` and therefore targets
+    large positive scores. Use ``DAPNormalityGofStatistic`` for the joint
+    squared skewness and kurtosis statistic. No p-value is returned.
+
+    References
+    ----------
+    .. [1] Anscombe, F. J. and Glynn, W. J. (1983). Distribution of the
+       kurtosis statistic b2 for normal samples. Biometrika, 70(1), 227-234.
+       https://doi.org/10.1093/biomet/70.1.227
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -370,6 +767,22 @@ class KurtosisNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         x = np.asanyarray(rvs)
         y = np.sort(x)
 
@@ -418,6 +831,29 @@ class KurtosisNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class DAPNormalityGofStatistic(SkewNormalityGofStatistic, KurtosisNormalityGofStatistic):
+    """D'Agostino-Pearson omnibus ``K_squared`` statistic for normality.
+
+    Notes
+    -----
+    The null is the normal location-scale family, so
+    ``hypothesis().parameters()`` is empty. The implementation adds the
+    squared transformed skewness and kurtosis scores returned by
+    ``SkewNormalityGofStatistic`` and ``KurtosisNormalityGofStatistic``.
+    Centered standardized moments eliminate the unknown mean and variance.
+
+    At least eight finite observations with nonzero variance are required.
+    Larger scores indicate departures from normality;
+    ``alternative()`` returns ``RightAlternative``. The chi-squared
+    approximation is asymptotic; this class returns a statistic only.
+
+    References
+    ----------
+    .. [1] D'Agostino, R. B. and Pearson, E. S. (1973). Tests for departure
+       from normality. Empirical results for the distributions of b2 and
+       sqrt(b1). Biometrika, 60(3), 613-622.
+       https://doi.org/10.1093/biomet/60.3.613
+    """
+
     @staticmethod
     @override
     def short_code():
@@ -431,6 +867,22 @@ class DAPNormalityGofStatistic(SkewNormalityGofStatistic, KurtosisNormalityGofSt
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         x = np.asanyarray(rvs)
         y = np.sort(x)
 
@@ -442,6 +894,29 @@ class DAPNormalityGofStatistic(SkewNormalityGofStatistic, KurtosisNormalityGofSt
 
 # https://github.com/puzzle-in-a-mug/normtest
 class FilliNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Filliben probability-plot correlation statistic for normality.
+
+    Notes
+    -----
+    The null leaves normal location and scale unrestricted;
+    ``hypothesis().parameters()`` is empty. The statistic is the Pearson
+    correlation between sorted observations and normal quantiles obtained
+    from Filliben's approximations to uniform order-statistic medians.
+    Endpoint plotting positions use the separate formulas in [1]_.
+
+    Correlation eliminates the unknown mean and scale. Smaller values
+    indicate departures from normality, and ``alternative()`` returns
+    ``LeftAlternative``. Supply finite, nonconstant observations; two
+    observations always give a trivial correlation, so use at least three.
+    The returned value is a correlation coefficient, not a p-value.
+
+    References
+    ----------
+    .. [1] Filliben, J. J. (1975). The Probability Plot Correlation
+       Coefficient Test for Normality. Technometrics, 17(1), 111-117.
+       https://doi.org/10.1080/00401706.1975.10489279
+    """
+
     @override
     def alternative(self) -> Alternative:
         return LeftAlternative()
@@ -459,6 +934,22 @@ class FilliNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         uniform_order = self._uniform_order_medians(len(rvs))
         zi = self._normal_order_medians(uniform_order)
         x_data = np.sort(rvs)
@@ -487,6 +978,30 @@ class FilliNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 # https://github.com/puzzle-in-a-mug/normtest
 class LooneyGulledgeNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Looney-Gulledge probability-plot correlation statistic for normality.
+
+    Notes
+    -----
+    The normal mean and variance are unrestricted, and
+    ``hypothesis().parameters()`` is empty. Sorted observations are
+    correlated with normal quantiles at ``(i - 3/8)/(n + 1/4)`` for
+    one-based ranks. This class uses the unweighted plotting positions,
+    including when observations are tied.
+
+    Correlation removes location and scale. Smaller coefficients indicate
+    departures from normality; ``alternative()`` returns ``LeftAlternative``.
+    Supply finite, nonconstant observations. At least three observations
+    are needed for a nontrivial correlation-based normality assessment.
+    The returned coefficient does not include a p-value.
+
+    References
+    ----------
+    .. [1] Looney, S. W. and Gulledge, T. R., Jr. (1985). Use of the
+       Correlation Coefficient with Normal Probability Plots. The American
+       Statistician, 39(1), 75-79.
+       https://doi.org/10.1080/00031305.1985.10479395
+    """
+
     @override
     def alternative(self) -> Alternative:
         return LeftAlternative()
@@ -505,6 +1020,22 @@ class LooneyGulledgeNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def execute_statistic(self, rvs, **kwargs):
         # ordering
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         x_data = np.sort(rvs)
 
         # zi
@@ -552,9 +1083,42 @@ class LooneyGulledgeNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 # https://github.com/puzzle-in-a-mug/normtest
 class RyanJoinerNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Ryan-Joiner probability-plot correlation statistic for normality.
+
+    Parameters
+    ----------
+    weighted : bool, optional
+        If True, average the plotting probabilities within each group of
+        tied observations before applying the normal quantile function.
+        Default is False.
+    cte_alpha : {'3/8', '1/2', '0'}, optional
+        Plotting-position constant ``a`` in ``(i-a)/(n-2*a+1)`` for one-based
+        ranks. Default is ``'3/8'``. Unrecognized values currently fall back
+        to ``3/8``.
+
+    Notes
+    -----
+    The null allows arbitrary normal mean and positive variance;
+    ``hypothesis().parameters()`` is empty. The two constructor arguments
+    configure the statistic, not the distribution under the null.
+
+    The statistic is the Pearson correlation of sorted observations with
+    their normal scores. Smaller values indicate poorer fit, and
+    ``alternative()`` returns ``LeftAlternative``. Supply finite,
+    nonconstant data with at least three observations for a nontrivial
+    result. Calibration must use the same plotting-position and tie options.
+
+    References
+    ----------
+    .. [1] Ryan, T. A., Jr. and Joiner, B. L. (1976). Normal Probability
+       Plots and Tests for Normality. Technical report, Statistics
+       Department, The Pennsylvania State University. Original report:
+       https://www.additive-net.de/de/component/jdownloads/send/70-support/236-normal-probability-plots-and-tests-for-normality-thomas-a-ryan-jr-bryan-l-joiner
+    """
+
     @override
     def __init__(self, weighted=False, cte_alpha="3/8"):
-        super(AbstractNormalityGofStatistic).__init__()
+        super().__init__()
         self.weighted = weighted
         self.cte_alpha = cte_alpha
 
@@ -576,6 +1140,22 @@ class RyanJoinerNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def execute_statistic(self, rvs, **kwargs):
         # ordering
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         x_data = np.sort(rvs)
 
         # zi
@@ -629,6 +1209,33 @@ class RyanJoinerNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class SFNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Shapiro-Francia ``W_prime`` statistic for the normal family.
+
+    Notes
+    -----
+    The null leaves mean and variance unrestricted;
+    ``hypothesis().parameters()`` is empty. The statistic is the squared
+    correlation between sorted observations and approximate expected
+    normal order statistics, using ``(i - 3/8)/(n + 1/4)`` plotting
+    probabilities. This quantile approximation is discussed in [2]_.
+
+    Location and scale cancel from the ratio. Smaller values indicate
+    nonnormality; ``alternative()`` returns ``LeftAlternative``. Supply
+    finite, nonconstant data and at least three observations for a
+    nontrivial assessment. No p-value is calculated.
+
+    References
+    ----------
+    .. [1] Shapiro, S. S. and Francia, R. S. (1972). An Approximate
+       Analysis of Variance Test for Normality. Journal of the American
+       Statistical Association, 67(337), 215-216.
+       https://doi.org/10.1080/01621459.1972.10481232
+    .. [2] Weisberg, S. and Bingham, C. (1975). An Approximate Analysis of
+       Variance Test for Non-Normality Suitable for Machine Calculation.
+       Technometrics, 17(1), 133-134.
+       https://doi.org/10.1080/00401706.1975.10489283
+    """
+
     @override
     def alternative(self) -> Alternative:
         return LeftAlternative()
@@ -646,6 +1253,22 @@ class SFNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         n = len(rvs)
         rvs = np.sort(rvs)
 
@@ -660,6 +1283,29 @@ class SFNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 # https://habr.com/ru/articles/685582/
 class EppsPulleyNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Epps-Pulley empirical-characteristic-function statistic for normality.
+
+    Notes
+    -----
+    The null is the whole normal location-scale family;
+    ``hypothesis().parameters()`` is empty. The implementation uses the
+    sample mean and variance with ``ddof=0`` to remove location and scale.
+    Gaussian kernels compare centered observations and all observation
+    pairs, yielding the closed-form weighted characteristic-function
+    discrepancy with the smoothing constant fixed by this implementation.
+
+    Larger values indicate departures from normality;
+    ``alternative()`` returns ``RightAlternative``. Supply at least two
+    finite observations with positive sample variance. Pairwise terms
+    require quadratic computation in the sample size. No p-value is returned.
+
+    References
+    ----------
+    .. [1] Epps, T. W. and Pulley, L. B. (1983). A test for normality based
+       on the empirical characteristic function. Biometrika, 70(3), 723-726.
+       https://doi.org/10.1093/biomet/70.3.723
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -677,6 +1323,22 @@ class EppsPulleyNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         n = len(rvs)
         x = np.sort(rvs)
         x_mean = np.mean(x)
@@ -692,6 +1354,31 @@ class EppsPulleyNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class Hosking2NormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Hosking normality statistic with symmetric trimming level 1.
+
+    Notes
+    -----
+    The null is the normal family with unknown mean and variance;
+    ``hypothesis().parameters()`` is empty. The statistic combines squared
+    deviations of trimmed L-skewness and L-kurtosis, using order-statistic
+    weights with trimming level ``t=1`` from the construction in [1]_.
+    The ratios remove location and positive scale.
+
+    Supply at least 6 finite, nonconstant observations; estimating the
+    fourth trimmed L-moment requires ``n >= 4 + 2*t``. Reference constants
+    are selected from three sample-size ranges: up to 25, 26-50, and above
+    50. The current ``alternative()`` reports ``TwoSidedAlternative`` for
+    this nonnegative quadratic discrepancy. Reference [1]_ supplies the
+    trimmed-moment foundation; it does not establish the provenance of
+    the numerical constants or the exact omnibus implementation here.
+
+    References
+    ----------
+    .. [1] Elamir, E. A. H. and Seheult, A. H. (2003). Trimmed L-moments.
+       Computational Statistics & Data Analysis, 43(3), 299-314.
+       https://doi.org/10.1016/S0167-9473(02)00250-5
+    """
+
     @override
     def alternative(self) -> Alternative:
         return TwoSidedAlternative()
@@ -709,6 +1396,22 @@ class Hosking2NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         n = len(rvs)
 
         if n > 3:
@@ -755,6 +1458,31 @@ class Hosking2NormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class Hosking1NormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Hosking L-moment normality statistic without trimming.
+
+    Notes
+    -----
+    The normal mean and variance are unrestricted;
+    ``hypothesis().parameters()`` is empty. Sample L-skewness and L-kurtosis
+    are ratios of linear combinations of order statistics [1]_. These
+    ratios remove location and positive scale. Their squared deviations
+    from normal reference values are divided by tabulated variances.
+
+    This implementation selects fixed numerical reference constants for
+    ``n <= 25``, ``25 < n <= 50``, and ``n > 50``. Supply at least four
+    finite, nonconstant observations. The current ``alternative()`` returns
+    ``TwoSidedAlternative`` although the statistic is a nonnegative
+    quadratic discrepancy. Reference [1]_ describes the L-moment foundation,
+    not the provenance of these implementation-specific numerical constants.
+
+    References
+    ----------
+    .. [1] Hosking, J. R. M. (1990). L-Moments: Analysis and Estimation of
+       Distributions Using Linear Combinations of Order Statistics. Journal
+       of the Royal Statistical Society, Series B, 52(1), 105-124.
+       https://doi.org/10.1111/j.2517-6161.1990.tb01775.x
+    """
+
     @override
     def alternative(self) -> Alternative:
         return TwoSidedAlternative()
@@ -772,6 +1500,22 @@ class Hosking1NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         return self.stat10(rvs)
 
     @staticmethod
@@ -816,6 +1560,31 @@ class Hosking1NormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class Hosking3NormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Hosking normality statistic with symmetric trimming level 2.
+
+    Notes
+    -----
+    The null is the normal family with unknown mean and variance;
+    ``hypothesis().parameters()`` is empty. The statistic combines squared
+    deviations of trimmed L-skewness and L-kurtosis, using order-statistic
+    weights with trimming level ``t=2`` from the construction in [1]_.
+    The ratios remove location and positive scale.
+
+    Supply at least 8 finite, nonconstant observations; estimating the
+    fourth trimmed L-moment requires ``n >= 4 + 2*t``. Reference constants
+    are selected from three sample-size ranges: up to 25, 26-50, and above
+    50. The current ``alternative()`` reports ``TwoSidedAlternative`` for
+    this nonnegative quadratic discrepancy. Reference [1]_ supplies the
+    trimmed-moment foundation; it does not establish the provenance of
+    the numerical constants or the exact omnibus implementation here.
+
+    References
+    ----------
+    .. [1] Elamir, E. A. H. and Seheult, A. H. (2003). Trimmed L-moments.
+       Computational Statistics & Data Analysis, 43(3), 299-314.
+       https://doi.org/10.1016/S0167-9473(02)00250-5
+    """
+
     @override
     def alternative(self) -> Alternative:
         return TwoSidedAlternative()
@@ -833,6 +1602,22 @@ class Hosking3NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         return self.stat12(rvs)
 
     def stat12(self, x):
@@ -884,6 +1669,31 @@ class Hosking3NormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class Hosking4NormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Hosking normality statistic with symmetric trimming level 3.
+
+    Notes
+    -----
+    The null is the normal family with unknown mean and variance;
+    ``hypothesis().parameters()`` is empty. The statistic combines squared
+    deviations of trimmed L-skewness and L-kurtosis, using order-statistic
+    weights with trimming level ``t=3`` from the construction in [1]_.
+    The ratios remove location and positive scale.
+
+    Supply at least 10 finite, nonconstant observations; estimating the
+    fourth trimmed L-moment requires ``n >= 4 + 2*t``. Reference constants
+    are selected from three sample-size ranges: up to 25, 26-50, and above
+    50. The current ``alternative()`` reports ``TwoSidedAlternative`` for
+    this nonnegative quadratic discrepancy. Reference [1]_ supplies the
+    trimmed-moment foundation; it does not establish the provenance of
+    the numerical constants or the exact omnibus implementation here.
+
+    References
+    ----------
+    .. [1] Elamir, E. A. H. and Seheult, A. H. (2003). Trimmed L-moments.
+       Computational Statistics & Data Analysis, 43(3), 299-314.
+       https://doi.org/10.1016/S0167-9473(02)00250-5
+    """
+
     @override
     def alternative(self) -> Alternative:
         return TwoSidedAlternative()
@@ -901,6 +1711,22 @@ class Hosking4NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         return self.stat13(rvs)
 
     def stat13(self, x):
@@ -952,6 +1778,30 @@ class Hosking4NormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class ZhangWuCNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Zhang-Wu likelihood-ratio normality statistic ``Z_C``.
+
+    The null hypothesis is the normal family with unknown mean and variance.
+    No distribution parameters are accepted; ``hypothesis().parameters()``
+    returns ``{}``.
+
+    Notes
+    -----
+    Observations are centered by the sample mean and scaled by the sample
+    standard deviation with ``ddof=1``. Their fitted normal probabilities are
+    compared with order-dependent probability scores through squared log odds.
+    Large values correspond to the right-tail alternative.
+
+    Use at least four finite observations with nonzero sample variance.
+    Probabilities rounded to zero or one can produce an infinite statistic.
+
+    References
+    ----------
+    .. [1] Zhang, J. and Wu, Y. (2005).
+       Likelihood-ratio tests for normality.
+       Computational Statistics & Data Analysis, 49(3), 709-721.
+       https://doi.org/10.1016/j.csda.2004.05.034
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -969,6 +1819,22 @@ class ZhangWuCNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         n = len(rvs)
 
         if n > 3:
@@ -986,6 +1852,31 @@ class ZhangWuCNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class ZhangWuANormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Zhang-Wu likelihood-ratio normality statistic ``Z_A``.
+
+    The null hypothesis is the normal family with unknown mean and variance.
+    No distribution parameters are accepted; ``hypothesis().parameters()``
+    returns ``{}``.
+
+    Notes
+    -----
+    The calculation uses sorted normal probabilities after centering by the
+    sample mean and scaling by the sample standard deviation with ``ddof=1``.
+    This implementation returns ``10 * Z_A - 32``. This increasing affine
+    transformation preserves the right-tail rejection ordering, but critical
+    values must use the same transformation.
+
+    Use at least four finite observations with nonzero sample variance.
+    Probabilities rounded to zero or one can produce an infinite statistic.
+
+    References
+    ----------
+    .. [1] Zhang, J. and Wu, Y. (2005).
+       Likelihood-ratio tests for normality.
+       Computational Statistics & Data Analysis, 49(3), 709-721.
+       https://doi.org/10.1016/j.csda.2004.05.034
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -1003,6 +1894,22 @@ class ZhangWuANormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         n = len(rvs)
 
         if n > 3:
@@ -1024,6 +1931,31 @@ class ZhangWuANormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class GlenLeemisBarrNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Glen-Leemis-Barr order-statistic goodness-of-fit statistic.
+
+    The null hypothesis is the normal family with unknown mean and variance.
+    No distribution parameters are accepted; ``hypothesis().parameters()``
+    returns ``{}``.
+
+    Notes
+    -----
+    The sample mean and standard deviation with ``ddof=1`` define a fitted
+    normal CDF. The ordered probabilities are transformed by their respective
+    beta CDFs, sorted again, and combined in an Anderson-Darling-style sum.
+    Large values correspond to the right-tail alternative.
+
+    Use at least four finite observations with nonzero sample variance.
+    The reference describes the order-statistic construction; this class uses
+    its fitted-normal version, whose null calibration includes estimation.
+
+    References
+    ----------
+    .. [1] Glen, A. G., Leemis, L. M. and Barr, D. R. (2001).
+       Order statistics in goodness-of-fit testing.
+       IEEE Transactions on Reliability, 50(2), 209-213.
+       https://doi.org/10.1109/24.963129
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -1041,6 +1973,22 @@ class GlenLeemisBarrNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         n = len(rvs)
 
         if n > 3:
@@ -1063,6 +2011,32 @@ class GlenLeemisBarrNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class DoornikHansenNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Univariate Doornik-Hansen normality statistic.
+
+    The null hypothesis is the normal family with unknown mean and variance.
+    No distribution parameters are accepted; ``hypothesis().parameters()``
+    returns ``{}``.
+
+    Notes
+    -----
+    The statistic is the sum of squares of transformed sample skewness and
+    kurtosis. Both moments are computed about the sample mean, so neither a
+    population mean nor a population variance is supplied. Large values
+    correspond to the right-tail alternative.
+
+    The formulas require a nonconstant sample and can be undefined at very
+    small sample sizes. The reference studies the small-sample approximation
+    from ten observations. This class computes the statistic only; it does not
+    apply the paper's asymptotic chi-square calibration.
+
+    References
+    ----------
+    .. [1] Doornik, J. A. and Hansen, H. (2008).
+       An Omnibus Test for Univariate and Multivariate Normality.
+       Oxford Bulletin of Economics and Statistics, 70(s1), 927-939.
+       https://doi.org/10.1111/j.1468-0084.2008.00537.x
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -1080,6 +2054,22 @@ class DoornikHansenNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         return self.doornik_hansen(rvs)
 
     def doornik_hansen(self, x):
@@ -1127,6 +2117,31 @@ class DoornikHansenNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class RobustJarqueBeraNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Gel-Gastwirth robust Jarque-Bera normality statistic.
+
+    The null hypothesis is the normal family with unknown mean and variance.
+    No distribution parameters are accepted; ``hypothesis().parameters()``
+    returns ``{}``.
+
+    Notes
+    -----
+    The scale estimate is ``sqrt(pi / 2)`` times the average absolute
+    deviation from the sample median. Third and fourth moments are still
+    centered at the sample mean. The statistic combines their standardized
+    squares with the constants 6 and 64 used in this implementation.
+    Large values correspond to the right-tail alternative.
+
+    Use finite observations with positive scale. A scalar statistic is
+    returned; no asymptotic chi-square p-value is computed here.
+
+    References
+    ----------
+    .. [1] Gel, Y. R. and Gastwirth, J. L. (2008).
+       A robust modification of the Jarque-Bera test of normality.
+       Economics Letters, 99(1), 30-32.
+       https://doi.org/10.1016/j.econlet.2007.05.022
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -1144,6 +2159,22 @@ class RobustJarqueBeraNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         y = np.sort(rvs)
         n = len(rvs)
         m = np.median(y)
@@ -1156,6 +2187,31 @@ class RobustJarqueBeraNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class BontempsMeddahi1NormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Bontemps-Meddahi normality statistic using Hermite orders 3 and 4.
+
+    The null hypothesis is the normal family with unknown mean and variance.
+    No distribution parameters are accepted; ``hypothesis().parameters()``
+    returns ``{}``.
+
+    Notes
+    -----
+    The sample is centered and scaled using its mean and standard deviation
+    with ``ddof=1``. Sums of the normalized third and fourth Hermite
+    polynomials are squared and divided by the sample size. Large values
+    correspond to the right-tail alternative.
+
+    Use at least four finite observations with nonzero sample variance.
+    This is the independent-observation version; the covariance correction
+    for dependent time series discussed in the article is not implemented.
+
+    References
+    ----------
+    .. [1] Bontemps, C. and Meddahi, N. (2005).
+       Testing normality: a GMM approach.
+       Journal of Econometrics, 124(1), 149-186.
+       https://doi.org/10.1016/j.jeconom.2004.02.014
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -1173,6 +2229,22 @@ class BontempsMeddahi1NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         n = len(rvs)
 
         if n > 3:
@@ -1203,6 +2275,31 @@ class BontempsMeddahi1NormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class BontempsMeddahi2NormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Bontemps-Meddahi normality statistic using Hermite orders 3 through 6.
+
+    The null hypothesis is the normal family with unknown mean and variance.
+    No distribution parameters are accepted; ``hypothesis().parameters()``
+    returns ``{}``.
+
+    Notes
+    -----
+    After centering and scaling with the sample mean and standard deviation
+    with ``ddof=1``, the calculation combines squared sums of four normalized
+    Hermite polynomials. It extends the third-and-fourth-order statistic with
+    orders five and six. Large values correspond to the right-tail alternative.
+
+    Use at least four finite observations with nonzero sample variance.
+    The implementation assumes independent observations and does not estimate
+    a covariance matrix for serially dependent data.
+
+    References
+    ----------
+    .. [1] Bontemps, C. and Meddahi, N. (2005).
+       Testing normality: a GMM approach.
+       Journal of Econometrics, 124(1), 149-186.
+       https://doi.org/10.1016/j.jeconom.2004.02.014
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -1220,6 +2317,22 @@ class BontempsMeddahi2NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         return self.stat15(rvs)
 
     @staticmethod
@@ -1242,6 +2355,31 @@ class BontempsMeddahi2NormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class BonettSeierNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Bonett-Seier statistic based on a modified Geary kurtosis measure.
+
+    The null hypothesis is the normal family with unknown mean and variance.
+    No distribution parameters are accepted; ``hypothesis().parameters()``
+    returns ``{}``.
+
+    Notes
+    -----
+    The statistic compares the sample standard deviation with the average
+    absolute deviation about the sample mean. The ratio is log-transformed,
+    scaled by 13.29, centered at 3, and multiplied by ``sqrt(n + 2) / 3.54``.
+    Departures in either direction correspond to the two-sided alternative.
+
+    Use at least four finite observations with nonzero dispersion. This class
+    implements the signed Geary-based component described in the article,
+    not its joint procedure combining two different kurtosis measures.
+
+    References
+    ----------
+    .. [1] Bonett, D. G. and Seier, E. (2002).
+       A test of normality with high uniform power.
+       Computational Statistics & Data Analysis, 40(3), 435-445.
+       https://doi.org/10.1016/S0167-9473(02)00074-9
+    """
+
     @override
     def alternative(self) -> Alternative:
         return TwoSidedAlternative()
@@ -1259,6 +2397,22 @@ class BonettSeierNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         return self.stat17(rvs)
 
     @staticmethod
@@ -1287,6 +2441,32 @@ class BonettSeierNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class MartinezIglewiczNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Martinez-Iglewicz statistic comparing two estimates of dispersion.
+
+    The null hypothesis is the normal family with unknown mean and variance.
+    No distribution parameters are accepted; ``hypothesis().parameters()``
+    returns ``{}``.
+
+    Notes
+    -----
+    The numerator uses squared deviations from the sample median. The
+    denominator is a biweight-style scale estimate using nine times the
+    median absolute deviation as its tuning scale. Large values correspond
+    to the right-tail alternative.
+
+    Use at least four finite observations, a positive median absolute
+    deviation, and a nonzero biweight denominator. The current implementation
+    evaluates the biweight polynomials for all observations without truncating
+    terms whose standardized absolute deviation is at least one.
+
+    References
+    ----------
+    .. [1] Martinez, J. and Iglewicz, B. (1981).
+       A test for departure from normality based on a biweight estimator of scale.
+       Biometrika, 68(1), 331-333.
+       https://doi.org/10.1093/biomet/68.1.331
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -1304,6 +2484,22 @@ class MartinezIglewiczNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         return self.stat32(rvs)
 
     @staticmethod
@@ -1338,6 +2534,31 @@ class MartinezIglewiczNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class CabanaCabana1NormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Cabaña-Cabaña normality statistic focused on skewness departures.
+
+    The null hypothesis is the normal family with unknown mean and variance.
+    No distribution parameters are accepted; ``hypothesis().parameters()``
+    returns ``{}``.
+
+    Notes
+    -----
+    The calculation evaluates a transformed empirical process at the sample
+    points after standardization by the sample mean and standard deviation
+    with ``ddof=1``. It uses normalized Hermite polynomials through degree
+    eight, corresponding to the fixed truncation order ``l=5``.
+    The maximum absolute process value gives a right-tail statistic.
+
+    Use at least four finite observations with nonzero sample variance.
+    The normality construction is described in the 2003 paper cited below.
+
+    References
+    ----------
+    .. [1] Cabaña, A. and Cabaña, E. M. (2003).
+       Tests of Normality Based on Transformed Empirical Processes.
+       Methodology and Computing in Applied Probability, 5, 309-335.
+       https://doi.org/10.1023/A:1026235220018
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -1355,6 +2576,22 @@ class CabanaCabana1NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         return self.stat19(rvs)
 
     @staticmethod
@@ -1394,6 +2631,32 @@ class CabanaCabana1NormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class CabanaCabana2NormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Cabaña-Cabaña-style normality statistic focused on kurtosis departures.
+
+    The null hypothesis is the normal family with unknown mean and variance.
+    No distribution parameters are accepted; ``hypothesis().parameters()``
+    returns ``{}``.
+
+    Notes
+    -----
+    The sample is standardized by its mean and standard deviation with
+    ``ddof=1``. A transformed empirical process built from Hermite
+    polynomials through degree eight is evaluated at these sample points.
+    The largest absolute value gives a right-tail statistic.
+
+    Use at least four finite observations with nonzero sample variance.
+    The current formula repeats its highest-order contribution. Consequently,
+    critical values for the published ``l=5`` formula cannot be assumed to
+    apply directly to this implementation.
+
+    References
+    ----------
+    .. [1] Cabaña, A. and Cabaña, E. M. (2003).
+       Tests of Normality Based on Transformed Empirical Processes.
+       Methodology and Computing in Applied Probability, 5, 309-335.
+       https://doi.org/10.1023/A:1026235220018
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -1411,6 +2674,22 @@ class CabanaCabana2NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         return self.stat20(rvs)
 
     @staticmethod
@@ -1503,6 +2782,31 @@ class CabanaCabana2NormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class ChenShapiroNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Chen-Shapiro normality statistic based on normalized spacings.
+
+    The null hypothesis is the normal family with unknown mean and variance.
+    No distribution parameters are accepted; ``hypothesis().parameters()``
+    returns ``{}``.
+
+    Notes
+    -----
+    Successive sample spacings are divided by spacings of the normal scores
+    ``norm.ppf((i - 0.375) / (n + 0.25))``. Their average is standardized by
+    the sample standard deviation with ``ddof=1`` to form ``QH``.
+    The returned statistic is ``sqrt(n) * (1 - QH)``; large values correspond
+    to the right-tail alternative.
+
+    Use at least four finite observations with nonzero sample variance.
+    The calculation estimates location and scale implicitly from the sample.
+
+    References
+    ----------
+    .. [1] Chen, L. and Shapiro, S. S. (1995).
+       An alternative test for normality based on normalized spacings.
+       Journal of Statistical Computation and Simulation, 53(3-4), 269-287.
+       https://doi.org/10.1080/00949659508811711
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -1520,6 +2824,22 @@ class ChenShapiroNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         return self.stat26(rvs)
 
     @staticmethod
@@ -1537,6 +2857,31 @@ class ChenShapiroNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class ZhangQNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Zhang normality statistic based on a ratio of ordered-sample contrasts.
+
+    The null hypothesis is the normal family with unknown mean and variance.
+    No distribution parameters are accepted; ``hypothesis().parameters()``
+    returns ``{}``.
+
+    Notes
+    -----
+    Two linear combinations of the ordered observations use coefficients
+    constructed from approximate expected normal scores. The statistic is
+    ``log(q1 / q2)``. Location cancels from each contrast and scale cancels
+    from their ratio. The implementation declares a right-tail alternative.
+
+    At least eight finite observations are needed because the coefficients
+    access the first eight normal scores. The contrasts must yield a positive,
+    finite ratio. Smaller samples are not supported by the current formula.
+
+    References
+    ----------
+    .. [1] Zhang, P. (1999).
+       Omnibus test of normality using the Q statistic.
+       Journal of Applied Statistics, 26(4), 519-528.
+       https://doi.org/10.1080/02664769922395
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -1554,6 +2899,22 @@ class ZhangQNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         return self.stat27(rvs)
 
     @staticmethod
@@ -1587,6 +2948,32 @@ class ZhangQNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Coin normality statistic based on polynomial regression.
+
+    The null hypothesis is the normal family with unknown mean and variance.
+    No distribution parameters are accepted; ``hypothesis().parameters()``
+    returns ``{}``.
+
+    Notes
+    -----
+    The ordered sample is centered and scaled using its sample mean and
+    standard deviation with ``ddof=1``. A regression on approximate expected
+    normal order statistics and their cubes produces a cubic coefficient.
+    The returned statistic is the square of that coefficient, with large
+    values corresponding to the right-tail alternative.
+
+    Use at least four finite observations with nonzero sample variance.
+    The normal-score approximation used here reports possible inaccuracy
+    when the sample contains more than 2000 observations.
+
+    References
+    ----------
+    .. [1] Coin, D. (2008).
+       A goodness-of-fit test for normality based on polynomial regression.
+       Computational Statistics & Data Analysis, 52(4), 2185-2198.
+       https://doi.org/10.1016/j.csda.2007.07.012
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -1604,6 +2991,22 @@ class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         return self.stat30(rvs)
 
     def stat30(self, x):
@@ -1726,6 +3129,32 @@ class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class DagostinoNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """D'Agostino's normality statistic based on ordered observations.
+
+    The null hypothesis is the normal family with unknown mean and variance.
+    No distribution parameters are accepted; ``hypothesis().parameters()``
+    returns ``{}``.
+
+    Notes
+    -----
+    A linear contrast of the order statistics is divided by the sample
+    standard deviation computed with ``ddof=0`` and by ``n**2`` to form ``D``.
+    This implementation returns
+    ``sqrt(n) * (D - 0.28209479) / 0.02998598``.
+    Both low and high values correspond to the two-sided alternative.
+
+    Use at least four finite observations with nonzero sample variance.
+    This order-statistic construction is distinct from the skewness-and-
+    kurtosis D'Agostino-Pearson statistic.
+
+    References
+    ----------
+    .. [1] D'Agostino, R. B. (1971).
+       An omnibus test of normality for moderate and large size samples.
+       Biometrika, 58(2), 341-348.
+       https://doi.org/10.1093/biomet/58.2.341
+    """
+
     @override
     def alternative(self) -> Alternative:
         return TwoSidedAlternative()
@@ -1743,6 +3172,22 @@ class DagostinoNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         n = len(rvs)
         if n > 3:
             xs = np.sort(rvs)  # We sort the data
@@ -1756,6 +3201,32 @@ class DagostinoNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class ZhangQStarNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Reflected Zhang ``Q*`` normality statistic.
+
+    The null hypothesis is the normal family with unknown mean and variance.
+    No distribution parameters are accepted; ``hypothesis().parameters()``
+    returns ``{}``.
+
+    Notes
+    -----
+    This variant applies the Zhang ``Q`` construction to the negated,
+    reverse-ordered sample. It returns the logarithm of the ratio of two
+    linear contrasts. Shifts and positive rescaling cancel from the result.
+    The implementation declares a right-tail alternative.
+
+    At least eight finite observations are needed because the coefficients
+    access the first eight normal scores. A positive, finite contrast ratio
+    is required. This is the reflected component alone, not a joint
+    combination of the ``Q`` and ``Q*`` p-values.
+
+    References
+    ----------
+    .. [1] Zhang, P. (1999).
+       Omnibus test of normality using the Q statistic.
+       Journal of Applied Statistics, 26(4), 519-528.
+       https://doi.org/10.1080/02664769922395
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -1773,6 +3244,22 @@ class ZhangQStarNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         n = len(rvs)
 
         if n > 3:
@@ -1853,6 +3340,32 @@ class ZhangQQStarNormalityTest(AbstractNormalityTestStatistic):  # TODO: check f
 
 
 class SWRGNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Rahman-Govindarajulu modification of the Shapiro-Wilk statistic.
+
+    The null hypothesis is the normal family with unknown mean and variance.
+    No distribution parameters are accepted; ``hypothesis().parameters()``
+    returns ``{}``.
+
+    Notes
+    -----
+    Weights are formed from second differences of normal-score density
+    products and normalized to unit length. The squared weighted sum of the
+    ordered sample is divided by its centered sum of squares. Use at least
+    four finite observations with nonzero sample variance.
+
+    The returned value is the raw ``W_RG`` ratio, not ``1 - W_RG``. The
+    published Shapiro-Wilk-type test uses small values as evidence against
+    normality, while this implementation currently declares a right-tail
+    alternative. Account for that mismatch when using it for decisions.
+
+    References
+    ----------
+    .. [1] Rahman, M. M. and Govindarajulu, Z. (1997).
+       A modification of the test of Shapiro and Wilk for normality.
+       Journal of Applied Statistics, 24(2), 219-236.
+       https://doi.org/10.1080/02664769723828
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -1870,6 +3383,22 @@ class SWRGNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         n = len(rvs)
 
         if n > 3:
@@ -1893,6 +3422,31 @@ class SWRGNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class GMGNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Gel-Miao-Gastwirth normality statistic directed at heavy tails.
+
+    The null hypothesis is the normal family with unknown mean and variance.
+    No distribution parameters are accepted; ``hypothesis().parameters()``
+    returns ``{}``.
+
+    Notes
+    -----
+    The statistic divides the sample standard deviation with ``ddof=0`` by
+    ``sqrt(pi / 2)`` times the average absolute deviation from the sample
+    median. This ratio is close to one under normality, and large values
+    correspond to the right-tail alternative aimed at heavy-tailed departures.
+
+    Use at least four finite observations with positive dispersion.
+    The returned value is the raw ratio; no large-sample centering, scaling,
+    or p-value approximation from the article is applied.
+
+    References
+    ----------
+    .. [1] Gel, Y. R., Miao, W. and Gastwirth, J. L. (2007).
+       Robust directed tests of normality against heavy-tailed alternatives.
+       Computational Statistics & Data Analysis, 51(5), 2734-2746.
+       https://doi.org/10.1016/j.csda.2006.08.022
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -1910,6 +3464,22 @@ class GMGNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         return self.stat33(rvs)
 
     @staticmethod
@@ -1964,6 +3534,33 @@ a robust measure of skewness, Computational Statistics, Vol. 23, Issue 3, pp. 42
 
 
 class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Brys-Hubert-Struyf MC-LR statistic for the normal family.
+
+    Notes
+    -----
+    The null hypothesis is normality with unknown mean and variance;
+    `hypothesis().parameters()` is an empty dictionary. No distribution
+    parameters are accepted by the constructor.
+
+    The statistic combines the medcouple with left and right medcouples in
+    a quadratic form [1]_. These measure skewness and tail weight without
+    fixing the location or scale. Large values provide evidence against
+    normality; the class uses a right-sided alternative.
+
+    Warnings
+    --------
+    The current medcouple implementation is incomplete. It may fail to
+    terminate for samples with five or more observations and is not suitable
+    for reliable inference until repaired. Existing regression tests for
+    these sample sizes are disabled for this reason.
+
+    References
+    ----------
+    .. [1] Brys, G., Hubert, M., and Struyf, A. (2008). "Goodness-of-fit tests
+       based on a robust measure of skewness." Computational Statistics,
+       23, 429-442. https://doi.org/10.1007/s00180-007-0083-7
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -1981,6 +3578,22 @@ class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         return self.stat16(rvs)
 
     def stat16(self, x):
@@ -2307,6 +3920,26 @@ class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class SpiegelhalterNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Spiegelhalter statistic for the normal family.
+
+    Notes
+    -----
+    The null hypothesis is normality with unknown mean and variance;
+    `hypothesis().parameters()` is an empty dictionary. No distribution
+    parameters are accepted by the constructor.
+
+    The statistic combines the standardized sample range and mean absolute
+    deviation [1]_. Location and scale cancel in the calculation. This class
+    uses a two-sided alternative and requires at least four observations
+    with nonzero sample variance.
+
+    References
+    ----------
+    .. [1] Spiegelhalter, D. J. (1977). "A test for normality against
+       symmetric alternatives." Biometrika, 64(2), 415-418.
+       https://doi.org/10.1093/biomet/64.2.415
+    """
+
     @override
     def alternative(self) -> Alternative:
         return TwoSidedAlternative()
@@ -2324,6 +3957,22 @@ class SpiegelhalterNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         return self.stat41(rvs)
 
     @staticmethod
@@ -2365,6 +4014,34 @@ class SpiegelhalterNormalityGofStatistic(AbstractNormalityGofStatistic):
 
 
 class DesgagneLafayeNormalityGofStatistic(AbstractNormalityGofStatistic):
+    """Desgagne-Lafaye de Micheaux-Leblanc R_n normality statistic.
+
+    Notes
+    -----
+    The null hypothesis is normality with unknown mean and variance;
+    `hypothesis().parameters()` is an empty dictionary. No distribution
+    parameters are accepted by the constructor.
+
+    The sample is centered and divided by its standard deviation computed
+    with `ddof=0`. The statistic combines three logarithmic measures of
+    tail thickness in a quadratic form, as in the Rao score test against
+    generalized exponential power alternatives [1]_. The implementation
+    evaluates `R_n`, although its historical short code is `DLDMZEPD`.
+
+    Large values provide evidence against normality; the class uses a
+    right-sided alternative. At least four observations and nonzero sample
+    variance are required. A centered observation equal to zero can produce
+    a nonfinite result because the current implementation evaluates its
+    logarithm directly.
+
+    References
+    ----------
+    .. [1] Desgagne, A., Lafaye de Micheaux, P., and Leblanc, A. (2013).
+       "Test of Normality Against Generalized Exponential Power
+       Alternatives." Communications in Statistics - Theory and Methods,
+       42(1), 164-190. https://doi.org/10.1080/03610926.2011.577548
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -2382,6 +4059,22 @@ class DesgagneLafayeNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic for the observed sample.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional sample of finite observations. Sample-size and
+            dispersion requirements are described in the class notes.
+        **kwargs : dict, optional
+            Unused keyword arguments accepted for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Value of the statistic for a supported sample. This method does
+            not return a p-value or a hypothesis-test decision.
+        """
         return self.stat35(rvs)
 
     @staticmethod
@@ -2426,6 +4119,61 @@ class DesgagneLafayeNormalityGofStatistic(AbstractNormalityGofStatistic):
 class AbstractGraphNormalityGofStatistic(
     AbstractNormalityGofStatistic, AbstractGraphTestStatistic, ABC
 ):
+    """Base class for normal proximity-graph statistics with known variance.
+
+    Parameters
+    ----------
+    var : float, optional
+        Finite positive variance fixed by the null hypothesis. Default is
+        1. This is a variance, not a standard deviation. Keyword-only.
+
+    Raises
+    ------
+    ValueError
+        If the variance is nonpositive or nonfinite.
+
+    Notes
+    -----
+    The null hypothesis is normality with variance `var` and an arbitrary
+    mean; `hypothesis().parameters()` returns `{"var": var}`.
+
+    Observations are graph vertices. Two vertices are joined when their
+    absolute difference is strictly smaller than
+    `(max(rvs) - min(rvs)) / (10 * np.var(rvs, ddof=0))`.
+    For zero sample variance, the denominator involving variance is omitted.
+    The threshold uses the empirical variance, not the hypothesized `var`.
+
+    The construction is invariant to shifts but not to changes of scale.
+    Consequently, `var` determines the null distribution used for
+    calibration without directly entering the statistic. Subclasses use
+    a two-sided alternative.
+
+    This threshold rule is documented from the PySATL implementation [1]_.
+    An originating research article has not been identified.
+
+    References
+    ----------
+    .. [1] PySATL. "pysatl-criterion", normal proximity-graph implementation.
+       https://github.com/PySATL/pysatl-criterion
+    """
+
+    @override
+    def __init__(self, *, var: float = 1):
+        _validate_normal_parameters(0, var)
+        self.var = var
+
+    @override
+    def hypothesis(self) -> GoodnessOfFitHypothesis:
+        """Return normality with specified variance and unknown mean.
+
+        Returns
+        -------
+        GoodnessOfFitHypothesis
+            Only ``var`` is fixed. Calibration may use zero mean because the
+            graph construction is invariant under a common shift.
+        """
+        return GoodnessOfFitHypothesis({"var": self.var})
+
     @override
     def alternative(self) -> Alternative:
         return TwoSidedAlternative()
@@ -2447,6 +4195,36 @@ class AbstractGraphNormalityGofStatistic(
 class GraphEdgesNumberNormalityGofStatistic(
     AbstractGraphNormalityGofStatistic, GraphEdgesNumberTestStatistic
 ):
+    """Number of edges for a normal sample with known variance.
+
+    Parameters
+    ----------
+    var : float, optional
+        Finite positive null variance, specified as a keyword argument.
+        Default is 1. The null mean is unspecified.
+
+    See Also
+    --------
+    AbstractGraphNormalityGofStatistic : Graph construction and calibration.
+
+    Notes
+    -----
+    Counts the undirected edges in the sample proximity graph.
+
+    The null hypothesis is normality with arbitrary mean and variance
+    `var`; `hypothesis().parameters()` returns `{"var": var}`.
+    The alternative is two-sided. The graph threshold and its dependence
+    on sample scale are described in `AbstractGraphNormalityGofStatistic`.
+
+    This is the PySATL implementation [1]_; an originating research article
+    has not been identified.
+
+    References
+    ----------
+    .. [1] PySATL. "pysatl-criterion", normal proximity-graph implementation.
+       https://github.com/PySATL/pysatl-criterion
+    """
+
     @staticmethod
     @override
     def code():
@@ -2458,6 +4236,36 @@ class GraphEdgesNumberNormalityGofStatistic(
 class GraphMaxDegreeNormalityGofStatistic(
     AbstractGraphNormalityGofStatistic, GraphMaxDegreeTestStatistic
 ):
+    """Maximum vertex degree for a normal sample with known variance.
+
+    Parameters
+    ----------
+    var : float, optional
+        Finite positive null variance, specified as a keyword argument.
+        Default is 1. The null mean is unspecified.
+
+    See Also
+    --------
+    AbstractGraphNormalityGofStatistic : Graph construction and calibration.
+
+    Notes
+    -----
+    Returns the largest number of neighbors of any sample vertex.
+
+    The null hypothesis is normality with arbitrary mean and variance
+    `var`; `hypothesis().parameters()` returns `{"var": var}`.
+    The alternative is two-sided. The graph threshold and its dependence
+    on sample scale are described in `AbstractGraphNormalityGofStatistic`.
+
+    This is the PySATL implementation [1]_; an originating research article
+    has not been identified.
+
+    References
+    ----------
+    .. [1] PySATL. "pysatl-criterion", normal proximity-graph implementation.
+       https://github.com/PySATL/pysatl-criterion
+    """
+
     @staticmethod
     @override
     def code():
@@ -2469,6 +4277,37 @@ class GraphMaxDegreeNormalityGofStatistic(
 class GraphAverageDegreeNormalityGofStatistic(
     AbstractGraphNormalityGofStatistic, GraphAverageDegreeTestStatistic
 ):
+    """Average vertex degree for a normal sample with known variance.
+
+    Parameters
+    ----------
+    var : float, optional
+        Finite positive null variance, specified as a keyword argument.
+        Default is 1. The null mean is unspecified.
+
+    See Also
+    --------
+    AbstractGraphNormalityGofStatistic : Graph construction and calibration.
+
+    Notes
+    -----
+    Returns the mean number of neighbors per sample vertex, equal to twice
+    the edge count divided by the sample size.
+
+    The null hypothesis is normality with arbitrary mean and variance
+    `var`; `hypothesis().parameters()` returns `{"var": var}`.
+    The alternative is two-sided. The graph threshold and its dependence
+    on sample scale are described in `AbstractGraphNormalityGofStatistic`.
+
+    This is the PySATL implementation [1]_; an originating research article
+    has not been identified.
+
+    References
+    ----------
+    .. [1] PySATL. "pysatl-criterion", normal proximity-graph implementation.
+       https://github.com/PySATL/pysatl-criterion
+    """
+
     @staticmethod
     @override
     def code():
@@ -2480,6 +4319,37 @@ class GraphAverageDegreeNormalityGofStatistic(
 class GraphConnectedComponentsNormalityGofStatistic(
     AbstractGraphNormalityGofStatistic, GraphConnectedComponentsTestStatistic
 ):
+    """Number of connected components for a normal sample with known variance.
+
+    Parameters
+    ----------
+    var : float, optional
+        Finite positive null variance, specified as a keyword argument.
+        Default is 1. The null mean is unspecified.
+
+    See Also
+    --------
+    AbstractGraphNormalityGofStatistic : Graph construction and calibration.
+
+    Notes
+    -----
+    Counts the connected components of the sample proximity graph using
+    depth-first traversal.
+
+    The null hypothesis is normality with arbitrary mean and variance
+    `var`; `hypothesis().parameters()` returns `{"var": var}`.
+    The alternative is two-sided. The graph threshold and its dependence
+    on sample scale are described in `AbstractGraphNormalityGofStatistic`.
+
+    This is the PySATL implementation [1]_; an originating research article
+    has not been identified.
+
+    References
+    ----------
+    .. [1] PySATL. "pysatl-criterion", normal proximity-graph implementation.
+       https://github.com/PySATL/pysatl-criterion
+    """
+
     @staticmethod
     @override
     def code():
@@ -2491,6 +4361,38 @@ class GraphConnectedComponentsNormalityGofStatistic(
 class GraphCliqueNumberNormalityGofStatistic(
     AbstractGraphNormalityGofStatistic, GraphCliqueNumberTestStatistic
 ):
+    """Clique-number statistic for a normal sample with known variance.
+
+    Parameters
+    ----------
+    var : float, optional
+        Finite positive null variance, specified as a keyword argument.
+        Default is 1. The null mean is unspecified.
+
+    See Also
+    --------
+    AbstractGraphNormalityGofStatistic : Graph construction and calibration.
+
+    Notes
+    -----
+    Uses a sorted sliding window to estimate the maximum clique size in
+    the sample proximity graph. The current implementation sorts the input
+    sample in place.
+
+    The null hypothesis is normality with arbitrary mean and variance
+    `var`; `hypothesis().parameters()` returns `{"var": var}`.
+    The alternative is two-sided. The graph threshold and its dependence
+    on sample scale are described in `AbstractGraphNormalityGofStatistic`.
+
+    This is the PySATL implementation [1]_; an originating research article
+    has not been identified.
+
+    References
+    ----------
+    .. [1] PySATL. "pysatl-criterion", normal proximity-graph implementation.
+       https://github.com/PySATL/pysatl-criterion
+    """
+
     @staticmethod
     @override
     def code():
@@ -2502,6 +4404,38 @@ class GraphCliqueNumberNormalityGofStatistic(
 class GraphIndependenceNumberNormalityGofStatistic(
     AbstractGraphNormalityGofStatistic, GraphIndependenceNumberTestStatistic
 ):
+    """Independence-number statistic for a normal sample with known variance.
+
+    Parameters
+    ----------
+    var : float, optional
+        Finite positive null variance, specified as a keyword argument.
+        Default is 1. The null mean is unspecified.
+
+    See Also
+    --------
+    AbstractGraphNormalityGofStatistic : Graph construction and calibration.
+
+    Notes
+    -----
+    Greedily selects separated observations in sorted order to compute the
+    maximum independent-set size in the sample proximity graph. The
+    implementation sorts a copy and preserves the input sample.
+
+    The null hypothesis is normality with arbitrary mean and variance
+    `var`; `hypothesis().parameters()` returns `{"var": var}`.
+    The alternative is two-sided. The graph threshold and its dependence
+    on sample scale are described in `AbstractGraphNormalityGofStatistic`.
+
+    This is the PySATL implementation [1]_; an originating research article
+    has not been identified.
+
+    References
+    ----------
+    .. [1] PySATL. "pysatl-criterion", normal proximity-graph implementation.
+       https://github.com/PySATL/pysatl-criterion
+    """
+
     @staticmethod
     @override
     def code():

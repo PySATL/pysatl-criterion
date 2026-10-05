@@ -49,7 +49,11 @@ from pysatl_criterion.utils.distribution import get_available_distribution_descr
         (
             DistributionType.STUDENT,
             StudentDistributionDescriptor,
-            [("ν", "df", "Degrees of freedom. ν > 0", 2)],
+            [
+                ("ν", "df", "Degrees of freedom. ν > 0", 1),
+                ("μ", "loc", "Location", 0),
+                ("s", "scale", "Scale. s > 0", 1),
+            ],
         ),
         (
             DistributionType.GAMMA,

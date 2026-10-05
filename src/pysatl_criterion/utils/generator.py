@@ -22,6 +22,13 @@ def get_hypothesis_generator(
     Beta's a/b, Gamma's alfa/rate, and log-normal's logarithmic location mu.
     Direct calls to get_available_generator continue to use generator parameters.
     """
+    hypothesis = statistic.hypothesis()
+    if hypothesis.parameter_values is not None:
+        from pysatl_criterion.generator.generators import TRVSGenerator
+
+        if statistic.distribution() == DistributionType.STUDENT:
+            return TRVSGenerator.from_parameters(hypothesis.parameter_values)
+        raise ValueError("No schema-aware sampler for this distribution")
     distribution = statistic.distribution()
     params = statistic.hypothesis().parameters()
     if distribution == DistributionType.BETA:
@@ -47,6 +54,12 @@ def get_available_generator(
     :param params: keyword parameters passed to the matching generator constructor.
     :return: initialized random value generator for the requested distribution.
     """
+    if distribution == DistributionType.STUDENT:
+        from pysatl_criterion.distribution.distributions import StudentDistributionDescriptor
+        from pysatl_criterion.generator.generators import TRVSGenerator
+
+        values = StudentDistributionDescriptor.DEFAULT.parse(params or {}, fill_defaults=True)
+        return TRVSGenerator.from_parameters(values)
     _load_generators()
     return next(
         cls(**(params or {}))
