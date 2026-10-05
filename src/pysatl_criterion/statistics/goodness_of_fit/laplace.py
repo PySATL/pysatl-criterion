@@ -4,6 +4,7 @@ from abc import ABC
 
 import numpy as np
 import scipy.stats as scipy_stats
+from numba import njit
 from typing_extensions import override
 
 from pysatl_criterion import DistributionType
@@ -141,6 +142,28 @@ class CramerVonMisesLaplaceGofStatistic(AbstractLaplaceGofStatistic, CrammerVonM
         short_code = CramerVonMisesLaplaceGofStatistic.short_code()
         return f"{short_code}_{AbstractLaplaceGofStatistic.code()}"
 
+    @staticmethod
+    @njit
+    def _calculate_statistic(
+        sorted_rvs: np.ndarray, t: float, s: float
+    ) -> float:  # pragma: no cover
+        n = len(sorted_rvs)
+        total = 1.0 / (12.0 * n)
+
+        for i in range(n):
+            x = sorted_rvs[i]
+
+            if x < t:
+                current_cdf = 0.5 * np.exp((x - t) / s)
+            else:
+                current_cdf = 1.0 - 0.5 * np.exp(-(x - t) / s)
+
+            expected_cdf = (2.0 * i + 1.0) / (2.0 * n)
+            difference = expected_cdf - current_cdf
+            total += difference * difference
+
+        return total
+
     @override
     def execute_statistic(self, rvs, **kwargs):
         """Execute the Cramer--von Mises statistic for a Laplace distribution.
@@ -148,9 +171,22 @@ class CramerVonMisesLaplaceGofStatistic(AbstractLaplaceGofStatistic, CrammerVonM
         :param rvs: observations assumed to follow a Laplace distribution.
         :return: Cramer--von Mises W^2 statistic computed with the Laplace CDF.
         """
-        sorted_rvs = np.sort(np.asarray(rvs))
-        cdf_vals = scipy_stats.laplace.cdf(sorted_rvs, loc=self.t, scale=self.s)
-        return CrammerVonMisesStatistic.do_execute_statistic(self, sorted_rvs, cdf_vals)
+        sorted_rvs = np.sort(np.asarray(rvs, dtype=np.float64))
+        return self.do_execute_statistic(sorted_rvs)
+
+    def do_execute_statistic(self, sorted_rvs):
+        """Calculate the statistic for an already sorted sample.
+
+        :param sorted_rvs: one-dimensional sample sorted in ascending order.
+        :return: Cramer--von Mises statistic computed from the Laplace CDF.
+        """
+        return float(
+            self._calculate_statistic(
+                sorted_rvs,
+                self.t,
+                self.s,
+            )
+        )
 
 
 class AndersonDarlingLaplaceGofStatistic(AbstractLaplaceGofStatistic, ADStatistic):
@@ -179,6 +215,32 @@ class AndersonDarlingLaplaceGofStatistic(AbstractLaplaceGofStatistic, ADStatisti
         short_code = AndersonDarlingLaplaceGofStatistic.short_code()
         return f"{short_code}_{AbstractLaplaceGofStatistic.code()}"
 
+    @staticmethod
+    @njit
+    def _calculate_statistic(
+        sorted_rvs: np.ndarray, t: float, s: float
+    ) -> float:  # pragma: no cover
+        n = len(sorted_rvs)
+        total = 0.0
+
+        for i in range(n):
+            lower = (sorted_rvs[i] - t) / s
+            upper = (sorted_rvs[n - i - 1] - t) / s
+
+            if lower < 0.0:
+                log_cdf = np.log(0.5 * np.exp(lower))
+            else:
+                log_cdf = np.log1p(-0.5 * np.exp(-lower))
+
+            if upper < 0.0:
+                log_sf = np.log1p(-0.5 * np.exp(upper))
+            else:
+                log_sf = np.log(0.5 * np.exp(-upper))
+
+            total += (2.0 * i + 1.0) / n * (log_cdf + log_sf)
+
+        return -n - total
+
     @override
     def execute_statistic(self, rvs, **kwargs):
         """Execute the Anderson--Darling statistic for a Laplace distribution.
@@ -186,10 +248,22 @@ class AndersonDarlingLaplaceGofStatistic(AbstractLaplaceGofStatistic, ADStatisti
         :param rvs: observations assumed to follow a Laplace distribution.
         :return: Anderson--Darling A^2 statistic computed from log-CDF values.
         """
-        sorted_rvs = np.sort(np.asarray(rvs))
-        log_cdf = scipy_stats.laplace.logcdf(sorted_rvs, loc=self.t, scale=self.s)
-        log_sf = scipy_stats.laplace.logsf(sorted_rvs, loc=self.t, scale=self.s)
-        return ADStatistic.do_execute_statistic(self, sorted_rvs, log_cdf=log_cdf, log_sf=log_sf)
+        sorted_rvs = np.sort(np.asarray(rvs, dtype=np.float64))
+        return self.do_execute_statistic(sorted_rvs)
+
+    def do_execute_statistic(self, sorted_rvs):
+        """Calculate the statistic for an already sorted sample.
+
+        :param sorted_rvs: one-dimensional sample sorted in ascending order.
+        :return: Anderson--Darling statistic computed from Laplace log probabilities.
+        """
+        return float(
+            self._calculate_statistic(
+                sorted_rvs,
+                self.t,
+                self.s,
+            )
+        )
 
 
 class KuiperLaplaceGofStatistic(AbstractLaplaceGofStatistic):
@@ -225,6 +299,33 @@ class KuiperLaplaceGofStatistic(AbstractLaplaceGofStatistic):
         short_code = KuiperLaplaceGofStatistic.short_code()
         return f"{short_code}_{AbstractLaplaceGofStatistic.code()}"
 
+    @staticmethod
+    @njit
+    def _calculate_statistic(
+        sorted_rvs: np.ndarray,
+        t: float,
+        s: float,
+    ) -> float:  # pragma: no cover
+        n = len(sorted_rvs)
+        d_plus = 0.0
+        d_minus = 0.0
+
+        for i in range(n):
+            x = sorted_rvs[i]
+
+            if x < t:
+                current_cdf = 0.5 * np.exp((x - t) / s)
+            else:
+                current_cdf = 1.0 - 0.5 * np.exp(-(x - t) / s)
+
+            if np.isnan(current_cdf):
+                return np.nan
+
+            d_plus = max(d_plus, (i + 1.0) / n - current_cdf)
+            d_minus = max(d_minus, current_cdf - i / n)
+
+        return d_plus + d_minus
+
     @override
     def execute_statistic(self, rvs):
         """
@@ -234,21 +335,27 @@ class KuiperLaplaceGofStatistic(AbstractLaplaceGofStatistic):
         :raises ValueError: if the sample is empty.
         """
 
-        sorted_rvs = np.sort(np.asarray(rvs))
-        n = len(sorted_rvs)
-
-        if n == 0:
+        sorted_rvs = np.sort(np.asarray(rvs, dtype=np.float64))
+        if len(sorted_rvs) == 0:
             raise ValueError(
                 "At least one observation is required to compute the Kuiper statistic."
             )
+        return self.do_execute_statistic(sorted_rvs)
 
-        cdf_vals = scipy_stats.laplace.cdf(sorted_rvs, loc=self.t, scale=self.s)
+    def do_execute_statistic(self, sorted_rvs):
+        """
+        Calculate the statistic for an already sorted sample.
 
-        i = np.arange(1, n + 1)
-        d_plus = np.max(i / n - cdf_vals)
-        d_minus = np.max(cdf_vals - (i - 1) / n)
-
-        return float(d_plus + d_minus)
+        :param sorted_rvs: one-dimensional sample sorted in ascending order.
+        :return: Kuiper statistic computed from the Laplace CDF.
+        """
+        return float(
+            self._calculate_statistic(
+                sorted_rvs,
+                self.t,
+                self.s,
+            )
+        )
 
 
 class WatsonLaplaceGofStatistic(AbstractLaplaceGofStatistic):
@@ -283,6 +390,33 @@ class WatsonLaplaceGofStatistic(AbstractLaplaceGofStatistic):
         short_code = WatsonLaplaceGofStatistic.short_code()
         return f"{short_code}_{AbstractLaplaceGofStatistic.code()}"
 
+    @staticmethod
+    @njit
+    def _calculate_statistic(
+        sorted_rvs: np.ndarray,
+        t: float,
+        s: float,
+    ) -> float:  # pragma: no cover
+        n = len(sorted_rvs)
+        total = 1.0 / (12.0 * n)
+        cdf_sum = 0.0
+
+        for i in range(n):
+            x = sorted_rvs[i]
+
+            if x < t:
+                current_cdf = 0.5 * np.exp((x - t) / s)
+            else:
+                current_cdf = 1.0 - 0.5 * np.exp(-(x - t) / s)
+
+            expected_cdf = (2.0 * i + 1.0) / (2.0 * n)
+            difference = current_cdf - expected_cdf
+            total += difference * difference
+            cdf_sum += current_cdf
+
+        mean_adjustment = cdf_sum - n / 2.0
+        return total - mean_adjustment * mean_adjustment / n
+
     @override
     def execute_statistic(self, rvs):
         """
@@ -293,19 +427,29 @@ class WatsonLaplaceGofStatistic(AbstractLaplaceGofStatistic):
         :raises ValueError: if sample is empty.
         """
 
-        sorted_rvs = np.sort(np.asarray(rvs))
+        sorted_rvs = np.sort(np.asarray(rvs, dtype=np.float64))
         n = len(sorted_rvs)
         if n == 0:
             raise ValueError(
                 "At least one observation is required to compute the Watson statistic."
             )
 
-        cdf_vals = scipy_stats.laplace.cdf(sorted_rvs, loc=self.t, scale=self.s)
-        u = (2 * np.arange(1, n + 1) - 1) / (2 * n)
-        diff = cdf_vals - u
-        w_squared = 1.0 / (12 * n) + np.sum(diff**2)
-        mean_adj = np.sum(cdf_vals) - n / 2
-        return float(w_squared - (mean_adj**2) / n)
+        return self.do_execute_statistic(sorted_rvs)
+
+    def do_execute_statistic(self, sorted_rvs):
+        """
+        Calculate the Watson statistic for an already sorted sample.
+
+        :param sorted_rvs: one-dimensional sample sorted in ascending order.
+        :return: Watson statistic computed from the Laplace CDF values.
+        """
+        return float(
+            self._calculate_statistic(
+                sorted_rvs,
+                self.t,
+                self.s,
+            )
+        )
 
 
 class GreenwoodLaplaceGofStatistic(AbstractLaplaceGofStatistic):
@@ -343,6 +487,32 @@ class GreenwoodLaplaceGofStatistic(AbstractLaplaceGofStatistic):
         short_code = GreenwoodLaplaceGofStatistic.short_code()
         return f"{short_code}_{AbstractLaplaceGofStatistic.code()}"
 
+    @staticmethod
+    @njit
+    def _calculate_statistic(
+        sorted_rvs: np.ndarray, t: float, s: float
+    ) -> float:  # pragma: no cover
+        n = len(sorted_rvs)
+        total = 0.0
+        previous_cdf = 0.0
+
+        for i in range(n):
+            x = sorted_rvs[i]
+
+            if x < t:
+                current_cdf = 0.5 * np.exp((x - t) / s)
+            else:
+                current_cdf = 1.0 - 0.5 * np.exp(-(x - t) / s)
+
+            spacing = current_cdf - previous_cdf
+            total += spacing * spacing
+            previous_cdf = current_cdf
+
+        final_spacing = 1.0 - previous_cdf
+        total += final_spacing * final_spacing
+
+        return total
+
     @override
     def execute_statistic(self, rvs, **kwargs):
         """Execute the Greenwood spacing statistic for a Laplace distribution.
@@ -351,17 +521,30 @@ class GreenwoodLaplaceGofStatistic(AbstractLaplaceGofStatistic):
         :return: Greenwood statistic computed from the spacings of the Laplace CDF.
         :raises ValueError: if the sample is empty.
         """
-        sorted_rvs = np.sort(np.asarray(rvs))
-        n = len(sorted_rvs)
-        if n == 0:
+
+        sorted_rvs = np.sort(np.asarray(rvs, dtype=np.float64))
+
+        if len(sorted_rvs) == 0:
             raise ValueError(
                 "At least one observation is required to compute the Greenwood statistic."
             )
 
-        cdf_vals = scipy_stats.laplace.cdf(sorted_rvs, loc=self.t, scale=self.s)
-        spacings = np.diff(np.concatenate(([0.0], cdf_vals, [1.0])))
+        return self.do_execute_statistic(sorted_rvs)
 
-        if np.any(spacings < 0):
-            raise ValueError("Spacings must be non-negative; check input data ordering.")
+    def do_execute_statistic(self, sorted_rvs):
+        """Calculate the statistic for an already sorted sample.
 
-        return float(np.sum(spacings**2))
+        Keeping sorting outside the compiled kernel avoids allocating a new
+        array on every kernel call and makes it possible to benchmark only the
+        statistic calculation.
+
+        :param sorted_rvs: one-dimensional sample sorted in ascending order.
+        :return: Greenwood statistic computed from the Laplace CDF spacings.
+        """
+        return float(
+            self._calculate_statistic(
+                sorted_rvs,
+                self.t,
+                self.s,
+            )
+        )

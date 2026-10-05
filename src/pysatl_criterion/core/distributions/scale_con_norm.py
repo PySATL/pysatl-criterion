@@ -1,8 +1,10 @@
 import numpy as np
 from scipy.stats import norm
 
+from pysatl_criterion.core.distributions._random import resolve_random_state
 
-def generate_scale_con_norm(size, p=0.5, b=0) -> list[float]:
+
+def generate_scale_con_norm(size, p=0.5, b=0, random_state=None) -> list[float]:
     """
     Generate samples from a scale-contaminated normal distribution.
 
@@ -44,13 +46,15 @@ def generate_scale_con_norm(size, p=0.5, b=0) -> list[float]:
     >>> generate_scale_con_norm(5, p=0.3, b=2.0)
     [ ... ]
     """
+    resolved_random_state = resolve_random_state(random_state)
+    choice_random_state = np.random if resolved_random_state is None else resolved_random_state
     result = []
     for i in range(size):
-        choice = np.random.choice(np.arange(2), p=[p, 1 - p])
+        choice = choice_random_state.choice(np.arange(2), p=[p, 1 - p])
         if choice == 0:
-            item = norm.rvs(size=1, scale=b)
+            item = norm.rvs(size=1, scale=b, random_state=resolved_random_state)
         else:
-            item = norm.rvs(size=1)
+            item = norm.rvs(size=1, random_state=resolved_random_state)
         result.append(item)
 
     return np.concatenate(result, axis=0).tolist()

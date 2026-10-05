@@ -3,7 +3,7 @@ import math
 from scipy.stats import lognorm
 
 
-def generate_lognorm(size, mu=0, s=1):
+def generate_lognorm(size, mu=0, s=1, random_state=None):
     """
     Generate random samples from the log-normal distribution.
 
@@ -23,6 +23,8 @@ def generate_lognorm(size, mu=0, s=1):
     s : float, optional
         Shape parameter (standard deviation of the underlying normal
         distribution). Default is 1.
+    random_state : object, optional
+        Random state forwarded to ``scipy.stats.lognorm.rvs``.
 
     Returns
     -------
@@ -45,4 +47,4 @@ def generate_lognorm(size, mu=0, s=1):
     array([...])
     """
     scale = math.exp(mu)
-    return lognorm.rvs(s=s, size=size, scale=scale)
+    return lognorm.rvs(s=s, size=size, scale=scale, random_state=random_state)

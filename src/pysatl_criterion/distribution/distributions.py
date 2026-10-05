@@ -265,12 +265,12 @@ class LogNormalDistributionDescriptor(DistributionDescriptor):
         """
         Return parameters for the log normal distribution.
 
-        :return: descriptors for logarithmic mean and variance.
+        :return: descriptors for logarithmic location and standard deviation.
         """
         return [
-            DistributionParameterDescriptor("μ", "mean", "Logarithm of mean", 0),
+            DistributionParameterDescriptor("μ", "mu", "Logarithmic location", 0),
             DistributionParameterDescriptor(
-                "σ²", "var", "Logarithm of variance. σ² > 0", 1, PositiveNumberValidator()
+                "σ", "s", "Logarithmic standard deviation. σ > 0", 1, PositiveNumberValidator()
             ),
         ]
 
@@ -443,6 +443,35 @@ class LaplaceDistributionDescriptor(DistributionDescriptor):
         return [
             DistributionParameterDescriptor("μ", "t", "Location", 0),
             DistributionParameterDescriptor("b", "s", "Scale. b > 0", 1, PositiveNumberValidator()),
+        ]
+
+
+class HyperbolicDistributionDescriptor(DistributionDescriptor):
+    """Descriptor for the hyperbolic distribution."""
+
+    @staticmethod
+    def type() -> DistributionType:
+        """Return the hyperbolic distribution type.
+
+        :return: hyperbolic distribution enum member.
+        """
+        return DistributionType.HYPERBOLIC
+
+    @staticmethod
+    def parameters() -> list[DistributionParameterDescriptor]:
+        """Return parameters for the hyperbolic distribution.
+
+        :return: descriptors for shape, skewness, scale, and location.
+        """
+        return [
+            DistributionParameterDescriptor(
+                "α", "alpha", "Shape. α > 0 and |β| < α", 1, PositiveNumberValidator()
+            ),
+            DistributionParameterDescriptor("β", "beta", "Skewness. |β| < α", 0),
+            DistributionParameterDescriptor(
+                "δ", "delta", "Scale. δ > 0", 1, PositiveNumberValidator()
+            ),
+            DistributionParameterDescriptor("μ", "mu", "Location", 0),
         ]
 
 

@@ -5,6 +5,7 @@ from pysatl_criterion.distribution.distributions import (
     BetaDistributionDescriptor,
     ExponentialDistributionDescriptor,
     GammaDistributionDescriptor,
+    LogNormalDistributionDescriptor,
     NormalDistributionDescriptor,
     StudentDistributionDescriptor,
     UniformDistributionDescriptor,
@@ -64,6 +65,14 @@ from pysatl_criterion.utils.distribution import get_available_distribution_descr
             [
                 ("α", "a", "First shape parameter. α > 0", 1),
                 ("β", "b", "Second shape parameter. β > 0", 1),
+            ],
+        ),
+        (
+            DistributionType.LOG_NORMAL,
+            LogNormalDistributionDescriptor,
+            [
+                ("μ", "mu", "Logarithmic location", 0),
+                ("σ", "s", "Logarithmic standard deviation. σ > 0", 1),
             ],
         ),
     ],

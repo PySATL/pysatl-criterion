@@ -133,9 +133,9 @@ class BetaRVSGenerator(AbstractRVSGenerator):
         return super()._convert_to_code([self.distribution_type(), self.a, self.b])
 
     @override
-    def generate(self, size):
+    def generate(self, size, random_state=None):
         """Generate beta-distributed random sample."""
-        return generate_beta(size=size, a=self.a, b=self.b)
+        return generate_beta(size=size, a=self.a, b=self.b, random_state=random_state)
 
 
 class CauchyRVSGenerator(AbstractRVSGenerator):
@@ -171,9 +171,9 @@ class CauchyRVSGenerator(AbstractRVSGenerator):
         return super()._convert_to_code([self.distribution_type(), self.t, self.s])
 
     @override
-    def generate(self, size):
+    def generate(self, size, random_state=None):
         """Generate Cauchy-distributed random sample."""
-        return generate_cauchy(size=size, t=self.t, s=self.s)
+        return generate_cauchy(size=size, t=self.t, s=self.s, random_state=random_state)
 
 
 class LaplaceRVSGenerator(AbstractRVSGenerator):
@@ -209,9 +209,9 @@ class LaplaceRVSGenerator(AbstractRVSGenerator):
         return super()._convert_to_code([self.distribution_type(), self.t, self.s])
 
     @override
-    def generate(self, size):
+    def generate(self, size, random_state=None):
         """Generate Laplace-distributed random sample."""
-        return generate_laplace(size=size, t=self.t, s=self.s)
+        return generate_laplace(size=size, t=self.t, s=self.s, random_state=random_state)
 
 
 class LogisticRVSGenerator(AbstractRVSGenerator):
@@ -247,9 +247,9 @@ class LogisticRVSGenerator(AbstractRVSGenerator):
         return super()._convert_to_code([self.distribution_type(), self.t, self.s])
 
     @override
-    def generate(self, size):
+    def generate(self, size, random_state=None):
         """Generate logistic-distributed random sample."""
-        return generate_logistic(size=size, t=self.t, s=self.s)
+        return generate_logistic(size=size, t=self.t, s=self.s, random_state=random_state)
 
 
 class TRVSGenerator(AbstractRVSGenerator):
@@ -282,9 +282,9 @@ class TRVSGenerator(AbstractRVSGenerator):
         return super()._convert_to_code([self.distribution_type(), self.df])
 
     @override
-    def generate(self, size):
+    def generate(self, size, random_state=None):
         """Generate Student's t-distributed random sample."""
-        return generate_t(size=size, df=self.df)
+        return generate_t(size=size, df=self.df, random_state=random_state)
 
 
 class TukeyRVSGenerator(AbstractRVSGenerator):
@@ -317,9 +317,9 @@ class TukeyRVSGenerator(AbstractRVSGenerator):
         return super()._convert_to_code([self.distribution_type(), self.lam])
 
     @override
-    def generate(self, size):
+    def generate(self, size, random_state=None):
         """Generate Tukey-distributed random sample."""
-        return generate_tukey(size=size, lam=self.lam)
+        return generate_tukey(size=size, lam=self.lam, random_state=random_state)
 
 
 class LognormGenerator(AbstractRVSGenerator):
@@ -355,9 +355,9 @@ class LognormGenerator(AbstractRVSGenerator):
         return super()._convert_to_code([self.distribution_type(), self.s, self.mu])
 
     @override
-    def generate(self, size):
+    def generate(self, size, random_state=None):
         """Generate log-normal distributed random sample."""
-        return generate_lognorm(size=size, s=self.s, mu=self.mu)
+        return generate_lognorm(size=size, s=self.s, mu=self.mu, random_state=random_state)
 
 
 class GammaGenerator(AbstractRVSGenerator):
@@ -393,9 +393,9 @@ class GammaGenerator(AbstractRVSGenerator):
         return super()._convert_to_code([self.distribution_type(), self.alfa, self.beta])
 
     @override
-    def generate(self, size):
+    def generate(self, size, random_state=None):
         """Generate gamma-distributed random sample."""
-        return generate_gamma(size=size, alfa=self.alfa, beta=self.beta)
+        return generate_gamma(size=size, alfa=self.alfa, beta=self.beta, random_state=random_state)
 
 
 class TruncnormGenerator(AbstractRVSGenerator):
@@ -439,9 +439,16 @@ class TruncnormGenerator(AbstractRVSGenerator):
         )
 
     @override
-    def generate(self, size):
+    def generate(self, size, random_state=None):
         """Generate truncated normal random sample."""
-        return generate_truncnorm(size=size, mean=self.mean, var=self.var, a=self.a, b=self.b)
+        return generate_truncnorm(
+            size=size,
+            mean=self.mean,
+            var=self.var,
+            a=self.a,
+            b=self.b,
+            random_state=random_state,
+        )
 
 
 class Chi2Generator(AbstractRVSGenerator):
@@ -474,9 +481,9 @@ class Chi2Generator(AbstractRVSGenerator):
         return super()._convert_to_code([self.distribution_type(), self.df])
 
     @override
-    def generate(self, size):
+    def generate(self, size, random_state=None):
         """Generate chi-squared random sample."""
-        return generate_chi2(size=size, df=self.df)
+        return generate_chi2(size=size, df=self.df, random_state=random_state)
 
 
 class GumbelGenerator(AbstractRVSGenerator):
@@ -512,9 +519,9 @@ class GumbelGenerator(AbstractRVSGenerator):
         return super()._convert_to_code([self.distribution_type(), self.mu, self.beta])
 
     @override
-    def generate(self, size):
+    def generate(self, size, random_state=None):
         """Generate Gumbel-distributed random sample."""
-        return generate_gumbel(size=size, mu=self.mu, beta=self.beta)
+        return generate_gumbel(size=size, mu=self.mu, beta=self.beta, random_state=random_state)
 
 
 class WeibullGenerator(AbstractRVSGenerator):
@@ -550,9 +557,9 @@ class WeibullGenerator(AbstractRVSGenerator):
         return super()._convert_to_code([self.distribution_type(), self.a, self.k])
 
     @override
-    def generate(self, size):
+    def generate(self, size, random_state=None):
         """Generate Weibull-distributed random sample."""
-        return generate_weibull(size=size, a=self.a, k=self.k)
+        return generate_weibull(size=size, a=self.a, k=self.k, random_state=random_state)
 
 
 class LoConNormGenerator(AbstractRVSGenerator):
@@ -588,9 +595,9 @@ class LoConNormGenerator(AbstractRVSGenerator):
         return super()._convert_to_code([self.distribution_type(), self.p, self.a])
 
     @override
-    def generate(self, size):
+    def generate(self, size, random_state=None):
         """Generate contaminated normal random sample."""
-        return generate_lo_con_norm(size=size, p=self.p, a=self.a)
+        return generate_lo_con_norm(size=size, p=self.p, a=self.a, random_state=random_state)
 
 
 class ScConNormGenerator(AbstractRVSGenerator):
@@ -626,9 +633,9 @@ class ScConNormGenerator(AbstractRVSGenerator):
         return super()._convert_to_code([self.distribution_type(), self.p, self.b])
 
     @override
-    def generate(self, size):
+    def generate(self, size, random_state=None):
         """Generate scale-contaminated normal random sample."""
-        return generate_scale_con_norm(size=size, p=self.p, b=self.b)
+        return generate_scale_con_norm(size=size, p=self.p, b=self.b, random_state=random_state)
 
 
 class MixConNormGenerator(AbstractRVSGenerator):
@@ -667,9 +674,11 @@ class MixConNormGenerator(AbstractRVSGenerator):
         return super()._convert_to_code([self.distribution_type(), self.p, self.a, self.b])
 
     @override
-    def generate(self, size):
+    def generate(self, size, random_state=None):
         """Generate mixed contaminated normal random sample."""
-        return generate_mix_con_norm(size=size, p=self.p, a=self.a, b=self.b)
+        return generate_mix_con_norm(
+            size=size, p=self.p, a=self.a, b=self.b, random_state=random_state
+        )
 
 
 class ExponentialGenerator(AbstractRVSGenerator):
@@ -702,9 +711,9 @@ class ExponentialGenerator(AbstractRVSGenerator):
         return super()._convert_to_code([self.distribution_type(), self.lam])
 
     @override
-    def generate(self, size):
+    def generate(self, size, random_state=None):
         """Generate exponentially distributed random sample."""
-        return generate_expon(size=size, lam=self.lam)
+        return generate_expon(size=size, lam=self.lam, random_state=random_state)
 
 
 class InvGaussGenerator(AbstractRVSGenerator):
@@ -740,9 +749,9 @@ class InvGaussGenerator(AbstractRVSGenerator):
         return super()._convert_to_code([self.distribution_type(), self.mu, self.lam])
 
     @override
-    def generate(self, size):
+    def generate(self, size, random_state=None):
         """Generate inverse Gaussian random sample."""
-        return generate_invgauss(size=size, mu=self.mu, lam=self.lam)
+        return generate_invgauss(size=size, mu=self.mu, lam=self.lam, random_state=random_state)
 
 
 class RiceGenerator(AbstractRVSGenerator):
@@ -778,9 +787,9 @@ class RiceGenerator(AbstractRVSGenerator):
         return super()._convert_to_code([self.distribution_type(), self.nu, self.sigma])
 
     @override
-    def generate(self, size):
+    def generate(self, size, random_state=None):
         """Generate Rice-distributed random sample."""
-        return generate_rice(size=size, nu=self.nu, sigma=self.sigma)
+        return generate_rice(size=size, nu=self.nu, sigma=self.sigma, random_state=random_state)
 
 
 class GompertzGenerator(AbstractRVSGenerator):
@@ -816,9 +825,9 @@ class GompertzGenerator(AbstractRVSGenerator):
         return super()._convert_to_code([self.distribution_type(), self.eta, self.b])
 
     @override
-    def generate(self, size):
+    def generate(self, size, random_state=None):
         """Generate Gompertz-distributed random sample."""
-        return generate_gompertz(size=size, eta=self.eta, b=self.b)
+        return generate_gompertz(size=size, eta=self.eta, b=self.b, random_state=random_state)
 
 
 class NormalGenerator(AbstractRVSGenerator):
@@ -854,9 +863,9 @@ class NormalGenerator(AbstractRVSGenerator):
         return super()._convert_to_code([self.distribution_type(), self.mean, self.var])
 
     @override
-    def generate(self, size):
+    def generate(self, size, random_state=None):
         """Generate normally distributed random sample."""
-        return generate_norm(size=size, mean=self.mean, var=self.var)
+        return generate_norm(size=size, mean=self.mean, var=self.var, random_state=random_state)
 
 
 class UniformGenerator(AbstractRVSGenerator):
@@ -892,6 +901,6 @@ class UniformGenerator(AbstractRVSGenerator):
         return super()._convert_to_code([self.distribution_type(), self.a, self.b])
 
     @override
-    def generate(self, size):
+    def generate(self, size, random_state=None):
         """Generate uniform distributed random sample."""
-        return generate_uniform(size=size, a=self.a, b=self.b)
+        return generate_uniform(size=size, a=self.a, b=self.b, random_state=random_state)

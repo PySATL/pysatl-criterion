@@ -1997,11 +1997,9 @@ class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
                 x2 = x_sorted[(n // 2) + 1 :]
 
             eps = [2.220446e-16, 2.225074e-308]
-            iter_ = [1000, 0]
-
-            w1 = self.mc_c_d(x, eps, iter_)
-            w2 = self.mc_c_d(x1, eps, iter_)
-            w3 = self.mc_c_d(x2, eps, iter_)
+            w1 = self.mc_c_d(x, eps, [1000, 0])
+            w2 = self.mc_c_d(x1, eps, [1000, 0])
+            w3 = self.mc_c_d(x2, eps, [1000, 0])
 
             omega = [0.0, 0.198828, 0.198828]
             vec = [w1 - omega[0], -w2 - omega[1], w3 - omega[2]]
@@ -2132,7 +2130,8 @@ class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
         # and therefore there might be more than one observation in the `tolerance range`
         # between < and <=.
         while not is_found and (nr - nl + neq > n) and it < iter_[0]:
-            print(it)
+            if trace_lev >= 2:
+                print(f"  it={it}")
             it += 1
             j = 0
             for i in range(1, h2 + 1):
@@ -2234,7 +2233,8 @@ class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
 
         converged = is_found or (nr - nl + neq <= n)
         if not converged:
-            print(f"maximal number of iterations ({iter_[0]} =? {it}) reached prematurely")
+            if trace_lev:
+                print(f"maximal number of iterations ({iter_[0]} =? {it}) reached prematurely")
             # still:
             med_c = trial
 

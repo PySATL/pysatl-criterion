@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import norm
 
 
-def generate_norm(size, mean=0, var=1):
+def generate_norm(size, mean=0, var=1, random_state=None):
     """
     Generate random samples from the normal (Gaussian) distribution.
 
@@ -20,6 +20,8 @@ def generate_norm(size, mean=0, var=1):
     var : float, optional
         Variance (σ²) of the normal distribution. Must be non-negative.
         Default is 1.
+    random_state : object, optional
+        Random state forwarded to ``scipy.stats.norm.rvs``.
 
     Returns
     -------
@@ -41,7 +43,7 @@ def generate_norm(size, mean=0, var=1):
     >>> generate_norm(5, mean=0, var=1)
     array([...])
     """
-    return norm.rvs(size=size, loc=mean, scale=np.sqrt(var))
+    return norm.rvs(size=size, loc=mean, scale=np.sqrt(var), random_state=random_state)
 
 
 def cdf_norm(rvs, mean=0, var=1):

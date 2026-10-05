@@ -1,7 +1,7 @@
 from scipy.stats import gompertz
 
 
-def generate_gompertz(size, eta=1, b=1):
+def generate_gompertz(size, eta=1, b=1, random_state=None):
     """
     Generate random samples from the Gompertz distribution.
 
@@ -42,4 +42,4 @@ def generate_gompertz(size, eta=1, b=1):
     >>> generate_gompertz(5, eta=1.5, b=2.0)
     array([...])
     """
-    return gompertz.rvs(eta, size=size, scale=b)
+    return gompertz.rvs(eta, size=size, scale=b, random_state=random_state)

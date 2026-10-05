@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from pysatl_criterion import DistributionType
@@ -66,3 +67,36 @@ def test_generator_metadata(generator, distribution_type, parameters):
     assert generator.code() == "_".join(
         str(item) for item in [distribution_type, *parameters.values()]
     )
+
+
+@pytest.mark.parametrize(
+    "generator",
+    [
+        BetaRVSGenerator(a=2, b=3),
+        CauchyRVSGenerator(t=1, s=2),
+        LaplaceRVSGenerator(t=1, s=2),
+        LogisticRVSGenerator(t=1, s=2),
+        TRVSGenerator(df=5),
+        TukeyRVSGenerator(lam=0.5),
+        LognormGenerator(s=1.5, mu=2),
+        GammaGenerator(alfa=2, beta=3),
+        TruncnormGenerator(mean=1, var=2, a=-3, b=4),
+        Chi2Generator(df=6),
+        GumbelGenerator(mu=1, beta=2),
+        WeibullGenerator(a=2, k=5),
+        LoConNormGenerator(p=0.25, a=2),
+        ScConNormGenerator(p=0.25, b=2),
+        MixConNormGenerator(p=0.25, a=2, b=3),
+        ExponentialGenerator(lam=0.75),
+        InvGaussGenerator(mu=2, lam=3),
+        RiceGenerator(nu=2, sigma=3),
+        GompertzGenerator(eta=2, b=3),
+        NormalGenerator(mean=2, var=3),
+        UniformGenerator(a=2, b=3),
+    ],
+)
+def test_generator_uses_caller_owned_random_state(generator):
+    first = generator.generate(20, random_state=np.random.default_rng(123))
+    second = generator.generate(20, random_state=np.random.default_rng(123))
+
+    assert np.array_equal(first, second)

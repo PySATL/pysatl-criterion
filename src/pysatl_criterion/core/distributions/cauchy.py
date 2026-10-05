@@ -1,7 +1,7 @@
 from scipy.stats import cauchy
 
 
-def generate_cauchy(size, t=0.5, s=0.5):
+def generate_cauchy(size, t=0.5, s=0.5, random_state=None):
     """
     Generate random samples from the Cauchy distribution.
 
@@ -42,4 +42,4 @@ def generate_cauchy(size, t=0.5, s=0.5):
     >>> generate_cauchy(5, t=0.0, s=1.0)
     array([...])
     """
-    return cauchy.rvs(size=size, loc=t, scale=s)
+    return cauchy.rvs(size=size, loc=t, scale=s, random_state=random_state)

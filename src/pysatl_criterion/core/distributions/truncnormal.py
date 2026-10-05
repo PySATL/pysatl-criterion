@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import truncnorm
 
 
-def generate_truncnorm(size, mean=0, var=1, a=-10, b=10):
+def generate_truncnorm(size, mean=0, var=1, a=-10, b=10, random_state=None):
     """
     Generate random samples from the truncated normal distribution.
 
@@ -47,4 +47,6 @@ def generate_truncnorm(size, mean=0, var=1, a=-10, b=10):
     >>> generate_truncnorm(5, mean=0, var=1, a=-2, b=2)
     array([...])
     """
-    return truncnorm.rvs(a=a, b=b, size=size, loc=mean, scale=np.sqrt(var))
+    return truncnorm.rvs(
+        a=a, b=b, size=size, loc=mean, scale=np.sqrt(var), random_state=random_state
+    )

@@ -1,7 +1,7 @@
 from scipy.stats import gamma
 
 
-def generate_gamma(size, alfa=0, beta=1):
+def generate_gamma(size, alfa=0, beta=1, random_state=None):
     """
     Generate random samples from the Gamma distribution.
 
@@ -22,6 +22,8 @@ def generate_gamma(size, alfa=0, beta=1):
     beta : float, optional
         Rate parameter (β) of the Gamma distribution.
         Must be greater than 0. Default is 1.
+    random_state : object, optional
+        Random state forwarded to ``scipy.stats.gamma.rvs``.
 
     Returns
     -------
@@ -44,4 +46,4 @@ def generate_gamma(size, alfa=0, beta=1):
     array([...])
     """
     scale = 1 / beta
-    return gamma.rvs(a=alfa, size=size, scale=scale)
+    return gamma.rvs(a=alfa, size=size, scale=scale, random_state=random_state)

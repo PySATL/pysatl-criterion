@@ -1,7 +1,7 @@
 from scipy.stats import gumbel_r
 
 
-def generate_gumbel(size, mu=0, beta=1):
+def generate_gumbel(size, mu=0, beta=1, random_state=None):
     """
     Generate random samples from the Gumbel (right-skewed) distribution.
 
@@ -42,4 +42,4 @@ def generate_gumbel(size, mu=0, beta=1):
     >>> generate_gumbel(5, mu=0.0, beta=2.0)
     array([...])
     """
-    return gumbel_r.rvs(size=size, loc=mu, scale=beta)
+    return gumbel_r.rvs(size=size, loc=mu, scale=beta, random_state=random_state)

@@ -1,7 +1,7 @@
 from scipy.stats import tukeylambda
 
 
-def generate_tukey(size, lam=2):
+def generate_tukey(size, lam=2, random_state=None):
     """
     Generate random samples from the Tukey Lambda distribution.
 
@@ -37,4 +37,4 @@ def generate_tukey(size, lam=2):
     >>> generate_tukey(5, lam=0.14)
     array([...])
     """
-    return tukeylambda.rvs(lam, size=size)
+    return tukeylambda.rvs(lam, size=size, random_state=random_state)
