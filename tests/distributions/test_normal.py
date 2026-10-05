@@ -1,4 +1,4 @@
-import pytest as pytest
+import pytest
 
 from pysatl_criterion.statistics.goodness_of_fit.normal import (
     AndersonDarlingNormalityGofStatistic,
@@ -68,38 +68,6 @@ from pysatl_criterion.statistics.goodness_of_fit.normal import (
             0.18573457378941832,
         ),
         # Normal with mean = 11, variance = 1
-        (
-            [
-                -0.46869863,
-                -0.22452687,
-                -1.7674444,
-                -0.727139,
-                1.09089112,
-                -0.01319041,
-                0.38578004,
-                1.47354665,
-                0.95253258,
-                -1.17323879,
-            ],
-            0.12958652448618313,
-        ),
-        # Normal with mean = 0, variance = 5
-        (
-            [
-                -0.46869863,
-                -0.22452687,
-                -1.7674444,
-                -0.727139,
-                1.09089112,
-                -0.01319041,
-                0.38578004,
-                1.47354665,
-                0.95253258,
-                -1.17323879,
-            ],
-            0.12958652448618313,
-        ),
-        # Normal with mean = 11, variance = 5
         (
             [
                 -0.46869863,

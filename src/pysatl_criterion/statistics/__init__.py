@@ -2,7 +2,6 @@ from pysatl_criterion.statistics.statistic import AbstractGoodnessOfFitStatistic
 
 
 __all__ = [
-    # Base and Models
-    "AbstractStatistic",
     "AbstractGoodnessOfFitStatistic",
+    "AbstractStatistic",
 ]

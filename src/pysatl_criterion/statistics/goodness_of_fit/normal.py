@@ -3106,8 +3106,7 @@ class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
 
         an = n
         k = 3
-        if n2[0] < k:
-            k = n2[0]
+        k = min(k, n2[0])
 
         for i in range(k):
             ai = i + 1
@@ -3983,10 +3982,8 @@ class SpiegelhalterNormalityGofStatistic(AbstractNormalityGofStatistic):
             stat_sp, var_x, mean = 0.0, 0.0, 0.0
             max_val, min_val = x[0], x[0]
             for i in range(1, n):
-                if x[i] > max_val:
-                    max_val = x[i]
-                if x[i] < min_val:
-                    min_val = x[i]
+                max_val = max(max_val, x[i])
+                min_val = min(min_val, x[i])
             for i in range(n):
                 mean += x[i]
             mean /= n

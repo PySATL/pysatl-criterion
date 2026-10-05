@@ -285,9 +285,8 @@ class NikulinLogLogisticGofStatistic(Chi2PearsonLogLogisticGofStatistic):
                 options={"maxiter": 1000 * (i + 1)},
             )
 
-            if result.success:
-                if 0.001 < result.x[0] < 1e6 and 0.001 < result.x[1] < 100:
-                    return result.x[0], result.x[1]
+            if result.success and 0.001 < result.x[0] < 1e6 and 0.001 < result.x[1] < 100:
+                return result.x[0], result.x[1]
 
             last_result = result
 
@@ -423,7 +422,7 @@ class MirvalievLogLogisticGofStatistic(NikulinLogLogisticGofStatistic):
         alpha_hat, beta_hat = self._fit_mle(times, censored)
         bounds = self._build_intervals(times, alpha_hat, beta_hat)
         U_j, e_j = self._compute_frequencies(times, censored, bounds, alpha_hat, beta_hat)
-        Z, A_inv, C, G, G_inv = self._compute_mirvaliev_matrices(
+        Z, A_inv, C, _G, G_inv = self._compute_mirvaliev_matrices(
             times, censored, U_j, e_j, bounds, alpha_hat, beta_hat
         )
         W_n2 = Z @ A_inv @ C.T @ G_inv @ C @ A_inv @ Z

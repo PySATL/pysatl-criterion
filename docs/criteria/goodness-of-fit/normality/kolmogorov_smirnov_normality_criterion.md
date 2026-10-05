@@ -25,7 +25,9 @@ from pysatl_criterion.statistics.goodness_of_fit import (
 
 test_statistic = KolmogorovSmirnovNormalityGofStatistic()
 assert test_statistic.hypothesis().parameters() == {"mean": 0, "var": 1}
-statistic_result = test_statistic.execute_statistic([-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43])
+statistic_result = test_statistic.execute_statistic(
+    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
+)
 print(statistic_result)
 ```
 
@@ -66,7 +68,9 @@ from pysatl_criterion.statistics.goodness_of_fit import (
 
 test_statistic = KolmogorovSmirnovNormalityGofStatistic(mean=3, var=4)
 assert test_statistic.hypothesis().parameters() == {"mean": 3, "var": 4}
-statistic_result = test_statistic.execute_statistic([5.2, 0.8, 3.4, 1.6, 6.0, 2.2, 4.1, 3.0])
+statistic_result = test_statistic.execute_statistic(
+    [5.2, 0.8, 3.4, 1.6, 6.0, 2.2, 4.1, 3.0]
+)
 print(statistic_result)
 ```
 

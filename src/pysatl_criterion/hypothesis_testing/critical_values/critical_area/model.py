@@ -14,4 +14,3 @@ class CriticalArea(ABC):
         :param value: test statistic value to check.
         :return: True if value is in acceptance region, False otherwise.
         """
-        pass

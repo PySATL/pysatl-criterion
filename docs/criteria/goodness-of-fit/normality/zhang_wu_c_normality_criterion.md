@@ -25,7 +25,9 @@ from pysatl_criterion.statistics.goodness_of_fit import (
 
 test_statistic = ZhangWuCNormalityGofStatistic()
 assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic([-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43])
+statistic_result = test_statistic.execute_statistic(
+    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
+)
 print(statistic_result)
 ```
 
@@ -63,6 +65,8 @@ from pysatl_criterion.statistics.goodness_of_fit import (
 
 test_statistic = ZhangWuCNormalityGofStatistic()
 assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic([-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43])
+statistic_result = test_statistic.execute_statistic(
+    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
+)
 print(statistic_result)
 ```

@@ -19,7 +19,9 @@ from pysatl_criterion.statistics.goodness_of_fit import (
 
 
 test_statistic = OKWeibullGofStatistic(a=1, k=2)
-statistic_result = test_statistic.execute_statistic([0.42, 0.65, 0.88, 1.12, 1.43, 1.76, 2.05, 2.44, 2.91, 3.37])
+statistic_result = test_statistic.execute_statistic(
+    [0.42, 0.65, 0.88, 1.12, 1.43, 1.76, 2.05, 2.44, 2.91, 3.37]
+)
 print(statistic_result)
 ```
 
@@ -47,6 +49,8 @@ from pysatl_criterion.statistics.goodness_of_fit import (
 
 
 test_statistic = OKWeibullGofStatistic(a=1, k=2)
-statistic_result = test_statistic.execute_statistic([0.42, 0.65, 0.88, 1.12, 1.43, 1.76, 2.05, 2.44, 2.91, 3.37])
+statistic_result = test_statistic.execute_statistic(
+    [0.42, 0.65, 0.88, 1.12, 1.43, 1.76, 2.05, 2.44, 2.91, 3.37]
+)
 print(statistic_result)
 ```
