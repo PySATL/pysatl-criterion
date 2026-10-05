@@ -21,7 +21,6 @@ class AlternativeFactory(ABC, Generic[CriticalValueT]):
 
         :return: critical value calculator.
         """
-        pass
 
     @abstractmethod
     def get_p_value_calculator(self) -> PValueCalculator:
@@ -30,7 +29,6 @@ class AlternativeFactory(ABC, Generic[CriticalValueT]):
 
         :return: p-value calculator.
         """
-        pass
 
     @abstractmethod
     def get_critical_area(self, critical_value: CriticalValueT) -> CriticalArea:
@@ -40,4 +38,3 @@ class AlternativeFactory(ABC, Generic[CriticalValueT]):
         :param critical_value: critical value or values for the alternative type.
         :return: critical area.
         """
-        pass

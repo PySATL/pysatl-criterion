@@ -67,8 +67,6 @@ class ILimitDistributionStorage(IDataStorage[LimitDistributionModel, LimitDistri
         :return: limit distribution data.
         """
 
-        pass
-
     @abstractmethod
     def get_bulk_data(
         self, criterion_codes: list[str], sample_size: int, sample_size_error: int = 0
@@ -81,7 +79,6 @@ class ILimitDistributionStorage(IDataStorage[LimitDistributionModel, LimitDistri
         :param sample_size_error: number of samples error.
         :return: list of limit distribution data.
         """
-        pass
 
     @abstractmethod
     def insert_bulk_data(self, models: list[LimitDistributionModel]) -> None:
@@ -90,4 +87,3 @@ class ILimitDistributionStorage(IDataStorage[LimitDistributionModel, LimitDistri
 
         :param models: list of limit distribution data.
         """
-        pass

@@ -19,7 +19,9 @@ from pysatl_criterion.statistics.goodness_of_fit import (
 
 
 test_statistic = BontempsMeddahi1LogNormalGofStatistic(s=1, scale=1)
-statistic_result = test_statistic.execute_statistic([0.42, 0.58, 0.76, 0.93, 1.12, 1.35, 1.61, 1.92, 2.28, 2.71, 3.23, 3.84])
+statistic_result = test_statistic.execute_statistic(
+    [0.42, 0.58, 0.76, 0.93, 1.12, 1.35, 1.61, 1.92, 2.28, 2.71, 3.23, 3.84]
+)
 print(statistic_result)
 ```
 
@@ -51,6 +53,8 @@ from pysatl_criterion.statistics.goodness_of_fit import (
 
 
 test_statistic = BontempsMeddahi1LogNormalGofStatistic(s=1, scale=1)
-statistic_result = test_statistic.execute_statistic([0.42, 0.58, 0.76, 0.93, 1.12, 1.35, 1.61, 1.92, 2.28, 2.71, 3.23, 3.84])
+statistic_result = test_statistic.execute_statistic(
+    [0.42, 0.58, 0.76, 0.93, 1.12, 1.35, 1.61, 1.92, 2.28, 2.71, 3.23, 3.84]
+)
 print(statistic_result)
 ```

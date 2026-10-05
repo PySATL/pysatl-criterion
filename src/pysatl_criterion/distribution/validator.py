@@ -28,7 +28,6 @@ class Validator(ABC):
         :param value: numeric parameter value to validate.
         :return: ``True`` if the value is valid, otherwise ``False``.
         """
-        pass
 
     def __call__(self, value: float) -> bool:
         """

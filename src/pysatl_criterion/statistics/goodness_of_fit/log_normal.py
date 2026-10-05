@@ -430,7 +430,7 @@ class KLIntegralLogNormalGoFStatistic(AbstractLogNormalGofStatistic):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
 
-            result, error = integrate.quad(integrand, -5, 5, limit=100)
+            result, _error = integrate.quad(integrand, -5, 5, limit=100)
 
         T2 = n * result
 
@@ -542,11 +542,11 @@ EXPLICITLY_IMPLEMENTED_NORMAL_STATS = [
 current_module = sys.modules[__name__]
 __all__ = [
     "AbstractLogNormalGofStatistic",
-    "KolmogorovSmirnovLogNormalGofStatistic",
     "CramerVonMiseLogNormalGofStatistic",
-    "QuesenberryMillerLogNormalGofStatistic",
-    "KLSupremumLogNormalGoFStatistic",
     "KLIntegralLogNormalGoFStatistic",
+    "KLSupremumLogNormalGoFStatistic",
+    "KolmogorovSmirnovLogNormalGofStatistic",
+    "QuesenberryMillerLogNormalGofStatistic",
 ]
 
 for name, obj in inspect.getmembers(normal):

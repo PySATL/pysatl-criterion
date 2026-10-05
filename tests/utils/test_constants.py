@@ -2,7 +2,7 @@ import importlib
 
 
 def reload_constants():
-    import pysatl_criterion.utils.constants as constants
+    from pysatl_criterion.utils import constants
 
     return importlib.reload(constants)
 

@@ -592,11 +592,8 @@ class TestUniformIntegration:
         ]
 
         for stat in statistics:
-            try:
-                value = stat.execute_statistic(data)
-                assert np.isfinite(value), f"Statistic {stat.code()} returned non-finite value"
-            except Exception as e:
-                pytest.fail(f"Statistic {stat.code()} raised an exception: {e}")
+            value = stat.execute_statistic(data)
+            assert np.isfinite(value), f"Statistic {stat.code()} returned non-finite value"
 
     def test_different_bounds(self):
         """Test that statistics work with different distribution bounds."""

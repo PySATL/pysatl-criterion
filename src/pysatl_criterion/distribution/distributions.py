@@ -32,7 +32,6 @@ class DistributionDescriptor(ABC):
 
         :return: distribution enum member.
         """
-        pass
 
     @staticmethod
     @abstractmethod
@@ -42,7 +41,6 @@ class DistributionDescriptor(ABC):
 
         :return: list of distribution parameter descriptors.
         """
-        pass
 
 
 class NormalDistributionDescriptor(DistributionDescriptor):

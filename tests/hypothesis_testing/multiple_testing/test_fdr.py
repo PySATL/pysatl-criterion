@@ -28,8 +28,7 @@ def test_benjamini_yekutieli_adjust_complex():
     ]
 
     for i in range(n - 2, -1, -1):
-        if expected[i] > expected[i + 1]:
-            expected[i] = expected[i + 1]
+        expected[i] = min(expected[i], expected[i + 1])
 
     assert adjusted == pytest.approx(expected, abs=1e-4)
 

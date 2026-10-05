@@ -54,7 +54,7 @@ class AlchemyLimitDistributionStorage(ILimitDistributionStorage):
             logger.info(f"{label} connected successfully.")
             return storage
         except Exception as e:
-            logger.warning(f"{label} connection failed: {e}")
+            logger.warning(f"{label} connection failed: {e}", exc_info=True)
             return None
 
     def insert_data(self, data: LimitDistributionModel) -> None:

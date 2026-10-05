@@ -51,15 +51,15 @@ class KSStatistic(AbstractStatistic, ABC):
         d_minus, _ = KSStatistic.__compute_dminus(cdf_vals, rvs)
 
         if self.alternative_type == AlternativeType.RIGHT:
-            d_plus, d_location = KSStatistic.__compute_dplus(cdf_vals, rvs)
+            d_plus, _d_location = KSStatistic.__compute_dplus(cdf_vals, rvs)
             return d_plus
         if self.alternative_type == AlternativeType.LEFT:
-            d_minus, d_location = KSStatistic.__compute_dminus(cdf_vals, rvs)
+            d_minus, _d_location = KSStatistic.__compute_dminus(cdf_vals, rvs)
             return d_minus
 
         # alternative == 'two-sided':
-        d_plus, d_plus_location = KSStatistic.__compute_dplus(cdf_vals, rvs)
-        d_minus, d_minus_location = KSStatistic.__compute_dminus(cdf_vals, rvs)
+        d_plus, _d_plus_location = KSStatistic.__compute_dplus(cdf_vals, rvs)
+        d_minus, _d_minus_location = KSStatistic.__compute_dminus(cdf_vals, rvs)
         if d_plus > d_minus:
             D = d_plus
             # d_location = d_plus_location

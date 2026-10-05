@@ -11,12 +11,12 @@ from pysatl_criterion import (
 
 
 __all__ = [
-    "GoodnessOfFitTest",
-    "BonferroniMultipleTesting",
-    "Holm",  # noqa: F822
-    "SidakMultipleTesting",
-    "SidakHolm",
     "BenjaminiYekutieli",
-    "PValueCalculator",
+    "BonferroniMultipleTesting",
     "CriticalValueCalculator",
+    "GoodnessOfFitTest",
+    "Holm",
+    "PValueCalculator",
+    "SidakHolm",
+    "SidakMultipleTesting",
 ]

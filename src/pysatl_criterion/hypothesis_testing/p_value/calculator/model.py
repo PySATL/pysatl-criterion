@@ -19,4 +19,3 @@ class PValueCalculator(ABC):
         :param statistic_value: computed statistic value for the observed sample.
         :return: p-value for the calculator type.
         """
-        pass

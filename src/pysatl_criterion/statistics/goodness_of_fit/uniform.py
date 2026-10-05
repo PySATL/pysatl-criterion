@@ -297,7 +297,7 @@ class Chi2PearsonUniformGofStatistic(AbstractUniformGofStatistic, Chi2Statistic)
             num_bins = int(self.bins)
         num_bins = max(2, num_bins)
 
-        observed, bin_edges = np.histogram(rvs, bins=num_bins, range=(self.a, self.b))
+        observed, _bin_edges = np.histogram(rvs, bins=num_bins, range=(self.a, self.b))
         expected = np.full(num_bins, n / num_bins)
 
         return Chi2Statistic.do_execute_statistic(self, observed, expected, self.lambda_)
@@ -619,7 +619,7 @@ def _stein_uniform_statistic(rvs_std):  # pragma: no cover
 
         for j in range(i + 1, n):
             y = rvs_std[j]
-            maximum = x if x > y else y
+            maximum = max(y, x)
 
             total += 0.5 * (2.0 * maximum - 2.0 * x - 2.0 * y + x * x + y * y)
     return 2.0 * total / (n * (n - 1))
