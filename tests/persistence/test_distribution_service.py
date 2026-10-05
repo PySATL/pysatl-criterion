@@ -16,13 +16,8 @@ from pysatl_criterion.hypothesis_testing.distribution_service import (
     DistributionNotFoundError,
     DistributionService,
 )
-from pysatl_criterion.loader.limit_distribution_loader import (
-    LimitDistributionLoader,
-)
-from pysatl_criterion.loader.store_adapters import (
-    LimitDistributionReader,
-    LimitDistributionWriter,
-)
+from pysatl_criterion.loader.limit_distribution_loader import LimitDistributionLoader
+from pysatl_criterion.loader.store_adapters import LimitDistributionReader, LimitDistributionWriter
 from pysatl_criterion.persistence.models.critical_value import CriticalValueModel
 from pysatl_criterion.persistence.models.distribution_key import DistributionKey
 from pysatl_criterion.persistence.models.limit_distribution import LimitDistributionModel

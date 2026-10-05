@@ -6,9 +6,7 @@ import pytest
 from sqlalchemy import delete, event
 
 from pysatl_criterion.hypothesis_testing.distribution_service import DistributionService
-from pysatl_criterion.loader.remote_loader import (
-    RemoteLoader,
-)
+from pysatl_criterion.loader.remote_loader import RemoteLoader
 from pysatl_criterion.loader.store_adapters import (
     CriticalValueReader,
     CriticalValueWriter,

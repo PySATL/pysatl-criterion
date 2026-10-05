@@ -4,10 +4,7 @@ import pytest
 
 from pysatl_criterion.hypothesis_testing.distribution_service import DistributionService
 from pysatl_criterion.loader.limit_distribution_loader import LimitDistributionLoader
-from pysatl_criterion.loader.store_adapters import (
-    LimitDistributionReader,
-    LimitDistributionWriter,
-)
+from pysatl_criterion.loader.store_adapters import LimitDistributionReader, LimitDistributionWriter
 from pysatl_criterion.persistence.models.limit_distribution import LimitDistributionModel
 from pysatl_criterion.persistence.sqlalchemy.database import AlchemyDatabase
 from pysatl_criterion.persistence.sqlalchemy.unit_of_work import AlchemyUnitOfWork

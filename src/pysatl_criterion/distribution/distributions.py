@@ -31,7 +31,7 @@ class DistributionDescriptor(ABC):
 
     @classmethod
     def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
-        """Explicit schemas available on migrated descriptors."""
+        """Return the explicit parameterizations available for the distribution."""
         return ()
 
     @staticmethod
@@ -58,6 +58,14 @@ class NormalDistributionDescriptor(DistributionDescriptor):
     Descriptor for the normal distribution.
     """
 
+    MEAN = ParameterSpec("normal.mean", "mean", "μ", "Mean", 0)
+    VARIANCE = ParameterSpec(
+        "normal.variance", "var", "σ²", "Variance. σ² > 0", 1, PositiveNumberValidator()
+    )
+    DEFAULT = ParameterizationDescriptor(
+        "normal.mean_var", DistributionType.NORMAL, (MEAN, VARIANCE)
+    )
+
     @staticmethod
     def type() -> DistributionType:
         """
@@ -68,24 +76,28 @@ class NormalDistributionDescriptor(DistributionDescriptor):
         return DistributionType.NORMAL
 
     @staticmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
-        """
-        Return parameters for the normal distribution.
+    def parameters() -> list[ParameterSpec]:
+        return list(NormalDistributionDescriptor.DEFAULT.parameters)
 
-        :return: descriptors for mean and variance.
-        """
-        return [
-            DistributionParameterDescriptor("μ", "mean", "Mean", 0),
-            DistributionParameterDescriptor(
-                "σ²", "var", "Variance. σ² > 0", 1, PositiveNumberValidator()
-            ),
-        ]
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
 
 
 class ExponentialDistributionDescriptor(DistributionDescriptor):
     """
     Descriptor for the exponential distribution.
     """
+
+    RATE = ParameterSpec(
+        "exponential.rate",
+        "lam",
+        "λ",
+        "Rate, or inverse scale. λ > 0",
+        1,
+        PositiveNumberValidator(),
+    )
+    DEFAULT = ParameterizationDescriptor("exponential.rate", DistributionType.EXPONENTIAL, (RATE,))
 
     @staticmethod
     def type() -> DistributionType:
@@ -97,23 +109,24 @@ class ExponentialDistributionDescriptor(DistributionDescriptor):
         return DistributionType.EXPONENTIAL
 
     @staticmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
-        """
-        Return parameters for the exponential distribution.
+    def parameters() -> list[ParameterSpec]:
+        return list(ExponentialDistributionDescriptor.DEFAULT.parameters)
 
-        :return: descriptor for the rate parameter.
-        """
-        return [
-            DistributionParameterDescriptor(
-                "λ", "lam", "Rate, or inverse scale. λ > 0", 1, PositiveNumberValidator()
-            ),
-        ]
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
 
 
 class WeibullDistributionDescriptor(DistributionDescriptor):
     """
     Descriptor for the Weibull distribution.
     """
+
+    SCALE = ParameterSpec("weibull.scale", "a", "λ", "Scale. λ > 0", 1, PositiveNumberValidator())
+    SHAPE = ParameterSpec("weibull.shape", "k", "k", "Shape. k > 0", 5, PositiveNumberValidator())
+    DEFAULT = ParameterizationDescriptor(
+        "weibull.scale_shape", DistributionType.WEIBULL, (SCALE, SHAPE)
+    )
 
     @staticmethod
     def type() -> DistributionType:
@@ -125,22 +138,24 @@ class WeibullDistributionDescriptor(DistributionDescriptor):
         return DistributionType.WEIBULL
 
     @staticmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
-        """
-        Return parameters for the Weibull distribution.
+    def parameters() -> list[ParameterSpec]:
+        return list(WeibullDistributionDescriptor.DEFAULT.parameters)
 
-        :return: descriptors for scale and shape parameters.
-        """
-        return [
-            DistributionParameterDescriptor("λ", "a", "Scale. λ > 0", 1, PositiveNumberValidator()),
-            DistributionParameterDescriptor("k", "k", "Shape. k > 0", 5, PositiveNumberValidator()),
-        ]
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
 
 
 class UniformDistributionDescriptor(DistributionDescriptor):
     """
     Descriptor for the continuous uniform distribution.
     """
+
+    LOWER = ParameterSpec("uniform.lower", "a", "a", "Interval start", 0)
+    UPPER = ParameterSpec("uniform.upper", "b", "b", "Interval end", 1)
+    DEFAULT = ParameterizationDescriptor(
+        "uniform.lower_upper", DistributionType.UNIFORM, (LOWER, UPPER)
+    )
 
     @staticmethod
     def type() -> DistributionType:
@@ -152,16 +167,12 @@ class UniformDistributionDescriptor(DistributionDescriptor):
         return DistributionType.UNIFORM
 
     @staticmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
-        """
-        Return parameters for the uniform distribution.
+    def parameters() -> list[ParameterSpec]:
+        return list(UniformDistributionDescriptor.DEFAULT.parameters)
 
-        :return: descriptors for interval start and interval end.
-        """
-        return [
-            DistributionParameterDescriptor("a", "a", "Interval start", 0),
-            DistributionParameterDescriptor("b", "b", "Interval end", 1),
-        ]
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
 
 
 class StudentDistributionDescriptor(DistributionDescriptor):
@@ -206,6 +217,10 @@ class GammaDistributionDescriptor(DistributionDescriptor):
     Descriptor for the gamma distribution.
     """
 
+    SHAPE = ParameterSpec("gamma.shape", "alfa", "α", "Shape. α > 0", 1, PositiveNumberValidator())
+    RATE = ParameterSpec("gamma.rate", "beta", "β", "Rate. β > 0", 1, PositiveNumberValidator())
+    DEFAULT = ParameterizationDescriptor("gamma.shape_rate", DistributionType.GAMMA, (SHAPE, RATE))
+
     @staticmethod
     def type() -> DistributionType:
         """
@@ -216,26 +231,26 @@ class GammaDistributionDescriptor(DistributionDescriptor):
         return DistributionType.GAMMA
 
     @staticmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
-        """
-        Return parameters for the gamma distribution.
+    def parameters() -> list[ParameterSpec]:
+        return list(GammaDistributionDescriptor.DEFAULT.parameters)
 
-        :return: descriptors for shape and rate parameters.
-        """
-        return [
-            DistributionParameterDescriptor(
-                "α", "alfa", "Shape. α > 0", 1, PositiveNumberValidator()
-            ),
-            DistributionParameterDescriptor(
-                "β", "beta", "Rate. β > 0", 1, PositiveNumberValidator()
-            ),
-        ]
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
 
 
 class BetaDistributionDescriptor(DistributionDescriptor):
     """
     Descriptor for the beta distribution.
     """
+
+    ALPHA = ParameterSpec(
+        "beta.alpha", "a", "α", "First shape parameter. α > 0", 1, PositiveNumberValidator()
+    )
+    BETA = ParameterSpec(
+        "beta.beta", "b", "β", "Second shape parameter. β > 0", 1, PositiveNumberValidator()
+    )
+    DEFAULT = ParameterizationDescriptor("beta.alpha_beta", DistributionType.BETA, (ALPHA, BETA))
 
     @staticmethod
     def type() -> DistributionType:
@@ -247,26 +262,31 @@ class BetaDistributionDescriptor(DistributionDescriptor):
         return DistributionType.BETA
 
     @staticmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
-        """
-        Return parameters for the beta distribution.
+    def parameters() -> list[ParameterSpec]:
+        return list(BetaDistributionDescriptor.DEFAULT.parameters)
 
-        :return: descriptors for the two shape parameters.
-        """
-        return [
-            DistributionParameterDescriptor(
-                "α", "a", "First shape parameter. α > 0", 1, PositiveNumberValidator()
-            ),
-            DistributionParameterDescriptor(
-                "β", "b", "Second shape parameter. β > 0", 1, PositiveNumberValidator()
-            ),
-        ]
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
 
 
 class LogNormalDistributionDescriptor(DistributionDescriptor):
     """
     Descriptor for the log normal distribution.
     """
+
+    LOG_LOCATION = ParameterSpec("log_normal.log_location", "mu", "μ", "Logarithmic location", 0)
+    LOG_SCALE = ParameterSpec(
+        "log_normal.log_scale",
+        "s",
+        "σ",
+        "Logarithmic standard deviation. σ > 0",
+        1,
+        PositiveNumberValidator(),
+    )
+    DEFAULT = ParameterizationDescriptor(
+        "log_normal.log_location_log_scale", DistributionType.LOG_NORMAL, (LOG_LOCATION, LOG_SCALE)
+    )
 
     @staticmethod
     def type() -> DistributionType:
@@ -278,24 +298,24 @@ class LogNormalDistributionDescriptor(DistributionDescriptor):
         return DistributionType.LOG_NORMAL
 
     @staticmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
-        """
-        Return parameters for the log normal distribution.
+    def parameters() -> list[ParameterSpec]:
+        return list(LogNormalDistributionDescriptor.DEFAULT.parameters)
 
-        :return: descriptors for logarithmic location and standard deviation.
-        """
-        return [
-            DistributionParameterDescriptor("μ", "mu", "Logarithmic location", 0),
-            DistributionParameterDescriptor(
-                "σ", "s", "Logarithmic standard deviation. σ > 0", 1, PositiveNumberValidator()
-            ),
-        ]
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
 
 
 class CauchyDistributionDescriptor(DistributionDescriptor):
     """
     Descriptor for the Cauchy distribution.
     """
+
+    LOCATION = ParameterSpec("cauchy.location", "t", "x0", "Location", 0.5)
+    SCALE = ParameterSpec("cauchy.scale", "s", "v", "Scale. v > 0", 0.5, PositiveNumberValidator())
+    DEFAULT = ParameterizationDescriptor(
+        "cauchy.loc_scale", DistributionType.CAUCHY, (LOCATION, SCALE)
+    )
 
     @staticmethod
     def type() -> DistributionType:
@@ -307,24 +327,23 @@ class CauchyDistributionDescriptor(DistributionDescriptor):
         return DistributionType.CAUCHY
 
     @staticmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
-        """
-        Return parameters for the Cauchy distribution.
+    def parameters() -> list[ParameterSpec]:
+        return list(CauchyDistributionDescriptor.DEFAULT.parameters)
 
-        :return: descriptors for location and scale parameters.
-        """
-        return [
-            DistributionParameterDescriptor("x0", "t", "Location", 0.5),
-            DistributionParameterDescriptor(
-                "v", "s", "Scale. v > 0", 0.5, PositiveNumberValidator()
-            ),
-        ]
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
 
 
 class Chi2DistributionDescriptor(DistributionDescriptor):
     """
     Descriptor for the chi-squared distribution.
     """
+
+    DF = ParameterSpec(
+        "chi_2.df", "df", "v", "Degrees of freedom. ν > 0", 2, PositiveNumberValidator()
+    )
+    DEFAULT = ParameterizationDescriptor("chi_2.df", DistributionType.CHI_2, (DF,))
 
     @staticmethod
     def type() -> DistributionType:
@@ -336,23 +355,26 @@ class Chi2DistributionDescriptor(DistributionDescriptor):
         return DistributionType.CHI_2
 
     @staticmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
-        """
-        Return parameters for the chi-squared distribution.
+    def parameters() -> list[ParameterSpec]:
+        return list(Chi2DistributionDescriptor.DEFAULT.parameters)
 
-        :return: descriptor for degrees of freedom.
-        """
-        return [
-            DistributionParameterDescriptor(
-                "v", "df", "Degrees of freedom. ν > 0", 2, PositiveNumberValidator()
-            ),
-        ]
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
 
 
 class GompertzDistributionDescriptor(DistributionDescriptor):
     """
     Descriptor for the Gompertz distribution.
     """
+
+    SHAPE = ParameterSpec(
+        "gompertz.shape", "eta", "η", "Shape. η > 0", 1, PositiveNumberValidator()
+    )
+    SCALE = ParameterSpec("gompertz.scale", "b", "b", "Scale. b > 0", 1, PositiveNumberValidator())
+    DEFAULT = ParameterizationDescriptor(
+        "gompertz.shape_scale", DistributionType.GOMPERTZ, (SHAPE, SCALE)
+    )
 
     @staticmethod
     def type() -> DistributionType:
@@ -364,24 +386,24 @@ class GompertzDistributionDescriptor(DistributionDescriptor):
         return DistributionType.GOMPERTZ
 
     @staticmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
-        """
-        Return parameters for the Gompertz distribution.
+    def parameters() -> list[ParameterSpec]:
+        return list(GompertzDistributionDescriptor.DEFAULT.parameters)
 
-        :return: descriptors for shape and scale parameters.
-        """
-        return [
-            DistributionParameterDescriptor(
-                "η", "eta", "Shape. η > 0", 1, PositiveNumberValidator()
-            ),
-            DistributionParameterDescriptor("b", "b", "Scale. b > 0", 1, PositiveNumberValidator()),
-        ]
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
 
 
 class GumbelDistributionDescriptor(DistributionDescriptor):
     """
     Descriptor for the Gumbel distribution.
     """
+
+    LOCATION = ParameterSpec("gumbel.location", "mu", "μ", "Location", 0)
+    SCALE = ParameterSpec("gumbel.scale", "beta", "β", "Scale. β > 0", 1, PositiveNumberValidator())
+    DEFAULT = ParameterizationDescriptor(
+        "gumbel.loc_scale", DistributionType.GUMBEL, (LOCATION, SCALE)
+    )
 
     @staticmethod
     def type() -> DistributionType:
@@ -393,24 +415,26 @@ class GumbelDistributionDescriptor(DistributionDescriptor):
         return DistributionType.GUMBEL
 
     @staticmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
-        """
-        Return parameters for the Gumbel distribution.
+    def parameters() -> list[ParameterSpec]:
+        return list(GumbelDistributionDescriptor.DEFAULT.parameters)
 
-        :return: descriptors for location and scale parameters.
-        """
-        return [
-            DistributionParameterDescriptor("μ", "mu", "Location", 0),
-            DistributionParameterDescriptor(
-                "β", "beta", "Scale. β > 0", 1, PositiveNumberValidator()
-            ),
-        ]
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
 
 
 class InvGaussDistributionDescriptor(DistributionDescriptor):
     """
     Descriptor for the inverse Gaussian distribution.
     """
+
+    MEAN = ParameterSpec("inv_gauss.mean", "mu", "μ", "Mean. μ > 0", 1, PositiveNumberValidator())
+    SHAPE = ParameterSpec(
+        "inv_gauss.shape", "lam", "λ", "Shape. λ > 0", 1, PositiveNumberValidator()
+    )
+    DEFAULT = ParameterizationDescriptor(
+        "inv_gauss.mean_shape", DistributionType.INV_GAUSS, (MEAN, SHAPE)
+    )
 
     @staticmethod
     def type() -> DistributionType:
@@ -422,24 +446,24 @@ class InvGaussDistributionDescriptor(DistributionDescriptor):
         return DistributionType.INV_GAUSS
 
     @staticmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
-        """
-        Return parameters for the inverse Gaussian distribution.
+    def parameters() -> list[ParameterSpec]:
+        return list(InvGaussDistributionDescriptor.DEFAULT.parameters)
 
-        :return: descriptors for mean and shape parameters.
-        """
-        return [
-            DistributionParameterDescriptor("μ", "mu", "Mean. μ > 0", 0, PositiveNumberValidator()),
-            DistributionParameterDescriptor(
-                "λ", "lam", "Shape. λ > 0", 1, PositiveNumberValidator()
-            ),
-        ]
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
 
 
 class LaplaceDistributionDescriptor(DistributionDescriptor):
     """
     Descriptor for the Laplace distribution.
     """
+
+    LOCATION = ParameterSpec("laplace.location", "t", "μ", "Location", 0)
+    SCALE = ParameterSpec("laplace.scale", "s", "b", "Scale. b > 0", 1, PositiveNumberValidator())
+    DEFAULT = ParameterizationDescriptor(
+        "laplace.loc_scale", DistributionType.LAPLACE, (LOCATION, SCALE)
+    )
 
     @staticmethod
     def type() -> DistributionType:
@@ -451,20 +475,30 @@ class LaplaceDistributionDescriptor(DistributionDescriptor):
         return DistributionType.LAPLACE
 
     @staticmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
-        """
-        Return parameters for the Laplace distribution.
+    def parameters() -> list[ParameterSpec]:
+        return list(LaplaceDistributionDescriptor.DEFAULT.parameters)
 
-        :return: descriptors for location and scale parameters.
-        """
-        return [
-            DistributionParameterDescriptor("μ", "t", "Location", 0),
-            DistributionParameterDescriptor("b", "s", "Scale. b > 0", 1, PositiveNumberValidator()),
-        ]
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
 
 
 class HyperbolicDistributionDescriptor(DistributionDescriptor):
     """Descriptor for the hyperbolic distribution."""
+
+    SHAPE = ParameterSpec(
+        "hyperbolic.shape", "alpha", "α", "Shape. α > 0 and |β| < α", 1, PositiveNumberValidator()
+    )
+    SKEWNESS = ParameterSpec("hyperbolic.skewness", "beta", "β", "Skewness. |β| < α", 0)
+    SCALE = ParameterSpec(
+        "hyperbolic.scale", "delta", "δ", "Scale. δ > 0", 1, PositiveNumberValidator()
+    )
+    LOCATION = ParameterSpec("hyperbolic.location", "mu", "μ", "Location", 0)
+    DEFAULT = ParameterizationDescriptor(
+        "hyperbolic.shape_skewness_scale_loc",
+        DistributionType.HYPERBOLIC,
+        (SHAPE, SKEWNESS, SCALE, LOCATION),
+    )
 
     @staticmethod
     def type() -> DistributionType:
@@ -475,27 +509,35 @@ class HyperbolicDistributionDescriptor(DistributionDescriptor):
         return DistributionType.HYPERBOLIC
 
     @staticmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
-        """Return parameters for the hyperbolic distribution.
+    def parameters() -> list[ParameterSpec]:
+        return list(HyperbolicDistributionDescriptor.DEFAULT.parameters)
 
-        :return: descriptors for shape, skewness, scale, and location.
-        """
-        return [
-            DistributionParameterDescriptor(
-                "α", "alpha", "Shape. α > 0 and |β| < α", 1, PositiveNumberValidator()
-            ),
-            DistributionParameterDescriptor("β", "beta", "Skewness. |β| < α", 0),
-            DistributionParameterDescriptor(
-                "δ", "delta", "Scale. δ > 0", 1, PositiveNumberValidator()
-            ),
-            DistributionParameterDescriptor("μ", "mu", "Location", 0),
-        ]
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
 
 
 class LoConNormDistributionDescriptor(DistributionDescriptor):
     """
     Descriptor for the location-contaminated normal distribution.
     """
+
+    PROBABILITY = ParameterSpec(
+        "lo_con_normal.probability",
+        "p",
+        "p",
+        "Probability of sampling from the shifted normal distribution N(a, 1). 0 <= p <= 1",
+        0.5,
+        ProbabilityValidator(),
+    )
+    LOCATION = ParameterSpec(
+        "lo_con_normal.location", "a", "a", "Mean (location shift) of the contaminated component", 0
+    )
+    DEFAULT = ParameterizationDescriptor(
+        "lo_con_normal.probability_location",
+        DistributionType.LO_CON_NORMAL,
+        (PROBABILITY, LOCATION),
+    )
 
     @staticmethod
     def type() -> DistributionType:
@@ -507,30 +549,43 @@ class LoConNormDistributionDescriptor(DistributionDescriptor):
         return DistributionType.LO_CON_NORMAL
 
     @staticmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
-        """
-        Return parameters for the location-contaminated normal distribution.
+    def parameters() -> list[ParameterSpec]:
+        return list(LoConNormDistributionDescriptor.DEFAULT.parameters)
 
-        :return: descriptors for contamination probability and location shift.
-        """
-        return [
-            DistributionParameterDescriptor(
-                "p",
-                "p",
-                "Probability of sampling from the shifted normal distribution N(a, 1). 0 <= p <= 1",
-                0.5,
-                ProbabilityValidator(),
-            ),
-            DistributionParameterDescriptor(
-                "a", "a", "Mean (location shift) of the contaminated component", 0
-            ),
-        ]
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
 
 
 class MixConNormDistributionDescriptor(DistributionDescriptor):
     """
     Descriptor for the mixed contaminated normal distribution.
     """
+
+    PROBABILITY = ParameterSpec(
+        "mix_con_normal.probability",
+        "p",
+        "p",
+        "Probability of sampling from the contaminated normal distribution N(a, b^2). 0 <= p <= 1",
+        0.5,
+        ProbabilityValidator(),
+    )
+    MEAN = ParameterSpec(
+        "mix_con_normal.mean", "a", "a", "Mean of the contaminated normal component", 0
+    )
+    SCALE = ParameterSpec(
+        "mix_con_normal.scale",
+        "b",
+        "b",
+        "Standard deviation of the contaminated normal component. b > 0",
+        1,
+        PositiveNumberValidator(),
+    )
+    DEFAULT = ParameterizationDescriptor(
+        "mix_con_normal.probability_mean_scale",
+        DistributionType.MIX_CON_NORMAL,
+        (PROBABILITY, MEAN, SCALE),
+    )
 
     @staticmethod
     def type() -> DistributionType:
@@ -542,38 +597,40 @@ class MixConNormDistributionDescriptor(DistributionDescriptor):
         return DistributionType.MIX_CON_NORMAL
 
     @staticmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
-        """
-        Return parameters for the mixed contaminated normal distribution.
+    def parameters() -> list[ParameterSpec]:
+        return list(MixConNormDistributionDescriptor.DEFAULT.parameters)
 
-        :return: descriptors for contamination probability, mean, and scale.
-        """
-        return [
-            DistributionParameterDescriptor(
-                "p",
-                "p",
-                "Probability of sampling from the contaminated normal distribution N(a, b^2)."
-                " 0 <= p <= 1",
-                0.5,
-                ProbabilityValidator(),
-            ),
-            DistributionParameterDescriptor(
-                "a", "a", "Mean of the contaminated normal component", 0
-            ),
-            DistributionParameterDescriptor(
-                "b",
-                "b",
-                "Standard deviation of the contaminated normal component. b > 0",
-                1,
-                PositiveNumberValidator(),
-            ),
-        ]
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
 
 
 class ScaleConNormDistributionDescriptor(DistributionDescriptor):
     """
     Descriptor for the scale-contaminated normal distribution.
     """
+
+    PROBABILITY = ParameterSpec(
+        "scale_con_normal.probability",
+        "p",
+        "p",
+        "Probability of sampling from the contaminated normal distribution N(a, b^2). 0 <= p <= 1",
+        0.5,
+        ProbabilityValidator(),
+    )
+    SCALE = ParameterSpec(
+        "scale_con_normal.scale",
+        "b",
+        "b",
+        "Standard deviation of the contaminated normal component. b > 0",
+        1,
+        PositiveNumberValidator(),
+    )
+    DEFAULT = ParameterizationDescriptor(
+        "scale_con_normal.probability_scale",
+        DistributionType.SCALE_CON_NORMAL,
+        (PROBABILITY, SCALE),
+    )
 
     @staticmethod
     def type() -> DistributionType:
@@ -585,35 +642,30 @@ class ScaleConNormDistributionDescriptor(DistributionDescriptor):
         return DistributionType.SCALE_CON_NORMAL
 
     @staticmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
-        """
-        Return parameters for the scale-contaminated normal distribution.
+    def parameters() -> list[ParameterSpec]:
+        return list(ScaleConNormDistributionDescriptor.DEFAULT.parameters)
 
-        :return: descriptors for contamination probability and scale.
-        """
-        return [
-            DistributionParameterDescriptor(
-                "p",
-                "p",
-                "Probability of sampling from the contaminated normal distribution N(a, b^2)."
-                " 0 <= p <= 1",
-                0.5,
-                ProbabilityValidator(),
-            ),
-            DistributionParameterDescriptor(
-                "b",
-                "b",
-                "Standard deviation of the contaminated normal component. b > 0",
-                1,
-                PositiveNumberValidator(),
-            ),
-        ]
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
 
 
 class TruncNormDistributionDescriptor(DistributionDescriptor):
     """
     Descriptor for the truncated normal distribution.
     """
+
+    MEAN = ParameterSpec("trunc_normal.mean", "mean", "μ", "Mean", 0)
+    VARIANCE = ParameterSpec(
+        "trunc_normal.variance", "var", "σ²", "Variance. σ² > 0", 1, PositiveNumberValidator()
+    )
+    LOWER = ParameterSpec("trunc_normal.lower", "a", "a", "Lower truncation bound", -10)
+    UPPER = ParameterSpec("trunc_normal.upper", "b", "b", "Upper truncation bound", 10)
+    DEFAULT = ParameterizationDescriptor(
+        "trunc_normal.mean_var_lower_upper",
+        DistributionType.TRUNC_NORMAL,
+        (MEAN, VARIANCE, LOWER, UPPER),
+    )
 
     @staticmethod
     def type() -> DistributionType:
@@ -625,26 +677,24 @@ class TruncNormDistributionDescriptor(DistributionDescriptor):
         return DistributionType.TRUNC_NORMAL
 
     @staticmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
-        """
-        Return parameters for the truncated normal distribution.
+    def parameters() -> list[ParameterSpec]:
+        return list(TruncNormDistributionDescriptor.DEFAULT.parameters)
 
-        :return: descriptors for mean, variance, and truncation bounds.
-        """
-        return [
-            DistributionParameterDescriptor("μ", "mean", "Mean", 0),
-            DistributionParameterDescriptor(
-                "σ²", "var", "Variance. σ² > 0", 1, PositiveNumberValidator()
-            ),
-            DistributionParameterDescriptor("a", "a", "Lower truncation bound", -10),
-            DistributionParameterDescriptor("b", "b", "Upper truncation bound", 10),
-        ]
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
 
 
 class LogisticDistributionDescriptor(DistributionDescriptor):
     """
     Descriptor for the logistic distribution.
     """
+
+    LOCATION = ParameterSpec("logistic.location", "t", "μ", "Location", 0)
+    SCALE = ParameterSpec("logistic.scale", "s", "s", "Scale. s > 0", 1, PositiveNumberValidator())
+    DEFAULT = ParameterizationDescriptor(
+        "logistic.loc_scale", DistributionType.LOGISTIC, (LOCATION, SCALE)
+    )
 
     @staticmethod
     def type() -> DistributionType:
@@ -656,22 +706,33 @@ class LogisticDistributionDescriptor(DistributionDescriptor):
         return DistributionType.LOGISTIC
 
     @staticmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
-        """
-        Return parameters for the logistic distribution.
+    def parameters() -> list[ParameterSpec]:
+        return list(LogisticDistributionDescriptor.DEFAULT.parameters)
 
-        :return: descriptors for location and scale parameters.
-        """
-        return [
-            DistributionParameterDescriptor("μ", "t", "Location", 0),
-            DistributionParameterDescriptor("s", "s", "Scale. s > 0", 1, PositiveNumberValidator()),
-        ]
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
 
 
 class RiceDistributionDescriptor(DistributionDescriptor):
     """
     Descriptor for the Rice distribution.
     """
+
+    DISTANCE = ParameterSpec(
+        "rice.distance",
+        "nu",
+        "v",
+        "Distance between the reference point and the center of the bivariate "
+        "distribution. v >= 0,",
+        0,
+    )
+    SCALE = ParameterSpec(
+        "rice.scale", "sigma", "σ", "Scale. σ >= 0", 1, NonNegativeNumberValidator()
+    )
+    DEFAULT = ParameterizationDescriptor(
+        "rice.distance_scale", DistributionType.RICE, (DISTANCE, SCALE)
+    )
 
     @staticmethod
     def type() -> DistributionType:
@@ -683,30 +744,21 @@ class RiceDistributionDescriptor(DistributionDescriptor):
         return DistributionType.RICE
 
     @staticmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
-        """
-        Return parameters for the Rice distribution.
+    def parameters() -> list[ParameterSpec]:
+        return list(RiceDistributionDescriptor.DEFAULT.parameters)
 
-        :return: descriptors for distance and scale parameters.
-        """
-        return [
-            DistributionParameterDescriptor(
-                "v",
-                "nu",
-                "Distance between the reference point and the center of the bivariate "
-                "distribution. v >= 0,",
-                0,
-            ),
-            DistributionParameterDescriptor(
-                "σ", "sigma", "Scale. σ >= 0", 1, NonNegativeNumberValidator()
-            ),
-        ]
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
 
 
 class TukeyDistributionDescriptor(DistributionDescriptor):
     """
     Descriptor for the Tukey lambda distribution.
     """
+
+    SHAPE = ParameterSpec("tukey.shape", "lam", "λ", "Shape", 2)
+    DEFAULT = ParameterizationDescriptor("tukey.shape", DistributionType.TUKEY, (SHAPE,))
 
     @staticmethod
     def type() -> DistributionType:
@@ -718,12 +770,9 @@ class TukeyDistributionDescriptor(DistributionDescriptor):
         return DistributionType.TUKEY
 
     @staticmethod
-    def parameters() -> list[DistributionParameterDescriptor]:
-        """
-        Return parameters for the Tukey lambda distribution.
+    def parameters() -> list[ParameterSpec]:
+        return list(TukeyDistributionDescriptor.DEFAULT.parameters)
 
-        :return: descriptor for the shape parameter.
-        """
-        return [
-            DistributionParameterDescriptor("λ", "lam", "Shape", 2),
-        ]
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
