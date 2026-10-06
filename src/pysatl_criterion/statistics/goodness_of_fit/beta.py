@@ -1,7 +1,17 @@
+"""Goodness-of-fit statistics on the fixed Beta support [0, 1].
+
+KS, AD, CvM, Watson, Kuiper and Pearson use specified shape parameters.
+Lilliefors fits both shapes inside execute_statistic, returning a scalar KS distance.
+MB, SK, Ratio, Entropy and Mode are locally defined discrepancies: no scientific
+source for their exact formulas was identified. Their docstrings state their
+mathematical meaning without attributing them to unrelated published tests.
+"""
+
 from abc import ABC
 
 import numpy as np
 import scipy.stats as scipy_stats
+from scipy.optimize import minimize_scalar
 from typing_extensions import override
 
 from pysatl_criterion import DistributionType
@@ -26,10 +36,10 @@ class AbstractBetaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     """
 
     def __init__(self, alpha=1, beta=1):
-        if alpha <= 0:
-            raise ValueError("alpha must be positive")
-        if beta <= 0:
-            raise ValueError("beta must be positive")
+        if np.ndim(alpha) != 0 or not np.isfinite(alpha) or alpha <= 0:
+            raise ValueError("alpha must be positive and finite")
+        if np.ndim(beta) != 0 or not np.isfinite(beta) or beta <= 0:
+            raise ValueError("beta must be positive and finite")
         self.alpha = alpha
         self.beta = beta
 
@@ -38,12 +48,30 @@ class AbstractBetaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
         return GoodnessOfFitHypothesis({"alpha": self.alpha, "beta": self.beta})
 
     @staticmethod
-    def _validate_rvs(rvs):
-        rvs = np.asarray(rvs)
+    def _validate_rvs(rvs, min_size=1):
+        rvs = np.asarray(rvs, dtype=float)
+        if rvs.ndim != 1 or rvs.size < min_size:
+            raise ValueError(f"Sample must be one-dimensional with at least {min_size} values")
+        if not np.all(np.isfinite(rvs)):
+            raise ValueError("Sample values must be finite")
         # All values in [0, 1]
         if np.any((rvs < 0) | (rvs > 1)):
             raise ValueError("Beta distribution values must be in the interval [0, 1]")
         return rvs
+
+    def _standardized_moments(self, order):
+        """Central moments of Z=(X-E[X])/sd(X), using the Beta Stein identity."""
+        total = self.alpha + self.beta
+        mean, variance = scipy_stats.beta.stats(self.alpha, self.beta, moments="mv")
+        moments = np.zeros(order + 1)
+        moments[0] = 1
+        for k in range(1, order):
+            moments[k + 1] = (
+                k
+                / (total + k)
+                * ((total + 1) * moments[k - 1] + (1 - 2 * mean) / np.sqrt(variance) * moments[k])
+            )
+        return moments
 
     @staticmethod
     @override
@@ -67,11 +95,50 @@ class AbstractBetaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
 
 
 class KolmogorovSmirnovBetaGofStatistic(AbstractBetaGofStatistic, KSStatistic):
-    """
-    Kolmogorov-Smirnov test statistic for Beta distribution.
+    """Kolmogorov-Smirnov distance to a fully specified Beta distribution.
 
-    The Kolmogorov-Smirnov test compares the empirical distribution function
-    with the theoretical Beta distribution function.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Finite positive shape parameters fixed by the null hypothesis.
+        Both default to 1. No shape parameters are estimated.
+    alternative_type : AlternativeType, optional
+        TWO_TAILED (default) selects D, RIGHT selects D+, LEFT selects D-.
+    mode : str, optional
+        Legacy option, default 'auto'. Does not change the distance or
+        compute a p-value.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar discrepancy; reject for large values.
+    hypothesis()
+        Return the null hypothesis parameter specification.
+
+    Notes
+    -----
+    For ordered observations let u_i = F_{alpha,beta}(x_(i)). Then
+    D+ = max_i(i/n-u_i), D- = max_i(u_i-(i-1)/n), and D = max(D+,D-).
+    ``alternative_type`` selects D, D+, or D-; ``alternative()`` always
+    selects the right rejection tail. Neither shape is estimated.
+
+    This is the classical continuous-null statistic [1]_ applied through
+    the specified Beta CDF. Its finite-sample null law is shape-free by
+    the probability integral transform. It is not the fitted-Beta test;
+    use LillieforsTestBetaGofStatistic when both shapes are unknown.
+
+    References
+    ----------
+    .. [1] N. Smirnov (1948), "Table for Estimating the Goodness of Fit
+       of Empirical Distributions", Ann. Math. Statist. 19, 279-281.
+       https://doi.org/10.1214/aoms/1177730256
+
+    Examples
+    --------
+    >>> statistic = KolmogorovSmirnovBetaGofStatistic(alpha=2, beta=5)
+    >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
+    >>> bool(value >= 0)
+    True
     """
 
     def __init__(
@@ -84,38 +151,55 @@ class KolmogorovSmirnovBetaGofStatistic(AbstractBetaGofStatistic, KSStatistic):
         AbstractBetaGofStatistic.__init__(self, alpha, beta)
         KSStatistic.__init__(self, alternative_type, mode)
 
-    @override
-    def alternative(self) -> Alternative:
-        return Alternative.get_alternative(self.alternative_type)
-
     @staticmethod
     @override
     def short_code():
-        """
-        Get short code identifier for this test.
+        """Return the short statistic identifier.
 
-        :return: short code string "KS".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         return "KS"
 
     @staticmethod
     @override
     def code():
-        """
-        Get unique code identifier for this test.
+        """Return the full statistic identifier.
 
-        :return: string code in format "KS_BETA_{parent_code}".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         short_code = KolmogorovSmirnovBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the Kolmogorov-Smirnov test statistic.
+    def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
+        """Compute the statistic described in the class Notes.
 
-        :param rvs: array of sample data from Beta distribution (values in [0, 1]).
-        :return: Kolmogorov-Smirnov test statistic value.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional finite sample in [0, 1], with at least 1 values.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float
+            Nonnegative discrepancy; larger values oppose the null hypothesis.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the class constraints.
+
+        Notes
+        -----
+        See the class Notes for the formula, null hypothesis and calibration.
         """
         rvs = self._validate_rvs(rvs)
 
@@ -125,11 +209,44 @@ class KolmogorovSmirnovBetaGofStatistic(AbstractBetaGofStatistic, KSStatistic):
 
 
 class AndersonDarlingBetaGofStatistic(AbstractBetaGofStatistic, ADStatistic):
-    """
-    Anderson-Darling test statistic for Beta distribution.
+    """Anderson-Darling statistic for a fully specified Beta distribution.
 
-    The Anderson-Darling test is a modification of the Kolmogorov-Smirnov test
-    that gives more weight to the tails of the distribution.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Finite positive shape parameters fixed by the null hypothesis.
+        Both default to 1. No shape parameters are estimated.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar discrepancy; reject for large values.
+    hypothesis()
+        Return the null hypothesis parameter specification.
+
+    Notes
+    -----
+    With u_i = F_{alpha,beta}(x_(i)), compute
+    A2 = -n - sum_i (2*i-1)/n * (log(u_i) + log(1-u_(n+1-i))).
+    Log-CDF and log-survival evaluations are used directly. Observations
+    at 0 or 1 yield positive infinity, as the mathematical formula requires.
+
+    This is the statistic in [1]_ applied to the specified Beta CDF,
+    without finite-sample corrections for estimated parameters. Both
+    shapes are known, and the null law is shape-free after transformation.
+
+    References
+    ----------
+    .. [1] T. W. Anderson and D. A. Darling (1954), "A Test of Goodness
+       of Fit", J. Amer. Statist. Assoc. 49, 765-769.
+       https://doi.org/10.1080/01621459.1954.10501232
+
+    Examples
+    --------
+    >>> statistic = AndersonDarlingBetaGofStatistic(alpha=2, beta=5)
+    >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
+    >>> bool(value >= 0)
+    True
     """
 
     @staticmethod
@@ -140,21 +257,40 @@ class AndersonDarlingBetaGofStatistic(AbstractBetaGofStatistic, ADStatistic):
     @staticmethod
     @override
     def code():
-        """
-        Get short code identifier for this test.
+        """Return the full statistic identifier.
 
-        :return: short code string "AD".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         short_code = AndersonDarlingBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the Anderson-Darling test statistic.
+    def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
+        """Compute the statistic described in the class Notes.
 
-        :param rvs: array of sample data from Beta distribution (values in [0, 1]).
-        :return: Anderson-Darling test statistic value.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional finite sample in [0, 1], with at least 1 values.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float
+            Nonnegative discrepancy; larger values oppose the null hypothesis. May be +inf.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the class constraints.
+
+        Notes
+        -----
+        See the class Notes for the formula, null hypothesis and calibration.
         """
         rvs = self._validate_rvs(rvs)
 
@@ -172,41 +308,93 @@ class AndersonDarlingBetaGofStatistic(AbstractBetaGofStatistic, ADStatistic):
 
 
 class CrammerVonMisesBetaGofStatistic(AbstractBetaGofStatistic, CrammerVonMisesStatistic):
-    """
-    Cramér-von Mises test statistic for Beta distribution.
+    """Cramer-von Mises statistic for a fully specified Beta distribution.
 
-    Goodness-of-fit test that measures the integrated squared difference between
-    the empirical and theoretical cumulative distribution functions.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Finite positive shape parameters fixed by the null hypothesis.
+        Both default to 1. No shape parameters are estimated.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar discrepancy; reject for large values.
+    hypothesis()
+        Return the null hypothesis parameter specification.
+
+    Notes
+    -----
+    For u_i = F_{alpha,beta}(x_(i)), compute
+    W2 = 1/(12*n) + sum_i (u_i-(2*i-1)/(2*n))**2.
+    This is the one-sample statistic studied in [1]_, evaluated after the
+    specified Beta CDF transform. Both shapes are known; neither is fitted.
+    The null law is shape-free. The legacy spelling ``Crammer`` is retained
+    in the class name for compatibility.
+
+    References
+    ----------
+    .. [1] S. Csorgo and J. J. Faraway (1996), "The Exact and Asymptotic
+       Distributions of Cramer-von Mises Statistics", JRSS B 58, 221-234.
+       https://doi.org/10.1111/j.2517-6161.1996.tb02077.x
+
+    Examples
+    --------
+    >>> statistic = CrammerVonMisesBetaGofStatistic(alpha=2, beta=5)
+    >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
+    >>> bool(value >= 0)
+    True
     """
 
     @staticmethod
     @override
     def short_code():
-        """
-        Get short code identifier for this test.
+        """Return the short statistic identifier.
 
-        :return: short code string "CVM".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         return "CVM"
 
     @staticmethod
     @override
     def code():
-        """
-        Get unique code identifier for this test.
+        """Return the full statistic identifier.
 
-        :return: string code in format "CVM_BETA_{parent_code}".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         short_code = CrammerVonMisesBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the Cramér-von Mises test statistic.
+    def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
+        """Compute the statistic described in the class Notes.
 
-        :param rvs: array of sample data from Beta distribution (values in [0, 1]).
-        :return: Cramér-von Mises test statistic value.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional finite sample in [0, 1], with at least 1 values.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float
+            Nonnegative discrepancy; larger values oppose the null hypothesis.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the class constraints.
+
+        Notes
+        -----
+        See the class Notes for the formula, null hypothesis and calibration.
         """
         rvs = self._validate_rvs(rvs)
 
@@ -216,55 +404,182 @@ class CrammerVonMisesBetaGofStatistic(AbstractBetaGofStatistic, CrammerVonMisesS
 
 
 class LillieforsTestBetaGofStatistic(AbstractBetaGofStatistic, LillieforsTest):
-    """
-    Lilliefors test statistic for Beta distribution.
+    """Lilliefors-type KS statistic with both Beta shapes fitted by MLE.
 
-    The Lilliefors test is a modification of the Kolmogorov-Smirnov test for
-    the case when parameters are estimated from the data.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar discrepancy; reject for large values.
+    hypothesis()
+        Return the null hypothesis parameter specification.
+
+    Notes
+    -----
+    The null is the entire two-shape Beta family on the fixed support
+    [0, 1]. Fit alpha_hat and beta_hat by maximum likelihood with location
+    0 and scale 1. Compute the two-sided KS distance to the fitted CDF:
+    D = max_i(i/n-u_i, u_i-(i-1)/n), u_i = F_hat(x_(i)).
+    The fit solves psi(alpha_hat)-psi(alpha_hat+beta_hat)=mean(log(X))
+    and the analogous equation for beta_hat and log(1-X).
+
+    Reference [1]_, Section 4, studies this fitted-Beta KS procedure as a
+    competitor to its proposed test. The paper calls it KS, not a separately
+    named "Beta Lilliefors" test. The historical class name denotes the
+    Lilliefors-type principle of fitting before computing the distance.
+    This class does NOT implement the paper's new conditional-moment test.
+
+    ``hypothesis().parameters()`` is empty because both shapes are unknown.
+    The null law need not be shape-free. Calibration belongs to the
+    hypothesis-testing layer, which must choose simulation shapes and call
+    ``execute_statistic`` on every replicate so that both shapes are refitted.
+    Ordinary KS critical values and a default Beta(1, 1) simulation are
+    invalid here. This class computes only the scalar statistic, not p-values.
+    Construction no longer accepts fixed ``alpha`` or ``beta`` arguments.
+    Fitted values are local to a call; executing does not mutate the object.
+
+    References
+    ----------
+    .. [1] B. Ebner and S. C. Liebenberg (2021), "On a new test of fit to
+       the beta distribution", Stat 10, e341, Sections 2 and 4.
+       https://doi.org/10.1002/sta4.341
+       https://arxiv.org/pdf/2009.13995
+
+    Examples
+    --------
+    >>> statistic = LillieforsTestBetaGofStatistic()
+    >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
+    >>> bool(value >= 0)
+    True
     """
+
+    def __init__(self):
+        """Create a fitted-Beta KS statistic with no fixed shape parameters."""
+
+    @override
+    def hypothesis(self) -> GoodnessOfFitHypothesis:
+        """Return the Beta family with both shape parameters unknown."""
+        return GoodnessOfFitHypothesis({})
+
+    @classmethod
+    def _fit(cls, rvs):
+        sample = cls._validate_rvs(rvs, min_size=2)
+        if np.any((sample <= 0) | (sample >= 1)):
+            raise ValueError("Beta maximum likelihood requires observations strictly in (0, 1)")
+        if np.ptp(sample) == 0:
+            raise ValueError("Beta maximum likelihood requires a nonconstant sample")
+        alpha, beta, _, _ = scipy_stats.beta.fit(sample, floc=0, fscale=1)
+        if not np.isfinite(alpha) or not np.isfinite(beta) or alpha <= 0 or beta <= 0:
+            raise ValueError("Beta maximum likelihood did not produce finite positive shapes")
+        return sample, float(alpha), float(beta)
 
     @staticmethod
     @override
     def short_code():
-        """
-        Get short code identifier for this test.
+        """Return the short statistic identifier.
 
-        :return: short code string "LILLIE".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         return "LILLIE"
 
     @staticmethod
     @override
     def code():
-        """
-        Get unique code identifier for this test.
+        """Return the full statistic identifier.
 
-        :return: string code in format "LILLIE_BETA_{parent_code}".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         short_code = LillieforsTestBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the Lilliefors test statistic.
+    def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
+        """Compute the statistic described in the class Notes.
 
-        :param rvs: array of sample data from Beta distribution (values in [0, 1]).
-        :return: Lilliefors test statistic value.
-        """
-        rvs = self._validate_rvs(rvs)
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional, finite, nonconstant sample strictly in (0, 1), n >= 2.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
 
-        rvs_sorted = np.sort(rvs)
-        cdf_vals = scipy_stats.beta.cdf(rvs_sorted, self.alpha, self.beta)
-        return LillieforsTest.do_execute_statistic(self, rvs_sorted, cdf_vals)
+        Returns
+        -------
+        statistic : float
+            Nonnegative discrepancy; larger values oppose the null hypothesis.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the class constraints.
+        scipy.stats.FitError
+            If the maximum-likelihood solver fails to converge.
+
+        Notes
+        -----
+        See the class Notes for the formula, null hypothesis and calibration.
+        """
+        sample, alpha, beta = self._fit(rvs)
+        ordered = np.sort(sample)
+        cdf_vals = scipy_stats.beta.cdf(ordered, alpha, beta)
+        return LillieforsTest.do_execute_statistic(self, ordered, cdf_vals)
 
 
 class Chi2PearsonBetaGofStatistic(AbstractBetaGofStatistic, Chi2Statistic):
-    """
-    Pearson's Chi-squared test statistic for Beta distribution.
+    """Pearson statistic for binned observations under a specified Beta null.
 
-    The chi-squared test compares observed frequencies with expected frequencies
-    based on the Beta distribution.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Finite positive shape parameters fixed by the null hypothesis.
+        Both default to 1. No shape parameters are estimated.
+    lambda_ : float, optional
+        Finite power-divergence parameter. Default 1 gives Pearson's test.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar discrepancy; reject for large values.
+    hypothesis()
+        Return the null hypothesis parameter specification.
+
+    Notes
+    -----
+    Use k=ceil(sqrt(n)) equal-width bins covering [0, 1], counts O_j,
+    and E_j=n*(F(b_j)-F(a_j)). For lambda_=1 return sum((O_j-E_j)**2/E_j),
+    the Pearson statistic [1]_. For other lambda_ values return the
+    Cressie-Read power divergence [2]_, with its limits at 0 and -1.
+
+    Both shapes are known. Upper-tail probabilities use survival-function
+    differences. Bins with small expected counts are not pooled. Since k
+    grows with n, chi-square(k-1) is not asserted as an accurate automatic
+    calibration. Simulate with the same n, shapes and lambda_. A numerically
+    zero expected probability is rejected explicitly by the common routine.
+    The references concern multinomial tests; Beta determines their cell
+    probabilities here, not a separate Beta-specific Pearson formula.
+
+    References
+    ----------
+    .. [1] K. Pearson (1900), "On the criterion that a given system of
+       deviations from the probable in the case of a correlated system of
+       variables is such that it can be reasonably supposed to have arisen
+       from random sampling", Philosophical Magazine 50, 157-175.
+       https://doi.org/10.1080/14786440009463897
+    .. [2] N. Cressie and T. R. C. Read (1984), "Multinomial Goodness-of-Fit
+       Tests", JRSS B 46, 440-464.
+       https://doi.org/10.1111/j.2517-6161.1984.tb01318.x
+
+    Examples
+    --------
+    >>> statistic = Chi2PearsonBetaGofStatistic(alpha=2, beta=5)
+    >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
+    >>> bool(value >= 0)
+    True
     """
 
     def __init__(self, alpha=1, beta=1, lambda_=1):
@@ -275,38 +590,59 @@ class Chi2PearsonBetaGofStatistic(AbstractBetaGofStatistic, Chi2Statistic):
     @staticmethod
     @override
     def short_code():
-        """
-        Get short code identifier for this test.
+        """Return the short statistic identifier.
 
-        :return: short code string "CHI2_PEARSON".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         return "CHI2_PEARSON"
 
     @staticmethod
     @override
     def code():
-        """
-        Get unique code identifier for this test.
+        """Return the full statistic identifier.
 
-        :return: string code in format "CHI2_PEARSON_BETA_{parent_code}".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         short_code = Chi2PearsonBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute Pearson's Chi-squared test statistic.
+    def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
+        """Compute the statistic described in the class Notes.
 
-        :param rvs: array of sample data from Beta distribution (values in [0, 1]).
-        :return: Chi-squared test statistic value.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional finite sample in [0, 1], with at least 1 values.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float
+            Nonnegative discrepancy; larger values oppose the null hypothesis. May be +inf.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the class constraints.
+
+        Notes
+        -----
+        See the class Notes for the formula, null hypothesis and calibration.
         """
         rvs = self._validate_rvs(rvs)
 
         rvs_sorted = np.sort(rvs)
         n = len(rvs_sorted)
 
-        # Number of bins using Sturges' rule
+        # Number of bins using the square-root rule
         num_bins = int(np.ceil(np.sqrt(n)))
 
         # Create histogram
@@ -314,17 +650,54 @@ class Chi2PearsonBetaGofStatistic(AbstractBetaGofStatistic, Chi2Statistic):
 
         # Calculate expected frequencies
         expected_cdf = scipy_stats.beta.cdf(bin_edges, self.alpha, self.beta)
-        expected = np.diff(expected_cdf) * n
+        expected_sf = scipy_stats.beta.sf(bin_edges, self.alpha, self.beta)
+        probabilities = np.where(
+            expected_cdf[:-1] < 0.5, np.diff(expected_cdf), -np.diff(expected_sf)
+        )
+        expected = probabilities * n
 
         return Chi2Statistic.do_execute_statistic(self, observed, expected, self.lambda_)
 
 
 class WatsonBetaGofStatistic(AbstractBetaGofStatistic):
-    """
-    Watson test statistic for Beta distribution.
+    """Watson U-squared statistic after a specified Beta CDF transform.
 
-    The Watson test is a modification of the Cramér-von Mises test that is
-    invariant under location changes.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Finite positive shape parameters fixed by the null hypothesis.
+        Both default to 1. No shape parameters are estimated.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar discrepancy; reject for large values.
+    hypothesis()
+        Return the null hypothesis parameter specification.
+
+    Notes
+    -----
+    For u_i=F_{alpha,beta}(x_(i)), compute
+    W2=1/(12*n)+sum_i(u_i-(2*i-1)/(2*n))**2 and
+    U2=W2-n*(mean(u)-1/2)**2.
+    This is Watson's statistic [1]_ applied to transformed uniform data.
+    Its circular rotation invariance concerns u modulo 1, not arbitrary
+    location shifts of observations on the original Beta support.
+    Both shapes are specified, and the null law is shape-free. The cited
+    paper is about the classical circular statistic, not a fitted-Beta test.
+
+    References
+    ----------
+    .. [1] G. S. Watson (1961), "Goodness-of-fit tests on a circle",
+       Biometrika 48, 109-114.
+       https://doi.org/10.1093/biomet/48.1-2.109
+
+    Examples
+    --------
+    >>> statistic = WatsonBetaGofStatistic(alpha=2, beta=5)
+    >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
+    >>> bool(value >= 0)
+    True
     """
 
     @override
@@ -334,31 +707,52 @@ class WatsonBetaGofStatistic(AbstractBetaGofStatistic):
     @staticmethod
     @override
     def short_code():
-        """
-        Get short code identifier for this test.
+        """Return the short statistic identifier.
 
-        :return: short code string "W".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         return "W"
 
     @staticmethod
     @override
     def code():
-        """
-        Get unique code identifier for this test.
+        """Return the full statistic identifier.
 
-        :return: string code in format "W_BETA_{parent_code}".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         short_code = WatsonBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the Watson test statistic.
+    def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
+        """Compute the statistic described in the class Notes.
 
-        :param rvs: array of sample data from Beta distribution (values in [0, 1]).
-        :return: Watson test statistic value.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional finite sample in [0, 1], with at least 1 values.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float
+            Nonnegative discrepancy; larger values oppose the null hypothesis.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the class constraints.
+
+        Notes
+        -----
+        See the class Notes for the formula, null hypothesis and calibration.
         """
         rvs = self._validate_rvs(rvs)
 
@@ -378,11 +772,43 @@ class WatsonBetaGofStatistic(AbstractBetaGofStatistic):
 
 
 class KuiperBetaGofStatistic(AbstractBetaGofStatistic):
-    """
-    Kuiper test statistic for Beta distribution.
+    """Kuiper statistic after a specified Beta CDF transform.
 
-    The Kuiper test is a variant of the Kolmogorov-Smirnov test that is
-    more sensitive to deviations in the tails of the distribution.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Finite positive shape parameters fixed by the null hypothesis.
+        Both default to 1. No shape parameters are estimated.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar discrepancy; reject for large values.
+    hypothesis()
+        Return the null hypothesis parameter specification.
+
+    Notes
+    -----
+    For u_i=F_{alpha,beta}(x_(i)), compute
+    V=max_i(i/n-u_i)+max_i(u_i-(i-1)/n).
+    This is the unscaled Kuiper statistic [1]_; no sqrt(n) factor or
+    finite-sample correction is included. Both shapes are specified.
+    The probability integral transform gives its shape-free null law.
+    Rotation invariance concerns transformed u modulo 1. The source
+    studies the circular uniformity statistic, not estimated Beta shapes.
+
+    References
+    ----------
+    .. [1] N. H. Kuiper (1960), "Tests concerning random points on a
+       circle", Proc. K. Ned. Akad. Wet. A 63, 38-47.
+       https://doi.org/10.1016/S1385-7258(60)50006-0
+
+    Examples
+    --------
+    >>> statistic = KuiperBetaGofStatistic(alpha=2, beta=5)
+    >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
+    >>> bool(value >= 0)
+    True
     """
 
     @override
@@ -392,31 +818,52 @@ class KuiperBetaGofStatistic(AbstractBetaGofStatistic):
     @staticmethod
     @override
     def short_code():
-        """
-        Get short code identifier for this test.
+        """Return the short statistic identifier.
 
-        :return: short code string "KUIPER".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         return "KUIPER"
 
     @staticmethod
     @override
     def code():
-        """
-        Get unique code identifier for this test.
+        """Return the full statistic identifier.
 
-        :return: string code in format "KUIPER_BETA_{parent_code}".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         short_code = KuiperBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the Kuiper test statistic.
+    def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
+        """Compute the statistic described in the class Notes.
 
-        :param rvs: array of sample data from Beta distribution (values in [0, 1]).
-        :return: Kuiper test statistic value.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional finite sample in [0, 1], with at least 1 values.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float
+            Nonnegative discrepancy; larger values oppose the null hypothesis.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the class constraints.
+
+        Notes
+        -----
+        See the class Notes for the formula, null hypothesis and calibration.
         """
         rvs = self._validate_rvs(rvs)
 
@@ -435,11 +882,41 @@ class KuiperBetaGofStatistic(AbstractBetaGofStatistic):
 
 
 class MomentBasedBetaGofStatistic(AbstractBetaGofStatistic):
-    """
-    Moment-based test statistic for Beta distribution.
+    """Covariance-standardized mean/variance discrepancy for a specified Beta null.
 
-    This test compares the sample moments with the theoretical moments of
-    the Beta distribution. It uses the first two moments (mean and variance).
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Finite positive shape parameters fixed by the null hypothesis.
+        Both default to 1. No shape parameters are estimated.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar discrepancy; reject for large values.
+    hypothesis()
+        Return the null hypothesis parameter specification.
+
+    Notes
+    -----
+    For d=(mean(X)-mu, S2-sigma2), with S2 the unbiased sample variance,
+    return T=n*d.T @ solve(Sigma,d), where
+    Sigma=[[sigma2, mu3], [mu3, mu4-sigma2**2]] and mu_r are Beta central
+    moments. Computation uses standardized moments to reduce cancellation.
+    Both shapes are fixed. For fixed positive shapes T has an asymptotic
+    chi-square(2) law; finite-sample calibration still depends on shapes.
+
+    No publication describing this exact Beta statistic was identified.
+    This is a locally defined moment discrepancy, not a claimed named
+    published Beta criterion. It need not detect alternatives with matching
+    mean and variance. At least two observations are required.
+
+    Examples
+    --------
+    >>> statistic = MomentBasedBetaGofStatistic(alpha=2, beta=5)
+    >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
+    >>> bool(value >= 0)
+    True
     """
 
     @override
@@ -449,61 +926,104 @@ class MomentBasedBetaGofStatistic(AbstractBetaGofStatistic):
     @staticmethod
     @override
     def short_code():
-        """
-        Get short code identifier for this test.
+        """Return the short statistic identifier.
 
-        :return: short code string "MB".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         return "MB"
 
     @staticmethod
     @override
     def code():
-        """
-        Get unique code identifier for this test.
+        """Return the full statistic identifier.
 
-        :return: string code in format "MB_BETA_{parent_code}".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         short_code = MomentBasedBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
+    def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional finite sample in [0, 1], with at least 2 values.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float
+            Nonnegative discrepancy; larger values oppose the null hypothesis.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the class constraints.
+
+        Notes
+        -----
+        See the class Notes for the formula, null hypothesis and calibration.
         """
-        Execute the moment-based test statistic.
-
-        :param rvs: array of sample data from Beta distribution (values in [0, 1]).
-        :return: moment-based test statistic value.
-        """
-        rvs = self._validate_rvs(rvs)
-
-        n = len(rvs)
-
-        # Sample moments
-        sample_mean = np.mean(rvs)
-        sample_var = np.var(rvs, ddof=1)
-
-        # Theoretical moments
-        alpha_beta_sum = self.alpha + self.beta
-        theoretical_mean = self.alpha / alpha_beta_sum
-        theoretical_var = (self.alpha * self.beta) / (alpha_beta_sum**2 * (alpha_beta_sum + 1))
-
-        # Test statistic based on standardized differences
-        mean_diff = np.sqrt(n) * (sample_mean - theoretical_mean) / np.sqrt(theoretical_var)
-        var_diff = np.sqrt(n) * (sample_var - theoretical_var) / np.sqrt(theoretical_var)
-
-        # Combined statistic
-        statistic = mean_diff**2 + var_diff**2
-
-        return statistic
+        rvs = self._validate_rvs(rvs, min_size=2)
+        mean, variance = scipy_stats.beta.stats(self.alpha, self.beta, moments="mv")
+        moments = self._standardized_moments(4)
+        covariance = np.array([[1, moments[3]], [moments[3], moments[4] - 1]])
+        difference = np.array(
+            [
+                (np.mean(rvs) - mean) / np.sqrt(variance),
+                np.var(rvs, ddof=1) / variance - 1,
+            ]
+        )
+        return len(rvs) * difference @ np.linalg.solve(covariance, difference)
 
 
 class SkewnessKurtosisBetaGofStatistic(AbstractBetaGofStatistic):
-    """
-    Skewness-Kurtosis test statistic for Beta distribution.
+    """Covariance-standardized skewness/excess discrepancy for a specified Beta null.
 
-    This test compares the sample skewness and kurtosis with the theoretical
-    values of the Beta distribution.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Finite positive shape parameters fixed by the null hypothesis.
+        Both default to 1. No shape parameters are estimated.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar discrepancy; reject for large values.
+    hypothesis()
+        Return the null hypothesis parameter specification.
+
+    Notes
+    -----
+    Let Z=(X-mu)/sigma, g=E[Z**3], k=E[Z**4]. The influence functions
+    are p3=Z**3-3*Z-1.5*g*Z**2+g/2 and
+    p4=Z**4-4*g*Z-2*k*Z**2+k. Set Sigma_ij=E[p_i*p_j] using Beta
+    moments through order eight. Return n*d.T @ solve(Sigma,d), where d
+    contains sample skewness minus g and sample excess minus (k-3).
+    Sample estimates use bias=False. This is not the normal-model
+    Jarque-Bera statistic. Both shapes are fixed; the asymptotic null law
+    is chi-square(2), not an exact finite-sample law.
+
+    No publication describing this exact Beta statistic was identified.
+    It is a locally defined discrepancy and need not detect distributions
+    with matching skewness and excess. At least four observations and a
+    nonconstant sample are required.
+
+    Examples
+    --------
+    >>> statistic = SkewnessKurtosisBetaGofStatistic(alpha=2, beta=5)
+    >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
+    >>> bool(value >= 0)
+    True
     """
 
     @override
@@ -513,73 +1033,113 @@ class SkewnessKurtosisBetaGofStatistic(AbstractBetaGofStatistic):
     @staticmethod
     @override
     def short_code():
-        """
-        Get short code identifier for this test.
+        """Return the short statistic identifier.
 
-        :return: short code string "SK".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         return "SK"
 
     @staticmethod
     @override
     def code():
-        """
-        Get unique code identifier for this test.
+        """Return the full statistic identifier.
 
-        :return: string code in format "SK_BETA_{parent_code}".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         short_code = SkewnessKurtosisBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
+    def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional finite sample in [0, 1], with at least 4 values.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float
+            Nonnegative discrepancy; larger values oppose the null hypothesis.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the class constraints.
+
+        Notes
+        -----
+        See the class Notes for the formula, null hypothesis and calibration.
         """
-        Execute the skewness-kurtosis test statistic.
-
-        :param rvs: array of sample data from Beta distribution (values in [0, 1]).
-        :return: skewness-kurtosis test statistic value.
-        """
-        rvs = self._validate_rvs(rvs)
-
-        n = len(rvs)
-
-        # Sample skewness and kurtosis
-        from scipy.stats import kurtosis, skew
-
-        sample_skewness = skew(rvs, bias=False)
-        sample_kurtosis = kurtosis(rvs, bias=False)
-
-        # Theoretical skewness and kurtosis
-        alpha_beta_sum = self.alpha + self.beta
-        theoretical_skewness = (
-            2
-            * (self.beta - self.alpha)
-            * np.sqrt(alpha_beta_sum + 1)
-            / ((alpha_beta_sum + 2) * np.sqrt(self.alpha * self.beta))
+        rvs = self._validate_rvs(rvs, min_size=4)
+        if np.ptp(rvs) == 0:
+            raise ValueError("Skewness and kurtosis require a nonconstant sample")
+        moments = self._standardized_moments(8)
+        skewness, pearson_kurtosis = moments[3:5]
+        # Influence polynomials in Z=(X-mu)/sigma, coefficients in ascending order.
+        polynomials = [
+            [skewness / 2, -3, -1.5 * skewness, 1],
+            [pearson_kurtosis, -4 * skewness, -2 * pearson_kurtosis, 0, 1],
+        ]
+        covariance = np.empty((2, 2))
+        for i in range(2):
+            for j in range(2):
+                product = np.polynomial.polynomial.polymul(polynomials[i], polynomials[j])
+                covariance[i, j] = product @ moments[: len(product)]
+        difference = np.array(
+            [
+                scipy_stats.skew(rvs, bias=False) - skewness,
+                scipy_stats.kurtosis(rvs, bias=False) - (pearson_kurtosis - 3),
+            ]
         )
-
-        numerator = 6 * (
-            (self.alpha - self.beta) ** 2 * (alpha_beta_sum + 1)
-            - self.alpha * self.beta * (alpha_beta_sum + 2)
-        )
-        denominator = self.alpha * self.beta * (alpha_beta_sum + 2) * (alpha_beta_sum + 3)
-        theoretical_kurtosis = numerator / denominator
-
-        # Test statistic (similar to Jarque-Bera)
-        skew_diff = (sample_skewness - theoretical_skewness) ** 2
-        kurt_diff = (sample_kurtosis - theoretical_kurtosis) ** 2
-
-        statistic = (n / 6) * skew_diff + (n / 24) * kurt_diff
-
-        return statistic
+        return len(rvs) * difference @ np.linalg.solve(covariance, difference)
 
 
 class RatioBetaGofStatistic(AbstractBetaGofStatistic):
-    """
-    Ratio test statistic for Beta distribution.
+    """Geometric/arithmetic mean discrepancy for a specified Beta null.
 
-    This test is based on the ratio of geometric mean to arithmetic mean,
-    which has a known relationship for the Beta distribution.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Finite positive shape parameters fixed by the null hypothesis.
+        Both default to 1. No shape parameters are estimated.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar discrepancy; reject for large values.
+    hypothesis()
+        Return the null hypothesis parameter specification.
+
+    Notes
+    -----
+    Let R=exp(mean(log(X)))/mean(X) and
+    r=exp(psi(alpha)-psi(alpha+beta))/(alpha/(alpha+beta)).
+    Return sqrt(n)*abs(R-r). Here r is a probability limit, not the
+    finite-sample expectation of R. Both shapes are fixed. No variance
+    normalization or universal null law is supplied; simulate calibration
+    for both shapes and n. A zero observation gives geometric mean zero;
+    an all-zero sample is rejected because the ratio is undefined.
+
+    No publication describing this exact Beta statistic was identified.
+    It is a locally defined discrepancy, not an established named Beta
+    criterion, and need not detect alternatives with the same ratio.
+
+    Examples
+    --------
+    >>> statistic = RatioBetaGofStatistic(alpha=2, beta=5)
+    >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
+    >>> bool(value >= 0)
+    True
     """
 
     @override
@@ -589,32 +1149,52 @@ class RatioBetaGofStatistic(AbstractBetaGofStatistic):
     @staticmethod
     @override
     def short_code():
-        """
-        Get short code identifier for this test.
+        """Return the short statistic identifier.
 
-        :return: short code string "RT".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         return "RT"
 
     @staticmethod
     @override
     def code():
-        """
-        Get unique code identifier for this test.
+        """Return the full statistic identifier.
 
-        :return: string code in format "RT_BETA_{parent_code}".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         short_code = RatioBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the ratio test statistic.
+    def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
+        """Compute the statistic described in the class Notes.
 
-        :param rvs: array of sample data from Beta distribution (values in (0, 1)).
-        :return: ratio test statistic value.
-        :raises ValueError: if arithmetic mean is zero.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional finite sample in [0, 1], with at least 1 values.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float
+            Nonnegative discrepancy; larger values oppose the null hypothesis.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the class constraints.
+
+        Notes
+        -----
+        See the class Notes for the formula, null hypothesis and calibration.
         """
         rvs = self._validate_rvs(rvs)
 
@@ -622,7 +1202,8 @@ class RatioBetaGofStatistic(AbstractBetaGofStatistic):
 
         # Sample statistics
         arithmetic_mean = np.mean(rvs)
-        geometric_mean = np.exp(np.mean(np.log(rvs)))
+        with np.errstate(divide="ignore"):
+            geometric_mean = np.exp(np.mean(np.log(rvs)))
 
         # Avoid division by zero
         if arithmetic_mean == 0:
@@ -646,11 +1227,43 @@ class RatioBetaGofStatistic(AbstractBetaGofStatistic):
 
 
 class EntropyBetaGofStatistic(AbstractBetaGofStatistic):
-    """
-    Entropy-based test statistic for Beta distribution.
+    """Vasicek-entropy discrepancy for a specified Beta null.
 
-    This test compares the sample entropy (estimated using kernel density)
-    with the theoretical entropy of the Beta distribution.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Finite positive shape parameters fixed by the null hypothesis.
+        Both default to 1. No shape parameters are estimated.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar discrepancy; reject for large values.
+    hypothesis()
+        Return the null hypothesis parameter specification.
+
+    Notes
+    -----
+    For ordered x and endpoint-replicated indices, estimate entropy as
+    H_m=mean_i(log(n*(x_(i+m)-x_(i-m))/(2*m))). Return
+    sqrt(n)*abs(H_m-H_Beta), where H_Beta is the theoretical differential
+    entropy. Zero spacings give H_m=-infinity and T=+infinity.
+    The default m=min(int(sqrt(n)+0.5),(n-1)//2) grows while m/n tends to
+    zero. Require n>=3 and an integer 1<=m<n/2. Both shapes are fixed.
+    Calibrate for n, both shapes and the same window setting; sqrt(n)
+    is not a claim of a universal asymptotic law.
+
+    No publication describing this exact Beta discrepancy was identified.
+    Using the Vasicek entropy estimator does not make this the published
+    Vasicek normality test. No normality-test article is cited as evidence
+    for this Beta formula. Equal entropy does not characterize a Beta law.
+
+    Examples
+    --------
+    >>> statistic = EntropyBetaGofStatistic(alpha=2, beta=5)
+    >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
+    >>> bool(value >= 0)
+    True
     """
 
     @override
@@ -660,50 +1273,70 @@ class EntropyBetaGofStatistic(AbstractBetaGofStatistic):
     @staticmethod
     @override
     def short_code():
-        """
-        Get short code identifier for this test.
+        """Return the short statistic identifier.
 
-        :return: short code string "ENT".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         return "ENT"
 
     @staticmethod
     @override
     def code():
-        """
-        Get unique code identifier for this test.
+        """Return the full statistic identifier.
 
-        :return: string code in format "ENT_BETA_{parent_code}".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         short_code = EntropyBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the entropy-based test statistic.
+    def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
+        """Compute the statistic described in the class Notes.
 
-        :param rvs: array of sample data from Beta distribution (values in [0, 1]).
-        :return: entropy-based test statistic value.
-        """
-        rvs = self._validate_rvs(rvs)
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional finite sample in [0, 1], with at least 3 values.
+        m : int, optional
+            Window passed through **kwargs. Default
+            min(int(sqrt(n)+0.5),(n-1)//2); require 1 <= m < n/2.
+        **kwargs : dict, optional
+            Other keyword arguments are ignored.
 
+        Returns
+        -------
+        statistic : float
+            Nonnegative discrepancy; larger values oppose the null hypothesis. May be +inf.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the class constraints.
+        TypeError
+            If m is not an integer.
+
+        Notes
+        -----
+        See the class Notes for the formula, null hypothesis and calibration.
+        """
+        rvs = self._validate_rvs(rvs, min_size=3)
         n = len(rvs)
-        m = kwargs.get("m", n // 4)
-
-        # Sort the data
-        rvs_sorted = np.sort(rvs)
-
-        # Vasicek's entropy estimator
-        sample_entropy = 0
-        for i in range(n):
-            left = max(0, i - m)
-            right = min(n - 1, i + m)
-            window_range = rvs_sorted[right] - rvs_sorted[left]
-            if window_range > 0:
-                sample_entropy += np.log(window_range * n / (2 * m))
-
-        sample_entropy /= n
+        m = kwargs.get("m", min(int(np.sqrt(n) + 0.5), (n - 1) // 2))
+        if isinstance(m, (bool, np.bool_)) or not isinstance(m, (int, np.integer)):
+            raise TypeError("m must be an integer with 1 <= m < n/2")
+        if not 1 <= m < n / 2:
+            raise ValueError("m must be an integer with 1 <= m < n/2")
+        # Zero spacings imply entropy -infinity, hence discrepancy +infinity.
+        with np.errstate(divide="ignore"):
+            sample_entropy = scipy_stats.differential_entropy(
+                rvs, window_length=m, method="vasicek"
+            )
 
         # Theoretical entropy
         from scipy.special import betaln, psi
@@ -722,11 +1355,44 @@ class EntropyBetaGofStatistic(AbstractBetaGofStatistic):
 
 
 class ModeBetaGofStatistic(AbstractBetaGofStatistic):
-    """
-    Mode-based test statistic for Beta distribution.
+    """KDE-mode discrepancy for a specified unimodal Beta null.
 
-    For Beta(α, β) with α, β > 1, the mode is (α-1)/(α+β-2).
-    This test compares the sample mode (estimated) with the theoretical mode.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Finite greater than 1 shape parameters fixed by the null hypothesis.
+        Both default to 2. No shape parameters are estimated.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar discrepancy; reject for large values.
+    hypothesis()
+        Return the null hypothesis parameter specification.
+
+    Notes
+    -----
+    The reference mode is (alpha-1)/(alpha+beta-2), alpha,beta>1.
+    Estimate a sample mode using Gaussian KDE with Scott bandwidth,
+    a grid over the sample range of size max(257,int(sqrt(n))+1), and
+    bounded optimization of every detected local peak. Include endpoints
+    of [0,1] among candidates. Return sqrt(n)*abs(mode_hat-mode_Beta).
+    Both shapes are fixed. The numerical search has no general guarantee
+    of finding every peak. KDE boundary bias remains. A constant sample
+    or fewer than two observations is rejected.
+
+    No publication describing this exact Beta statistic was identified.
+    This is a locally defined discrepancy; sqrt(n) is only a scale
+    convention, not a justified universal limit normalization. Simulate
+    calibration for n and both shapes. Matching modes do not characterize
+    the Beta family.
+
+    Examples
+    --------
+    >>> statistic = ModeBetaGofStatistic(alpha=2, beta=5)
+    >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
+    >>> bool(value >= 0)
+    True
     """
 
     @override
@@ -734,52 +1400,82 @@ class ModeBetaGofStatistic(AbstractBetaGofStatistic):
         return RightAlternative()
 
     def __init__(self, alpha=2, beta=2):
+        super().__init__(alpha, beta)
         if alpha <= 1:
             raise ValueError("alpha must be greater than 1 for mode to be well-defined")
         if beta <= 1:
             raise ValueError("beta must be greater than 1 for mode to be well-defined")
-        super().__init__(alpha, beta)
 
     @staticmethod
     @override
     def short_code():
-        """
-        Get short code identifier for this test.
+        """Return the short statistic identifier.
 
-        :return: short code string "MODE".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         return "MODE"
 
     @staticmethod
     @override
     def code():
-        """
-        Get unique code identifier for this test.
+        """Return the full statistic identifier.
 
-        :return: string code in format "MODE_BETA_{parent_code}".
+        Returns
+        -------
+        code : str
+            Stable identifier for this statistic.
         """
         short_code = ModeBetaGofStatistic.short_code()
         return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the mode-based test statistic.
+    def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
+        """Compute the statistic described in the class Notes.
 
-        :param rvs: array of sample data from Beta distribution (values in [0, 1]).
-        :return: mode-based test statistic value.
-        """
-        rvs = self._validate_rvs(rvs)
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            One-dimensional finite sample in [0, 1], with at least 2 values.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
 
+        Returns
+        -------
+        statistic : float
+            Nonnegative discrepancy; larger values oppose the null hypothesis.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the class constraints.
+
+        Notes
+        -----
+        See the class Notes for the formula, null hypothesis and calibration.
+        """
+        rvs = self._validate_rvs(rvs, min_size=2)
+        if np.ptp(rvs) == 0:
+            raise ValueError("KDE mode requires a nonconstant sample")
         n = len(rvs)
-
-        # Estimate sample mode using kernel density estimation
-        from scipy.stats import gaussian_kde
-
-        kde = gaussian_kde(rvs)
-        x_grid = np.linspace(0.01, 0.99, 200)
+        kde = scipy_stats.gaussian_kde(rvs)
+        # Gaussian mixture modes lie inside the sample range. Refine every
+        # grid-local maximum, including candidates near either support boundary.
+        x_grid = np.linspace(rvs.min(), rvs.max(), max(257, int(np.sqrt(n)) + 1))
         density = kde(x_grid)
-        sample_mode = x_grid[np.argmax(density)]
+        peaks = np.flatnonzero((density[1:-1] >= density[:-2]) & (density[1:-1] >= density[2:])) + 1
+        candidates = [0.0, 1.0, x_grid[0], x_grid[-1]]
+        for i in peaks:
+            result = minimize_scalar(
+                lambda x: -kde([x])[0],
+                bounds=(x_grid[i - 1], x_grid[i + 1]),
+                method="bounded",
+                options={"xatol": 1e-12},
+            )
+            candidates.append(result.x)
+        sample_mode = candidates[np.argmax(kde(candidates))]
 
         # Theoretical mode
         theoretical_mode = (self.alpha - 1) / (self.alpha + self.beta - 2)

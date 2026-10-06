@@ -27,11 +27,11 @@ print(statistic_result)
 
 `beta` - second positive shape parameter of the beta distribution. Default value is `1`.
 
-`alternative_type` - alternative hypothesis type used by the Kolmogorov-Smirnov statistic.
+`alternative_type` - selects the CDF distance: `TWO_TAILED` computes `max(D+, D-)`, `RIGHT` computes `D+`, and `LEFT` computes `D-`. All three reject in the right tail of the statistic distribution.
 
-`mode` - calculation mode passed to the Kolmogorov-Smirnov statistic. Default value is `auto`.
+`mode` - retained for compatibility, default `auto`; it does not affect the distance or compute a p-value here.
 
-`rvs` - array-like sample data passed to `execute_statistic`.
+`rvs` - a nonempty one-dimensional sample of finite values in `[0, 1]`, passed to `execute_statistic`. Both shape parameters must be finite. All these statistics reject for large values.
 
 ## Details
 The observations are sorted and transformed with the reference beta cumulative distribution function
@@ -44,9 +44,12 @@ The transformed values are passed to the common Kolmogorov-Smirnov statistic imp
 Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
 
 ## References
-Kolmogorov, A.N. (1933): Sulla determinazione empirica di una legge di distribuzione. - Giornale dell'Istituto Italiano degli Attuari, vol. 4, pp. 83-91.
 
-Smirnov, N.V. (1948): Table for estimating the goodness of fit of empirical distributions. - Annals of Mathematical Statistics, vol. 19, pp. 279-281.
+The reference is for the classical continuous-null KS statistic; a specified Beta CDF is substituted here. Both shapes are known. For unknown shapes use the fitted-Beta Lilliefors-type class.
+
+N. Smirnov (1948), "Table for Estimating the Goodness of Fit
+   of Empirical Distributions", Ann. Math. Statist. 19, 279-281.
+   https://doi.org/10.1214/aoms/1177730256
 
 ## Examples
 ```python

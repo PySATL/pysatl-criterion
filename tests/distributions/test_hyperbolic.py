@@ -8,9 +8,7 @@ from pysatl_criterion import DistributionType
 from pysatl_criterion.distribution.distributions import HyperbolicDistributionDescriptor
 from pysatl_criterion.statistics.alternative import (
     AlternativeType,
-    LeftAlternative,
     RightAlternative,
-    TwoSidedAlternative,
 )
 from pysatl_criterion.statistics.goodness_of_fit.hyperbolic import (
     AbstractHyperbolicGofStatistic,
@@ -179,16 +177,15 @@ def test_anderson_darling_hyperbolic_matches_scipy_reference(alpha, beta, delta,
 
 
 @pytest.mark.parametrize(
-    ("alternative_type", "alternative_class", "expected_side"),
+    ("alternative_type", "expected_side"),
     [
-        (AlternativeType.TWO_TAILED, TwoSidedAlternative, "two-sided"),
-        (AlternativeType.RIGHT, RightAlternative, "right"),
-        (AlternativeType.LEFT, LeftAlternative, "left"),
+        (AlternativeType.TWO_TAILED, "two-sided"),
+        (AlternativeType.RIGHT, "right"),
+        (AlternativeType.LEFT, "left"),
     ],
 )
 def test_kolmogorov_smirnov_hyperbolic_alternatives(
     alternative_type,
-    alternative_class,
     expected_side,
 ):
     """KS should calculate the deviation selected by its alternative."""
@@ -208,7 +205,7 @@ def test_kolmogorov_smirnov_hyperbolic_alternatives(
         beta=0.25,
     )
 
-    assert isinstance(statistic.alternative(), alternative_class)
+    assert isinstance(statistic.alternative(), RightAlternative)
     assert statistic.execute_statistic(_SAMPLE) == pytest.approx(expected)
 
 

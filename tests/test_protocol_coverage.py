@@ -230,7 +230,7 @@ def test_common_statistic_helpers_and_empty_multiple_testing_inputs():
     assert Chi2Statistic._m_sum(masked, axis=0, preserve_mask=True, xp=np) == 1
     assert Chi2Statistic._m_sum(masked, axis=0, preserve_mask=False, xp=np) == 1
     assert Chi2Statistic._m_sum(np.array([1.0, 2.0]), axis=0, preserve_mask=False, xp=np) == 3
-    assert np.isfinite(Chi2Statistic.do_execute_statistic(object(), [2, 3], np.array([1, 2]), -1))
+    assert np.isfinite(Chi2Statistic.do_execute_statistic(object(), [2, 3], np.array([1, 4]), -1))
     assert CrammerVonMisesStatistic.code() == "CVM"
     assert Holm.adjust([]) == []
     assert SidakHolm.adjust([]) == []

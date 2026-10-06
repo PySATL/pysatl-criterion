@@ -27,7 +27,7 @@ print(statistic_result)
 
 `beta` - second positive shape parameter of the beta distribution. Default value is `1`.
 
-`rvs` - array-like sample data passed to `execute_statistic`.
+`rvs` - a nonempty one-dimensional sample of finite values in `[0, 1]`, passed to `execute_statistic`. Both shape parameters must be finite. All these statistics reject for large values.
 
 ## Details
 The Cramer-von Mises statistic is
@@ -40,9 +40,12 @@ where $F_0$ is the reference beta cumulative distribution function.
 Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
 
 ## References
-Cramer, H. (1928): On the composition of elementary errors. - Skandinavisk Aktuarietidskrift, vol. 11, pp. 141-180.
 
-von Mises, R. (1931): Wahrscheinlichkeitsrechnung und ihre Anwendung in der Statistik und theoretischen Physik. - Leipzig: Deuticke.
+The reference studies the one-sample continuous-null W-squared statistic. This class applies it to a specified Beta CDF; neither shape is estimated.
+
+S. Csorgo and J. J. Faraway (1996), "The Exact and Asymptotic
+   Distributions of Cramer-von Mises Statistics", JRSS B 58, 221-234.
+   https://doi.org/10.1111/j.2517-6161.1996.tb02077.x
 
 ## Examples
 ```python

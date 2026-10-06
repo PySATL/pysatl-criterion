@@ -6,7 +6,8 @@ The statistic measures the largest discrepancy between the empirical distributio
 
 Hypothesis of Uniformity
 The null hypothesis is that the sample comes from a uniform distribution on the interval $[a, b]$.
-All observations passed to `execute_statistic` must lie inside this interval.
+Observations must be finite. Values outside the null interval are accepted;
+the reference CDF is 0 below `a` and 1 above `b`.
 
 Test Statistic
 The statistic is based on the maximum vertical distance between the empirical cumulative distribution function and the theoretical uniform cumulative distribution function.
@@ -37,7 +38,7 @@ print(statistic_result)
 ## Details
 For ordered observations $X_{(i)}$, the implementation evaluates
 
-$$ F_0(X_{(i)}) = \frac{X_{(i)} - a}{b - a} $$
+$$ F_0(X_{(i)}) = \min\left(1,\max\left(0,\frac{X_{(i)} - a}{b - a}\right)\right). $$
 
 and passes these values to the common Kolmogorov-Smirnov statistic implementation.
 Large values indicate stronger deviation from the uniform model.
@@ -51,13 +52,30 @@ Kolmogorov, A.N. (1933): Sulla determinazione empirica di una legge di distribuz
 Smirnov, N.V. (1948): Table for estimating the goodness of fit of empirical distributions. - Annals of Mathematical Statistics, vol. 19, pp. 279-281.
 
 ## Examples
+
+### Constructing with `from_parameters`
+
+Create `ParameterValues` with both fixed boundaries, then pass it to
+`from_parameters`. The method validates the supported parameterization and fixed
+parameter set before calling the constructor. Omitted bounds are not filled in:
+a partial mapping such as `{"a": 0}` raises `ValueError` in `from_parameters`.
+
 ```python
+from pysatl_criterion.distribution.distributions import UniformDistributionDescriptor as Uniform
 from pysatl_criterion.statistics.goodness_of_fit import (
     KolmogorovSmirnovUniformGofStatistic,
 )
 
 
-test_statistic = KolmogorovSmirnovUniformGofStatistic(a=0, b=1)
+parameters = Uniform.DEFAULT.parse({"a": 0, "b": 1})
+test_statistic = KolmogorovSmirnovUniformGofStatistic.from_parameters(parameters)
+assert test_statistic.hypothesis().parameters() == {"a": 0, "b": 1}
 statistic_result = test_statistic.execute_statistic([0.12, 0.25, 0.41, 0.53, 0.77, 0.91])
 print(statistic_result)
 ```
+
+To fix the default interval explicitly, use
+`Uniform.DEFAULT.parse({}, fill_defaults=True)` before calling `from_parameters`.
+This differs from `parse({})`, which declares no fixed bounds and is unsupported
+by this KS class. For unknown bounds, see the
+[Lilliefors-type implementation](lilliefors_uniform_criterion.md#examples).

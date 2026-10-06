@@ -27,9 +27,9 @@ print(statistic_result)
 `rvs` - array-like sample data passed to `execute_statistic`.
 
 ## Details
-The implementation standardizes the ordered observations to $[0, 1]$ and computes
+With $U_{(i)}=F_{a,b}(X_{(i)})$, the implementation computes
 
-$$ U^2 = \frac{1}{n}\sum_{i=1}^{n}\left(U_{(i)} - \frac{i}{n} + \frac{1}{2n} - \bar U\right)^2 + \frac{1}{12n^2}. $$
+$$ U^2 = \sum_{i=1}^{n}\left(U_{(i)} - \frac{2i-1}{2n} - \bar U + \frac12\right)^2 + \frac{1}{12n}. $$
 
 Large values indicate stronger deviation from the uniform model.
 
@@ -40,13 +40,24 @@ Aleksandr Podmarev, Alexey Mironov
 Watson, G.S. (1961): Goodness-of-fit tests on a circle. - Biometrika, vol. 48, pp. 109-114.
 
 ## Examples
+
+### Constructing with `from_parameters`
+
+Create `ParameterValues` with both fixed boundaries, then pass it to
+`from_parameters`. The method validates the supported parameterization and fixed
+parameter set before calling the constructor. Omitted bounds are not filled in:
+a partial mapping such as `{"a": 0}` raises `ValueError` in `from_parameters`.
+
 ```python
+from pysatl_criterion.distribution.distributions import UniformDistributionDescriptor as Uniform
 from pysatl_criterion.statistics.goodness_of_fit import (
     WatsonUniformGofStatistic,
 )
 
 
-test_statistic = WatsonUniformGofStatistic(a=0, b=1)
+parameters = Uniform.DEFAULT.parse({"a": 0, "b": 1})
+test_statistic = WatsonUniformGofStatistic.from_parameters(parameters)
+assert test_statistic.hypothesis().parameters() == {"a": 0, "b": 1}
 statistic_result = test_statistic.execute_statistic([0.12, 0.25, 0.41, 0.53, 0.77, 0.91])
 print(statistic_result)
 ```

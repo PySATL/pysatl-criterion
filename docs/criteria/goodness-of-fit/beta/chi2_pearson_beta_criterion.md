@@ -26,17 +26,33 @@ print(statistic_result)
 
 `lambda_` - power-divergence parameter passed to the common chi-squared statistic implementation. Default value is `1`.
 
-`rvs` - array-like sample data passed to `execute_statistic`.
+`rvs` - a nonempty one-dimensional sample of finite values in `[0, 1]`, passed to `execute_statistic`. Both shape parameters must be finite. All these statistics reject for large values.
 
 ## Details
 The implementation uses approximately $\sqrt n$ bins on $[0, 1]$.
 Expected frequencies are computed from beta CDF differences at the bin edges.
 
+The implementation uses `ceil(sqrt(n))` equal-width bins over `[0, 1]`.
+Upper-tail probabilities use survival-function differences to avoid CDF cancellation.
+Expected counts must remain representable and positive; no pooling of sparse bins
+is performed. With the growing bin count, a simple chi-squared approximation is
+not guaranteed. Calibrate for sample size, both shapes, and `lambda_`.
+Only `lambda_=1` is Pearson; other values compute power divergence.
+
 ## Author(s)
 Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
 
 ## References
-Pearson, K. (1900): On the criterion that a given system of deviations from the probable in the case of a correlated system of variables is such that it can be reasonably supposed to have arisen from random sampling. - Philosophical Magazine, vol. 50, pp. 157-175.
+
+K. Pearson (1900), "On the criterion that a given system of
+   deviations from the probable in the case of a correlated system of
+   variables is such that it can be reasonably supposed to have arisen
+   from random sampling", Philosophical Magazine 50, 157-175.
+   https://doi.org/10.1080/14786440009463897
+
+N. Cressie and T. R. C. Read (1984), "Multinomial Goodness-of-Fit
+   Tests", JRSS B 46, 440-464.
+   https://doi.org/10.1111/j.2517-6161.1984.tb01318.x
 
 ## Examples
 ```python

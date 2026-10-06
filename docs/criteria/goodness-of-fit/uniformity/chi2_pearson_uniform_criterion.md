@@ -42,13 +42,26 @@ Aleksandr Podmarev, Alexey Mironov
 Pearson, K. (1900): On the criterion that a given system of deviations from the probable in the case of a correlated system of variables is such that it can be reasonably supposed to have arisen from random sampling. - Philosophical Magazine, vol. 50, pp. 157-175.
 
 ## Examples
+
+### Constructing with `from_parameters`
+
+Create `ParameterValues` with both fixed boundaries, then pass it to
+`from_parameters`. The method validates the supported parameterization and fixed
+parameter set before calling the constructor. Omitted bounds are not filled in:
+a partial mapping such as `{"a": 0}` raises `ValueError` in `from_parameters`.
+
+Algorithm options (`bins` here) are passed separately, outside `ParameterValues`.
+
 ```python
+from pysatl_criterion.distribution.distributions import UniformDistributionDescriptor as Uniform
 from pysatl_criterion.statistics.goodness_of_fit import (
     Chi2PearsonUniformGofStatistic,
 )
 
 
-test_statistic = Chi2PearsonUniformGofStatistic(a=0, b=1, bins="sturges")
+parameters = Uniform.DEFAULT.parse({"a": 0, "b": 1})
+test_statistic = Chi2PearsonUniformGofStatistic.from_parameters(parameters, bins="sturges")
+assert test_statistic.hypothesis().parameters() == {"a": 0, "b": 1}
 statistic_result = test_statistic.execute_statistic([0.12, 0.25, 0.41, 0.53, 0.77, 0.91])
 print(statistic_result)
 ```

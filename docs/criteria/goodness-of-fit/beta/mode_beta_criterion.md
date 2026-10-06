@@ -1,6 +1,10 @@
 # Mode test for beta distribution
 
 ## Description
+
+No scientific source for this exact Beta formula was identified. This class is
+a locally defined discrepancy, not a claimed named published criterion.
+
 Performs mode-based goodness-of-fit test for the hypothesis that the sample comes from a beta distribution.
 The statistic compares an estimated sample mode with the theoretical beta distribution mode.
 
@@ -24,20 +28,33 @@ print(statistic_result)
 
 `beta` - second shape parameter of the beta distribution. Must be greater than `1`. Default value is `2`.
 
-`rvs` - array-like sample data passed to `execute_statistic`.
+`rvs` - a nonempty one-dimensional sample of finite values in `[0, 1]`, passed to `execute_statistic`. Both shape parameters must be finite. All these statistics reject for large values.
 
 ## Details
 For `alpha > 1` and `beta > 1`, the beta distribution mode is
 
 $$ \frac{\alpha - 1}{\alpha + \beta - 2}. $$
 
-The implementation estimates the sample mode with a Gaussian kernel density estimate on a grid and returns a scaled absolute difference from the theoretical mode.
+The implementation uses a Gaussian KDE with Scott bandwidth, locates candidate
+maxima on a grid over the sample range whose size grows with sample size, and
+refines each candidate by bounded optimization. The support boundaries are also
+checked. At least two observations and a nonconstant sample are required.
+The returned value is `sqrt(n) * abs(estimated_mode - theoretical_mode)`.
+The factor `sqrt(n)` is a scale convention, not a claim of asymptotic normality.
+Calibrate by simulation for both fixed shapes and sample size, using the same KDE
+procedure. Finite-sample KDE boundary bias remains; the search is numerical.
+
+This statistic compares selected distribution functionals and need not detect every
+non-Beta alternative. Previously generated critical values must be recalculated
+when the statistic or its estimator settings change.
 
 ## Author(s)
 Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
 
 ## References
-The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.beta`.
+
+No scientific article describing the exact implemented Beta statistic was identified.
+The formula is a locally defined discrepancy; no reference to a different test is substituted.
 
 ## Examples
 ```python

@@ -8,7 +8,6 @@ from pysatl_criterion.statistics.alternative import (
     Alternative,
     AlternativeType,
     RightAlternative,
-    TwoSidedAlternative,
 )
 from pysatl_criterion.statistics.statistic import AbstractStatistic
 
@@ -22,30 +21,15 @@ class KSStatistic(AbstractStatistic, ABC):
 
     @override
     def alternative(self) -> Alternative:
-        return Alternative.get_alternative(self.alternative_type)
+        return RightAlternative()
 
     def do_execute_statistic(self, rvs, cdf_vals=None):
-        """
-        Title: The Kolmogorov-Smirnov statistic for the Laplace distribution Ref. (book or article):
-        Puig, P. and Stephens, M. A. (2000). Tests of fit for the Laplace distribution, with
-        applications. Technometrics 42, 417-424.
+        """Compute D, D+ (RIGHT), or D- (LEFT) from aligned, sorted data and CDF values.
 
-        :param alternative: {'tTWO_TAILED', 'LEFT', 'RIGHT'}, optional
-        :param mode: {'auto', 'exact', 'approx', 'asymp'}, optional
-        Defines the distribution used for calculating the p-value.
-        The following options are available (default is 'auto'):
-
-          * 'auto' : selects one of the other options.
-          * 'exact' : uses the exact distribution of test statistic.
-          * 'approx' : approximates the TWO_TAILED probability with twice
-            the one-sided probability
-          * 'asymp': uses asymptotic distribution of test statistic
-        :param rvs: unsorted vector
-        :return:
-
-        Parameters
-        ----------
-        cdf_vals
+        ``alternative_type`` selects the direction of the empirical CDF deviation;
+        all three statistics reject for large values, so their test tail is RIGHT.
+        ``mode`` is retained for compatibility and does not affect the statistic
+        or calculate a p-value here.
         """
 
         d_minus, _ = KSStatistic.__compute_dminus(cdf_vals, rvs)
@@ -120,7 +104,7 @@ class LillieforsTest(KSStatistic, ABC):
 
     @override
     def alternative(self) -> Alternative:
-        return Alternative.get_alternative(LillieforsTest.alternative_type)
+        return RightAlternative()
 
     def do_execute_statistic(self, z, cdf_vals=None):
         return super().do_execute_statistic(z, cdf_vals)
@@ -157,11 +141,39 @@ class Chi2Statistic(AbstractStatistic, ABC):
             return s if preserve_mask else np.asarray(s)
         return xp.sum(a, axis=axis)
 
+    @staticmethod
+    def _validate_frequencies(f_obs, f_exp):
+        f_obs = np.asarray(f_obs, dtype=float)
+        f_exp = np.asarray(f_exp, dtype=float)
+        if f_obs.ndim != 1 or f_exp.ndim != 1 or f_obs.shape != f_exp.shape or not f_obs.size:
+            raise ValueError("Frequencies must be nonempty 1D arrays of the same shape")
+        if not np.all(np.isfinite(f_obs)) or not np.all(np.isfinite(f_exp)):
+            raise ValueError("Frequencies must be finite")
+        if np.any(f_obs < 0) or np.any(f_exp <= 0):
+            raise ValueError("Observed frequencies must be nonnegative and expected positive")
+        observed_total, expected_total = f_obs.sum(), f_exp.sum()
+        if not np.isfinite(observed_total) or not np.isfinite(expected_total):
+            raise ValueError("Frequency totals must be finite")
+        if not np.isclose(
+            observed_total, expected_total, rtol=np.sqrt(np.finfo(float).eps), atol=0
+        ):
+            raise ValueError("Observed and expected frequencies must have equal sums")
+        return f_obs, f_exp
+
     def do_execute_statistic(self, f_obs, f_exp, lambda_):
-        # `terms` is the array of terms that are summed along `axis` to create
-        # the test statistic.  We use some specialized code for a few special
-        # cases of lambda_.
-        f_obs = np.array(f_obs)
+        """Compute power divergence for matching observed and expected frequencies.
+
+        Zero observations use their mathematical limits: a finite contribution
+        for lambda_ > -1, and positive infinity for lambda_ <= -1.
+        Expected frequencies must be strictly positive; totals must agree within
+        a relative tolerance of sqrt(float64 epsilon).
+        """
+        f_obs, f_exp = Chi2Statistic._validate_frequencies(f_obs, f_exp)
+        if np.ndim(lambda_) != 0 or not np.isfinite(lambda_):
+            raise ValueError("lambda_ must be a finite scalar")
+        if lambda_ <= -1 and np.any(f_obs == 0):
+            return np.inf
+
         if lambda_ == 1:
             # Pearson's chi-squared statistic
             terms = (f_obs - f_exp) ** 2 / f_exp
@@ -172,8 +184,10 @@ class Chi2Statistic(AbstractStatistic, ABC):
             # Modified log-likelihood ratio
             terms = 2.0 * special.xlogy(f_exp, f_exp / f_obs)
         else:
-            # General Cressie-Read power divergence.
-            terms = f_obs * ((f_obs / f_exp) ** lambda_ - 1)
+            # For lambda_ > -1, zero observations contribute zero to this form.
+            positive = f_obs > 0
+            observed, expected = f_obs[positive], f_exp[positive]
+            terms = observed * ((observed / expected) ** lambda_ - 1)
             terms /= 0.5 * lambda_ * (lambda_ + 1)
 
         return terms.sum()
@@ -182,7 +196,7 @@ class Chi2Statistic(AbstractStatistic, ABC):
 class MinToshiyukiStatistic(AbstractStatistic, ABC):
     @override
     def alternative(self) -> Alternative:
-        return TwoSidedAlternative()
+        return RightAlternative()
 
     def do_execute_statistic(self, cdf_vals):
         n = len(cdf_vals)

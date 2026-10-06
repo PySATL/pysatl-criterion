@@ -24,7 +24,7 @@ print(statistic_result)
 
 `beta` - second positive shape parameter of the beta distribution. Default value is `1`.
 
-`rvs` - array-like sample data passed to `execute_statistic`.
+`rvs` - a nonempty one-dimensional sample of finite values in `[0, 1]`, passed to `execute_statistic`. Both shape parameters must be finite. All these statistics reject for large values.
 
 ## Details
 The implementation computes a Cramer-von Mises statistic from beta CDF values and subtracts the Watson correction term
@@ -37,7 +37,12 @@ Large values indicate stronger deviation from the beta model.
 Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
 
 ## References
-Watson, G.S. (1961): Goodness-of-fit tests on a circle. - Biometrika, vol. 48, pp. 109-114.
+
+The cited paper studies circular uniformity. Here its U-squared statistic is applied after the specified Beta CDF transform; circular rotation invariance concerns transformed values modulo one, not location shifts on the original Beta support.
+
+G. S. Watson (1961), "Goodness-of-fit tests on a circle",
+   Biometrika 48, 109-114.
+   https://doi.org/10.1093/biomet/48.1-2.109
 
 ## Examples
 ```python

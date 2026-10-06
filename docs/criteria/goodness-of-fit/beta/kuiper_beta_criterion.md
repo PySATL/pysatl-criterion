@@ -24,7 +24,7 @@ print(statistic_result)
 
 `beta` - second positive shape parameter of the beta distribution. Default value is `1`.
 
-`rvs` - array-like sample data passed to `execute_statistic`.
+`rvs` - a nonempty one-dimensional sample of finite values in `[0, 1]`, passed to `execute_statistic`. Both shape parameters must be finite. All these statistics reject for large values.
 
 ## Details
 The implementation computes
@@ -37,7 +37,12 @@ where $D^+$ and $D^-$ are the one-sided deviations between empirical plotting po
 Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
 
 ## References
-Kuiper, N.H. (1960): Tests concerning random points on a circle. - Proceedings of the Koninklijke Nederlandse Akademie van Wetenschappen, Series A, vol. 63, pp. 38-47.
+
+The cited paper studies circular uniformity. Here its unscaled V = D+ + D- statistic is applied after the specified Beta CDF transform. No estimated-shape calibration or finite-sample scaling correction is implied.
+
+N. H. Kuiper (1960), "Tests concerning random points on a
+   circle", Proc. K. Ned. Akad. Wet. A 63, 38-47.
+   https://doi.org/10.1016/S1385-7258(60)50006-0
 
 ## Examples
 ```python

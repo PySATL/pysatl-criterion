@@ -1,7 +1,6 @@
 from abc import ABC
 
 import numpy as np
-from numpy import histogram
 from scipy.optimize import minimize_scalar
 from scipy.special import gamma
 from scipy.stats import distributions
@@ -103,7 +102,10 @@ class MinToshiyukiWeibullGofStatistic(AbstractWeibullGofStatistic, MinToshiyukiS
 
 class Chi2PearsonWeibullGofStatistic(AbstractWeibullGofStatistic, Chi2Statistic):
     """
-    Pearson's Chi-squared test statistic for Weibull distribution.
+    Pearson statistic on equiprobable bins of the specified exponentiated Weibull law.
+
+    Uses ceil(sqrt(n)) bins covering the entire support. Bin boundaries depend
+    on the supplied a, k and sample size, not on observed extrema.
     """
 
     @staticmethod
@@ -135,12 +137,22 @@ class Chi2PearsonWeibullGofStatistic(AbstractWeibullGofStatistic, Chi2Statistic)
         :param rvs: array of observed data samples.
         :return: Chi-squared test statistic value.
         """
-        rvs_sorted = np.sort(rvs)
-        n = len(rvs)
-        (observed, bin_edges) = histogram(rvs_sorted, bins=int(np.ceil(np.sqrt(n))))
-        observed = observed / n
-        expected = generate_weibull_cdf(bin_edges, a=self.a, k=self.k)
-        expected = np.diff(expected)
+        sample = np.asarray(rvs, dtype=float)
+        if sample.ndim != 1 or not sample.size:
+            raise ValueError("Sample must be a nonempty 1D array")
+        if not np.all(np.isfinite(sample)) or np.any(sample < 0):
+            raise ValueError("Sample must contain finite nonnegative observations")
+        for parameter in (self.a, self.k):
+            if np.ndim(parameter) != 0 or not np.isfinite(parameter) or parameter <= 0:
+                raise ValueError("Weibull parameters a and k must be finite positive scalars")
+
+        n = sample.size
+        bins = int(np.ceil(np.sqrt(n)))
+        # Equal-width bins in CDF space are quantile bins in sample space.
+        # The endpoints include both tails, even when the CDF rounds to 0 or 1.
+        cdf_vals = generate_weibull_cdf(sample, a=self.a, k=self.k)
+        observed, _ = np.histogram(cdf_vals, bins=np.linspace(0.0, 1.0, bins + 1))
+        expected = np.full(bins, n / bins)
         return super().do_execute_statistic(observed, expected, 1)
 
 

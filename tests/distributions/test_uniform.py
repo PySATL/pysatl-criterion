@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import scipy.stats as scipy_stats
 
-from pysatl_criterion.statistics.alternative import RightAlternative
+from pysatl_criterion.statistics.alternative import TwoSidedAlternative
 from pysatl_criterion.statistics.goodness_of_fit.uniform import (
     AbstractUniformGofStatistic,
     AndersonDarlingUniformGofStatistic,
@@ -108,11 +108,9 @@ class TestKolmogorovSmirnovUniformGofStatistic:
         """Test that KS statistic validates input data."""
         stat = KolmogorovSmirnovUniformGofStatistic(a=0, b=1)
 
-        with pytest.raises(ValueError, match="Uniform distribution values must be in the interval"):
-            stat.execute_statistic([0.5, 1.5, 0.3])
-
-        with pytest.raises(ValueError, match="Uniform distribution values must be in the interval"):
-            stat.execute_statistic([-0.1, 0.5, 0.8])
+        for sample in ([0.5, 1.5, 0.3], [-0.1, 0.5, 0.8]):
+            expected = scipy_stats.kstest(sample, "uniform").statistic
+            assert stat.execute_statistic(sample) == pytest.approx(expected)
 
 
 class TestAndersonDarlingUniformGofStatistic:
@@ -142,12 +140,9 @@ class TestAndersonDarlingUniformGofStatistic:
 
         assert statistic_value < 2
 
-    def test_ad_validation_errors(self):
-        """Test that AD statistic validates input data."""
-        stat = AndersonDarlingUniformGofStatistic(a=0, b=1)
-
-        with pytest.raises(ValueError, match="Uniform distribution values must be in the interval"):
-            stat.execute_statistic([0.5, 1.5, 0.3])
+    def test_ad_outside_support(self):
+        """An impossible observation gives infinite Anderson-Darling distance."""
+        assert np.isinf(AndersonDarlingUniformGofStatistic().execute_statistic([0.5, 1.5, 0.3]))
 
 
 class TestCrammerVonMisesUniformGofStatistic:
@@ -177,12 +172,12 @@ class TestCrammerVonMisesUniformGofStatistic:
 
         assert statistic_value < 0.3
 
-    def test_cvm_validation_errors(self):
-        """Test that CVM statistic validates input data."""
-        stat = CrammerVonMisesUniformGofStatistic(a=0, b=1)
-
-        with pytest.raises(ValueError, match="Uniform distribution values must be in the interval"):
-            stat.execute_statistic([0.5, 1.5, 0.3])
+    def test_cvm_outside_support(self):
+        sample = [0.5, 1.5, 0.3]
+        expected = scipy_stats.cramervonmises(sample, "uniform").statistic
+        assert CrammerVonMisesUniformGofStatistic().execute_statistic(sample) == pytest.approx(
+            expected
+        )
 
 
 class TestLillieforsTestUniformGofStatistic:
@@ -204,7 +199,7 @@ class TestLillieforsTestUniformGofStatistic:
         np.random.seed(seed)
         data = np.random.uniform(a, b, n)
 
-        stat = LillieforsTestUniformGofStatistic(a=a, b=b)
+        stat = LillieforsTestUniformGofStatistic()
         statistic_value = stat.execute_statistic(data)
 
         assert statistic_value >= 0
@@ -325,7 +320,7 @@ class TestGreenwoodTestUniformGofStatistic:
 
         assert 0 <= statistic_value <= 1
 
-        expected = 2 / (n + 1)
+        expected = 2 / (n + 2)
         assert abs(statistic_value - expected) < 0.2
 
 
@@ -395,8 +390,8 @@ class TestSteinUniformGofStatistic:
     """Tests for Stein test statistic."""
 
     def test_alternative(self):
-        """Test that the Stein statistic uses a right-tailed alternative."""
-        assert isinstance(SteinUniformGofStatistic().alternative(), RightAlternative)
+        """Test that the Stein statistic uses a two-sided alternative."""
+        assert isinstance(SteinUniformGofStatistic().alternative(), TwoSidedAlternative)
 
     def test_code(self):
         """Test that the Stein statistic returns correct code."""
@@ -423,8 +418,6 @@ class TestSteinUniformGofStatistic:
         ("sample", "a", "b"),
         [
             ([0.1, 0.3, 0.7, 0.9], 0.0, 1.0),
-            ([0.5], 0.0, 1.0),
-            ([], 0.0, 1.0),
             ([2.0, 2.75, 4.25, 5.0], 2.0, 5.0),
             (np.array([0, 1, 1, 0], dtype=np.int64), 0.0, 1.0),
             ([0.2, 0.2, 0.8, 0.8], 0.0, 1.0),

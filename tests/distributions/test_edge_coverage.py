@@ -246,8 +246,8 @@ def test_weibull_family_base_paths(monkeypatch):
         weibull.LaplaceTransformWeibullGofStatistic.execute_statistic(object(), values, _type="bad")
 
 
-def test_uniform_fallback_bins_and_fully_censored_sample():
-    chi = uniform.Chi2PearsonUniformGofStatistic(bins="unknown")
-    assert np.isfinite(chi.execute_statistic(np.linspace(0.1, 0.9, 10)))
+def test_uniform_constant_sample_bins_and_fully_censored_sample():
+    chi = uniform.Chi2PearsonUniformGofStatistic(bins="auto")
+    assert np.isfinite(chi.execute_statistic(np.full(10, 0.5)))
     statistic = uniform.CensoredSteinUniformGofStatistic(a=1, b=2)
     assert statistic.execute_statistic(np.linspace(1.1, 1.9, 5), np.ones(5)) == 0

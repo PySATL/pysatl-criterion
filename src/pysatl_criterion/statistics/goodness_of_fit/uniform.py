@@ -1,13 +1,30 @@
+"""Uniform goodness-of-fit statistics.
+
+Except for the fitted-bound Lilliefors statistic, these tests use a specified
+U(a, b) null and expose both bounds in the hypothesis. Standardizing by the
+specified bounds does not make those bounds unknown parameters. Lilliefors
+fits the minimum and maximum and tests the full location-scale family.
+"""
+
 from abc import ABC
+from numbers import Integral
 
 import numpy as np
 import scipy.stats as scipy_stats
 from numba import njit
+from scipy.special import eval_legendre, ndtr
 from typing_extensions import override
 
 from pysatl_criterion import DistributionType
+from pysatl_criterion.distribution.distributions import UniformDistributionDescriptor as Uniform
+from pysatl_criterion.distribution.parameters import HypothesisSupport, ParameterValues
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
-from pysatl_criterion.statistics.alternative import Alternative, AlternativeType, RightAlternative
+from pysatl_criterion.statistics.alternative import (
+    Alternative,
+    AlternativeType,
+    RightAlternative,
+    TwoSidedAlternative,
+)
 from pysatl_criterion.statistics.goodness_of_fit.common import (
     ADStatistic,
     Chi2Statistic,
@@ -18,20 +35,52 @@ from pysatl_criterion.statistics.goodness_of_fit.common import (
 from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
+def _validate_sample(rvs, *, min_size=1):
+    sample = np.asarray(rvs, dtype=float)
+    if sample.ndim != 1 or sample.size < min_size:
+        raise ValueError(f"Sample must be one-dimensional with at least {min_size} observations")
+    if not np.all(np.isfinite(sample)):
+        raise ValueError("Sample must contain only finite values")
+    return sample
+
+
 class AbstractUniformGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     """
     Abstract base class for Uniform distribution goodness-of-fit statistics.
     """
 
     def __init__(self, a=0, b=1):
+        if not np.isfinite(a) or not np.isfinite(b):
+            raise ValueError("a and b must be finite")
         if b <= a:
             raise ValueError("b must be greater than a")
+        if not np.isfinite(b - a):
+            raise ValueError("b - a must be finite")
         self.a = a
         self.b = b
 
     @override
     def hypothesis(self) -> GoodnessOfFitHypothesis:
-        return GoodnessOfFitHypothesis({"a": self.a, "b": self.b})
+        return GoodnessOfFitHypothesis(Uniform.DEFAULT.parse({"a": self.a, "b": self.b}))
+
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (HypothesisSupport(Uniform.DEFAULT, frozenset(Uniform.DEFAULT.parameters)),)
+
+    @classmethod
+    def from_parameters(cls, parameters: ParameterValues, **options):
+        """Construct from a supported uniform parameterization without filling defaults.
+
+        ``parameters`` is produced by ``Uniform.DEFAULT.parse``. Fixed-bound
+        statistics require both ``a`` and ``b``; the fitted-bound Lilliefors-type
+        statistic requires an empty parameter set. Algorithm settings, such as
+        ``bins`` or ``test_type``, are forwarded separately through ``options``.
+        Unsupported schemas or fixed-parameter sets raise ``ValueError``.
+        Construction does not estimate bounds or evaluate a sample.
+        """
+        if not cls.supports_hypothesis(GoodnessOfFitHypothesis(parameters)):
+            raise ValueError("Unsupported Uniform hypothesis or parameterization")
+        return cls(**parameters.as_dict(), **options)
 
     @staticmethod
     @override
@@ -53,16 +102,10 @@ class AbstractUniformGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
         """
         return f"UNIFORM_{AbstractGoodnessOfFitStatistic.code()}"
 
-    def _validate_input(self, rvs):
-        """
-        Validate input data for Uniform distribution tests.
-
-        :param rvs: array of sample data to validate.
-        :return: validated numpy array.
-        :raises ValueError: if any value is outside the interval [a, b].
-        """
-        rvs_array = np.asarray(rvs)
-        if np.any((rvs_array < self.a) | (rvs_array > self.b)):
+    def _validate_input(self, rvs, *, require_bounds=True, min_size=1):
+        """Validate a finite sample; spacing and moment tests require support membership."""
+        rvs_array = _validate_sample(rvs, min_size=min_size)
+        if require_bounds and np.any((rvs_array < self.a) | (rvs_array > self.b)):
             raise ValueError(
                 f"Uniform distribution values must be in the interval [{self.a}, {self.b}]"
             )
@@ -106,10 +149,10 @@ class KolmogorovSmirnovUniformGofStatistic(AbstractUniformGofStatistic, KSStatis
         """
         Execute the Kolmogorov-Smirnov test statistic.
 
-        :param rvs: array of sample data from Uniform distribution (values in [a, b]).
+        :param rvs: nonempty one-dimensional sample of finite observations.
         :return: Kolmogorov-Smirnov test statistic value.
         """
-        rvs = self._validate_input(rvs)
+        rvs = self._validate_input(rvs, require_bounds=False)
 
         rvs_sorted = np.sort(rvs)
         cdf_vals = scipy_stats.uniform.cdf(rvs_sorted, loc=self.a, scale=self.b - self.a)
@@ -147,10 +190,10 @@ class AndersonDarlingUniformGofStatistic(AbstractUniformGofStatistic, ADStatisti
         """
         Execute the Anderson-Darling test statistic.
 
-        :param rvs: array of sample data from Uniform distribution (values in [a, b]).
+        :param rvs: nonempty one-dimensional sample of finite observations.
         :return: Anderson-Darling test statistic value.
         """
-        rvs = self._validate_input(rvs)
+        rvs = self._validate_input(rvs, require_bounds=False)
 
         rvs_sorted = np.sort(rvs)
         logcdf = scipy_stats.uniform.logcdf(rvs_sorted, loc=self.a, scale=self.b - self.a)
@@ -189,10 +232,10 @@ class CrammerVonMisesUniformGofStatistic(AbstractUniformGofStatistic, CrammerVon
         """
         Execute the Cramér-von Mises test statistic.
 
-        :param rvs: array of sample data from Uniform distribution (values in [a, b]).
+        :param rvs: nonempty one-dimensional sample of finite observations.
         :return: Cramér-von Mises test statistic value.
         """
-        rvs = self._validate_input(rvs)
+        rvs = self._validate_input(rvs, require_bounds=False)
 
         rvs_sorted = np.sort(rvs)
         cdf_vals = scipy_stats.uniform.cdf(rvs_sorted, loc=self.a, scale=self.b - self.a)
@@ -201,8 +244,24 @@ class CrammerVonMisesUniformGofStatistic(AbstractUniformGofStatistic, CrammerVon
 
 class LillieforsTestUniformGofStatistic(AbstractUniformGofStatistic, LillieforsTest):
     """
-    Lilliefors test statistic for Uniform distribution.
+    Lilliefors-type KS statistic with both bounds estimated by maximum likelihood.
+
+    The fitted bounds are the sample minimum and maximum. No distribution
+    parameters are accepted; the null is the entire uniform family. Calibration
+    must refit the bounds for every simulated sample (ordinary KS tables do not
+    apply). At least two distinct finite observations are required.
     """
+
+    def __init__(self):
+        """Initialize a statistic with no fixed distribution parameters."""
+
+    @override
+    def hypothesis(self) -> GoodnessOfFitHypothesis:
+        return GoodnessOfFitHypothesis(Uniform.DEFAULT.parse({}))
+
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (HypothesisSupport(Uniform.DEFAULT, frozenset()),)
 
     @staticmethod
     @override
@@ -230,13 +289,14 @@ class LillieforsTestUniformGofStatistic(AbstractUniformGofStatistic, LillieforsT
         """
         Execute the Lilliefors test statistic.
 
-        :param rvs: array of sample data from Uniform distribution (values in [a, b]).
+        :param rvs: nonempty one-dimensional sample of finite observations.
         :return: Lilliefors test statistic value.
         """
-        rvs = self._validate_input(rvs)
-
-        rvs_sorted = np.sort(rvs)
-        cdf_vals = scipy_stats.uniform.cdf(rvs_sorted, loc=self.a, scale=self.b - self.a)
+        rvs_sorted = np.sort(_validate_sample(rvs, min_size=2))
+        width = rvs_sorted[-1] - rvs_sorted[0]
+        if not np.isfinite(width) or width <= 0:
+            raise ValueError("Sample must have a positive, finite range")
+        cdf_vals = (rvs_sorted - rvs_sorted[0]) / width
         return LillieforsTest.do_execute_statistic(self, rvs_sorted, cdf_vals)
 
 
@@ -248,6 +308,13 @@ class Chi2PearsonUniformGofStatistic(AbstractUniformGofStatistic, Chi2Statistic)
     def __init__(self, a=0, b=1, lambda_=1, bins="sturges"):
         AbstractUniformGofStatistic.__init__(self, a, b)
         Chi2Statistic.__init__(self)
+        if not np.isfinite(lambda_):
+            raise ValueError("lambda_ must be finite")
+        if isinstance(bins, str):
+            if bins not in {"sturges", "sqrt", "auto"}:
+                raise ValueError("bins must be 'sturges', 'sqrt', 'auto', or an integer >= 2")
+        elif isinstance(bins, bool) or not isinstance(bins, Integral) or bins < 2:
+            raise ValueError("bins must be 'sturges', 'sqrt', 'auto', or an integer >= 2")
         self.lambda_ = lambda_
         self.bins = bins
 
@@ -289,10 +356,12 @@ class Chi2PearsonUniformGofStatistic(AbstractUniformGofStatistic, Chi2Statistic)
             elif self.bins == "sqrt":
                 num_bins = int(np.ceil(np.sqrt(n)))
             elif self.bins == "auto":
-                h = 3.5 * np.std(rvs) / (n ** (1 / 3))
-                num_bins = int(np.ceil((self.b - self.a) / h))
-            else:
-                num_bins = 10
+                # Work in unit coordinates, with Sturges as the constant-sample fallback.
+                h = 3.5 * np.std((rvs - self.a) / (self.b - self.a)) / (n ** (1 / 3))
+                # No more than n bins: nearly constant samples otherwise allocate huge arrays.
+                num_bins = (
+                    int(np.ceil(1 / max(h, 1 / n))) if h > 0 else int(np.ceil(np.log2(n) + 1))
+                )
         else:
             num_bins = int(self.bins)
         num_bins = max(2, num_bins)
@@ -341,19 +410,18 @@ class WatsonUniformGofStatistic(AbstractUniformGofStatistic):
         """
         Execute Watson's U² test statistic.
 
-        :param rvs: array of sample data from Uniform distribution (values in [a, b]).
+        :param rvs: nonempty one-dimensional sample of finite observations.
         :return: Watson's U² test statistic value.
         """
-        rvs = self._validate_input(rvs)
+        rvs = self._validate_input(rvs, require_bounds=False)
 
         n = len(rvs)
         rvs_sorted = np.sort(rvs)
-        rvs_standardized = (rvs_sorted - self.a) / (self.b - self.a)
+        rvs_standardized = scipy_stats.uniform.cdf(rvs_sorted, loc=self.a, scale=self.b - self.a)
 
         i = np.arange(1, n + 1)
-        fn = i / n
-        mean_f = np.mean(rvs_standardized)
-        u2 = np.sum((rvs_standardized - fn + 0.5 / n - mean_f) ** 2) / n + 1 / (12 * n**2)
+        centered = rvs_standardized - (i - 0.5) / n - np.mean(rvs_standardized) + 0.5
+        u2 = np.sum(centered**2) + 1 / (12 * n)
 
         return u2
 
@@ -396,17 +464,14 @@ class KuiperUniformGofStatistic(AbstractUniformGofStatistic):
         """
         Execute the Kuiper test statistic.
 
-        :param rvs: array of sample data from Uniform distribution (values in [a, b]).
+        :param rvs: nonempty one-dimensional sample of finite observations.
         :return: Kuiper test statistic value (D+ + D-).
         """
-        rvs = self._validate_input(rvs)
+        rvs = self._validate_input(rvs, require_bounds=False)
 
         n = len(rvs)
         rvs_sorted = np.sort(rvs)
-        if self.a != 0 or self.b != 1:
-            rvs_standardized = (rvs_sorted - self.a) / (self.b - self.a)
-        else:
-            rvs_standardized = rvs_sorted.copy()
+        rvs_standardized = scipy_stats.uniform.cdf(rvs_sorted, loc=self.a, scale=self.b - self.a)
 
         i = np.arange(1, n + 1)
         fn = i / n
@@ -470,7 +535,13 @@ class GreenwoodTestUniformGofStatistic(AbstractUniformGofStatistic):
 
 class BickelRosenblattUniformGofStatistic(AbstractUniformGofStatistic):
     """
-    Bickel-Rosenblatt test for Uniform distribution.
+    Bickel-Rosenblatt-type integrated squared density error on the unit interval.
+
+    Returns integral_0^1 (f_hat_h(u) - 1)^2 du for a Gaussian KDE of
+    (X-a)/(b-a), without asymptotic centering or n*sqrt(h) scaling. The bandwidth
+    is in unit-interval coordinates. Gaussian product integrals are evaluated
+    analytically, avoiding a grid that can miss narrow kernels. Calibration must
+    use this same definition and bandwidth rule, including boundary bias.
     """
 
     @override
@@ -479,6 +550,11 @@ class BickelRosenblattUniformGofStatistic(AbstractUniformGofStatistic):
 
     def __init__(self, a=0, b=1, bandwidth="auto"):
         AbstractUniformGofStatistic.__init__(self, a, b)
+        if isinstance(bandwidth, str):
+            if bandwidth != "auto":
+                raise ValueError("bandwidth must be 'auto' or a positive finite number")
+        elif not np.isfinite(bandwidth) or bandwidth <= 0:
+            raise ValueError("bandwidth must be 'auto' or a positive finite number")
         self.bandwidth = bandwidth
 
     @staticmethod
@@ -520,18 +596,18 @@ class BickelRosenblattUniformGofStatistic(AbstractUniformGofStatistic):
         else:
             h = self.bandwidth
 
-        x_grid = np.linspace(0, 1, 1000)
-        kde_vals = np.zeros_like(x_grid)
+        if not np.isfinite(h) or h <= 0:
+            raise ValueError("Automatic bandwidth is zero; provide a positive bandwidth")
 
-        for i, x in enumerate(x_grid):
-            kde_vals[i] = np.mean(scipy_stats.norm.pdf((x - rvs_std) / h)) / h
-
-        uniform_density = np.ones_like(x_grid)
-
-        dx = x_grid[1] - x_grid[0]
-        statistic = float(np.sum((kde_vals - uniform_density) ** 2)) * dx
-
-        return statistic
+        # Product of two N(x_i,h^2) densities: a constant times N(midpoint,h^2/2).
+        square_integral = 0.0
+        for x in rvs_std:
+            midpoint = (x + rvs_std) / 2
+            mass = ndtr(np.sqrt(2) * (1 - midpoint) / h) - ndtr(-np.sqrt(2) * midpoint / h)
+            square_integral += np.sum(np.exp(-0.25 * ((x - rvs_std) / h) ** 2) * mass)
+        square_integral /= 2 * np.sqrt(np.pi) * h * n**2
+        density_integral = np.mean(ndtr((1 - rvs_std) / h) - ndtr(-rvs_std / h))
+        return float(max(0.0, square_integral - 2 * density_integral + 1))
 
 
 class ZhangTestsUniformGofStatistic(AbstractUniformGofStatistic):
@@ -575,34 +651,33 @@ class ZhangTestsUniformGofStatistic(AbstractUniformGofStatistic):
         """
         Execute Zhang's test statistic.
 
-        :param rvs: array of sample data from Uniform distribution (values in [a, b]).
+        :param rvs: nonempty one-dimensional sample of finite observations.
         :return: Zhang test statistic value (depends on test_type).
         """
-        rvs = self._validate_input(rvs)
+        rvs = self._validate_input(rvs, require_bounds=False)
 
         n = len(rvs)
         rvs_sorted = np.sort(rvs)
 
-        rvs_std = (rvs_sorted - self.a) / (self.b - self.a)
-
+        u = scipy_stats.uniform.cdf(rvs_sorted, loc=self.a, scale=self.b - self.a)
+        if np.any((u == 0) | (u == 1)):
+            return np.inf
         i = np.arange(1, n + 1)
+        log_u = np.log(u)
+        log_sf = np.log1p(-u)
 
+        # Zhang (2002), DOI: 10.1111/1467-9868.00337.
         if self.test_type == "A":
-            term1 = np.sum(np.log(rvs_std) / (n - i + 0.5))
-            term2 = np.sum(np.log(1 - rvs_std) / (i - 0.5))
-            statistic = -term1 - term2
-
+            statistic = -np.sum(log_u / (n - i + 0.5) + log_sf / (i - 0.5))
         elif self.test_type == "C":
-            term1 = np.sum((np.log(rvs_std) / (n - i + 0.5)) ** 2)
-            term2 = np.sum((np.log(1 - rvs_std) / (i - 0.5)) ** 2)
-            statistic = term1 + term2
-
+            log_odds = np.log(n - i + 0.25) - np.log(i - 0.75)
+            statistic = np.sum((log_sf - log_u - log_odds) ** 2)
         else:
-            term1 = np.sum(np.log(rvs_std / (1 - rvs_std)) / (n - i + 0.5))
-            term2 = np.sum(np.log((1 - rvs_std) / rvs_std) / (i - 0.5))
-            statistic = max(np.abs(term1), np.abs(term2))
-
-        return statistic
+            p = (i - 0.5) / n
+            statistic = np.max(
+                (i - 0.5) * (np.log(p) - log_u) + (n - i + 0.5) * (np.log1p(-p) - log_sf)
+            )
+        return float(statistic)
 
 
 @njit
@@ -627,7 +702,11 @@ def _stein_uniform_statistic(rvs_std):  # pragma: no cover
 
 class SteinUniformGofStatistic(AbstractUniformGofStatistic):
     """
-    Stein-type test statistic for Uniform distribution based on U-statistics.
+    Signed Stein U-statistic for a specified uniform distribution, n >= 2.
+
+    Both tails are significant. The symmetric kernel is
+    (x*x + y*y)/2 - min(x,y) on standardized observations.
+    See Sreedevi and Kattumannil (2023), DOI: 10.1007/s42952-023-00205-8.
     """
 
     def __init__(self, a=0, b=1):
@@ -635,7 +714,7 @@ class SteinUniformGofStatistic(AbstractUniformGofStatistic):
 
     @override
     def alternative(self) -> Alternative:
-        return RightAlternative()
+        return TwoSidedAlternative()
 
     @staticmethod
     @override
@@ -666,7 +745,7 @@ class SteinUniformGofStatistic(AbstractUniformGofStatistic):
         :param rvs: array of sample data from Uniform distribution (values in [a, b]).
         :return: Stein-type U-statistic value.
         """
-        rvs = self._validate_input(rvs)
+        rvs = self._validate_input(rvs, min_size=2)
         if self.a != 0 or self.b != 1:
             rvs_std = (rvs - self.a) / (self.b - self.a)
         else:
@@ -683,13 +762,22 @@ class SteinUniformGofStatistic(AbstractUniformGofStatistic):
         :param rvs_std: array of standardized data in [0, 1].
         :return: U-statistic value.
         """
-        rvs_array = np.asarray(rvs_std, dtype=np.float64)
+        rvs_array = _validate_sample(rvs_std, min_size=2)
         return float(_stein_uniform_statistic(rvs_array))
 
 
 class CensoredSteinUniformGofStatistic(AbstractUniformGofStatistic):
     """
-    Stein-type test statistic for Uniform distribution with right censoring.
+    Signed IPCW Stein U-statistic under independent right censoring, n >= 2.
+
+    The indicator convention is 1=censored, 0=observed. Weights use the left
+    limit of the reverse Kaplan-Meier survival estimator. The denominator uses
+    all n observations, including censored ones. With fewer than two observed
+    events the sum is zero, which alone is not evidence of fit. Calibration for
+    censored data must reproduce the censoring mechanism; the generic complete-
+    data Monte Carlo resolver does not do that.
+
+    See Sreedevi and Kattumannil (2023), DOI: 10.1007/s42952-023-00205-8.
     """
 
     def __init__(self, a=0, b=1):
@@ -697,7 +785,7 @@ class CensoredSteinUniformGofStatistic(AbstractUniformGofStatistic):
 
     @override
     def alternative(self) -> Alternative:
-        return RightAlternative()
+        return TwoSidedAlternative()
 
     @staticmethod
     @override
@@ -730,17 +818,20 @@ class CensoredSteinUniformGofStatistic(AbstractUniformGofStatistic):
             0 indicates uncensored (default is None, meaning no censoring).
         :return: censored Stein-type test statistic value.
         """
-        rvs = self._validate_input(rvs)
+        rvs = self._validate_input(rvs, min_size=2)
 
         if self.a != 0 or self.b != 1:
             rvs_std = (rvs - self.a) / (self.b - self.a)
         else:
             rvs_std = rvs.copy()
 
-        if censoring_indices is None or np.all(censoring_indices == 0):
+        if censoring_indices is None:
             return SteinUniformGofStatistic(self.a, self.b).execute_statistic(rvs)
-
         censoring_indices = np.asarray(censoring_indices)
+        if censoring_indices.shape != rvs.shape or not np.all(np.isin(censoring_indices, [0, 1])):
+            raise ValueError("censoring_indices must match the sample and contain only 0 or 1")
+        if not np.any(censoring_indices):
+            return SteinUniformGofStatistic(self.a, self.b).execute_statistic(rvs)
 
         km_estimator = self._kaplan_meier(rvs_std, censoring_indices)
 
@@ -750,57 +841,46 @@ class CensoredSteinUniformGofStatistic(AbstractUniformGofStatistic):
 
     @staticmethod
     def _kaplan_meier(times, delta):
-        sort_idx = np.argsort(times)
-        times_sorted = times[sort_idx]
-        delta_sorted = delta[sort_idx]
-
-        n = len(times)
-        at_risk = np.arange(n, 0, -1)
-        km_survival = np.ones(n + 1)
-
-        for i in range(n):
-            if delta_sorted[i] == 1:
-                km_survival[i + 1] = km_survival[i] * (1 - 1 / at_risk[i])
-            else:
-                km_survival[i + 1] = km_survival[i]
+        """Return K_c(t-); observed events precede censorings at tied times."""
+        times = np.asarray(times)
+        delta = np.asarray(delta)
+        unique_times, inverse, counts = np.unique(times, return_inverse=True, return_counts=True)
+        censored_counts = np.bincount(inverse, weights=delta)
+        at_risk = len(times) - np.concatenate(([0], np.cumsum(counts[:-1])))
+        censoring_risk = at_risk - (counts - censored_counts)
+        hazard = np.divide(
+            censored_counts,
+            censoring_risk,
+            out=np.zeros_like(censored_counts),
+            where=censoring_risk > 0,
+        )
+        survival = np.concatenate(([1.0], np.cumprod(1 - hazard)))
 
         def survival_func(t):
-            idx = np.searchsorted(times_sorted, t, side="right")
-            return km_survival[idx]
+            return survival[np.searchsorted(unique_times, t, side="left")]
 
         return survival_func
 
     @staticmethod
     def _compute_weighted_u_statistic(rvs, delta, km_func):
         n = len(rvs)
-
-        def h1(x, y):
-            return 0.5 * (2 * max(x, y) - 2 * x - 2 * y + x**2 + y**2)
-
         weights = np.zeros(n)
         for i in range(n):
             if delta[i] == 0:
-                weights[i] = 1.0 / max(km_func(rvs[i]), 1e-10)
-            else:
-                weights[i] = 0
+                survival = km_func(rvs[i])
+                if survival <= 0:
+                    raise ValueError("Censoring survival must be positive at observed events")
+                weights[i] = 1 / survival
 
-        total = 0
-        count = 0
-
+        total = 0.0
         for i in range(n):
-            if delta[i] == 0:
-                for j in range(i + 1, n):
-                    if delta[j] == 0:
-                        weight_ij = weights[i] * weights[j]
-                        total += weight_ij * h1(rvs[i], rvs[j])
-                        count += 1
-
-        if count > 0:
-            statistic = 2 * total / count
-        else:
-            statistic = 0
-
-        return statistic
+            if weights[i] == 0:
+                continue
+            for j in range(i + 1, n):
+                if weights[j] != 0:
+                    kernel = (rvs[i] ** 2 + rvs[j] ** 2) / 2 - min(rvs[i], rvs[j])
+                    total += weights[i] * weights[j] * kernel
+        return 2 * total / (n * (n - 1))
 
 
 class NeymanSmoothTestUniformGofStatistic(AbstractUniformGofStatistic):
@@ -814,6 +894,8 @@ class NeymanSmoothTestUniformGofStatistic(AbstractUniformGofStatistic):
 
     def __init__(self, a=0, b=1, k=4):
         AbstractUniformGofStatistic.__init__(self, a, b)
+        if isinstance(k, bool) or not isinstance(k, Integral) or k < 1:
+            raise ValueError("k must be a positive integer")
         self.k = k
 
     @staticmethod
@@ -851,26 +933,12 @@ class NeymanSmoothTestUniformGofStatistic(AbstractUniformGofStatistic):
 
         rvs_std = (rvs - self.a) / (self.b - self.a)
 
-        from scipy.special import legendre
-
-        statistic = 0
-
-        def phi(j, x):
-            if j == 1:
-                return np.sqrt(12) * (x - 0.5)
-            elif j == 2:
-                return np.sqrt(5) * (6 * (x - 0.5) ** 2 - 0.5)
-            elif j == 3:
-                return np.sqrt(7) * (20 * (x - 0.5) ** 3 - 3 * (x - 0.5))
-            else:
-                pj = legendre(j)
-                return pj(2 * x - 1) * np.sqrt(2 * j + 1)
-
+        statistic = 0.0
         for j in range(1, self.k + 1):
-            vj = float(np.sum(phi(j, rvs_std))) / np.sqrt(n)
-            statistic += vj**2
-
-        return statistic
+            # Orthonormal shifted Legendre polynomials on [0,1].
+            phi = np.sqrt(2 * j + 1) * eval_legendre(j, 2 * rvs_std - 1)
+            statistic += np.sum(phi) ** 2 / n
+        return float(statistic)
 
 
 class ShermanUniformGofStatistic(AbstractUniformGofStatistic):
@@ -914,13 +982,13 @@ class ShermanUniformGofStatistic(AbstractUniformGofStatistic):
         rvs = self._validate_input(rvs)
 
         n = len(rvs)
-        x_sorted = np.sort(rvs)
+        x_sorted = np.sort((rvs - self.a) / (self.b - self.a))
 
-        x_with_boundaries = np.concatenate([[self.a], x_sorted, [self.b]])
+        x_with_boundaries = np.concatenate([[0.0], x_sorted, [1.0]])
 
         spacings = np.diff(x_with_boundaries)
 
-        expected_spacing = (self.b - self.a) / (n + 1)
+        expected_spacing = 1 / (n + 1)
         s = 0.5 * np.sum(np.abs(spacings - expected_spacing))
 
         return s
@@ -966,9 +1034,9 @@ class QuesenberryMillerUniformGofStatistic(AbstractUniformGofStatistic):
         """
         rvs = self._validate_input(rvs)
 
-        x_sorted = np.sort(rvs)
+        x_sorted = np.sort((rvs - self.a) / (self.b - self.a))
 
-        x_with_boundaries = np.concatenate([[self.a], x_sorted, [self.b]])
+        x_with_boundaries = np.concatenate([[0.0], x_sorted, [1.0]])
 
         spacings = np.diff(x_with_boundaries)
 

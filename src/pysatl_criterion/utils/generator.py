@@ -28,10 +28,18 @@ def get_hypothesis_generator(
 
         if statistic.distribution() == DistributionType.STUDENT:
             return TRVSGenerator.from_parameters(hypothesis.parameter_values)
+        if statistic.distribution() == DistributionType.UNIFORM:
+            return get_available_generator(DistributionType.UNIFORM, hypothesis.parameters())
         raise ValueError("No schema-aware sampler for this distribution")
     distribution = statistic.distribution()
     params = statistic.hypothesis().parameters()
     if distribution == DistributionType.BETA:
+        if "alpha" not in params or "beta" not in params:
+            raise ValueError(
+                "A composite Beta null has no parameter-free sampler; "
+                "calibration must specify simulation shapes externally and call "
+                "execute_statistic on each simulated sample"
+            )
         params = {"a": params.pop("alpha"), "b": params.pop("beta"), **params}
     elif distribution == DistributionType.GAMMA:
         params = {"alfa": params.pop("alpha"), **params}

@@ -341,7 +341,7 @@ class TestLillieforsTestBetaGofStatistic:
         assert "LILLIE_BETA_GOODNESS_OF_FIT" == LillieforsTestBetaGofStatistic.code()
 
     @pytest.mark.parametrize(
-        ("data", "alpha", "beta", "result"),
+        ("data", "result"),
         [
             (
                 [
@@ -356,9 +356,7 @@ class TestLillieforsTestBetaGofStatistic:
                     0.1982904719,
                     0.3762367882,
                 ],
-                2,
-                5,
-                0.1877694,
+                0.162452763942,
             ),
             (
                 [
@@ -373,15 +371,13 @@ class TestLillieforsTestBetaGofStatistic:
                     0.1494688017,
                     0.8260848760,
                 ],
-                3,
-                3,
-                0.2160485,
+                0.158289804227,
             ),
         ],
     )
-    def test_lillie_with_parametrized_data(self, data, alpha, beta, result):
+    def test_lillie_with_parametrized_data(self, data, result):
         """Test Lilliefors statistic with precomputed expected values."""
-        stat = LillieforsTestBetaGofStatistic(alpha=alpha, beta=beta)
+        stat = LillieforsTestBetaGofStatistic()
         statistic_value = stat.execute_statistic(data)
         assert result == pytest.approx(statistic_value, 0.00001)
 
@@ -646,7 +642,7 @@ class TestMomentBasedBetaGofStatistic:
                 ],
                 2,
                 5,
-                0.2349020,
+                0.4252810524,
             ),
             (
                 [
@@ -665,7 +661,7 @@ class TestMomentBasedBetaGofStatistic:
                 ],
                 1,
                 1,
-                0.3372358,
+                3.1707993554,
             ),
             (
                 [
@@ -682,7 +678,7 @@ class TestMomentBasedBetaGofStatistic:
                 ],
                 3,
                 3,
-                0.2891104,
+                0.8392253377,
             ),
         ],
     )
@@ -718,7 +714,7 @@ class TestSkewnessKurtosisBetaGofStatistic:
                 ],
                 2,
                 5,
-                0.7277307,
+                0.6914802305,
             ),
             (
                 [
@@ -737,7 +733,7 @@ class TestSkewnessKurtosisBetaGofStatistic:
                 ],
                 1,
                 1,
-                0.2648237,
+                4.4240979686,
             ),
             (
                 [
@@ -754,7 +750,7 @@ class TestSkewnessKurtosisBetaGofStatistic:
                 ],
                 3,
                 3,
-                0.2303306,
+                0.5711100875,
             ),
         ],
     )
@@ -902,7 +898,7 @@ class TestEntropyBetaGofStatistic:
                 ],
                 2,
                 5,
-                1.46457551,
+                1.6731857562,
             ),
             (
                 [
@@ -921,7 +917,7 @@ class TestEntropyBetaGofStatistic:
                 ],
                 1,
                 1,
-                1.64485770,
+                1.6448576978,
             ),
             (
                 [
@@ -938,7 +934,7 @@ class TestEntropyBetaGofStatistic:
                 ],
                 3,
                 3,
-                0.86392069,
+                1.0212145394,
             ),
         ],
     )
@@ -1008,7 +1004,7 @@ class TestModeBetaGofStatistic:
                 ],
                 2,
                 5,
-                0.03766130,
+                0.0326584311,
             ),
             (
                 [
@@ -1025,7 +1021,7 @@ class TestModeBetaGofStatistic:
                 ],
                 3,
                 3,
-                0.39711215,
+                0.3924417760,
             ),
         ],
     )
@@ -1063,7 +1059,7 @@ class TestBetaIntegration:
             KolmogorovSmirnovBetaGofStatistic(alpha=2, beta=5),
             AndersonDarlingBetaGofStatistic(alpha=2, beta=5),
             CrammerVonMisesBetaGofStatistic(alpha=2, beta=5),
-            LillieforsTestBetaGofStatistic(alpha=2, beta=5),
+            LillieforsTestBetaGofStatistic(),
             Chi2PearsonBetaGofStatistic(alpha=2, beta=5),
             WatsonBetaGofStatistic(alpha=2, beta=5),
             KuiperBetaGofStatistic(alpha=2, beta=5),

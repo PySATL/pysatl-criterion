@@ -44,13 +44,24 @@ Aleksandr Podmarev, Alexey Mironov
 Kuiper, N.H. (1960): Tests concerning random points on a circle. - Proceedings of the Koninklijke Nederlandse Akademie van Wetenschappen, Series A, vol. 63, pp. 38-47.
 
 ## Examples
+
+### Constructing with `from_parameters`
+
+Create `ParameterValues` with both fixed boundaries, then pass it to
+`from_parameters`. The method validates the supported parameterization and fixed
+parameter set before calling the constructor. Omitted bounds are not filled in:
+a partial mapping such as `{"a": 0}` raises `ValueError` in `from_parameters`.
+
 ```python
+from pysatl_criterion.distribution.distributions import UniformDistributionDescriptor as Uniform
 from pysatl_criterion.statistics.goodness_of_fit import (
     KuiperUniformGofStatistic,
 )
 
 
-test_statistic = KuiperUniformGofStatistic(a=0, b=1)
+parameters = Uniform.DEFAULT.parse({"a": 0, "b": 1})
+test_statistic = KuiperUniformGofStatistic.from_parameters(parameters)
+assert test_statistic.hypothesis().parameters() == {"a": 0, "b": 1}
 statistic_result = test_statistic.execute_statistic([0.12, 0.25, 0.41, 0.53, 0.77, 0.91])
 print(statistic_result)
 ```
