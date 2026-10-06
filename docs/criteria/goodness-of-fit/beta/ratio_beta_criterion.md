@@ -32,6 +32,8 @@ print(statistic_result)
 
 ## Details
 The sample statistic is the ratio of the geometric mean to the arithmetic mean.
+Its computation uses scaling by the sample maximum and log differences to avoid
+underflow at subnormal sample magnitudes.
 The theoretical ratio uses
 
 $$ E[X] = \frac{\alpha}{\alpha + \beta} $$
@@ -53,11 +55,6 @@ when the statistic or its estimator settings change.
 
 ## Author(s)
 Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
-
-## References
-
-No scientific article describing the exact implemented Beta statistic was identified.
-The formula is a locally defined discrepancy; no reference to a different test is substituted.
 
 ## Examples
 ```python

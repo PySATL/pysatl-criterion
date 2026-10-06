@@ -1,70 +1,75 @@
 # Test for exponentiality based on Ahsanullah characterization
 
-## Description
-Performs Ahsanullah test for the hypothesis of exponentiality, see e.g. Ahsanullah and Rahman (1972).
-The Ahsanullah test is a statistical hypothesis test used to assess whether a given sample of data is consistent with an exponential distribution. This test is based on a characterization of the exponential distribution through properties of order statistics and related distributional identities.
+Ahsanullah statistic for zero-origin exponential observations.
 
-Hypothesis of Exponentiality
-The hypothesis of exponentiality refers to the null hypothesis that the data comes from an exponential distribution. The exponential distribution is widely used in reliability theory, survival analysis, queuing theory, and other fields where waiting times or lifetimes are modeled.
+## Hypothesis, formula and calibration
 
-Test Statistic
-The Ahsanullah test statistic is based on comparing two empirical probabilities formed from pairs and single observations in the sample. Under exponentiality, the compared quantities are expected to be close. Large positive values of the statistic indicate departure from the exponential model in the right-tailed direction.
+H0 is Exp(lam), lam > 0 unknown, with known origin zero.
+``hypothesis().parameters()`` is empty. Positive rescaling leaves
+the statistic unchanged, so Exp(1) simulation is valid.
+Write n for sample size, x_(i) for sorted observations, and
+y=x/mean(x). The implemented formula is:
 
-Calculate the Test Statistic: The test statistic counts, over all triples of observations, how often the absolute difference of two observations is smaller than a third observation and how often twice the smaller of two observations is smaller than a third observation. The normalized difference between these counts is used as the statistic.
+    n**(-3) * sum_{i,j,k} (1{|x_i-x_j| < x_k}
+    - 1{2*min(x_i,x_j) < x_k}), including repeated indices.
 
-Limitations
-The statistic uses a triple summation over the sample, so the direct computation can be expensive for large sample sizes.
+Reject in the upper tail. This is a directional test; it is not
+claimed consistent against every nonexponential alternative.
+Use independent continuous, uncensored observations. Rounded or tied
+data require calibration of the observation process. No parameters
+are retained from a previous call. Rescaling uses a power of two
+to preserve exact binary ties; unrepresentable positive ratios raise
+ValueError. Strict comparisons near floating-point boundaries can
+still depend on roundoff.
+A primary source establishing this exact implemented convention
+was not verified in the review; no published tables or asymptotic
+law are endorsed unless derived explicitly above. See the audit.
 
-The test is designed around the characterization of exponentiality and should be calibrated with appropriate critical values or simulation when exact finite-sample behavior is required.
+The constructor has no arguments; `lam` is unknown and is not accepted.
 
-## Usage
+## Sample and result
+
+```text
+Compute the Ahsanullah scalar statistic.
+
+Parameters
+----------
+rvs : array_like, shape (n,)
+    Finite nonnegative observations; n >= 2. The total must be positive.
+    A copy is used. Ties and positive constants are allowed except
+    where they make the formula undefined (see Notes on the class).
+**kwargs : dict
+    No execution settings are supported; configure the constructor.
+
+Returns
+-------
+statistic : float
+    Value in the convention documented on the class. Infinite
+    boundary values are retained where the formula has that limit.
+
+Raises
+------
+ValueError
+    Invalid sample, insufficient observations, invalid sample-dependent
+    setting, undefined ratio, or rescaling underflow of positive data.
+TypeError
+    Unsupported execution keyword arguments.
+```
+
+## Example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.statistics.goodness_of_fit.exponent import (
     AhsanullahExponentialityGofStatistic,
 )
 
-
-test_statistic = AhsanullahExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
+statistic = AhsanullahExponentialityGofStatistic()
+value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
+print(value)
 ```
-
-## Arguments
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-
-The Ahsanullah test is a test for the hypothesis of exponentiality based on a characterization of the exponential distribution. The test statistic is
-
-$$ A_n = \frac{H_n - G_n}{n^3} $$
-
-where
-
-$$ H_n = \sum_{k=1}^{n} \sum_{i=1}^{n} \sum_{j=1}^{n} I(|X_i - X_j| < X_k) $$
-
-and
-
-$$ G_n = \sum_{k=1}^{n} \sum_{i=1}^{n} \sum_{j=1}^{n} I(2 min(X_i, X_j) < X_k). $$
-
-Here $I(\cdot)$ is the indicator function and $n$ is the sample size. The implemented statistic returns the normalized difference between these two triple counts.
 
 ## Author(s)
+
 Lev Golofastov
 
-## References
-Ahsanullah, M. and Rahman, M. (1972): A characterization of the exponential distribution. - Journal of Applied Probability, vol. 9, no. 2, pp. 457-461.
-
-Henze, N. and Meintanis, S.G. (2005): Recent and classical tests for exponentiality: a partial review with comparisons. - Metrika, vol. 61, pp. 29-45.
-
-## Examples
-
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    AhsanullahExponentialityGofStatistic,
-)
-
-
-test_statistic = AhsanullahExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
-```
+See the [current audit and migration notes](../../../exponent-statistics-audit.md).

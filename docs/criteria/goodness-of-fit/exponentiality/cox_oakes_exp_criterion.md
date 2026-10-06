@@ -1,73 +1,74 @@
 # Test for exponentiality of Cox and Oakes
 
-## Description
-Performs Cox and Oakes test for the composite hypothesis of exponentiality, see e.g. Henze and Meintanis (2005, Sec. 2.5).
-The Cox and Oakes test is a statistical hypothesis test used to assess the composite hypothesis of exponentiality. This test is designed to determine whether a given sample of data is consistent with an exponential distribution, which is a common model for lifetime, waiting-time, reliability, and survival data.
+CoxOakes statistic for zero-origin exponential observations.
 
-Composite Hypothesis of Exponentiality
-The composite hypothesis of exponentiality refers to the null hypothesis that the data comes from an exponential distribution with an unspecified rate parameter
-lambda. The Cox and Oakes statistic uses normalized observations, so the unknown scale is removed by dividing each observation by the sample mean.
+## Hypothesis, formula and calibration
 
-Test Statistic
-The Cox and Oakes test statistic is based on a score-type approach for testing exponentiality. The statistic uses the transformed observations $Y_j=X_j/\overline{X}$ and combines them through the logarithmic term $(1-Y_j)\log(Y_j)$.
+H0 is Exp(lam), lam > 0 unknown, with known origin zero.
+``hypothesis().parameters()`` is empty. Positive rescaling leaves
+the statistic unchanged, so Exp(1) simulation is valid.
+Write n for sample size, x_(i) for sorted observations, and
+y=x/mean(x). The implemented formula is:
 
-Calculate the Test Statistic: The observations are divided by the sample mean, the logarithmic score terms are summed, and the sample size is added to obtain the Cox and Oakes statistic.
+    n + sum((1-y)*log(y)), the signed Weibull shape score.
+    A zero observation gives negative infinity.
 
-Limitations
-The test assumes positive lifetime-type observations, since the statistic uses logarithms of normalized data.
+Reject in both tails. Calibrate the exact statistic returned here.
+Use independent continuous, uncensored observations. Rounded or tied
+data require calibration of the observation process. No parameters
+are retained from a previous call. Rescaling uses a power of two
+to preserve exact binary ties; unrepresentable positive ratios raise
+ValueError. Strict comparisons near floating-point boundaries can
+still depend on roundoff.
+A primary source establishing this exact implemented convention
+was not verified in the review; no published tables or asymptotic
+law are endorsed unless derived explicitly above. See the audit.
 
-The asymptotic normal approximation may require moderate or large sample sizes; simulation-based calibration can be useful for small samples.
+The constructor has no arguments; `lam` is unknown and is not accepted.
 
-## Usage
+## Sample and result
+
+```text
+Compute the CoxOakes scalar statistic.
+
+Parameters
+----------
+rvs : array_like, shape (n,)
+    Finite nonnegative observations; n >= 2. The total must be positive.
+    A copy is used. Ties and positive constants are allowed except
+    where they make the formula undefined (see Notes on the class).
+**kwargs : dict
+    No execution settings are supported; configure the constructor.
+
+Returns
+-------
+statistic : float
+    Value in the convention documented on the class. Infinite
+    boundary values are retained where the formula has that limit.
+
+Raises
+------
+ValueError
+    Invalid sample, insufficient observations, invalid sample-dependent
+    setting, undefined ratio, or rescaling underflow of positive data.
+TypeError
+    Unsupported execution keyword arguments.
+```
+
+## Example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.statistics.goodness_of_fit.exponent import (
     CoxOakesExponentialityGofStatistic,
 )
 
-
-test_statistic = CoxOakesExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
+statistic = CoxOakesExponentialityGofStatistic()
+value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
+print(value)
 ```
-
-## Arguments
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-
-The Cox and Oakes test is a test for the composite hypothesis of exponentiality. The test statistic is
-
-$$ CO_n = n + \sum_{j=1}^{n}(1-Y_j)\log(Y_j) $$
-
-where
-
-$$ Y_j = \frac{X_j}{\overline{X}}. $$
-
-Here $n$ is the sample size and $\overline{X}$ is the sample mean. The statistic is scale invariant because it is calculated from the normalized observations $Y_j$.
-
-Under the null hypothesis of exponentiality,
-
-$$ \left(\frac{6}{n}\right)^{1/2}\frac{CO_n}{\pi} $$
-
-is asymptotically standard normal (see, e.g., Henze and Meintanis (2005, Sec. 2.5)).
 
 ## Author(s)
+
 Lev Golofastov
 
-## References
-Henze, N. and Meintanis, S.G. (2005): Recent and classical tests for exponentiality: a partial review with comparisons. - Metrika, vol. 61, pp. 29-45.
-
-Cox, D.R. and Oakes, D. (1984): Analysis of Survival Data. - London: Chapman and Hall.
-
-## Examples
-
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    CoxOakesExponentialityGofStatistic,
-)
-
-
-test_statistic = CoxOakesExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
-```
+See the [current audit and migration notes](../../../exponent-statistics-audit.md).

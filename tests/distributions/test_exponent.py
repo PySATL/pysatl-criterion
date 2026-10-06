@@ -1,4 +1,8 @@
+import itertools
+
+import numpy as np
 import pytest
+from scipy.stats import expon
 
 from pysatl_criterion.statistics.goodness_of_fit.exponent import (
     AbstractExponentialityGofStatistic,
@@ -48,6 +52,10 @@ def test_abstract_exponentiality_criterion_code():
     ],
 )
 def test_ahs_exponentiality_criterion(data, result):
+    if min(data) < 0:
+        with pytest.raises(ValueError, match="nonnegative"):
+            AhsanullahExponentialityGofStatistic().execute_statistic(data)
+        return
     statistic = AhsanullahExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
@@ -128,6 +136,10 @@ def test_dsp_exponentiality_criterion_code():
     ],
 )
 def test_ep_exponentiality_criterion(data, result):
+    if min(data) < 0:
+        with pytest.raises(ValueError, match="nonnegative"):
+            EppsPulleyExponentialityGofStatistic().execute_statistic(data)
+        return
     statistic = EppsPulleyExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
@@ -208,6 +220,10 @@ def test_gini_exponentiality_criterion_code():
     ],
 )
 def test_mean_vertex_degree_criterion(data, result):
+    edges = sum(
+        abs(a - b) < (max(data) - min(data)) / 10 for a, b in itertools.combinations(data, 2)
+    )
+    result = 2 * edges / len(data)
     statistic = GraphAverageDegreeExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
@@ -246,6 +262,10 @@ def test_number_of_components_criterion_code():
     ],
 )
 def test_graph_edges_number_exponentiality_criterion(data, result):
+    edges = sum(
+        abs(a - b) < (max(data) - min(data)) / 10 for a, b in itertools.combinations(data, 2)
+    )
+    result = edges
     statistic = GraphEdgesNumberExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
@@ -314,14 +334,11 @@ def test_independence_number_exponentiality_criterion_code():
     )
 
 
-@pytest.mark.parametrize(
-    ("data", "result"),
-    [
-        ([1, 2, 3, 4, 5, 6, 7], 3.1384),
-        ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 4.6125),
-    ],
-)
-def test_hg1_exponentiality_criterion(data, result):
+@pytest.mark.parametrize("data", [list(range(1, 8)), list(range(1, 11))])
+def test_hg1_exponentiality_criterion(data):
+    # Independent exponential quantiles, with scale fitted to this sample.
+    q = expon.ppf(np.arange(1, len(data) + 1) / (len(data) + 1), scale=np.mean(data))
+    result = np.mean((np.abs(np.sort(data) - q) / np.mean(data)) ** 1)
     statistic = HegazyGreen1ExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
@@ -330,14 +347,11 @@ def test_hg1_exponentiality_criterion_code():
     assert "HG1_EXPONENTIALITY_GOODNESS_OF_FIT" == HegazyGreen1ExponentialityGofStatistic().code()
 
 
-@pytest.mark.parametrize(
-    ("data", "result"),
-    [
-        ([1, 2, 3, 4, 5, 6, 7], 11.81),
-        ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 26.207),
-    ],
-)
-def test_hg2_exponentiality_criterion(data, result):
+@pytest.mark.parametrize("data", [list(range(1, 8)), list(range(1, 11))])
+def test_hg2_exponentiality_criterion(data):
+    # Independent exponential quantiles, with scale fitted to this sample.
+    q = expon.ppf(np.arange(1, len(data) + 1) / (len(data) + 1), scale=np.mean(data))
+    result = np.mean((np.abs(np.sort(data) - q) / np.mean(data)) ** 2)
     statistic = HegazyGreen2ExponentialityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 

@@ -1,70 +1,75 @@
 # Test for exponentiality of Wong and Wong
 
-## Description
-Performs Wong and Wong test for the composite hypothesis of exponentiality, see e.g. Wong and Wong (1979).
-The Wong and Wong test is a statistical hypothesis test used to assess the composite hypothesis of exponentiality. This test is designed to determine whether a given sample of data is consistent with an exponential distribution by using the extremal quotient of the sample.
+WongWong statistic for zero-origin exponential observations.
 
-Composite Hypothesis of Exponentiality
-The composite hypothesis of exponentiality refers to the null hypothesis that the data comes from an exponential distribution with an unspecified rate parameter
-lambda. The Wong and Wong statistic is scale invariant because it is calculated as a ratio of the largest and smallest order statistics.
+## Hypothesis, formula and calibration
 
-Test Statistic
-The Wong and Wong test statistic is based on the extremal quotient. It compares the maximum observation with the minimum observation and uses the resulting ratio as evidence about departure from exponentiality.
+H0 is Exp(lam), lam > 0 unknown, with known origin zero.
+``hypothesis().parameters()`` is empty. Positive rescaling leaves
+the statistic unchanged, so Exp(1) simulation is valid.
+Write n for sample size, x_(i) for sorted observations, and
+y=x/mean(x). The implemented formula is:
 
-Calculate the Test Statistic: The smallest and largest observations are found, and the largest observation is divided by the smallest observation.
+    max(x)/min(x), the raw extremal quotient, without a log
+    transform. A zero minimum and positive maximum give positive infinity.
 
-Limitations
-The test assumes strictly positive lifetime-type observations because the sample minimum is used as the denominator.
+Reject in the upper tail. This is a directional test; it is not
+claimed consistent against every nonexponential alternative.
+Use independent continuous, uncensored observations. Rounded or tied
+data require calibration of the observation process. No parameters
+are retained from a previous call. Rescaling uses a power of two
+to preserve exact binary ties; unrepresentable positive ratios raise
+ValueError. Strict comparisons near floating-point boundaries can
+still depend on roundoff.
+A primary source establishing this exact implemented convention
+was not verified in the review; no published tables or asymptotic
+law are endorsed unless derived explicitly above. See the audit.
 
-The statistic depends only on the two extreme observations and can be sensitive to outliers or measurement errors at the sample extremes.
+The constructor has no arguments; `lam` is unknown and is not accepted.
 
-## Usage
+## Sample and result
+
+```text
+Compute the WongWong scalar statistic.
+
+Parameters
+----------
+rvs : array_like, shape (n,)
+    Finite nonnegative observations; n >= 2. The total must be positive.
+    A copy is used. Ties and positive constants are allowed except
+    where they make the formula undefined (see Notes on the class).
+**kwargs : dict
+    No execution settings are supported; configure the constructor.
+
+Returns
+-------
+statistic : float
+    Value in the convention documented on the class. Infinite
+    boundary values are retained where the formula has that limit.
+
+Raises
+------
+ValueError
+    Invalid sample, insufficient observations, invalid sample-dependent
+    setting, undefined ratio, or rescaling underflow of positive data.
+TypeError
+    Unsupported execution keyword arguments.
+```
+
+## Example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.statistics.goodness_of_fit.exponent import (
     WongWongExponentialityGofStatistic,
 )
 
-
-test_statistic = WongWongExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
+statistic = WongWongExponentialityGofStatistic()
+value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
+print(value)
 ```
-
-## Arguments
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-
-The Wong and Wong test is a test for the composite hypothesis of exponentiality. Let
-$X_{(1)} \leq \cdots \leq X_{(n)}$ denote the ordered sample. The test statistic implemented here is
-
-$$ WW_n = \frac{X_{(n)}}{X_{(1)}}. $$
-
-Here $n$ is the sample size, $X_{(1)}$ is the sample minimum, and $X_{(n)}$ is the sample maximum.
-
-The statistic is scale free because multiplying all observations by the same positive constant leaves $WW_n$ unchanged.
-
-Large values of $WW_n$ indicate larger deviations from the exponential model in the direction used by the implemented right-sided alternative.
 
 ## Author(s)
+
 Lev Golofastov
 
-## References
-Wong, P.G. and Wong, S.P. (1979): An extremal quotient test for exponential distributions. - Metrika, vol. 26, pp. 1-4.
-
-Ascher, S. (1990): A survey of tests for exponentiality. - Communications in Statistics - Theory and Methods, vol. 19, pp. 1811-1825.
-
-Henze, N. and Meintanis, S.G. (2005): Recent and classical tests for exponentiality: a partial review with comparisons. - Metrika, vol. 61, pp. 29-45.
-
-## Examples
-
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    WongWongExponentialityGofStatistic,
-)
-
-
-test_statistic = WongWongExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
-```
+See the [current audit and migration notes](../../../exponent-statistics-audit.md).

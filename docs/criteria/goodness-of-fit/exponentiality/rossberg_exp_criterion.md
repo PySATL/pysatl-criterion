@@ -1,79 +1,77 @@
 # Test for exponentiality based on Rossberg characterization
 
-## Description
-Performs a test for the composite hypothesis of exponentiality based on Rossberg characterization, see e.g. Rossberg (1972) and Volkova (2010).
-The Rossberg test is a statistical hypothesis test used to assess the composite hypothesis of exponentiality. This test is designed to determine whether a given sample of data is consistent with an exponential distribution by comparing empirical distributions motivated by a characterization involving differences of order statistics.
+Rossberg statistic for zero-origin exponential observations.
 
-Composite Hypothesis of Exponentiality
-The composite hypothesis of exponentiality refers to the null hypothesis that the data comes from an exponential distribution with an unspecified rate parameter
-lambda. The Rossberg statistic is scale invariant because the characterization uses comparisons between sample observations and differences of order statistics.
+## Hypothesis, formula and calibration
 
-Test Statistic
-The Rossberg test statistic is based on a characterization of the exponential distribution using order statistics. It compares the empirical distribution of the difference between the first two order statistics in triples with the empirical distribution of the minimum of pairs.
+H0 is Exp(lam), lam > 0 unknown, with known origin zero.
+``hypothesis().parameters()`` is empty. Positive rescaling leaves
+the statistic unchanged, so Exp(1) simulation is valid.
+Write n for sample size, x_(i) for sorted observations, and
+y=x/mean(x). The implemented formula is:
 
-Calculate the Test Statistic: For each observation, count the proportion of sample triples for which the second order statistic minus the first order statistic is smaller than that observation, subtract the corresponding proportion of sample pairs for which the pair minimum is smaller than that observation, and average the differences over the sample.
+    mean_k(H(x_k)-G(x_k)), where H averages
+    1{x_(2:3)-x_(1:3) < t} over distinct unordered triples and G
+    averages 1{min(x_i,x_j) < t} over distinct unordered pairs.
+    This is a signed integral contrast with strict inequalities.
 
-Limitations
-The test assumes nonnegative lifetime-type observations.
+Reject in the upper tail. This is a directional test; it is not
+claimed consistent against every nonexponential alternative.
+Use independent continuous, uncensored observations. Rounded or tied
+data require calibration of the observation process. No parameters
+are retained from a previous call. Rescaling uses a power of two
+to preserve exact binary ties; unrepresentable positive ratios raise
+ValueError. Strict comparisons near floating-point boundaries can
+still depend on roundoff.
+A primary source establishing this exact implemented convention
+was not verified in the review; no published tables or asymptotic
+law are endorsed unless derived explicitly above. See the audit.
 
-The implementation uses nested loops over triples and pairs, so computation can be expensive for large samples.
+The constructor has no arguments; `lam` is unknown and is not accepted.
 
-## Usage
+## Sample and result
+
+```text
+Compute the Rossberg scalar statistic.
+
+Parameters
+----------
+rvs : array_like, shape (n,)
+    Finite nonnegative observations; n >= 3. The total must be positive.
+    A copy is used. Ties and positive constants are allowed except
+    where they make the formula undefined (see Notes on the class).
+**kwargs : dict
+    No execution settings are supported; configure the constructor.
+
+Returns
+-------
+statistic : float
+    Value in the convention documented on the class. Infinite
+    boundary values are retained where the formula has that limit.
+
+Raises
+------
+ValueError
+    Invalid sample, insufficient observations, invalid sample-dependent
+    setting, undefined ratio, or rescaling underflow of positive data.
+TypeError
+    Unsupported execution keyword arguments.
+```
+
+## Example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.statistics.goodness_of_fit.exponent import (
     RossbergExponentialityGofStatistic,
 )
 
-
-test_statistic = RossbergExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
+statistic = RossbergExponentialityGofStatistic()
+value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
+print(value)
 ```
-
-## Arguments
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-
-The Rossberg test is a test for the composite hypothesis of exponentiality. Let $F_n$ be the empirical distribution function. Define
-
-$$ H_n(t) = {n \choose 3}^{-1}\sum_{1 \leq i<j<k \leq n} I(X_{2,\{i,j,k\}}-X_{1,\{i,j,k\}} < t), $$
-
-where $X_{1,\{i,j,k\}}$ and $X_{2,\{i,j,k\}}$ are the first and second order statistics of the triple $X_i,X_j,X_k$. Also define
-
-$$ G_n(t) = {n \choose 2}^{-1}\sum_{1 \leq i<j \leq n} I(\min(X_i,X_j) < t). $$
-
-The test statistic implemented here is
-
-$$ RS_n = \int_{0}^{\infty}(H_n(t)-G_n(t))dF_n(t). $$
-
-In computational form this is the sample average of $H_n(X_m)-G_n(X_m)$ over $m=1,\ldots,n$.
-
-Under exponentiality,
-
-$$ \sqrt{n}RS_n \xrightarrow{d} N\left(0,\frac{52}{1125}\right). $$
-
-Large values of $RS_n$ indicate larger deviations from the exponential model in the direction used by the implemented right-sided alternative.
 
 ## Author(s)
+
 Lev Golofastov
 
-## References
-Rossberg, H.J. (1972): Characterization of the exponential and the Pareto distributions by means of some properties of the distributions which the differences and quotients of order statistics are subject to. - Mathematische Operationsforschung und Statistik, vol. 3, no. 3, pp. 207-216. https://doi.org/10.1080/02331887208801077
-
-Volkova, K.Yu. (2010): On asymptotic efficiency of exponentiality tests based on Rossberg characterization. - Journal of Mathematical Sciences, vol. 167, no. 4, pp. 486-494.
-
-Henze, N. and Meintanis, S.G. (2005): Recent and classical tests for exponentiality: a partial review with comparisons. - Metrika, vol. 61, pp. 29-45.
-
-## Examples
-
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    RossbergExponentialityGofStatistic,
-)
-
-
-test_statistic = RossbergExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
-```
+See the [current audit and migration notes](../../../exponent-statistics-audit.md).

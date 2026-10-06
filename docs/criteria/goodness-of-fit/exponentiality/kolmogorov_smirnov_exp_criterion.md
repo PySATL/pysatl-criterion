@@ -1,63 +1,87 @@
 # Test for exponentiality of Kolmogorov and Smirnov
 
-## Description
-Performs Kolmogorov-Smirnov test for the hypothesis of exponentiality.
-The Kolmogorov-Smirnov test is a classical empirical distribution function test used to assess whether a given sample of data is consistent with a specified theoretical distribution. In the case of exponentiality, the test compares the empirical distribution function of the sample with the cumulative distribution function of the exponential distribution.
+KolmogorovSmirnov statistic for zero-origin exponential observations.
 
-Hypothesis of Exponentiality
-The hypothesis of exponentiality refers to the null hypothesis that the data comes from an exponential distribution. The exponential distribution is widely used in reliability theory, survival analysis, queuing theory, and other fields where waiting times or lifetimes are modeled.
+## Hypothesis, formula and calibration
 
-Test Statistic
-The Kolmogorov-Smirnov test statistic is based on the maximum absolute difference between the empirical distribution function and the theoretical cumulative distribution function of the exponential distribution. Large values of the statistic indicate that the sample distribution differs from the exponential model.
+H0 is Exp(lam) with known origin zero and fixed rate lam.
+Write n for sample size, x_(i) for sorted observations, and
+y=x/mean(x). The implemented formula is:
 
-Calculate the Test Statistic: The observations are sorted, the theoretical exponential cumulative distribution function is evaluated at the ordered observations, and the largest positive or negative deviation from the empirical distribution function is used as the test statistic.
+    D+ = max(i/n-F(x_(i))), D- = max(F(x_(i))-(i-1)/n).
+    Return max(D+, D-), D+, or D- according to alternative_type.
+    Here F(x) = 1-exp(-lam*x); no parameters are estimated.
 
-Limitations
-The classical Kolmogorov-Smirnov test is most direct when the distribution parameters are fixed in advance.
+Reject in the upper tail. Calibrate the exact statistic returned here.
+Use independent continuous, uncensored observations. Rounded or tied
+data require calibration of the observation process. No parameters
+are retained from a previous call. Rescaling uses a power of two
+to preserve exact binary ties; unrepresentable positive ratios raise
+ValueError. Strict comparisons near floating-point boundaries can
+still depend on roundoff.
+This is the general EDF statistic applied through the known
+exponential CDF (probability integral transform); [1] is a general
+source, not a study of a special fitted exponential version.
 
-When parameters are estimated from the same sample, the usual Kolmogorov-Smirnov critical values are no longer directly applicable and adjusted critical values or simulation-based calibration may be required.
+## Constructor parameters
 
-## Usage
+```text
+alternative_type : AlternativeType, optional
+    TWO_TAILED (default), RIGHT (D+), or LEFT (D-). All reject
+    for large statistic values.
+lam : float, optional
+    Fixed, finite positive rate; default 1.
+```
 
-## Arguments
+## Sample and result
 
-## Details
+```text
+Compute the KolmogorovSmirnov scalar statistic.
 
-The Kolmogorov-Smirnov test is an empirical distribution function test for exponentiality. The two-sided test statistic is
+Parameters
+----------
+rvs : array_like, shape (n,)
+    Finite nonnegative observations; n >= 1. All-zero samples are allowed.
+    A copy is used. Ties and positive constants are allowed except
+    where they make the formula undefined (see Notes on the class).
+**kwargs : dict
+    No execution settings are supported; configure the constructor.
 
-$$ D_n = \max(D_n^+, D_n^-) $$
+Returns
+-------
+statistic : float
+    Value in the convention documented on the class. Infinite
+    boundary values are retained where the formula has that limit.
 
-where
+Raises
+------
+ValueError
+    Invalid sample, insufficient observations, invalid sample-dependent
+    setting, undefined ratio, or rescaling underflow of positive data.
+TypeError
+    Unsupported execution keyword arguments.
+```
 
-$$ D_n^+ = \max_{1 \le i \le n} \left( \frac{i}{n} - F_0(X_{(i)}) \right) $$
-
-and
-
-$$ D_n^- = \max_{1 \le i \le n} \left( F_0(X_{(i)}) - \frac{i - 1}{n} \right). $$
-
-Here $X_{(i)}$ is the $i$-th order statistic and $F_0$ is the cumulative distribution function of the reference exponential distribution. In the implementation, $F_0$ is the standard exponential cumulative distribution function.
-
-For one-sided alternatives, the statistic is $D_n^+$ or $D_n^-$ respectively.
-
-## Author(s)
-Lev Golofastov
-
-## References
-Kolmogorov, A.N. (1933): Sulla determinazione empirica di una legge di distribuzione. — Giornale dell'Istituto Italiano degli Attuari, vol. 4, pp. 83-91.
-
-Smirnov, N.V. (1948): Table for estimating the goodness of fit of empirical distributions. — Annals of Mathematical Statistics, vol. 19, pp. 279-281.
-
-Henze, N. and Meintanis, S.G. (2005): Recent and classical tests for exponentiality: a partial review with comparisons. — Metrika, vol. 61, pp. 29–45.
-
-## Examples
+## Example
 
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.statistics.goodness_of_fit.exponent import (
     KolmogorovSmirnovExponentialityGofStatistic,
 )
 
-
-test_statistic = KolmogorovSmirnovExponentialityGofStatistic(lam=0.5)
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
+statistic = KolmogorovSmirnovExponentialityGofStatistic()
+value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
+print(value)
 ```
+
+## References
+
+1. Durbin, J. (1973). Distribution Theory for Tests Based on the
+   Sample Distribution Function, chapter 1. SIAM.
+   https://doi.org/10.1137/1.9781611970586.ch1
+
+## Author(s)
+
+Lev Golofastov
+
+See the [current audit and migration notes](../../../exponent-statistics-audit.md).

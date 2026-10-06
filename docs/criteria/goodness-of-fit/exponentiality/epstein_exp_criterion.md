@@ -1,71 +1,76 @@
 # Epstein test for exponentiality
 
-## Description
-Performs Epstein test for the composite hypothesis of exponentiality, see Epstein (1960a, 1960b).
-The Epstein test is a statistical hypothesis test used to assess the composite hypothesis of exponentiality. This test is based on normalized spacings between ordered observations and is designed to determine whether a given sample of lifetime data is consistent with an exponential distribution.
+Epstein statistic for zero-origin exponential observations.
 
-Composite Hypothesis of Exponentiality
-The composite hypothesis of exponentiality refers to the null hypothesis that the data comes from an exponential distribution with an unspecified rate parameter
-lambda. The Epstein statistic uses spacings between order statistics in a way that removes the unknown scale of the exponential distribution.
+## Hypothesis, formula and calibration
 
-Test Statistic
-The Epstein test statistic is based on the normalized spacings of the ordered sample. For exponential data, these normalized spacings have a structure that can be used to construct a goodness-of-fit statistic. Large values of the statistic indicate departures from exponentiality.
+H0 is Exp(lam), lam > 0 unknown, with known origin zero.
+``hypothesis().parameters()`` is empty. Positive rescaling leaves
+the statistic unchanged, so Exp(1) simulation is valid.
+Write n for sample size, x_(i) for sorted observations, and
+y=x/mean(x). The implemented formula is:
 
-Calculate the Test Statistic: The observations are sorted, the spacings between consecutive order statistics are multiplied by decreasing weights, and the statistic compares the logarithm of the arithmetic mean of these weighted spacings with the mean of their logarithms.
+    2*n*(log(mean(d))-mean(log(d))) / (1+(n+1)/(6*n)),
+    d_i=(n-i+1)*(x_(i)-x_(i-1)), x_(0)=0. The finite-n
+    correction is retained; use simulation rather than an asserted
+    chi-square law. Zero spacings give positive infinity.
 
-Limitations
-The test assumes positive lifetime-type observations, since the statistic uses logarithms of normalized spacings.
+Reject in the upper tail. Calibrate the exact statistic returned here.
+Use independent continuous, uncensored observations. Rounded or tied
+data require calibration of the observation process. No parameters
+are retained from a previous call. Rescaling uses a power of two
+to preserve exact binary ties; unrepresentable positive ratios raise
+ValueError. Strict comparisons near floating-point boundaries can
+still depend on roundoff.
+A primary source establishing this exact implemented convention
+was not verified in the review; no published tables or asymptotic
+law are endorsed unless derived explicitly above. See the audit.
 
-The chi-square approximation may require moderate or large sample sizes; small-sample calibration can require simulation or tabulated critical values.
+The constructor has no arguments; `lam` is unknown and is not accepted.
 
-## Usage
+## Sample and result
+
+```text
+Compute the Epstein scalar statistic.
+
+Parameters
+----------
+rvs : array_like, shape (n,)
+    Finite nonnegative observations; n >= 2. The total must be positive.
+    A copy is used. Ties and positive constants are allowed except
+    where they make the formula undefined (see Notes on the class).
+**kwargs : dict
+    No execution settings are supported; configure the constructor.
+
+Returns
+-------
+statistic : float
+    Value in the convention documented on the class. Infinite
+    boundary values are retained where the formula has that limit.
+
+Raises
+------
+ValueError
+    Invalid sample, insufficient observations, invalid sample-dependent
+    setting, undefined ratio, or rescaling underflow of positive data.
+TypeError
+    Unsupported execution keyword arguments.
+```
+
+## Example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.statistics.goodness_of_fit.exponent import (
     EpsteinExponentialityGofStatistic,
 )
 
-
-test_statistic = EpsteinExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
+statistic = EpsteinExponentialityGofStatistic()
+value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
+print(value)
 ```
-
-## Arguments
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-
-The Epstein test is a test for the composite hypothesis of exponentiality. The test statistic is
-
-$$ EPS_n = \frac{2n\left(\log\left(n^{-1}\sum_{i=1}^{n}D_i\right) - n^{-1}\sum_{i=1}^{n}\log(D_i)\right)}{1+(n+1)/(6n)} $$
-
-where
-
-$$ D_i = (n-i+1)(X_{(i)} - X_{(i-1)}), \quad X_{(0)} = 0, $$
-
-and $X_{(1)} \le \cdots \le X_{(n)}$ are the order statistics.
-
-Under exponentiality, $EPS_n$ is approximately distributed as a chi-square random variable with $n-1$ degrees of freedom.
 
 ## Author(s)
+
 Lev Golofastov
 
-## References
-Epstein, B. (1960a): Tests for the validity of the assumption that the underlying distribution of life is exponential. Part I. - Technometrics, vol. 2, no. 1, pp. 83-101.
-
-Epstein, B. (1960b): Tests for the validity of the assumption that the underlying distribution of life is exponential. Part II. - Technometrics, vol. 2, no. 2, pp. 167-183.
-
-Ascher, S. (1990): A survey of tests for exponentiality. - Communications in Statistics - Theory and Methods, vol. 19, pp. 1811-1825.
-
-## Examples
-
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    EpsteinExponentialityGofStatistic,
-)
-
-
-test_statistic = EpsteinExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
-```
+See the [current audit and migration notes](../../../exponent-statistics-audit.md).

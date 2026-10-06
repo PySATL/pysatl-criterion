@@ -1,69 +1,74 @@
 # Frozini test for exponentiality
 
-## Description
-Performs Frozini test for the composite hypothesis of exponentiality, see Frozini (1987).
-The Frozini test is a statistical hypothesis test used to assess the composite hypothesis of exponentiality. This test is designed to determine whether a given sample of data is consistent with an exponential distribution by comparing the empirical distribution function with the fitted exponential distribution function.
+Frozini statistic for zero-origin exponential observations.
 
-Composite Hypothesis of Exponentiality
-The composite hypothesis of exponentiality refers to the null hypothesis that the data comes from an exponential distribution with an unspecified rate parameter
-lambda. The Frozini statistic estimates the unknown scale by the sample mean and then compares the fitted exponential cumulative distribution function with empirical plotting positions.
+## Hypothesis, formula and calibration
 
-Test Statistic
-The Frozini test statistic is based on absolute deviations between the fitted exponential cumulative distribution function and the expected empirical distribution function positions. Large values of the statistic indicate larger departures from exponentiality.
+H0 is Exp(lam), lam > 0 unknown, with known origin zero.
+``hypothesis().parameters()`` is empty. Positive rescaling leaves
+the statistic unchanged, so Exp(1) simulation is valid.
+Write n for sample size, x_(i) for sorted observations, and
+y=x/mean(x). The implemented formula is:
 
-Calculate the Test Statistic: The observations are sorted, the exponential cumulative distribution function with mean equal to the sample mean is evaluated at each order statistic, and the absolute differences from $(i-0.5)/n$ are summed and normalized by $\sqrt{n}$.
+    sum(abs(1-exp(-y_(i))-(i-1/2)/n))/sqrt(n).
+    The exponential mean is re-estimated for every sample.
 
-Limitations
-The test is calibrated by the null distribution of the statistic, which is commonly obtained by Monte Carlo simulation.
+Reject in the upper tail. Calibrate the exact statistic returned here.
+Use independent continuous, uncensored observations. Rounded or tied
+data require calibration of the observation process. No parameters
+are retained from a previous call. Rescaling uses a power of two
+to preserve exact binary ties; unrepresentable positive ratios raise
+ValueError. Strict comparisons near floating-point boundaries can
+still depend on roundoff.
+A primary source establishing this exact implemented convention
+was not verified in the review; no published tables or asymptotic
+law are endorsed unless derived explicitly above. See the audit.
 
-The statistic assumes lifetime-type observations and uses the fitted exponential distribution with scale equal to the sample mean.
+The constructor has no arguments; `lam` is unknown and is not accepted.
 
-## Usage
+## Sample and result
+
+```text
+Compute the Frozini scalar statistic.
+
+Parameters
+----------
+rvs : array_like, shape (n,)
+    Finite nonnegative observations; n >= 2. The total must be positive.
+    A copy is used. Ties and positive constants are allowed except
+    where they make the formula undefined (see Notes on the class).
+**kwargs : dict
+    No execution settings are supported; configure the constructor.
+
+Returns
+-------
+statistic : float
+    Value in the convention documented on the class. Infinite
+    boundary values are retained where the formula has that limit.
+
+Raises
+------
+ValueError
+    Invalid sample, insufficient observations, invalid sample-dependent
+    setting, undefined ratio, or rescaling underflow of positive data.
+TypeError
+    Unsupported execution keyword arguments.
+```
+
+## Example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.statistics.goodness_of_fit.exponent import (
     FroziniExponentialityGofStatistic,
 )
 
-
-test_statistic = FroziniExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
+statistic = FroziniExponentialityGofStatistic()
+value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
+print(value)
 ```
-
-## Arguments
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-
-The Frozini test is a test for the composite hypothesis of exponentiality. The test statistic is
-
-$$ B_n = \frac{1}{\sqrt{n}}\sum_{i=1}^{n}\left|1 - exp\left(-\frac{X_{(i)}}{\overline{X}}\right) - \frac{i - 0.5}{n}\right| $$
-
-where $X_{(i)}$ is the $i$-th order statistic, $n$ is the sample size, and $\overline{X}$ is the sample mean.
-
-The term
-
-$$ 1 - exp\left(-\frac{X_{(i)}}{\overline{X}}\right) $$
-
-is the cumulative distribution function of the fitted exponential distribution evaluated at the ordered observation $X_{(i)}$.
 
 ## Author(s)
+
 Lev Golofastov
 
-## References
-Frozini, B.V. (1987): On the distribution and power of a goodness-of-fit statistic with parametric and nonparametric applications. In: Revesz, P., Sarkadi, K. and Sen, P.K. (eds.) Goodness-of-fit. - Amsterdam-Oxford-New York: North-Holland, pp. 133-154.
-
-Henze, N. and Meintanis, S.G. (2005): Recent and classical tests for exponentiality: a partial review with comparisons. - Metrika, vol. 61, pp. 29-45.
-
-## Examples
-
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    FroziniExponentialityGofStatistic,
-)
-
-
-test_statistic = FroziniExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
-```
+See the [current audit and migration notes](../../../exponent-statistics-audit.md).

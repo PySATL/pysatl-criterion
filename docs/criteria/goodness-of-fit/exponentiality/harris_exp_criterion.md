@@ -1,76 +1,85 @@
 # Harris modification of Gnedenko F-test
 
-## Description
-Performs Harris modification of Gnedenko F-test for the composite hypothesis of exponentiality, see e.g. Harris (1976).
-The Harris modification is a statistical hypothesis test used to assess the composite hypothesis of exponentiality. This test is designed to determine whether a given sample of data is consistent with an exponential distribution by comparing tail groups of normalized spacings with the middle group of normalized spacings.
+Harris statistic for zero-origin exponential observations.
 
-Composite Hypothesis of Exponentiality
-The composite hypothesis of exponentiality refers to the null hypothesis that the data comes from an exponential distribution with an unspecified rate parameter
-lambda. The Harris statistic is based on normalized spacings, so the unknown exponential scale is removed from the comparison.
+## Hypothesis, formula and calibration
 
-Test Statistic
-The Harris modification improves the Gnedenko F-test by using a symmetric spacing comparison. Instead of comparing only the first group of spacings with the remaining spacings, it combines the first and last `r` normalized spacings and compares their average with the average of the middle spacings.
+H0 is Exp(lam), lam > 0 unknown, with known origin zero.
+``hypothesis().parameters()`` is empty. Positive rescaling leaves
+the statistic unchanged, so Exp(1) simulation is valid.
+Write n for sample size, x_(i) for sorted observations, and
+y=x/mean(x). The implemented formula is:
 
-Calculate the Test Statistic: The observations are sorted after adding zero as the lower endpoint, normalized spacings are calculated, the first and last `r` spacings are averaged, and the result is divided by the average of the middle spacings.
+    mean(concatenate((d[:r], d[-r:])))/mean(d[r:-r]),
+    d_i=(n-i+1)*(x_(i)-x_(i-1)), x_(0)=0. Independent
+    exponential spacings give the exact F(4*r, 2*(n-2*r)) law.
+    A zero denominator with positive numerator gives positive infinity.
 
-Limitations
-The test assumes nonnegative lifetime-type observations.
+Reject in the upper tail. This is a directional test; it is not
+claimed consistent against every nonexponential alternative.
+Use independent continuous, uncensored observations. Rounded or tied
+data require calibration of the observation process. No parameters
+are retained from a previous call. Rescaling uses a power of two
+to preserve exact binary ties; unrepresentable positive ratios raise
+ValueError. Strict comparisons near floating-point boundaries can
+still depend on roundoff.
+A primary source establishing this exact implemented convention
+was not verified in the review; no published tables or asymptotic
+law are endorsed unless derived explicitly above. See the audit.
+Settings belong in the constructor. The current storage key omits
+these settings; use fresh Monte Carlo calibration for this object,
+not StorageLimitDistributionResolver shared across settings.
 
-The split point `r` can affect the sensitivity of the test. In the implementation the default value is `round(n / 4)`, where `n` is the sample size.
+## Constructor parameters
 
-## Usage
+```text
+r : int or None, optional
+    Tail count with 1 <= 2*r < n. Default None uses max(1, round(n/4)).
+```
+
+## Sample and result
+
+```text
+Compute the Harris scalar statistic.
+
+Parameters
+----------
+rvs : array_like, shape (n,)
+    Finite nonnegative observations; n >= 3. The total must be positive.
+    A copy is used. Ties and positive constants are allowed except
+    where they make the formula undefined (see Notes on the class).
+**kwargs : dict
+    No execution settings are supported; configure the constructor.
+
+Returns
+-------
+statistic : float
+    Value in the convention documented on the class. Infinite
+    boundary values are retained where the formula has that limit.
+
+Raises
+------
+ValueError
+    Invalid sample, insufficient observations, invalid sample-dependent
+    setting, undefined ratio, or rescaling underflow of positive data.
+TypeError
+    Unsupported execution keyword arguments.
+```
+
+## Example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.statistics.goodness_of_fit.exponent import (
     HarrisExponentialityGofStatistic,
 )
 
-
-test_statistic = HarrisExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
+statistic = HarrisExponentialityGofStatistic()
+value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
+print(value)
 ```
-
-## Arguments
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-`r` - split point for the symmetric spacing comparison. Default value is `round(n / 4)`.
-
-## Details
-
-The Harris modification of Gnedenko F-test is a test for the composite hypothesis of exponentiality. Let
-$X_{(1)} \leq \cdots \leq X_{(n)}$ denote the ordered sample and set $X_{(0)}=0$. Define the normalized spacings
-
-$$ D_i = (n-i+1)(X_{(i)}-X_{(i-1)}), \quad i=1,\ldots,n. $$
-
-The test statistic implemented here is
-
-$$ HM_n = \frac{(2r)^{-1}\left(\sum_{i=1}^{r}D_i+\sum_{i=n-r+1}^{n}D_i\right)}{(n-2r)^{-1}\sum_{i=r+1}^{n-r}D_i}. $$
-
-Here $n$ is the sample size and $r$ is the split point. If `r` is not supplied, the implementation uses $r=round(n/4)$.
-
-Under exponentiality, the statistic has an F distribution with $4r$ and $2(n-2r)$ degrees of freedom (see, e.g., Harris (1976)).
-
-Large values of $HM_n$ indicate larger deviations from the exponential model in the direction used by the implemented right-sided alternative.
 
 ## Author(s)
+
 Lev Golofastov
 
-## References
-Harris, C.M. (1976): A note on testing for exponentiality. - Naval Research Logistics Quarterly, vol. 23, pp. 169-175.
-
-Ascher, S. (1990): A survey of tests for exponentiality. - Communications in Statistics - Theory and Methods, vol. 19, pp. 1811-1825.
-
-Henze, N. and Meintanis, S.G. (2005): Recent and classical tests for exponentiality: a partial review with comparisons. - Metrika, vol. 61, pp. 29-45.
-
-## Examples
-
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    HarrisExponentialityGofStatistic,
-)
-
-
-test_statistic = HarrisExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
-```
+See the [current audit and migration notes](../../../exponent-statistics-audit.md).

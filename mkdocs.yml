@@ -39,6 +39,10 @@ nav:
                 - Rossberg: criteria/goodness-of-fit/exponentiality/rossberg_exp_criterion.md
                 - Graph edges number: criteria/goodness-of-fit/exponentiality/graph_edges_number_exp_criterion.md
                 - Graph max degree: criteria/goodness-of-fit/exponentiality/graph_max_degree_exp_criterion.md
+                - Graph average degree: criteria/goodness-of-fit/exponentiality/graph_average_degree_exp_criterion.md
+                - Graph connected components: criteria/goodness-of-fit/exponentiality/graph_connected_components_exp_criterion.md
+                - Graph clique number: criteria/goodness-of-fit/exponentiality/graph_clique_number_exp_criterion.md
+                - Graph independence number: criteria/goodness-of-fit/exponentiality/graph_independence_number_exp_criterion.md
             - Uniformity:
                 - Kolmogorov-Smirnov: criteria/goodness-of-fit/uniformity/kolmogorov_smirnov_uniform_criterion.md
                 - Anderson-Darling: criteria/goodness-of-fit/uniformity/anderson_darling_uniform_criterion.md

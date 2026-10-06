@@ -1,74 +1,74 @@
 # Kimber-Michael test for exponentiality
 
-## Description
-Performs Kimber-Michael test for the composite hypothesis of exponentiality, see e.g. Michael (1983) and Kimber (1985).
-The Kimber-Michael test is a statistical hypothesis test used to assess the composite hypothesis of exponentiality. This test is based on the stabilized probability plot and is designed to determine whether a given sample of data is consistent with an exponential distribution.
+KimberMichael statistic for zero-origin exponential observations.
 
-Composite Hypothesis of Exponentiality
-The composite hypothesis of exponentiality refers to the null hypothesis that the data comes from an exponential distribution with an unspecified rate parameter
-lambda. The Kimber-Michael statistic removes the unknown exponential scale by evaluating the exponential distribution at observations normalized by the sample mean.
+## Hypothesis, formula and calibration
 
-Test Statistic
-The Kimber-Michael test statistic is based on an arcsine square-root transformation of probabilities. This transformation stabilizes the variance of probability plot points, and the statistic measures the maximum absolute distance between transformed empirical plotting positions and transformed fitted exponential probabilities.
+H0 is Exp(lam), lam > 0 unknown, with known origin zero.
+``hypothesis().parameters()`` is empty. Positive rescaling leaves
+the statistic unchanged, so Exp(1) simulation is valid.
+Write n for sample size, x_(i) for sorted observations, and
+y=x/mean(x). The implemented formula is:
 
-Calculate the Test Statistic: The observations are sorted, divided by the sample mean, transformed through the fitted exponential distribution function, mapped to the stabilized probability scale, and compared with the stabilized plotting positions.
+    max(abs(A((i-1/2)/n)-A(1-exp(-y_(i))))),
+    where A(u)=2*arcsin(sqrt(u))/pi. The mean is fitted per sample.
 
-Limitations
-The test assumes nonnegative lifetime-type observations.
+Reject in the upper tail. Calibrate the exact statistic returned here.
+Use independent continuous, uncensored observations. Rounded or tied
+data require calibration of the observation process. No parameters
+are retained from a previous call. Rescaling uses a power of two
+to preserve exact binary ties; unrepresentable positive ratios raise
+ValueError. Strict comparisons near floating-point boundaries can
+still depend on roundoff.
+A primary source establishing this exact implemented convention
+was not verified in the review; no published tables or asymptotic
+law are endorsed unless derived explicitly above. See the audit.
 
-The statistic is a supremum-type distance, so it is most sensitive to the largest stabilized probability plot discrepancy.
+The constructor has no arguments; `lam` is unknown and is not accepted.
 
-## Usage
+## Sample and result
+
+```text
+Compute the KimberMichael scalar statistic.
+
+Parameters
+----------
+rvs : array_like, shape (n,)
+    Finite nonnegative observations; n >= 2. The total must be positive.
+    A copy is used. Ties and positive constants are allowed except
+    where they make the formula undefined (see Notes on the class).
+**kwargs : dict
+    No execution settings are supported; configure the constructor.
+
+Returns
+-------
+statistic : float
+    Value in the convention documented on the class. Infinite
+    boundary values are retained where the formula has that limit.
+
+Raises
+------
+ValueError
+    Invalid sample, insufficient observations, invalid sample-dependent
+    setting, undefined ratio, or rescaling underflow of positive data.
+TypeError
+    Unsupported execution keyword arguments.
+```
+
+## Example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.statistics.goodness_of_fit.exponent import (
     KimberMichaelExponentialityGofStatistic,
 )
 
-
-test_statistic = KimberMichaelExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
+statistic = KimberMichaelExponentialityGofStatistic()
+value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
+print(value)
 ```
-
-## Arguments
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-
-The Kimber-Michael test is a test for the composite hypothesis of exponentiality. Let
-$X_{(1)} \leq \cdots \leq X_{(n)}$ denote the ordered sample. The test statistic implemented here is
-
-$$ KM_n = \max_{1 \leq i \leq n} \left| \frac{2}{\pi}\arcsin\sqrt{\frac{i-1/2}{n}} - \frac{2}{\pi}\arcsin\sqrt{1-exp(-X_{(i)}/\overline{X})} \right|. $$
-
-Here $n$ is the sample size and $\overline{X}$ is the sample mean.
-
-The function
-
-$$ p \mapsto \frac{2}{\pi}\arcsin\sqrt{p} $$
-
-is the stabilized probability scale introduced by Michael (1983). Kimber (1985) applied this idea to tests for the exponential, Weibull, and Gumbel distributions.
-
-The implementation uses a left-sided alternative, so unusually small values of $KM_n$ are treated as evidence in the direction used by this statistic.
 
 ## Author(s)
+
 Lev Golofastov
 
-## References
-Michael, J.R. (1983): The stabilized probability plot. - Biometrika, vol. 70, no. 1, pp. 11-17. https://doi.org/10.1093/biomet/70.1.11
-
-Kimber, A.C. (1985): Tests for the exponential, Weibull and Gumbel distributions based on the stabilized probability plot. - Biometrika, vol. 72, no. 3, pp. 661-663. https://doi.org/10.1093/biomet/72.3.661
-
-Henze, N. and Meintanis, S.G. (2005): Recent and classical tests for exponentiality: a partial review with comparisons. - Metrika, vol. 61, pp. 29-45.
-
-## Examples
-
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    KimberMichaelExponentialityGofStatistic,
-)
-
-
-test_statistic = KimberMichaelExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
-```
+See the [current audit and migration notes](../../../exponent-statistics-audit.md).

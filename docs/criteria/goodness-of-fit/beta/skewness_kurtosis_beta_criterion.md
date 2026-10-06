@@ -36,7 +36,8 @@ Let $Z=(X-\mu)/\sigma$, $g=E[Z^3]$, and $k=E[Z^4]$.
 The influence functions are $p_3(Z)=Z^3-3Z-3gZ^2/2+g/2$ and
 $p_4(Z)=Z^4-4gZ-2kZ^2+k$. With $\Sigma_{ij}=E[p_i(Z)p_j(Z)]$,
 the statistic is $n d^T\Sigma^{-1}d$, where $d$ contains sample skewness minus $g$
-and sample excess kurtosis minus $(k-3)$. Sample estimates use `bias=False`.
+and sample excess kurtosis minus $(k-3)$. Sample estimates use `bias=False`, evaluated after affine centering and rescaling
+to avoid loss of precision for nearly constant samples.
 The Beta covariance uses moments through order eight, including the off-diagonal term.
 At least four observations and a nonconstant sample are required.
 The limiting null law is chi-squared with two degrees of freedom; finite-sample
@@ -48,11 +49,6 @@ when the statistic or its estimator settings change.
 
 ## Author(s)
 Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
-
-## References
-
-No scientific article describing the exact implemented Beta statistic was identified.
-The formula is a locally defined discrepancy; no reference to a different test is substituted.
 
 ## Examples
 ```python

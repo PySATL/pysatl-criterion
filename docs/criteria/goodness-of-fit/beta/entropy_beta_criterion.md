@@ -49,11 +49,6 @@ when the statistic or its estimator settings change.
 ## Author(s)
 Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
 
-## References
-
-No scientific article describing the exact implemented Beta statistic was identified.
-The formula is a locally defined discrepancy; no reference to a different test is substituted.
-
 ## Examples
 ```python
 from pysatl_criterion.statistics.goodness_of_fit import (

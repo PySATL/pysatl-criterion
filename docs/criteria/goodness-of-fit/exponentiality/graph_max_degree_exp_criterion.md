@@ -1,16 +1,76 @@
-# Graph max degree test for exponentiality
+# GraphMaxDegree test for exponentiality
 
-## Description
+GraphMaxDegree statistic for zero-origin exponential observations.
 
-## Usage
+## Hypothesis, formula and calibration
 
-## Arguments
+H0 is Exp(lam), lam > 0 unknown, with known origin zero.
+``hypothesis().parameters()`` is empty. Positive rescaling leaves
+the statistic unchanged, so Exp(1) simulation is valid.
+Write n for sample size, x_(i) for sorted observations, and
+y=x/mean(x). The implemented formula is:
 
-## Details
+    Vertices are observations; an edge joins distinct vertices when
+    abs(x_i-x_j) < (max(x)-min(x))/10. The statistic is the maximum degree.
+    Constant samples have no edges. This range-based graph is also
+    translation invariant and cannot identify a nonzero origin.
+
+Reject in both tails. Calibrate the exact statistic returned here.
+Use independent continuous, uncensored observations. Rounded or tied
+data require calibration of the observation process. No parameters
+are retained from a previous call. Rescaling uses a power of two
+to preserve exact binary ties; unrepresentable positive ratios raise
+ValueError. Strict comparisons near floating-point boundaries can
+still depend on roundoff.
+A primary source establishing this exact implemented convention
+was not verified in the review; no published tables or asymptotic
+law are endorsed unless derived explicitly above. See the audit.
+
+The constructor has no arguments; `lam` is unknown and is not accepted.
+
+## Sample and result
+
+```text
+Compute the GraphMaxDegree scalar statistic.
+
+Parameters
+----------
+rvs : array_like, shape (n,)
+    Finite nonnegative observations; n >= 1. All-zero samples are allowed.
+    A copy is used. Ties and positive constants are allowed except
+    where they make the formula undefined (see Notes on the class).
+**kwargs : dict
+    No execution settings are supported; configure the constructor.
+
+Returns
+-------
+statistic : float
+    Value in the convention documented on the class. Infinite
+    boundary values are retained where the formula has that limit.
+
+Raises
+------
+ValueError
+    Invalid sample, insufficient observations, invalid sample-dependent
+    setting, undefined ratio, or rescaling underflow of positive data.
+TypeError
+    Unsupported execution keyword arguments.
+```
+
+## Example
+
+```python
+from pysatl_criterion.statistics.goodness_of_fit.exponent import (
+    GraphMaxDegreeExponentialityGofStatistic,
+)
+
+statistic = GraphMaxDegreeExponentialityGofStatistic()
+value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
+print(value)
+```
 
 ## Author(s)
+
 Ivan Pokhabov
 
-## References
-
-## Examples
+See the [current audit and migration notes](../../../exponent-statistics-audit.md).

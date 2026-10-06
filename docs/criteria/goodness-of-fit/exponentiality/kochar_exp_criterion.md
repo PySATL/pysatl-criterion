@@ -1,70 +1,75 @@
 # Kochar test for exponentiality
 
-## Description
-Performs Kochar test for the composite hypothesis of exponentiality, see e.g. Kochar (1985).
-The Kochar test is a statistical hypothesis test used to assess the composite hypothesis of exponentiality. This test is designed to determine whether a given sample of data is consistent with an exponential distribution against monotone failure rate average alternatives.
+Kochar statistic for zero-origin exponential observations.
 
-Composite Hypothesis of Exponentiality
-The composite hypothesis of exponentiality refers to the null hypothesis that the data comes from an exponential distribution with an unspecified rate parameter
-lambda. The Kochar statistic is scale invariant because it is normalized by the sample total.
+## Hypothesis, formula and calibration
 
-Test Statistic
-The Kochar test statistic is based on a weighted linear combination of order statistics. The weights are defined by a score function evaluated at the plotting positions $i/(n+1)$, and the resulting weighted sum is standardized to have an asymptotic standard normal distribution under exponentiality.
+H0 is Exp(lam), lam > 0 unknown, with known origin zero.
+``hypothesis().parameters()`` is empty. Positive rescaling leaves
+the statistic unchanged, so Exp(1) simulation is valid.
+Write n for sample size, x_(i) for sorted observations, and
+y=x/mean(x). The implemented formula is:
 
-Calculate the Test Statistic: The observations are sorted, Kochar scores are calculated at the plotting positions, the weighted sum of the ordered observations is divided by the sample total, and the result is multiplied by the normalizing factor.
+    sqrt(108*n/17) * sum(J(i/(n+1))*x_(i))/sum(x),
+    J(u)=2*(1-u)*(1-log(1-u))-1. No exact normal law is claimed.
 
-Limitations
-The test assumes nonnegative lifetime-type observations.
+Reject in the upper tail. This is a directional test; it is not
+claimed consistent against every nonexponential alternative.
+Use independent continuous, uncensored observations. Rounded or tied
+data require calibration of the observation process. No parameters
+are retained from a previous call. Rescaling uses a power of two
+to preserve exact binary ties; unrepresentable positive ratios raise
+ValueError. Strict comparisons near floating-point boundaries can
+still depend on roundoff.
+A primary source establishing this exact implemented convention
+was not verified in the review; no published tables or asymptotic
+law are endorsed unless derived explicitly above. See the audit.
 
-The test is designed for monotone failure rate average alternatives, so it may be less sensitive to other departures from exponentiality.
+The constructor has no arguments; `lam` is unknown and is not accepted.
 
-## Usage
+## Sample and result
+
+```text
+Compute the Kochar scalar statistic.
+
+Parameters
+----------
+rvs : array_like, shape (n,)
+    Finite nonnegative observations; n >= 2. The total must be positive.
+    A copy is used. Ties and positive constants are allowed except
+    where they make the formula undefined (see Notes on the class).
+**kwargs : dict
+    No execution settings are supported; configure the constructor.
+
+Returns
+-------
+statistic : float
+    Value in the convention documented on the class. Infinite
+    boundary values are retained where the formula has that limit.
+
+Raises
+------
+ValueError
+    Invalid sample, insufficient observations, invalid sample-dependent
+    setting, undefined ratio, or rescaling underflow of positive data.
+TypeError
+    Unsupported execution keyword arguments.
+```
+
+## Example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.statistics.goodness_of_fit.exponent import (
     KocharExponentialityGofStatistic,
 )
 
-
-test_statistic = KocharExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
+statistic = KocharExponentialityGofStatistic()
+value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
+print(value)
 ```
-
-## Arguments
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-
-The Kochar test is a test for the composite hypothesis of exponentiality. Let
-$X_{(1)} \leq \cdots \leq X_{(n)}$ denote the ordered sample. The test statistic implemented here is
-
-$$ KC_n = \sqrt{\frac{108n}{17}}\frac{\sum_{i=1}^{n}J(i/(n+1))X_{(i)}}{\sum_{i=1}^{n}X_i}, $$
-
-where
-
-$$ J(u) = 2(1-u)(1-\log(1-u)) - 1. $$
-
-Here $n$ is the sample size. Under the null hypothesis of exponentiality, $KC_n$ is asymptotically standard normal.
-
-Large values of $KC_n$ indicate larger deviations from the exponential model in the direction used by the implemented right-sided alternative.
 
 ## Author(s)
+
 Lev Golofastov
 
-## References
-Kochar, S.C. (1985): Testing exponenttality against monotone failure rate average. - Communications in Statistics - Theory and Methods, vol. 14, no. 2, pp. 381-392. https://doi.org/10.1080/03610928508828919
-
-Henze, N. and Meintanis, S.G. (2005): Recent and classical tests for exponentiality: a partial review with comparisons. - Metrika, vol. 61, pp. 29-45.
-
-## Examples
-
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    KocharExponentialityGofStatistic,
-)
-
-
-test_statistic = KocharExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
-```
+See the [current audit and migration notes](../../../exponent-statistics-audit.md).

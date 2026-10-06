@@ -1,71 +1,83 @@
 # Deshpande test for exponentiality
 
-## Description
-Performs Deshpande test for the composite hypothesis of exponentiality, see Deshpande (1983).
-The Deshpande test is a statistical hypothesis test used to assess the composite hypothesis of exponentiality. This test is designed to determine whether a given sample of data is consistent with an exponential distribution against aging-type alternatives such as increasing failure rate average alternatives.
+Deshpande statistic for zero-origin exponential observations.
 
-Composite Hypothesis of Exponentiality
-The composite hypothesis of exponentiality refers to the null hypothesis that the data comes from an exponential distribution with an unspecified rate parameter
-lambda. The statistic is based on pairwise comparisons and is scale invariant for positive rescaling of the data.
+## Hypothesis, formula and calibration
 
-Test Statistic
-The Deshpande test statistic is a U-statistic based on pairwise comparisons of observations. It counts how often one observation is larger than a fixed multiple of another observation. The multiplier is controlled by the parameter `b`.
+H0 is Exp(lam), lam > 0 unknown, with known origin zero.
+``hypothesis().parameters()`` is empty. Positive rescaling leaves
+the statistic unchanged, so Exp(1) simulation is valid.
+Write n for sample size, x_(i) for sorted observations, and
+y=x/mean(x). The implemented formula is:
 
-Calculate the Test Statistic: For every ordered pair of distinct observations, the indicator of the event $X_i > bX_j$ is evaluated, and the average of these indicators is used as the statistic.
+    sum_{i != j} 1{x_i > b*x_j} / (n*(n-1)).
+    Its exact expectation under the continuous null is 1/(1+b).
 
-Limitations
-The value of the parameter `b` can affect the power of the test against different alternatives.
+Reject in the upper tail. This is a directional test; it is not
+claimed consistent against every nonexponential alternative.
+Use independent continuous, uncensored observations. Rounded or tied
+data require calibration of the observation process. No parameters
+are retained from a previous call. Rescaling uses a power of two
+to preserve exact binary ties; unrepresentable positive ratios raise
+ValueError. Strict comparisons near floating-point boundaries can
+still depend on roundoff.
+A primary source establishing this exact implemented convention
+was not verified in the review; no published tables or asymptotic
+law are endorsed unless derived explicitly above. See the audit.
+Settings belong in the constructor. The current storage key omits
+these settings; use fresh Monte Carlo calibration for this object,
+not StorageLimitDistributionResolver shared across settings.
 
-The direct implementation uses all ordered pairs of observations, so the computational cost grows quadratically with the sample size.
+## Constructor parameters
 
-## Usage
+```text
+b : float, optional
+    Finite threshold in (0, 1); default 0.44.
+```
+
+## Sample and result
+
+```text
+Compute the Deshpande scalar statistic.
+
+Parameters
+----------
+rvs : array_like, shape (n,)
+    Finite nonnegative observations; n >= 2. The total must be positive.
+    A copy is used. Ties and positive constants are allowed except
+    where they make the formula undefined (see Notes on the class).
+**kwargs : dict
+    No execution settings are supported; configure the constructor.
+
+Returns
+-------
+statistic : float
+    Value in the convention documented on the class. Infinite
+    boundary values are retained where the formula has that limit.
+
+Raises
+------
+ValueError
+    Invalid sample, insufficient observations, invalid sample-dependent
+    setting, undefined ratio, or rescaling underflow of positive data.
+TypeError
+    Unsupported execution keyword arguments.
+```
+
+## Example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.statistics.goodness_of_fit.exponent import (
     DeshpandeExponentialityGofStatistic,
 )
 
-
-test_statistic = DeshpandeExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
+statistic = DeshpandeExponentialityGofStatistic()
+value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
+print(value)
 ```
-
-## Arguments
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-`b` - threshold parameter for the pairwise comparison. Default value is `0.44`.
-
-## Details
-
-The Deshpande test is a test for the composite hypothesis of exponentiality. The test statistic is
-
-$$ J_n = \frac{1}{n(n-1)} \sum_{i \ne j} I(X_i > bX_j) $$
-
-where $I(\cdot)$ is the indicator function, $n$ is the sample size, and $b$ is a positive parameter of the test.
-
-Under exponentiality,
-
-$$ \sqrt{n}\left(J_n - \frac{1}{b+1}\right) $$
-
-is asymptotically normal with variance depending on $b$ (see Deshpande (1983)).
 
 ## Author(s)
+
 Lev Golofastov
 
-## References
-Deshpande, J.V. (1983): A class of tests for exponentiality against increasing failure rate average alternatives. - Biometrika, vol. 70, pp. 514-518.
-
-Henze, N. and Meintanis, S.G. (2005): Recent and classical tests for exponentiality: a partial review with comparisons. - Metrika, vol. 61, pp. 29-45.
-
-## Examples
-
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    DeshpandeExponentialityGofStatistic,
-)
-
-
-test_statistic = DeshpandeExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
-```
+See the [current audit and migration notes](../../../exponent-statistics-audit.md).

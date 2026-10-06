@@ -1,73 +1,73 @@
 # Test for exponentiality based on the Pietra statistic
 
-## Description
-Performs a test for the composite hypothesis of exponentiality based on the Pietra statistic, see e.g. Ascher (1990).
-The Pietra test is a statistical goodness-of-fit test used to assess whether a given sample of data is consistent with an exponential distribution. This test is based on the Pietra index, also known as half the relative mean absolute deviation.
+Pietra statistic for zero-origin exponential observations.
 
-Composite Hypothesis of Exponentiality
-The composite hypothesis of exponentiality refers to the null hypothesis that the data comes from an exponential distribution with an unspecified rate parameter
-lambda. The Pietra statistic is scale invariant because it divides the mean absolute deviation from the sample mean by the sample mean.
+## Hypothesis, formula and calibration
 
-Test Statistic
-The Pietra test statistic is based on the average absolute deviation of observations from the sample mean. Under exponentiality, the corresponding population quantity has a fixed value that does not depend on the unknown scale parameter.
+H0 is Exp(lam), lam > 0 unknown, with known origin zero.
+``hypothesis().parameters()`` is empty. Positive rescaling leaves
+the statistic unchanged, so Exp(1) simulation is valid.
+Write n for sample size, x_(i) for sorted observations, and
+y=x/mean(x). The implemented formula is:
 
-Calculate the Test Statistic: The sample mean is calculated, absolute deviations from that mean are summed, and the result is normalized by twice the sample size and the sample mean.
+    mean(abs(y-1))/2. The limiting null center is 1/e.
 
-Limitations
-The test assumes nonnegative lifetime-type observations.
+Reject in both tails. Calibrate the exact statistic returned here.
+Use independent continuous, uncensored observations. Rounded or tied
+data require calibration of the observation process. No parameters
+are retained from a previous call. Rescaling uses a power of two
+to preserve exact binary ties; unrepresentable positive ratios raise
+ValueError. Strict comparisons near floating-point boundaries can
+still depend on roundoff.
+A primary source establishing this exact implemented convention
+was not verified in the review; no published tables or asymptotic
+law are endorsed unless derived explicitly above. See the audit.
 
-The statistic is a single dispersion measure, so it may be less sensitive to departures that do not strongly change relative mean absolute deviation.
+The constructor has no arguments; `lam` is unknown and is not accepted.
 
-## Usage
+## Sample and result
+
+```text
+Compute the Pietra scalar statistic.
+
+Parameters
+----------
+rvs : array_like, shape (n,)
+    Finite nonnegative observations; n >= 2. The total must be positive.
+    A copy is used. Ties and positive constants are allowed except
+    where they make the formula undefined (see Notes on the class).
+**kwargs : dict
+    No execution settings are supported; configure the constructor.
+
+Returns
+-------
+statistic : float
+    Value in the convention documented on the class. Infinite
+    boundary values are retained where the formula has that limit.
+
+Raises
+------
+ValueError
+    Invalid sample, insufficient observations, invalid sample-dependent
+    setting, undefined ratio, or rescaling underflow of positive data.
+TypeError
+    Unsupported execution keyword arguments.
+```
+
+## Example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.statistics.goodness_of_fit.exponent import (
     PietraExponentialityGofStatistic,
 )
 
-
-test_statistic = PietraExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
+statistic = PietraExponentialityGofStatistic()
+value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
+print(value)
 ```
-
-## Arguments
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-
-The Pietra test is a test for the composite hypothesis of exponentiality. The test statistic implemented here is
-
-$$ PT_n = \frac{\sum_{i=1}^{n}|X_i-\overline{X}|}{2n\overline{X}}, $$
-
-where $n$ is the sample size and $\overline{X}$ is the sample mean.
-
-Equivalently, $PT_n$ is the sample mean absolute deviation about the mean divided by twice the sample mean.
-
-For an exponential distribution,
-
-$$ PT = \frac{1}{e}. $$
-
-The implemented test uses a two-sided alternative, so values of $PT_n$ that are too small or too large relative to the exponential reference distribution are evidence against exponentiality.
 
 ## Author(s)
+
 Lev Golofastov
 
-## References
-Pietra, G. (1915): Delle relazioni tra gli indici di variabilita (Nota I). - Atti del Reale Istituto Veneto di Scienze, Lettere ed Arti, vol. 74, pp. 775-792.
-
-Ascher, S. (1990): A survey of tests for exponentiality. - Communications in Statistics - Theory and Methods, vol. 19, pp. 1811-1825.
-
-Henze, N. and Meintanis, S.G. (2005): Recent and classical tests for exponentiality: a partial review with comparisons. - Metrika, vol. 61, pp. 29-45.
-
-## Examples
-
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    PietraExponentialityGofStatistic,
-)
-
-
-test_statistic = PietraExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
-```
+See the [current audit and migration notes](../../../exponent-statistics-audit.md).

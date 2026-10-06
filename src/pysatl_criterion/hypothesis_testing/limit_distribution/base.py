@@ -109,6 +109,10 @@ class StorageLimitDistributionResolver(AbstractLimitDistributionResolver):
         :param sample_size: sample size used for the stored distribution.
         :return: stored statistic values, or None if no distribution is found.
         """
+        validate = getattr(statistic, "_validate_storage_calibration", None)
+        if validate is not None:
+            validate()
+
         limit_distribution = self.limit_distribution_storage.get(
             DistributionKey(
                 criterion_code=statistic.code(),

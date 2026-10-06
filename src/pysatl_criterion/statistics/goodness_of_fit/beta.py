@@ -1,5 +1,7 @@
 """Goodness-of-fit statistics on the fixed Beta support [0, 1].
 
+Samples must be real-valued; masked observations are rejected, not discarded.
+
 KS, AD, CvM, Watson, Kuiper and Pearson use specified shape parameters.
 Lilliefors fits both shapes inside execute_statistic, returning a scalar KS distance.
 MB, SK, Ratio, Entropy and Mode are locally defined discrepancies: no scientific
@@ -36,9 +38,9 @@ class AbstractBetaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     """
 
     def __init__(self, alpha=1, beta=1):
-        if np.ndim(alpha) != 0 or not np.isfinite(alpha) or alpha <= 0:
+        if np.ndim(alpha) != 0 or np.iscomplexobj(alpha) or not np.isfinite(alpha) or alpha <= 0:
             raise ValueError("alpha must be positive and finite")
-        if np.ndim(beta) != 0 or not np.isfinite(beta) or beta <= 0:
+        if np.ndim(beta) != 0 or np.iscomplexobj(beta) or not np.isfinite(beta) or beta <= 0:
             raise ValueError("beta must be positive and finite")
         self.alpha = alpha
         self.beta = beta
@@ -49,6 +51,11 @@ class AbstractBetaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
 
     @staticmethod
     def _validate_rvs(rvs, min_size=1):
+        if np.ma.isMaskedArray(rvs) and np.any(np.ma.getmaskarray(rvs)):
+            raise ValueError("Sample must not contain masked observations")
+        rvs = np.asarray(rvs)
+        if np.iscomplexobj(rvs):
+            raise ValueError("Sample values must be real")
         rvs = np.asarray(rvs, dtype=float)
         if rvs.ndim != 1 or rvs.size < min_size:
             raise ValueError(f"Sample must be one-dimensional with at least {min_size} values")
@@ -149,6 +156,8 @@ class KolmogorovSmirnovBetaGofStatistic(AbstractBetaGofStatistic, KSStatistic):
         mode="auto",
     ):
         AbstractBetaGofStatistic.__init__(self, alpha, beta)
+        if not isinstance(alternative_type, AlternativeType):
+            raise TypeError("alternative_type must be an AlternativeType")
         KSStatistic.__init__(self, alternative_type, mode)
 
     @staticmethod
@@ -183,7 +192,7 @@ class KolmogorovSmirnovBetaGofStatistic(AbstractBetaGofStatistic, KSStatistic):
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional finite sample in [0, 1], with at least 1 values.
+            One-dimensional finite real sample in [0, 1], with at least one value.
         **kwargs : dict, optional
             Reserved for interface compatibility; ignored.
 
@@ -274,7 +283,7 @@ class AndersonDarlingBetaGofStatistic(AbstractBetaGofStatistic, ADStatistic):
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional finite sample in [0, 1], with at least 1 values.
+            One-dimensional finite real sample in [0, 1], with at least one value.
         **kwargs : dict, optional
             Reserved for interface compatibility; ignored.
 
@@ -378,7 +387,7 @@ class CrammerVonMisesBetaGofStatistic(AbstractBetaGofStatistic, CrammerVonMisesS
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional finite sample in [0, 1], with at least 1 values.
+            One-dimensional finite real sample in [0, 1], with at least one value.
         **kwargs : dict, optional
             Reserved for interface compatibility; ignored.
 
@@ -585,6 +594,8 @@ class Chi2PearsonBetaGofStatistic(AbstractBetaGofStatistic, Chi2Statistic):
     def __init__(self, alpha=1, beta=1, lambda_=1):
         AbstractBetaGofStatistic.__init__(self, alpha, beta)
         Chi2Statistic.__init__(self)
+        if np.ndim(lambda_) != 0 or np.iscomplexobj(lambda_) or not np.isfinite(lambda_):
+            raise ValueError("lambda_ must be a finite real scalar")
         self.lambda_ = lambda_
 
     @staticmethod
@@ -619,7 +630,7 @@ class Chi2PearsonBetaGofStatistic(AbstractBetaGofStatistic, Chi2Statistic):
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional finite sample in [0, 1], with at least 1 values.
+            One-dimensional finite real sample in [0, 1], with at least one value.
         **kwargs : dict, optional
             Reserved for interface compatibility; ignored.
 
@@ -736,7 +747,7 @@ class WatsonBetaGofStatistic(AbstractBetaGofStatistic):
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional finite sample in [0, 1], with at least 1 values.
+            One-dimensional finite real sample in [0, 1], with at least one value.
         **kwargs : dict, optional
             Reserved for interface compatibility; ignored.
 
@@ -847,7 +858,7 @@ class KuiperBetaGofStatistic(AbstractBetaGofStatistic):
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional finite sample in [0, 1], with at least 1 values.
+            One-dimensional finite real sample in [0, 1], with at least one value.
         **kwargs : dict, optional
             Reserved for interface compatibility; ignored.
 
@@ -1009,7 +1020,8 @@ class SkewnessKurtosisBetaGofStatistic(AbstractBetaGofStatistic):
     p4=Z**4-4*g*Z-2*k*Z**2+k. Set Sigma_ij=E[p_i*p_j] using Beta
     moments through order eight. Return n*d.T @ solve(Sigma,d), where d
     contains sample skewness minus g and sample excess minus (k-3).
-    Sample estimates use bias=False. This is not the normal-model
+    Sample estimates use bias=False after affine rescaling for numerical
+    stability. This is not the normal-model
     Jarque-Bera statistic. Both shapes are fixed; the asymptotic null law
     is chi-square(2), not an exact finite-sample law.
 
@@ -1083,6 +1095,9 @@ class SkewnessKurtosisBetaGofStatistic(AbstractBetaGofStatistic):
         rvs = self._validate_rvs(rvs, min_size=4)
         if np.ptp(rvs) == 0:
             raise ValueError("Skewness and kurtosis require a nonconstant sample")
+        # Skewness and kurtosis are affine invariant. Center before scaling
+        # to preserve small differences near a large common sample value.
+        scaled = (rvs - rvs.min()) / np.ptp(rvs)
         moments = self._standardized_moments(8)
         skewness, pearson_kurtosis = moments[3:5]
         # Influence polynomials in Z=(X-mu)/sigma, coefficients in ascending order.
@@ -1097,8 +1112,8 @@ class SkewnessKurtosisBetaGofStatistic(AbstractBetaGofStatistic):
                 covariance[i, j] = product @ moments[: len(product)]
         difference = np.array(
             [
-                scipy_stats.skew(rvs, bias=False) - skewness,
-                scipy_stats.kurtosis(rvs, bias=False) - (pearson_kurtosis - 3),
+                scipy_stats.skew(scaled, bias=False) - skewness,
+                scipy_stats.kurtosis(scaled, bias=False) - (pearson_kurtosis - 3),
             ]
         )
         return len(rvs) * difference @ np.linalg.solve(covariance, difference)
@@ -1128,7 +1143,8 @@ class RatioBetaGofStatistic(AbstractBetaGofStatistic):
     finite-sample expectation of R. Both shapes are fixed. No variance
     normalization or universal null law is supplied; simulate calibration
     for both shapes and n. A zero observation gives geometric mean zero;
-    an all-zero sample is rejected because the ratio is undefined.
+    an all-zero sample is rejected because the ratio is undefined. The sample
+    ratio is evaluated after scaling by the maximum, using log differences.
 
     No publication describing this exact Beta statistic was identified.
     It is a locally defined discrepancy, not an established named Beta
@@ -1178,7 +1194,7 @@ class RatioBetaGofStatistic(AbstractBetaGofStatistic):
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional finite sample in [0, 1], with at least 1 values.
+            One-dimensional finite real sample in [0, 1], with at least one value.
         **kwargs : dict, optional
             Reserved for interface compatibility; ignored.
 
@@ -1200,16 +1216,16 @@ class RatioBetaGofStatistic(AbstractBetaGofStatistic):
 
         n = len(rvs)
 
-        # Sample statistics
-        arithmetic_mean = np.mean(rvs)
-        with np.errstate(divide="ignore"):
-            geometric_mean = np.exp(np.mean(np.log(rvs)))
-
-        # Avoid division by zero
-        if arithmetic_mean == 0:
+        # G/A is scale invariant; avoid underflow in the arithmetic mean.
+        scale = np.max(rvs)
+        if scale == 0:
             raise ValueError("Arithmetic mean is zero, cannot compute ratio")
-
-        sample_ratio = geometric_mean / arithmetic_mean
+        arithmetic_mean = np.mean(rvs / scale)
+        with np.errstate(divide="ignore"):
+            # Subtract logs rather than logging rvs/scale: that division can
+            # itself underflow for samples spanning the float64 range.
+            log_geometric_mean = np.mean(np.log(rvs) - np.log(scale))
+        sample_ratio = np.exp(log_geometric_mean - np.log(arithmetic_mean))
 
         # Theoretical ratio for Beta distribution
         # E[X] = α/(α+β)
@@ -1375,8 +1391,10 @@ class ModeBetaGofStatistic(AbstractBetaGofStatistic):
     The reference mode is (alpha-1)/(alpha+beta-2), alpha,beta>1.
     Estimate a sample mode using Gaussian KDE with Scott bandwidth,
     a grid over the sample range of size max(257,int(sqrt(n))+1), and
-    bounded optimization of every detected local peak. Include endpoints
-    of [0,1] among candidates. Return sqrt(n)*abs(mode_hat-mode_Beta).
+    bounded optimization of every detected local peak. Computation uses
+    coordinates scaled to [0,1] within the sample range, including both
+    sample extrema. A Gaussian KDE mode lies within that range. Return
+    sqrt(n)*abs(mode_hat-mode_Beta).
     Both shapes are fixed. The numerical search has no general guarantee
     of finding every peak. KDE boundary bias remains. A constant sample
     or fewer than two observations is rejected.
@@ -1460,13 +1478,16 @@ class ModeBetaGofStatistic(AbstractBetaGofStatistic):
         if np.ptp(rvs) == 0:
             raise ValueError("KDE mode requires a nonconstant sample")
         n = len(rvs)
-        kde = scipy_stats.gaussian_kde(rvs)
+        # Scott-bandwidth KDE transforms affinely, including its modes.
+        lower, width = rvs.min(), np.ptp(rvs)
+        scaled = (rvs - lower) / width
+        kde = scipy_stats.gaussian_kde(scaled)
         # Gaussian mixture modes lie inside the sample range. Refine every
         # grid-local maximum, including candidates near either support boundary.
-        x_grid = np.linspace(rvs.min(), rvs.max(), max(257, int(np.sqrt(n)) + 1))
+        x_grid = np.linspace(0, 1, max(257, int(np.sqrt(n)) + 1))
         density = kde(x_grid)
         peaks = np.flatnonzero((density[1:-1] >= density[:-2]) & (density[1:-1] >= density[2:])) + 1
-        candidates = [0.0, 1.0, x_grid[0], x_grid[-1]]
+        candidates = [0.0, 1.0]
         for i in peaks:
             result = minimize_scalar(
                 lambda x: -kde([x])[0],
@@ -1475,7 +1496,7 @@ class ModeBetaGofStatistic(AbstractBetaGofStatistic):
                 options={"xatol": 1e-12},
             )
             candidates.append(result.x)
-        sample_mode = candidates[np.argmax(kde(candidates))]
+        sample_mode = lower + width * candidates[np.argmax(kde(candidates))]
 
         # Theoretical mode
         theoretical_mode = (self.alpha - 1) / (self.alpha + self.beta - 2)

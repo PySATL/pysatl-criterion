@@ -37,8 +37,10 @@ $$ \frac{\alpha - 1}{\alpha + \beta - 2}. $$
 
 The implementation uses a Gaussian KDE with Scott bandwidth, locates candidate
 maxima on a grid over the sample range whose size grows with sample size, and
-refines each candidate by bounded optimization. The support boundaries are also
-checked. At least two observations and a nonconstant sample are required.
+refines each candidate by bounded optimization. Computation uses coordinates
+scaled to [0,1] within the sample range, including both sample extrema. Gaussian
+KDE modes lie within the sample range, so support points outside it cannot maximize
+the density. Scaling prevents KDE variance underflow for very narrow samples. At least two observations and a nonconstant sample are required.
 The returned value is `sqrt(n) * abs(estimated_mode - theoretical_mode)`.
 The factor `sqrt(n)` is a scale convention, not a claim of asymptotic normality.
 Calibrate by simulation for both fixed shapes and sample size, using the same KDE
@@ -50,11 +52,6 @@ when the statistic or its estimator settings change.
 
 ## Author(s)
 Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
-
-## References
-
-No scientific article describing the exact implemented Beta statistic was identified.
-The formula is a locally defined discrepancy; no reference to a different test is substituted.
 
 ## Examples
 ```python

@@ -1,69 +1,76 @@
 # Hollander-Proshan test for exponentiality
 
-## Description
-Performs Hollander-Proshan test for the composite hypothesis of exponentiality, see e.g. Hollander and Proschan (1972).
-The Hollander-Proshan test is a statistical hypothesis test used to assess the composite hypothesis of exponentiality. This test is designed to determine whether a given sample of data is consistent with an exponential distribution by using a U-statistic based on the comparison of one lifetime with the sum of two other lifetimes.
+HollanderProshan statistic for zero-origin exponential observations.
 
-Composite Hypothesis of Exponentiality
-The composite hypothesis of exponentiality refers to the null hypothesis that the data comes from an exponential distribution with an unspecified rate parameter
-lambda. The Hollander-Proshan statistic is scale invariant because it uses only comparisons of sample observations and their sums.
+## Hypothesis, formula and calibration
 
-Test Statistic
-The Hollander-Proshan test statistic is based on the new-better-than-used property from reliability theory. For an exponential distribution, a new item is stochastically equivalent to a used item of any age. The statistic counts how often one observation is greater than the sum of two other observations.
+H0 is Exp(lam), lam > 0 unknown, with known origin zero.
+``hypothesis().parameters()`` is empty. Positive rescaling leaves
+the statistic unchanged, so Exp(1) simulation is valid.
+Write n for sample size, x_(i) for sorted observations, and
+y=x/mean(x). The implemented formula is:
 
-Calculate the Test Statistic: For all triples of distinct observations with the second and third indices ordered as `j < k`, count the indicator of the event $X_i > X_j + X_k$ and normalize this count by the number of possible triples.
+    2*sum_{i,j<k; i!=j,k} 1{x_i > x_j+x_k}
+    / (n*(n-1)*(n-2)). This is the raw U-statistic, with null
+    expectation 1/4, not a standardized normal statistic.
 
-Limitations
-The test assumes nonnegative lifetime-type observations.
+Reject in the upper tail. This is a directional test; it is not
+claimed consistent against every nonexponential alternative.
+Use independent continuous, uncensored observations. Rounded or tied
+data require calibration of the observation process. No parameters
+are retained from a previous call. Rescaling uses a power of two
+to preserve exact binary ties; unrepresentable positive ratios raise
+ValueError. Strict comparisons near floating-point boundaries can
+still depend on roundoff.
+A primary source establishing this exact implemented convention
+was not verified in the review; no published tables or asymptotic
+law are endorsed unless derived explicitly above. See the audit.
 
-The computation uses a triple loop over the sample and can be expensive for large samples.
+The constructor has no arguments; `lam` is unknown and is not accepted.
 
-## Usage
+## Sample and result
+
+```text
+Compute the HollanderProshan scalar statistic.
+
+Parameters
+----------
+rvs : array_like, shape (n,)
+    Finite nonnegative observations; n >= 3. The total must be positive.
+    A copy is used. Ties and positive constants are allowed except
+    where they make the formula undefined (see Notes on the class).
+**kwargs : dict
+    No execution settings are supported; configure the constructor.
+
+Returns
+-------
+statistic : float
+    Value in the convention documented on the class. Infinite
+    boundary values are retained where the formula has that limit.
+
+Raises
+------
+ValueError
+    Invalid sample, insufficient observations, invalid sample-dependent
+    setting, undefined ratio, or rescaling underflow of positive data.
+TypeError
+    Unsupported execution keyword arguments.
+```
+
+## Example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.statistics.goodness_of_fit.exponent import (
     HollanderProshanExponentialityGofStatistic,
 )
 
-
-test_statistic = HollanderProshanExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
+statistic = HollanderProshanExponentialityGofStatistic()
+value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
+print(value)
 ```
-
-## Arguments
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-
-The Hollander-Proshan test is a test for the composite hypothesis of exponentiality. The test statistic implemented here is
-
-$$ HP_n = \frac{2}{n(n-1)(n-2)} \sum_{i\ne j,\, i\ne k,\, j<k} I(X_i > X_j + X_k). $$
-
-Here $n$ is the sample size and $I(\cdot)$ is the indicator function.
-
-Under exponentiality,
-
-$$ \sqrt{n}\left(HP_n-\frac{1}{4}\right) \xrightarrow{d} N\left(0,\frac{5}{432}\right). $$
-
-Large values of $HP_n$ indicate larger deviations from the exponential model in the direction used by the implemented right-sided alternative.
 
 ## Author(s)
+
 Lev Golofastov
 
-## References
-Hollander, M. and Proschan, F. (1972): Testing whether new is better than used. - Annals of Mathematical Statistics, vol. 43, no. 4, pp. 1136-1146. https://doi.org/10.1214/aoms/1177692466
-
-Henze, N. and Meintanis, S.G. (2005): Recent and classical tests for exponentiality: a partial review with comparisons. - Metrika, vol. 61, pp. 29-45.
-
-## Examples
-
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    HollanderProshanExponentialityGofStatistic,
-)
-
-
-test_statistic = HollanderProshanExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
-```
+See the [current audit and migration notes](../../../exponent-statistics-audit.md).
