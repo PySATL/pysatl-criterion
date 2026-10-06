@@ -1,77 +1,53 @@
 # SF test for normality
 
-## Description
+Shapiro-Francia ``W_prime`` statistic for the normal family.
 
-Performs the SF goodness-of-fit test for the hypothesis of normality.
-The null hypothesis is the normal family with unknown mean and variance.
+## Methods
 
-Hypothesis of Normality
-The population mean and variance are free parameters of the normal family.
-The statistic estimates them from the sample or eliminates them through
-location- and scale-invariant calculations. No mean or variance is fixed in
-advance, so `hypothesis().parameters()` returns `{}`. Estimates computed from
-observations are not added to that dictionary.
+execute_statistic(rvs, **kwargs)
+    Return one scalar statistic.
+hypothesis()
+    Report fixed null parameters only.
+alternative()
+    Report the critical tail.
 
-Test Statistic
-The statistic is based on a Shapiro-Francia-style statistic based on expected normal scores.
+## Notes
 
-## Usage
+H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+Location and positive scale cancel, allowing N(0,1) null simulation.
+Every simulated sample must go through execute_statistic again.
+The lower tail of the statistic defines rejection. Use at least 3
+finite real observations in one dimension. Nonzero dispersion is required.
+Ties are accepted unless a scale or contrast becomes undefined.
+Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+the standard normal CDF and density, s0=std(x,ddof=0), and
+s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    SFNormalityGofStatistic,
-)
-
-
-test_statistic = SFNormalityGofStatistic()
-assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
-```
-
-## Arguments
-
-This class takes no constructor arguments.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-
-The null leaves mean and variance unrestricted;
-`hypothesis().parameters()` is empty. The statistic is the squared
-correlation between sorted observations and approximate expected
-normal order statistics, using `(i - 3/8)/(n + 1/4)` plotting
-probabilities. This quantile approximation is discussed in [2].
-
-Location and scale cancel from the ratio. Smaller values indicate
-nonnormality; `alternative()` returns `LeftAlternative`. Supply
-finite, nonconstant data and at least three observations for a
-nontrivial assessment. No p-value is calculated.
+Return corr(x_(i), Phi**-1((i-3/8)/(n+1/4)))**2.
+This Shapiro-Francia approximation uses Blom scores in place of
+exact expected normal order statistics.
 
 ## References
 
-1. Shapiro, S. S. and Francia, R. S. (1972). An Approximate Analysis of Variance Test for Normality. Journal of the American Statistical Association, 67(337), 215-216. [Source](https://doi.org/10.1080/01621459.1972.10481232)
-
-2. Weisberg, S. and Bingham, C. (1975). An Approximate Analysis of Variance Test for Non-Normality Suitable for Machine Calculation. Technometrics, 17(1), 133-134. [Source](https://doi.org/10.1080/00401706.1975.10489283)
-
-## Author(s)
-
-Alexey Mironov
+[1] Shapiro, S. S. and Francia, R. S. (1972). An Approximate
+   Analysis of Variance Test for Normality. Journal of the American
+   Statistical Association, 67(337), 215-216.
+   https://doi.org/10.1080/01621459.1972.10481232
+[2] Weisberg, S. and Bingham, C. (1975). An Approximate Analysis of
+   Variance Test for Non-Normality Suitable for Machine Calculation.
+   Technometrics, 17(1), 133-134.
+   https://doi.org/10.1080/00401706.1975.10489283
 
 ## Examples
 
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    SFNormalityGofStatistic,
-)
+import numpy as np
+from pysatl_criterion.statistics.goodness_of_fit.normal import SFNormalityGofStatistic
 
-
-test_statistic = SFNormalityGofStatistic()
-assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
+statistic = SFNormalityGofStatistic()
+sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+value = statistic.execute_statistic(sample)
+bool(np.isfinite(value))
 ```
+
+See [review and calibration changes](../../../normal-statistics-review.md).

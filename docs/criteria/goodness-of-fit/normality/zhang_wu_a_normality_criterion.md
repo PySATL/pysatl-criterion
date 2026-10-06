@@ -1,73 +1,50 @@
 # Zhang-Wu A test for normality
 
-## Description
+Zhang-Wu likelihood-ratio normality statistic ``Z_A``.
 
-Performs the Zhang-Wu A goodness-of-fit test for the hypothesis of normality.
-The null hypothesis is the normal family with unknown mean and variance.
+## Methods
 
-Hypothesis of Normality
-The population mean and variance are free parameters of the normal family.
-The statistic estimates them from the sample or eliminates them through
-location- and scale-invariant calculations. No mean or variance is fixed in
-advance, so `hypothesis().parameters()` returns `{}`. Estimates computed from
-observations are not added to that dictionary.
+execute_statistic(rvs, **kwargs)
+    Return one scalar statistic.
+hypothesis()
+    Report fixed null parameters only.
+alternative()
+    Report the critical tail.
 
-Test Statistic
-The statistic is based on weighted logarithms of fitted normal distribution values and survival values.
+## Notes
 
-## Usage
+H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+Location and positive scale cancel, allowing N(0,1) null simulation.
+Every simulated sample must go through execute_statistic again.
+The upper tail of the statistic defines rejection. Use at least 4
+finite real observations in one dimension. Nonzero dispersion is required.
+Ties are accepted unless a scale or contrast becomes undefined.
+Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+the standard normal CDF and density, s0=std(x,ddof=0), and
+s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    ZhangWuANormalityGofStatistic,
-)
-
-
-test_statistic = ZhangWuANormalityGofStatistic()
-assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
-```
-
-## Arguments
-
-This class takes no constructor arguments.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-
-The calculation uses sorted normal probabilities after centering by the
-sample mean and scaling by the sample standard deviation with `ddof=1`.
-This implementation returns `10 * Z_A - 32`. This increasing affine
-transformation preserves the right-tail rejection ordering, but critical
-values must use the same transformation.
-
-Use at least four finite observations with nonzero sample variance.
-Probabilities rounded to zero or one can produce an infinite statistic.
+For z=(x-mean(x))/s1, let A=-sum_i(log(Phi(z_(i)))/
+(n-i+1/2) + log(1-Phi(z_(i)))/(i-1/2)). Return 10*A-32.
+The historical affine scaling is retained and must also be used in
+calibration. Logs are evaluated without first rounding normal CDFs.
 
 ## References
 
-1. Zhang, J. and Wu, Y. (2005). Likelihood-ratio tests for normality. Computational Statistics & Data Analysis, 49(3), 709-721. [Source](https://doi.org/10.1016/j.csda.2004.05.034)
-
-## Author(s)
-
-Alexey Mironov
+[1] Zhang, J. and Wu, Y. (2005).
+   Likelihood-ratio tests for normality.
+   Computational Statistics & Data Analysis, 49(3), 709-721.
+   https://doi.org/10.1016/j.csda.2004.05.034
 
 ## Examples
 
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    ZhangWuANormalityGofStatistic,
-)
+import numpy as np
+from pysatl_criterion.statistics.goodness_of_fit.normal import ZhangWuANormalityGofStatistic
 
-
-test_statistic = ZhangWuANormalityGofStatistic()
-assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
+statistic = ZhangWuANormalityGofStatistic()
+sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+value = statistic.execute_statistic(sample)
+bool(np.isfinite(value))
 ```
+
+See [review and calibration changes](../../../normal-statistics-review.md).

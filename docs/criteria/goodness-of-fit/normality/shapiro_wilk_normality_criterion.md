@@ -1,77 +1,52 @@
 # Shapiro-Wilk test for normality
 
-## Description
+Shapiro-Wilk ``W`` statistic for the normal location-scale family.
 
-Performs the Shapiro-Wilk goodness-of-fit test for the hypothesis of normality.
-The null hypothesis is the normal family with unknown mean and variance.
+## Methods
 
-Hypothesis of Normality
-The population mean and variance are free parameters of the normal family.
-The statistic estimates them from the sample or eliminates them through
-location- and scale-invariant calculations. No mean or variance is fixed in
-advance, so `hypothesis().parameters()` returns `{}`. Estimates computed from
-observations are not added to that dictionary.
+execute_statistic(rvs, **kwargs)
+    Return one scalar statistic.
+hypothesis()
+    Report fixed null parameters only.
+alternative()
+    Report the critical tail.
 
-Test Statistic
-The statistic is based on a squared correlation-like statistic based on ordered observations and normal order statistic weights.
+## Notes
 
-## Usage
+H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+Location and positive scale cancel, allowing N(0,1) null simulation.
+Every simulated sample must go through execute_statistic again.
+The lower tail of the statistic defines rejection. Use at least 3
+finite real observations in one dimension. Nonzero dispersion is required.
+Ties are accepted unless a scale or contrast becomes undefined.
+Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+the standard normal CDF and density, s0=std(x,ddof=0), and
+s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    ShapiroWilkNormalityGofStatistic,
-)
-
-
-test_statistic = ShapiroWilkNormalityGofStatistic()
-assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
-```
-
-## Arguments
-
-This class takes no constructor arguments.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-
-The null leaves the mean and variance unspecified;
-`hypothesis().parameters()` is empty. The statistic is a squared
-weighted sum of ordered observations divided by their centered sum of
-squares, and is invariant to changes of location and scale.
-
-Order-statistic weights use a normal-quantile approximation with
-polynomial adjustments, following the algorithmic approach in [2].
-Smaller `W` values indicate departures from normality;
-`alternative()` returns `LeftAlternative`. Supply at least three
-finite observations with nonzero sample variance. No p-value is returned.
+W = (sum(a_i*x_(i)))**2 / sum((x-mean(x))**2).
+The normalized symmetric weights use the Royston polynomial
+approximation, with the exact three-observation weights. This is a
+weight approximation to Shapiro-Wilk, not exact covariance inversion.
 
 ## References
 
-1. Shapiro, S. S. and Wilk, M. B. (1965). An analysis of variance test for normality (complete samples). Biometrika, 52(3-4), 591-611. [Source](https://doi.org/10.1093/biomet/52.3-4.591)
-
-2. Royston, P. (1995). Remark AS R94: A Remark on Algorithm AS 181: The W-test for Normality. Applied Statistics, 44(4), 547-551. [Source](https://doi.org/10.2307/2986146)
-
-## Author(s)
-
-Alexey Mironov
+[1] Shapiro, S. S. and Wilk, M. B. (1965). An analysis of variance
+   test for normality (complete samples). Biometrika, 52(3-4), 591-611.
+   https://doi.org/10.1093/biomet/52.3-4.591
+[2] Royston, P. (1995). Remark AS R94: A Remark on Algorithm AS 181:
+   The W-test for Normality. Applied Statistics, 44(4), 547-551.
+   https://doi.org/10.2307/2986146
 
 ## Examples
 
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    ShapiroWilkNormalityGofStatistic,
-)
+import numpy as np
+from pysatl_criterion.statistics.goodness_of_fit.normal import ShapiroWilkNormalityGofStatistic
 
-
-test_statistic = ShapiroWilkNormalityGofStatistic()
-assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
+statistic = ShapiroWilkNormalityGofStatistic()
+sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+value = statistic.execute_statistic(sample)
+bool(np.isfinite(value))
 ```
+
+See [review and calibration changes](../../../normal-statistics-review.md).

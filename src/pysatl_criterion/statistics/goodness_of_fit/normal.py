@@ -18,6 +18,9 @@ from abc import ABC
 import numpy as np
 import pandas as pd
 import scipy.stats as scipy_stats
+from numpy.polynomial import Polynomial
+from numpy.polynomial.hermite_e import HermiteE
+from scipy.special import gammaln, logsumexp, xlogy
 from typing_extensions import override
 
 from pysatl_criterion import DistributionType
@@ -48,10 +51,78 @@ from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
 def _validate_normal_parameters(mean: float, var: float) -> None:
-    if not math.isfinite(mean):
-        raise ValueError("mean must be finite")
-    if not math.isfinite(var) or var <= 0:
-        raise ValueError("var must be positive and finite")
+    for name, value in (("mean", mean), ("var", var)):
+        message = f"{name} must be " + ("finite" if name == "mean" else "positive and finite")
+        if (
+            isinstance(value, (bool, np.bool_, str, bytes))
+            or np.ndim(value) != 0
+            or np.iscomplexobj(value)
+        ):
+            raise ValueError(message + " (real scalar)")
+        try:
+            valid = math.isfinite(value) and (name == "mean" or value > 0)
+        except (TypeError, ValueError, OverflowError):
+            valid = False
+        if not valid:
+            raise ValueError(message)
+
+
+def _normal_sample(rvs, minimum=4, *, standardize=True):
+    """Return a validated copy, removing location and scale only when invariant."""
+    if np.iscomplexobj(rvs):
+        raise ValueError("rvs must be real")
+    try:
+        x = np.array(rvs, dtype=float, copy=True)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("rvs must be a real numeric sample") from exc
+    if x.ndim != 1 or x.size < minimum:
+        raise ValueError(f"rvs must be one-dimensional with at least {minimum} observations")
+    if not np.all(np.isfinite(x)):
+        raise ValueError("rvs must contain only finite observations")
+    if standardize:
+        # Power-of-two rescaling avoids overflow before subtracting the centre.
+        largest = np.max(np.abs(x))
+        if largest == 0:
+            raise ValueError("rvs must have nonzero dispersion")
+        with np.errstate(under="ignore"):
+            x = np.ldexp(x, -int(np.frexp(largest)[1]))
+        x -= np.median(x)
+        spread = np.max(np.abs(x))
+        if spread == 0:
+            raise ValueError("rvs must have nonzero dispersion")
+        x /= spread
+        x -= np.mean(x)
+    return x
+
+
+def _positive_scale(value, name):
+    if not np.isfinite(value) or value <= 0:
+        raise ValueError(f"{name} must be positive and finite for this sample")
+    return value
+
+
+def _cabana_supremum(x, *, kurtosis):
+    """Supremum of the l=5 truncated process, including limits at infinity."""
+    z = (x - np.mean(x)) / np.std(x, ddof=1)
+    h = [
+        HermiteE.basis(j).convert(kind=Polynomial) / math.sqrt(math.factorial(j)) for j in range(9)
+    ]
+    means = [np.sum(poly(z)) / np.sqrt(len(z)) for poly in h]
+    identity = Polynomial([0, 1])
+    if kurtosis:
+        poly = sum((np.sqrt(j / (j - 1)) * h[j - 2] + h[j]) * means[j + 3] for j in range(2, 6))
+        poly = poly + means[3] + identity * means[4]
+        cdf_coefficient = means[4]
+    else:
+        poly = sum(h[j - 1] * means[j + 3] / np.sqrt(j) for j in range(1, 6))
+        cdf_coefficient = means[3]
+    derivative = cdf_coefficient + identity * poly - poly.deriv()
+    roots = derivative.roots()
+    candidates = roots.real[np.abs(roots.imag) <= 1e-9 * (1 + np.abs(roots.real))]
+    values = cdf_coefficient * scipy_stats.norm.cdf(candidates) - scipy_stats.norm.pdf(
+        candidates
+    ) * poly(candidates)
+    return float(max(abs(cdf_coefficient), np.max(np.abs(values), initial=0)))
 
 
 class AbstractNormalityGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
@@ -67,6 +138,19 @@ class AbstractNormalityGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     @override
     def __init__(self):
         """Initialize a statistic with no fixed distribution parameters."""
+
+    def _validate_storage_calibration(self):
+        """Reject algorithm settings absent from the current storage key."""
+        if (
+            getattr(self, "alternative_type", AlternativeType.TWO_TAILED)
+            != AlternativeType.TWO_TAILED
+            or getattr(self, "weighted", False)
+            or getattr(self, "cte_alpha", "3/8") != "3/8"
+        ):
+            raise ValueError(
+                "Stored calibration does not identify these settings; "
+                "use MonteCarloLimitDistributionResolver"
+            )
 
     @override
     def hypothesis(self) -> GoodnessOfFitHypothesis:
@@ -118,18 +202,30 @@ class KolmogorovSmirnovNormalityGofStatistic(AbstractNormalityGofStatistic, KSSt
         Positive, finite variance fixed by the null hypothesis. Default is 1.
         The normal CDF uses ``scale=sqrt(var)``.
 
-    Raises
-    ------
-    ValueError
-        If the mean is nonfinite or the variance is nonpositive or nonfinite.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    The null is ``N(mean, var)`` with both parameters specified independently
-    of the observations. ``hypothesis().parameters()`` contains both values.
-    The empirical CDF of the unstandardized sample is compared with this
-    fixed CDF. Use ``LillieforsNormalityGofStatistic`` when both parameters
-    are estimated from the sample. Supply a nonempty, finite sample.
+    H0 is N(mean,var) with both parameters fixed; hypothesis() reports both.
+    Constant samples are valid. Simulate the specified normal law.
+    The upper tail of the statistic defines rejection. Use at least 1
+    finite real observations in one dimension.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
+
+    D+ = max(i/n - F0(x_(i))) and D- = max(F0(x_(i)) - (i-1)/n).
+    Return D+, D-, or max(D+, D-) according to alternative_type.
+    F0 is the normal CDF with the fixed mean and variance. All three
+    distances use the upper critical tail; mode does not compute a p-value.
 
     References
     ----------
@@ -139,9 +235,11 @@ class KolmogorovSmirnovNormalityGofStatistic(AbstractNormalityGofStatistic, KSSt
 
     Examples
     --------
-    >>> statistic = KolmogorovSmirnovNormalityGofStatistic(mean=3, var=4)
-    >>> statistic.hypothesis().parameters()
-    {'mean': 3, 'var': 4}
+    >>> statistic = KolmogorovSmirnovNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -155,6 +253,10 @@ class KolmogorovSmirnovNormalityGofStatistic(AbstractNormalityGofStatistic, KSSt
         _validate_normal_parameters(mean, var)
         self.mean = mean
         self.var = var
+        if not isinstance(alternative_type, AlternativeType):
+            raise TypeError("alternative_type must be an AlternativeType")
+        if mode not in ("auto", "exact", "approx", "asymp"):
+            raise ValueError("Unsupported KS mode")
         KSStatistic.__init__(self, alternative_type, mode)
 
     @override
@@ -181,64 +283,62 @@ class KolmogorovSmirnovNormalityGofStatistic(AbstractNormalityGofStatistic, KSSt
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute KolmogorovSmirnov for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 1.
+            Constant samples are accepted.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 1, standardize=False)
         rvs = np.sort(rvs)
         cdf_vals = scipy_stats.norm.cdf(rvs, loc=self.mean, scale=np.sqrt(self.var))
         return KSStatistic.do_execute_statistic(self, rvs, cdf_vals)
 
 
-"""""
-class ChiSquareTest(AbstractNormalityTestStatistic):  # TODO: check test correctness
-
-    @staticmethod
-    @override
-    def code():
-        return 'CHI2' + '_' + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic)
-        .code()
-
-    @override
-    def execute_statistic(self, rvs, **kwargs):
-        rvs = np.sort(rvs)
-
-        f_obs = np.asanyarray(rvs)
-        f_obs_float = f_obs.astype(np.float64)
-        f_exp = pdf_norm(rvs)  # TODO: remove link to ext package
-        scipy_stats.chi2_contingency()  # TODO: fix warning!!
-        terms = (f_obs_float - f_exp) ** 2 / f_exp
-        return terms.sum(axis=0)
-""" ""
-
-
 class AndersonDarlingNormalityGofStatistic(AbstractNormalityGofStatistic, ADStatistic):
     """Anderson-Darling statistic for the normal location-scale family.
 
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
+
     Notes
     -----
-    The null allows any finite mean and positive variance;
-    ``hypothesis().parameters()`` is empty. Each sample is standardized
-    using its mean and standard deviation with ``ddof=1`` before computing
-    the tail-weighted empirical-CDF discrepancy ``A_squared``.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 2
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    The returned value is the unadjusted statistic, without a finite-sample
-    correction or a p-value. Larger values indicate poorer fit, and
-    ``alternative()`` returns ``RightAlternative``. Supply at least two
-    finite observations with nonzero sample variance. Calibration must
-    account for estimating both normal parameters from every sample.
+    A2 = -n - sum((2*i-1)*(log(Phi(z_(i))) +
+    log(1-Phi(z_(n+1-i)))))/n, where z=(x-mean(x))/s1.
+    This is the unadjusted fitted-normal statistic. Log-CDF and log-survival
+    functions avoid rounding probabilities to zero or one.
 
     References
     ----------
@@ -248,6 +348,14 @@ class AndersonDarlingNormalityGofStatistic(AbstractNormalityGofStatistic, ADStat
     .. [2] Stephens, M. A. (1976). Asymptotic Results for Goodness-of-Fit
        Statistics with Unknown Parameters. The Annals of Statistics,
        4(2), 357-369. https://doi.org/10.1214/aos/1176343411
+
+    Examples
+    --------
+    >>> statistic = AndersonDarlingNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -263,22 +371,29 @@ class AndersonDarlingNormalityGofStatistic(AbstractNormalityGofStatistic, ADStat
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute AndersonDarling for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 2.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 2)
         s = np.std(rvs, ddof=1, axis=0)
         y = np.sort(rvs)
         xbar = np.mean(rvs, axis=0)
@@ -291,18 +406,31 @@ class AndersonDarlingNormalityGofStatistic(AbstractNormalityGofStatistic, ADStat
 class ShapiroWilkNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Shapiro-Wilk ``W`` statistic for the normal location-scale family.
 
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
+
     Notes
     -----
-    The null leaves the mean and variance unspecified;
-    ``hypothesis().parameters()`` is empty. The statistic is a squared
-    weighted sum of ordered observations divided by their centered sum of
-    squares, and is invariant to changes of location and scale.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The lower tail of the statistic defines rejection. Use at least 3
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Order-statistic weights use a normal-quantile approximation with
-    polynomial adjustments, following the algorithmic approach in [2]_.
-    Smaller ``W`` values indicate departures from normality;
-    ``alternative()`` returns ``LeftAlternative``. Supply at least three
-    finite observations with nonzero sample variance. No p-value is returned.
+    W = (sum(a_i*x_(i)))**2 / sum((x-mean(x))**2).
+    The normalized symmetric weights use the Royston polynomial
+    approximation, with the exact three-observation weights. This is a
+    weight approximation to Shapiro-Wilk, not exact covariance inversion.
 
     References
     ----------
@@ -312,6 +440,14 @@ class ShapiroWilkNormalityGofStatistic(AbstractNormalityGofStatistic):
     .. [2] Royston, P. (1995). Remark AS R94: A Remark on Algorithm AS 181:
        The W-test for Normality. Applied Statistics, 44(4), 547-551.
        https://doi.org/10.2307/2986146
+
+    Examples
+    --------
+    >>> statistic = ShapiroWilkNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -330,21 +466,30 @@ class ShapiroWilkNormalityGofStatistic(AbstractNormalityGofStatistic):
         return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs):
-        """Compute the statistic for the observed sample.
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute ShapiroWilk for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 3.
+            Nonzero dispersion and the scales specified in Notes are required.
+        **kwargs : dict, optional
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 3)
         f_obs = np.asanyarray(rvs)
         f_obs_sorted = np.sort(f_obs)
         x_mean = np.mean(f_obs)
@@ -405,22 +550,28 @@ class CramerVonMiseNormalityGofStatistic(AbstractNormalityGofStatistic, CrammerV
         Positive, finite variance fixed by the null hypothesis. Default is 1.
         This is a variance, not the standard deviation.
 
-    Raises
-    ------
-    ValueError
-        If the mean is nonfinite or the variance is nonpositive or nonfinite.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    The null is ``N(mean, var)`` and ``hypothesis().parameters()`` contains
-    both fixed values. The statistic is ``1/(12*n)`` plus the sum of squared
-    differences between ``F_0(x_sorted[i])`` and ``(2*i-1)/(2*n)``, with
-    one-based ranks. ``F_0`` uses ``scale=sqrt(var)`` without fitting the data.
+    H0 is N(mean,var) with both parameters fixed; hypothesis() reports both.
+    Constant samples are valid. Simulate the specified normal law.
+    The upper tail of the statistic defines rejection. Use at least 1
+    finite real observations in one dimension.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Larger values indicate poorer fit; ``alternative()`` returns
-    ``RightAlternative``. Supply a nonempty, finite sample. Estimating the
-    constructor parameters from that sample changes the calibration and
-    does not turn this class into a composite-normality test.
+    W2 = 1/(12*n) + sum((F0(x_(i)) - (2*i-1)/(2*n))**2).
+    F0 is the normal CDF with the fixed mean and variance.
 
     References
     ----------
@@ -428,6 +579,14 @@ class CramerVonMiseNormalityGofStatistic(AbstractNormalityGofStatistic, CrammerV
        Second paper: Statistical applications. Scandinavian Actuarial
        Journal, 1928(1), 141-180.
        https://doi.org/10.1080/03461238.1928.10416872
+
+    Examples
+    --------
+    >>> statistic = CramerVonMiseNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -460,21 +619,30 @@ class CramerVonMiseNormalityGofStatistic(AbstractNormalityGofStatistic, CrammerV
         return f"{short_code}_{base_code}"
 
     @override
-    def execute_statistic(self, rvs):
-        """Compute the statistic for the observed sample.
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute CramerVonMise for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 1.
+            Constant samples are accepted.
+        **kwargs : dict, optional
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 1, standardize=False)
         sorted_rvs = np.sort(np.asarray(rvs))
         cdf_vals = scipy_stats.norm.cdf(sorted_rvs, loc=self.mean, scale=np.sqrt(self.var))
 
@@ -484,19 +652,30 @@ class CramerVonMiseNormalityGofStatistic(AbstractNormalityGofStatistic, CrammerV
 class LillieforsNormalityGofStatistic(AbstractNormalityGofStatistic, LillieforsTest):
     """Lilliefors statistic for normality with unknown mean and variance.
 
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
+
     Notes
     -----
-    The null is the entire normal location-scale family;
-    ``hypothesis().parameters()`` is empty. The mean and standard deviation
-    with ``ddof=1`` are estimated from each sample. The maximum absolute
-    empirical-CDF discrepancy is then evaluated on standardized observations.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 2
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    The statistic is invariant to location and scale. It requires a
-    nonconstant finite sample of at least two observations. Its null
-    distribution differs from that of KS with specified parameters [1]_.
-    Larger discrepancies indicate poorer fit. The current shared Lilliefors
-    interface reports ``TwoSidedAlternative``; this method returns only
-    the discrepancy, without a p-value.
+    D = max_i(i/n-Phi(z_(i)), Phi(z_(i))-(i-1)/n),
+    where z=(x-mean(x))/s1. Both parameters are re-estimated on every call.
+    Ordinary fixed-CDF KS tables do not apply.
 
     References
     ----------
@@ -504,6 +683,14 @@ class LillieforsNormalityGofStatistic(AbstractNormalityGofStatistic, LillieforsT
        Normality with Mean and Variance Unknown. Journal of the American
        Statistical Association, 62(318), 399-402.
        https://doi.org/10.1080/01621459.1967.10482916
+
+    Examples
+    --------
+    >>> statistic = LillieforsNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -519,75 +706,75 @@ class LillieforsNormalityGofStatistic(AbstractNormalityGofStatistic, LillieforsT
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute Lilliefors for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 2.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 2)
         x = np.asarray(rvs)
         z = (x - x.mean()) / x.std(ddof=1)
         cdf_vals = scipy_stats.norm.cdf(np.sort(z))
         return super(LillieforsTest, self).do_execute_statistic(rvs, cdf_vals)
 
 
-"""
-class DANormalityTest(AbstractNormalityTestStatistic):  # TODO: check for correctness
-
-    @staticmethod
-    @override
-    def code():
-        return 'DA' + '_' + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic)
-        .code()
-
-    @override
-    def execute_statistic(self, rvs, **kwargs):
-        x = np.asanyarray(rvs)
-        y = np.sort(x)
-        n = len(x)
-
-        x_mean = np.mean(x)
-        m2 = np.sum((x - x_mean) ** 2) / n
-        i = np.arange(1, n + 1)
-        c = (n + 1) / 2
-        terms = (i - c) * y
-        stat = terms.sum() / (n ** 2 * np.sqrt(m2))
-        return stat
-"""
-
-
 class JBNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Jarque-Bera statistic based on sample skewness and excess kurtosis.
 
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
+
     Notes
     -----
-    The null allows every normal mean and positive variance;
-    ``hypothesis().parameters()`` is empty. Centered, standardized moments
-    remove location and scale. The implementation returns
-    ``n/6 * (skewness**2 + excess_kurtosis**2/4)`` using the biased moment
-    estimators in ``scipy.stats.skew`` and ``scipy.stats.kurtosis``.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 2
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Larger values indicate departures from normality;
-    ``alternative()`` returns ``RightAlternative``. The input is flattened.
-    Supply finite observations with nonzero variance. The asymptotic
-    chi-squared calibration described in [1]_ is not a finite-sample
-    identity, and this class computes no p-value.
+    JB = n*(g1**2/6 + (g2-3)**2/24), where
+    g1=m3/m2**1.5, g2=m4/m2**2, and mk=mean((x-mean(x))**k).
 
     References
     ----------
     .. [1] Jarque, C. M. and Bera, A. K. (1987). A Test for Normality of
        Observations and Regression Residuals. International Statistical
        Review, 55(2), 163-172. https://doi.org/10.2307/1403192
+
+    Examples
+    --------
+    >>> statistic = JBNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -607,22 +794,29 @@ class JBNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute JB for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 2.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 2)
         x = np.asarray(rvs)
         x = x.ravel()
         axis = 0
@@ -633,8 +827,8 @@ class JBNormalityGofStatistic(AbstractNormalityGofStatistic):
 
         mu = x.mean(axis=axis, keepdims=True)
         diffx = x - mu
-        s = scipy_stats.skew(diffx, axis=axis, _no_deco=True)
-        k = scipy_stats.kurtosis(diffx, axis=axis, _no_deco=True)
+        s = scipy_stats.skew(diffx, axis=axis)
+        k = scipy_stats.kurtosis(diffx, axis=axis)
         statistic = n / 6 * (s**2 + k**2 / 4)
         return statistic
 
@@ -642,30 +836,50 @@ class JBNormalityGofStatistic(AbstractNormalityGofStatistic):
 class SkewNormalityGofStatistic(AbstractNormalityGofStatistic):
     """D'Agostino transformed-skewness statistic for the normal family.
 
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
+
     Notes
     -----
-    ``hypothesis().parameters()`` is empty: the mean and variance are
-    unrestricted. The standardized third central moment is transformed to
-    a signed ``Z`` score using the sample-size-dependent approximation
-    in [1]_. Location shifts and positive scale changes leave it unchanged.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    Both tails of the statistic defines rejection. Use at least 8
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    At least eight finite observations and nonzero variance are required.
-    Positive and negative values correspond to opposite skewness directions.
-    The current ``alternative()`` is ``RightAlternative``, so its configured
-    rejection direction targets large positive scores. It is not an omnibus
-    normality statistic; ``DAPNormalityGofStatistic`` combines squared
-    skewness and kurtosis scores. This class returns no p-value.
+    Return the signed D'Agostino transform delta*asinh(y/alpha) of
+    g1=m3/m2**1.5, with the sample-size coefficients in skew_test.
+    In particular, exactly zero sample skewness maps to zero. This tests
+    skewness departures in either direction; it is not an omnibus test.
 
     References
     ----------
     .. [1] D'Agostino, R. B. (1970). Transformation to normality of the null
        distribution of g1. Biometrika, 57(3), 679-681.
        https://doi.org/10.1093/biomet/57.3.679
+
+    Examples
+    --------
+    >>> statistic = SkewNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
     def alternative(self) -> Alternative:
-        return RightAlternative()
+        return TwoSidedAlternative()
 
     @staticmethod
     @override
@@ -680,22 +894,29 @@ class SkewNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute Skew for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 8.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 8)
         x = np.asanyarray(rvs)
         y = np.sort(x)
 
@@ -720,8 +941,7 @@ class SkewNormalityGofStatistic(AbstractNormalityGofStatistic):
         w2 = -1 + math.sqrt(2 * (beta2 - 1))
         delta = 1 / math.sqrt(0.5 * math.log(w2))
         alpha = math.sqrt(2.0 / (w2 - 1))
-        y = np.where(y == 0, 1, y)
-        z = delta * np.log(y / alpha + np.sqrt((y / alpha) ** 2 + 1))
+        z = delta * np.arcsinh(y / alpha)
 
         return z
 
@@ -729,30 +949,51 @@ class SkewNormalityGofStatistic(AbstractNormalityGofStatistic):
 class KurtosisNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Anscombe-Glynn transformed-kurtosis statistic for the normal family.
 
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
+
     Notes
     -----
-    The normal mean and variance are unrestricted;
-    ``hypothesis().parameters()`` is empty. The implementation transforms
-    the standardized fourth central moment to a signed ``Z`` score using
-    the finite-sample moment approximations in [1]_.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    Both tails of the statistic defines rejection. Use at least 5
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    At least five finite observations with nonzero variance are required;
-    the normal approximation can be unreliable for small samples. Negative
-    and positive scores describe opposite kurtosis departures. The current
-    ``alternative()`` returns ``RightAlternative`` and therefore targets
-    large positive scores. Use ``DAPNormalityGofStatistic`` for the joint
-    squared skewness and kurtosis statistic. No p-value is returned.
+    Return the signed Anscombe-Glynn transform of g2=m4/m2**2,
+    using the finite-n expectation, variance and skewness of g2. A real
+    cube root is used. A zero transformation denominator is undefined.
+    Both light and heavy tails matter; the normal approximation is
+    particularly inaccurate for small samples.
 
     References
     ----------
     .. [1] Anscombe, F. J. and Glynn, W. J. (1983). Distribution of the
        kurtosis statistic b2 for normal samples. Biometrika, 70(1), 227-234.
        https://doi.org/10.1093/biomet/70.1.227
+
+    Examples
+    --------
+    >>> statistic = KurtosisNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
     def alternative(self) -> Alternative:
-        return RightAlternative()
+        return TwoSidedAlternative()
 
     @staticmethod
     @override
@@ -767,22 +1008,29 @@ class KurtosisNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute Kurtosis for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 5.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 5)
         x = np.asanyarray(rvs)
         y = np.sort(x)
 
@@ -817,9 +1065,9 @@ class KurtosisNormalityGofStatistic(AbstractNormalityGofStatistic):
         a = 6.0 + 8.0 / sqrt_beta1 * (2.0 / sqrt_beta1 + np.sqrt(1 + 4.0 / (sqrt_beta1**2)))
         term1 = 1 - 2 / (9.0 * a)
         denom = 1 + x * np.sqrt(2 / (a - 4.0))
-        term2 = np.sign(denom) * np.where(
-            denom == 0.0, np.nan, np.power((1 - 2.0 / a) / np.abs(denom), 1 / 3.0)
-        )
+        if denom == 0:
+            raise ValueError("Kurtosis transformation has a zero denominator")
+        term2 = np.cbrt((1 - 2.0 / a) / denom)
         # if np.any(denom == 0):
         #    msg = ("Test statistic not defined in some cases due to division by "
         #           "zero. Return nan in that case...")
@@ -833,18 +1081,30 @@ class KurtosisNormalityGofStatistic(AbstractNormalityGofStatistic):
 class DAPNormalityGofStatistic(SkewNormalityGofStatistic, KurtosisNormalityGofStatistic):
     """D'Agostino-Pearson omnibus ``K_squared`` statistic for normality.
 
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
+
     Notes
     -----
-    The null is the normal location-scale family, so
-    ``hypothesis().parameters()`` is empty. The implementation adds the
-    squared transformed skewness and kurtosis scores returned by
-    ``SkewNormalityGofStatistic`` and ``KurtosisNormalityGofStatistic``.
-    Centered standardized moments eliminate the unknown mean and variance.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 8
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    At least eight finite observations with nonzero variance are required.
-    Larger scores indicate departures from normality;
-    ``alternative()`` returns ``RightAlternative``. The chi-squared
-    approximation is asymptotic; this class returns a statistic only.
+    K2 = Z_skew**2 + Z_kurtosis**2 using the signed transforms
+    implemented by SkewNormalityGofStatistic and KurtosisNormalityGofStatistic.
+    The resulting nonnegative discrepancy uses the upper tail.
 
     References
     ----------
@@ -852,7 +1112,19 @@ class DAPNormalityGofStatistic(SkewNormalityGofStatistic, KurtosisNormalityGofSt
        from normality. Empirical results for the distributions of b2 and
        sqrt(b1). Biometrika, 60(3), 613-622.
        https://doi.org/10.1093/biomet/60.3.613
+
+    Examples
+    --------
+    >>> statistic = DAPNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -867,22 +1139,29 @@ class DAPNormalityGofStatistic(SkewNormalityGofStatistic, KurtosisNormalityGofSt
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute DAP for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 8.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 8)
         x = np.asanyarray(rvs)
         y = np.sort(x)
 
@@ -896,25 +1175,43 @@ class DAPNormalityGofStatistic(SkewNormalityGofStatistic, KurtosisNormalityGofSt
 class FilliNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Filliben probability-plot correlation statistic for normality.
 
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
+
     Notes
     -----
-    The null leaves normal location and scale unrestricted;
-    ``hypothesis().parameters()`` is empty. The statistic is the Pearson
-    correlation between sorted observations and normal quantiles obtained
-    from Filliben's approximations to uniform order-statistic medians.
-    Endpoint plotting positions use the separate formulas in [1]_.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The lower tail of the statistic defines rejection. Use at least 3
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Correlation eliminates the unknown mean and scale. Smaller values
-    indicate departures from normality, and ``alternative()`` returns
-    ``LeftAlternative``. Supply finite, nonconstant observations; two
-    observations always give a trivial correlation, so use at least three.
-    The returned value is a correlation coefficient, not a p-value.
+    Return corr(x_(i), Phi**-1(p_i)). The interior plotting positions
+    are (i-0.3175)/(n+0.365); endpoints are 1-0.5**(1/n) and 0.5**(1/n).
 
     References
     ----------
     .. [1] Filliben, J. J. (1975). The Probability Plot Correlation
        Coefficient Test for Normality. Technometrics, 17(1), 111-117.
        https://doi.org/10.1080/00401706.1975.10489279
+
+    Examples
+    --------
+    >>> statistic = FilliNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -934,22 +1231,29 @@ class FilliNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute Filli for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 3.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 3)
         uniform_order = self._uniform_order_medians(len(rvs))
         zi = self._normal_order_medians(uniform_order)
         x_data = np.sort(rvs)
@@ -980,19 +1284,29 @@ class FilliNormalityGofStatistic(AbstractNormalityGofStatistic):
 class LooneyGulledgeNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Looney-Gulledge probability-plot correlation statistic for normality.
 
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
+
     Notes
     -----
-    The normal mean and variance are unrestricted, and
-    ``hypothesis().parameters()`` is empty. Sorted observations are
-    correlated with normal quantiles at ``(i - 3/8)/(n + 1/4)`` for
-    one-based ranks. This class uses the unweighted plotting positions,
-    including when observations are tied.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The lower tail of the statistic defines rejection. Use at least 3
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Correlation removes location and scale. Smaller coefficients indicate
-    departures from normality; ``alternative()`` returns ``LeftAlternative``.
-    Supply finite, nonconstant observations. At least three observations
-    are needed for a nontrivial correlation-based normality assessment.
-    The returned coefficient does not include a p-value.
+    Return corr(x_(i), Phi**-1((i-3/8)/(n+1/4))).
+    The Blom plotting-position version is used without averaging ties.
 
     References
     ----------
@@ -1000,6 +1314,14 @@ class LooneyGulledgeNormalityGofStatistic(AbstractNormalityGofStatistic):
        Correlation Coefficient with Normal Probability Plots. The American
        Statistician, 39(1), 75-79.
        https://doi.org/10.1080/00031305.1985.10479395
+
+    Examples
+    --------
+    >>> statistic = LooneyGulledgeNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -1020,22 +1342,29 @@ class LooneyGulledgeNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def execute_statistic(self, rvs, **kwargs):
         # ordering
-        """Compute the statistic for the observed sample.
+        """Compute LooneyGulledge for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 3.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 3)
         x_data = np.sort(rvs)
 
         # zi
@@ -1096,29 +1425,56 @@ class RyanJoinerNormalityGofStatistic(AbstractNormalityGofStatistic):
         ranks. Default is ``'3/8'``. Unrecognized values currently fall back
         to ``3/8``.
 
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
+
     Notes
     -----
-    The null allows arbitrary normal mean and positive variance;
-    ``hypothesis().parameters()`` is empty. The two constructor arguments
-    configure the statistic, not the distribution under the null.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The lower tail of the statistic defines rejection. Use at least 3
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    The statistic is the Pearson correlation of sorted observations with
-    their normal scores. Smaller values indicate poorer fit, and
-    ``alternative()`` returns ``LeftAlternative``. Supply finite,
-    nonconstant data with at least three observations for a nontrivial
-    result. Calibration must use the same plotting-position and tie options.
+    Return corr(x_(i), Phi**-1(p_i)), p_i=(i-alpha)/(n+1-2*alpha).
+    cte_alpha selects alpha=0, 3/8, or 1/2. If weighted=True, replace
+    positions of tied observations by their group mean before taking
+    normal quantiles. This tie convention and nondefault positions need
+    separate calibration; they are not fixed distribution parameters.
 
     References
     ----------
     .. [1] Ryan, T. A., Jr. and Joiner, B. L. (1976). Normal Probability
        Plots and Tests for Normality. Technical report, Statistics
        Department, The Pennsylvania State University. Original report:
-       https://www.additive-net.de/de/component/jdownloads/send/70-support/236-normal-probability-plots-and-tests-for-normality-thomas-a-ryan-jr-bryan-l-joiner
+       https://www.additive-net.de/en/component/jdownloads/send/70-support/236-normal-probability-plots-and-tests-for-normality-thomas-a-ryan-jr-bryan-l-joiner
+
+    Examples
+    --------
+    >>> statistic = RyanJoinerNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
     def __init__(self, weighted=False, cte_alpha="3/8"):
         super().__init__()
+        if not isinstance(weighted, (bool, np.bool_)):
+            raise TypeError("weighted must be boolean")
+        if cte_alpha not in ("0", "3/8", "1/2"):
+            raise ValueError("cte_alpha must be '0', '3/8', or '1/2'")
         self.weighted = weighted
         self.cte_alpha = cte_alpha
 
@@ -1140,22 +1496,29 @@ class RyanJoinerNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def execute_statistic(self, rvs, **kwargs):
         # ordering
-        """Compute the statistic for the observed sample.
+        """Compute RyanJoiner for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 3.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 3)
         x_data = np.sort(rvs)
 
         # zi
@@ -1211,18 +1574,30 @@ class RyanJoinerNormalityGofStatistic(AbstractNormalityGofStatistic):
 class SFNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Shapiro-Francia ``W_prime`` statistic for the normal family.
 
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
+
     Notes
     -----
-    The null leaves mean and variance unrestricted;
-    ``hypothesis().parameters()`` is empty. The statistic is the squared
-    correlation between sorted observations and approximate expected
-    normal order statistics, using ``(i - 3/8)/(n + 1/4)`` plotting
-    probabilities. This quantile approximation is discussed in [2]_.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The lower tail of the statistic defines rejection. Use at least 3
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Location and scale cancel from the ratio. Smaller values indicate
-    nonnormality; ``alternative()`` returns ``LeftAlternative``. Supply
-    finite, nonconstant data and at least three observations for a
-    nontrivial assessment. No p-value is calculated.
+    Return corr(x_(i), Phi**-1((i-3/8)/(n+1/4)))**2.
+    This Shapiro-Francia approximation uses Blom scores in place of
+    exact expected normal order statistics.
 
     References
     ----------
@@ -1234,6 +1609,14 @@ class SFNormalityGofStatistic(AbstractNormalityGofStatistic):
        Variance Test for Non-Normality Suitable for Machine Calculation.
        Technometrics, 17(1), 133-134.
        https://doi.org/10.1080/00401706.1975.10489283
+
+    Examples
+    --------
+    >>> statistic = SFNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -1253,22 +1636,29 @@ class SFNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute SF for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 3.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 3)
         n = len(rvs)
         rvs = np.sort(rvs)
 
@@ -1285,25 +1675,46 @@ class SFNormalityGofStatistic(AbstractNormalityGofStatistic):
 class EppsPulleyNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Epps-Pulley empirical-characteristic-function statistic for normality.
 
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
+
     Notes
     -----
-    The null is the whole normal location-scale family;
-    ``hypothesis().parameters()`` is empty. The implementation uses the
-    sample mean and variance with ``ddof=0`` to remove location and scale.
-    Gaussian kernels compare centered observations and all observation
-    pairs, yielding the closed-form weighted characteristic-function
-    discrepancy with the smoothing constant fixed by this implementation.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 2
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Larger values indicate departures from normality;
-    ``alternative()`` returns ``RightAlternative``. Supply at least two
-    finite observations with positive sample variance. Pairwise terms
-    require quadratic computation in the sample size. No p-value is returned.
+    For z=(x-mean(x))/s0, return
+    n/sqrt(3) + sum_ij(exp(-(z_i-z_j)**2/2))/n
+    - sqrt(2)*sum_i(exp(-z_i**2/4)).
+    This equals n times a Gaussian-weighted squared characteristic-function
+    distance. The double sum includes its diagonal; computation is O(n**2).
 
     References
     ----------
     .. [1] Epps, T. W. and Pulley, L. B. (1983). A test for normality based
        on the empirical characteristic function. Biometrika, 70(3), 723-726.
        https://doi.org/10.1093/biomet/70.3.723
+
+    Examples
+    --------
+    >>> statistic = EppsPulleyNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -1323,22 +1734,29 @@ class EppsPulleyNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute EppsPulley for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 2.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 2)
         n = len(rvs)
         x = np.sort(rvs)
         x_mean = np.mean(x)
@@ -1356,32 +1774,50 @@ class EppsPulleyNormalityGofStatistic(AbstractNormalityGofStatistic):
 class Hosking2NormalityGofStatistic(AbstractNormalityGofStatistic):
     """Hosking normality statistic with symmetric trimming level 1.
 
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
+
     Notes
     -----
-    The null is the normal family with unknown mean and variance;
-    ``hypothesis().parameters()`` is empty. The statistic combines squared
-    deviations of trimmed L-skewness and L-kurtosis, using order-statistic
-    weights with trimming level ``t=1`` from the construction in [1]_.
-    The ratios remove location and positive scale.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 6
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Supply at least 6 finite, nonconstant observations; estimating the
-    fourth trimmed L-moment requires ``n >= 4 + 2*t``. Reference constants
-    are selected from three sample-size ranges: up to 25, 26-50, and above
-    50. The current ``alternative()`` reports ``TwoSidedAlternative`` for
-    this nonnegative quadratic discrepancy. Reference [1]_ supplies the
-    trimmed-moment foundation; it does not establish the provenance of
-    the numerical constants or the exact omnibus implementation here.
+    Local quadratic discrepancy of L-moment ratios with trim t=1.
+    For r=2,3,4, L_r=sum_i x_(i)*sum_{k=0..r-1}((-1)**k*
+    C(r-1,k)*C(i-1,r+t-1-k)*C(n-i,t+k))/(r*C(n,r+2*t)).
+    Return (L3/L2)**2/v3+(L4/L2-mu4)**2/v4. The constants
+    (mu4,v3,v4) are the three historical rows in the implementation
+    for n<=25, 25<n<=50 and n>50. They are not a consistent
+    asymptotic covariance sequence. A primary source for this exact
+    omnibus formula and these rows was not located; the L-moment
+    papers alone do not validate this test. Treat it as a local
+    statistic and simulate its null law at the actual n. L2 must be positive.
 
-    References
-    ----------
-    .. [1] Elamir, E. A. H. and Seheult, A. H. (2003). Trimmed L-moments.
-       Computational Statistics & Data Analysis, 43(3), 299-314.
-       https://doi.org/10.1016/S0167-9473(02)00250-5
+    Examples
+    --------
+    >>> statistic = Hosking2NormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
     def alternative(self) -> Alternative:
-        return TwoSidedAlternative()
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -1396,22 +1832,29 @@ class Hosking2NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute Hosking2 for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 6.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 6)
         n = len(rvs)
 
         if n > 3:
@@ -1428,8 +1871,8 @@ class Hosking2NormalityGofStatistic(AbstractNormalityGofStatistic):
             l21 = l21 / (2.0 * math.comb(n, 4))
             l31 = l31 / (3.0 * math.comb(n, 5))
             l41 = l41 / (4.0 * math.comb(n, 6))
-            tau31 = l31 / l21
-            tau41 = l41 / l21
+            tau31 = l31 / _positive_scale(l21, "trimmed L-scale")
+            tau41 = l41 / _positive_scale(l21, "trimmed L-scale")
             if 1 <= n <= 25:
                 mu_tau41 = 0.067077
                 v_tau31 = 0.0081391
@@ -1460,32 +1903,50 @@ class Hosking2NormalityGofStatistic(AbstractNormalityGofStatistic):
 class Hosking1NormalityGofStatistic(AbstractNormalityGofStatistic):
     """Hosking L-moment normality statistic without trimming.
 
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
+
     Notes
     -----
-    The normal mean and variance are unrestricted;
-    ``hypothesis().parameters()`` is empty. Sample L-skewness and L-kurtosis
-    are ratios of linear combinations of order statistics [1]_. These
-    ratios remove location and positive scale. Their squared deviations
-    from normal reference values are divided by tabulated variances.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 4
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    This implementation selects fixed numerical reference constants for
-    ``n <= 25``, ``25 < n <= 50``, and ``n > 50``. Supply at least four
-    finite, nonconstant observations. The current ``alternative()`` returns
-    ``TwoSidedAlternative`` although the statistic is a nonnegative
-    quadratic discrepancy. Reference [1]_ describes the L-moment foundation,
-    not the provenance of these implementation-specific numerical constants.
+    Local quadratic discrepancy of L-moment ratios with trim t=0.
+    For r=2,3,4, L_r=sum_i x_(i)*sum_{k=0..r-1}((-1)**k*
+    C(r-1,k)*C(i-1,r+t-1-k)*C(n-i,t+k))/(r*C(n,r+2*t)).
+    Return (L3/L2)**2/v3+(L4/L2-mu4)**2/v4. The constants
+    (mu4,v3,v4) are the three historical rows in the implementation
+    for n<=25, 25<n<=50 and n>50. They are not a consistent
+    asymptotic covariance sequence. A primary source for this exact
+    omnibus formula and these rows was not located; the L-moment
+    papers alone do not validate this test. Treat it as a local
+    statistic and simulate its null law at the actual n. L2 must be positive.
 
-    References
-    ----------
-    .. [1] Hosking, J. R. M. (1990). L-Moments: Analysis and Estimation of
-       Distributions Using Linear Combinations of Order Statistics. Journal
-       of the Royal Statistical Society, Series B, 52(1), 105-124.
-       https://doi.org/10.1111/j.2517-6161.1990.tb01775.x
+    Examples
+    --------
+    >>> statistic = Hosking1NormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
     def alternative(self) -> Alternative:
-        return TwoSidedAlternative()
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -1500,22 +1961,29 @@ class Hosking1NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute Hosking1 for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 4.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 4)
         return self.stat10(rvs)
 
     @staticmethod
@@ -1539,8 +2007,8 @@ class Hosking1NormalityGofStatistic(AbstractNormalityGofStatistic):
             l2 = 2.0 * b1 - b0
             l3 = 6.0 * b2 - 6.0 * b1 + b0
             l4 = 20.0 * b3 - 30.0 * b2 + 12.0 * b1 - b0
-            tau3 = l3 / l2
-            tau4 = l4 / l2
+            tau3 = l3 / _positive_scale(l2, "trimmed L-scale")
+            tau4 = l4 / _positive_scale(l2, "trimmed L-scale")
 
             if 1 <= n <= 25:
                 mu_tau4 = 0.12383
@@ -1562,32 +2030,50 @@ class Hosking1NormalityGofStatistic(AbstractNormalityGofStatistic):
 class Hosking3NormalityGofStatistic(AbstractNormalityGofStatistic):
     """Hosking normality statistic with symmetric trimming level 2.
 
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
+
     Notes
     -----
-    The null is the normal family with unknown mean and variance;
-    ``hypothesis().parameters()`` is empty. The statistic combines squared
-    deviations of trimmed L-skewness and L-kurtosis, using order-statistic
-    weights with trimming level ``t=2`` from the construction in [1]_.
-    The ratios remove location and positive scale.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 8
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Supply at least 8 finite, nonconstant observations; estimating the
-    fourth trimmed L-moment requires ``n >= 4 + 2*t``. Reference constants
-    are selected from three sample-size ranges: up to 25, 26-50, and above
-    50. The current ``alternative()`` reports ``TwoSidedAlternative`` for
-    this nonnegative quadratic discrepancy. Reference [1]_ supplies the
-    trimmed-moment foundation; it does not establish the provenance of
-    the numerical constants or the exact omnibus implementation here.
+    Local quadratic discrepancy of L-moment ratios with trim t=2.
+    For r=2,3,4, L_r=sum_i x_(i)*sum_{k=0..r-1}((-1)**k*
+    C(r-1,k)*C(i-1,r+t-1-k)*C(n-i,t+k))/(r*C(n,r+2*t)).
+    Return (L3/L2)**2/v3+(L4/L2-mu4)**2/v4. The constants
+    (mu4,v3,v4) are the three historical rows in the implementation
+    for n<=25, 25<n<=50 and n>50. They are not a consistent
+    asymptotic covariance sequence. A primary source for this exact
+    omnibus formula and these rows was not located; the L-moment
+    papers alone do not validate this test. Treat it as a local
+    statistic and simulate its null law at the actual n. L2 must be positive.
 
-    References
-    ----------
-    .. [1] Elamir, E. A. H. and Seheult, A. H. (2003). Trimmed L-moments.
-       Computational Statistics & Data Analysis, 43(3), 299-314.
-       https://doi.org/10.1016/S0167-9473(02)00250-5
+    Examples
+    --------
+    >>> statistic = Hosking3NormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
     def alternative(self) -> Alternative:
-        return TwoSidedAlternative()
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -1602,29 +2088,36 @@ class Hosking3NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute Hosking3 for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 8.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 8)
         return self.stat12(rvs)
 
     def stat12(self, x):
         n = len(x)
 
         if n > 3:
-            x_tmp = x[:n]
+            x_tmp = x[:n].copy()
             x_tmp.sort()
             l22 = 0.0
             l32 = 0.0
@@ -1636,8 +2129,8 @@ class Hosking3NormalityGofStatistic(AbstractNormalityGofStatistic):
             l22 /= 2.0 * math.comb(n, 6)
             l32 /= 3.0 * math.comb(n, 7)
             l42 /= 4.0 * math.comb(n, 8)
-            tau32 = l32 / l22
-            tau42 = l42 / l22
+            tau32 = l32 / _positive_scale(l22, "trimmed L-scale")
+            tau42 = l42 / _positive_scale(l22, "trimmed L-scale")
 
             if 1 <= n <= 25:
                 mu_tau42 = 0.044174
@@ -1671,32 +2164,50 @@ class Hosking3NormalityGofStatistic(AbstractNormalityGofStatistic):
 class Hosking4NormalityGofStatistic(AbstractNormalityGofStatistic):
     """Hosking normality statistic with symmetric trimming level 3.
 
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
+
     Notes
     -----
-    The null is the normal family with unknown mean and variance;
-    ``hypothesis().parameters()`` is empty. The statistic combines squared
-    deviations of trimmed L-skewness and L-kurtosis, using order-statistic
-    weights with trimming level ``t=3`` from the construction in [1]_.
-    The ratios remove location and positive scale.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 10
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Supply at least 10 finite, nonconstant observations; estimating the
-    fourth trimmed L-moment requires ``n >= 4 + 2*t``. Reference constants
-    are selected from three sample-size ranges: up to 25, 26-50, and above
-    50. The current ``alternative()`` reports ``TwoSidedAlternative`` for
-    this nonnegative quadratic discrepancy. Reference [1]_ supplies the
-    trimmed-moment foundation; it does not establish the provenance of
-    the numerical constants or the exact omnibus implementation here.
+    Local quadratic discrepancy of L-moment ratios with trim t=3.
+    For r=2,3,4, L_r=sum_i x_(i)*sum_{k=0..r-1}((-1)**k*
+    C(r-1,k)*C(i-1,r+t-1-k)*C(n-i,t+k))/(r*C(n,r+2*t)).
+    Return (L3/L2)**2/v3+(L4/L2-mu4)**2/v4. The constants
+    (mu4,v3,v4) are the three historical rows in the implementation
+    for n<=25, 25<n<=50 and n>50. They are not a consistent
+    asymptotic covariance sequence. A primary source for this exact
+    omnibus formula and these rows was not located; the L-moment
+    papers alone do not validate this test. Treat it as a local
+    statistic and simulate its null law at the actual n. L2 must be positive.
 
-    References
-    ----------
-    .. [1] Elamir, E. A. H. and Seheult, A. H. (2003). Trimmed L-moments.
-       Computational Statistics & Data Analysis, 43(3), 299-314.
-       https://doi.org/10.1016/S0167-9473(02)00250-5
+    Examples
+    --------
+    >>> statistic = Hosking4NormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
     def alternative(self) -> Alternative:
-        return TwoSidedAlternative()
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -1711,29 +2222,36 @@ class Hosking4NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute Hosking4 for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 10.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 10)
         return self.stat13(rvs)
 
     def stat13(self, x):
         n = len(x)
 
         if n > 3:
-            x_tmp = x[:n]
+            x_tmp = x[:n].copy()
             x_tmp.sort()
             l23 = 0.0
             l33 = 0.0
@@ -1745,8 +2263,8 @@ class Hosking4NormalityGofStatistic(AbstractNormalityGofStatistic):
             l23 /= 2.0 * math.comb(n, 8)
             l33 /= 3.0 * math.comb(n, 9)
             l43 /= 4.0 * math.comb(n, 10)
-            tau33 = l33 / l23
-            tau43 = l43 / l23
+            tau33 = l33 / _positive_scale(l23, "trimmed L-scale")
+            tau43 = l43 / _positive_scale(l23, "trimmed L-scale")
 
             if 1 <= n <= 25:
                 mu_tau43 = 0.033180
@@ -1780,19 +2298,30 @@ class Hosking4NormalityGofStatistic(AbstractNormalityGofStatistic):
 class ZhangWuCNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Zhang-Wu likelihood-ratio normality statistic ``Z_C``.
 
-    The null hypothesis is the normal family with unknown mean and variance.
-    No distribution parameters are accepted; ``hypothesis().parameters()``
-    returns ``{}``.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    Observations are centered by the sample mean and scaled by the sample
-    standard deviation with ``ddof=1``. Their fitted normal probabilities are
-    compared with order-dependent probability scores through squared log odds.
-    Large values correspond to the right-tail alternative.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 4
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Use at least four finite observations with nonzero sample variance.
-    Probabilities rounded to zero or one can produce an infinite statistic.
+    For z=(x-mean(x))/s1, return sum_i((log((1-Phi(z_(i)))/
+    Phi(z_(i))) - log((n-i+1/4)/(i-3/4)))**2).
+    Normal log-CDF/log-survival evaluations retain extreme tail information.
 
     References
     ----------
@@ -1800,6 +2329,14 @@ class ZhangWuCNormalityGofStatistic(AbstractNormalityGofStatistic):
        Likelihood-ratio tests for normality.
        Computational Statistics & Data Analysis, 49(3), 709-721.
        https://doi.org/10.1016/j.csda.2004.05.034
+
+    Examples
+    --------
+    >>> statistic = ZhangWuCNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -1819,55 +2356,64 @@ class ZhangWuCNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute ZhangWuC for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 4.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
-        """
-        n = len(rvs)
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
 
-        if n > 3:
-            phiz = np.zeros(n)
-            mean_x = np.mean(rvs)
-            var_x = np.var(rvs, ddof=1)
-            sd_x = np.sqrt(var_x)
-            for i in range(n):
-                phiz[i] = scipy_stats.norm.cdf((rvs[i] - mean_x) / sd_x)
-            phiz.sort()
-            stat_zc = 0.0
-            for i in range(1, n + 1):
-                stat_zc += np.log((1.0 / phiz[i - 1] - 1.0) / ((n - 0.5) / (i - 0.75) - 1.0)) ** 2
-            return stat_zc
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
+        """
+        rvs = _normal_sample(rvs, 4)
+        z = np.sort((rvs - np.mean(rvs)) / np.std(rvs, ddof=1))
+        i = np.arange(1, len(z) + 1)
+        log_odds = scipy_stats.norm.logsf(z) - scipy_stats.norm.logcdf(z)
+        expected = np.log((len(z) - i + 0.25) / (i - 0.75))
+        return float(np.sum((log_odds - expected) ** 2))
 
 
 class ZhangWuANormalityGofStatistic(AbstractNormalityGofStatistic):
     """Zhang-Wu likelihood-ratio normality statistic ``Z_A``.
 
-    The null hypothesis is the normal family with unknown mean and variance.
-    No distribution parameters are accepted; ``hypothesis().parameters()``
-    returns ``{}``.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    The calculation uses sorted normal probabilities after centering by the
-    sample mean and scaling by the sample standard deviation with ``ddof=1``.
-    This implementation returns ``10 * Z_A - 32``. This increasing affine
-    transformation preserves the right-tail rejection ordering, but critical
-    values must use the same transformation.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 4
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Use at least four finite observations with nonzero sample variance.
-    Probabilities rounded to zero or one can produce an infinite statistic.
+    For z=(x-mean(x))/s1, let A=-sum_i(log(Phi(z_(i)))/
+    (n-i+1/2) + log(1-Phi(z_(i)))/(i-1/2)). Return 10*A-32.
+    The historical affine scaling is retained and must also be used in
+    calibration. Logs are evaluated without first rounding normal CDFs.
 
     References
     ----------
@@ -1875,6 +2421,14 @@ class ZhangWuANormalityGofStatistic(AbstractNormalityGofStatistic):
        Likelihood-ratio tests for normality.
        Computational Statistics & Data Analysis, 49(3), 709-721.
        https://doi.org/10.1016/j.csda.2004.05.034
+
+    Examples
+    --------
+    >>> statistic = ZhangWuANormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -1894,66 +2448,78 @@ class ZhangWuANormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute ZhangWuA for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 4.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
-        """
-        n = len(rvs)
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
 
-        if n > 3:
-            phiz = np.zeros(n)
-            mean_x = np.mean(rvs)
-            var_x = np.var(rvs, ddof=1)
-            sd_x = np.sqrt(var_x)
-            for i in range(n):
-                phiz[i] = scipy_stats.norm.cdf((rvs[i] - mean_x) / sd_x)
-            phiz.sort()
-            stat_za = 0.0
-            for i in range(1, n + 1):
-                stat_za += np.log(phiz[i - 1]) / ((n - i) + 0.5) + np.log(1.0 - phiz[i - 1]) / (
-                    i - 0.5
-                )
-            stat_za = -stat_za
-            stat_za = 10.0 * stat_za - 32.0
-            return stat_za
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
+        """
+        rvs = _normal_sample(rvs, 4)
+        z = np.sort((rvs - np.mean(rvs)) / np.std(rvs, ddof=1))
+        i = np.arange(1, len(z) + 1)
+        total = np.sum(
+            scipy_stats.norm.logcdf(z) / (len(z) - i + 0.5) + scipy_stats.norm.logsf(z) / (i - 0.5)
+        )
+        return float(-10 * total - 32)
 
 
 class GlenLeemisBarrNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Glen-Leemis-Barr order-statistic goodness-of-fit statistic.
 
-    The null hypothesis is the normal family with unknown mean and variance.
-    No distribution parameters are accepted; ``hypothesis().parameters()``
-    returns ``{}``.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    The sample mean and standard deviation with ``ddof=1`` define a fitted
-    normal CDF. The ordered probabilities are transformed by their respective
-    beta CDFs, sorted again, and combined in an Anderson-Darling-style sum.
-    Large values correspond to the right-tail alternative.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 4
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Use at least four finite observations with nonzero sample variance.
-    The reference describes the order-statistic construction; this class uses
-    its fitted-normal version, whose null calibration includes estimation.
+    For z=(x-mean(x))/s1, form u_i=Phi(z_(i)), then
+    v_i=BetaCDF(u_i; i,n+1-i), and sort the v_i again. Return
+    -n-sum_i((2*n+1-2*i)*log(v_(i))+(2*i-1)*log(1-v_(i)))/n.
+    These are reversed Anderson-Darling weights, not the ordinary AD
+    statistic. A primary source confirming this exact fitted formula was
+    not located in the review; no author-specific calibration is claimed.
+    The beta transforms are dependent and are not uniform after fitting.
+    Use simulation of this formula only. Log-binomial sums recover
+    beta tails that underflow in direct probability arithmetic.
 
-    References
-    ----------
-    .. [1] Glen, A. G., Leemis, L. M. and Barr, D. R. (2001).
-       Order statistics in goodness-of-fit testing.
-       IEEE Transactions on Reliability, 50(2), 209-213.
-       https://doi.org/10.1109/24.963129
+    Examples
+    --------
+    >>> statistic = GlenLeemisBarrNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -1973,61 +2539,85 @@ class GlenLeemisBarrNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute GlenLeemisBarr for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 4.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
-        """
-        n = len(rvs)
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
 
-        if n > 3:
-            phiz = np.zeros(n)
-            mean_x = np.mean(rvs)
-            var_x = np.var(rvs, ddof=1)
-            sd_x = np.sqrt(var_x)
-            for i in range(n):
-                phiz[i] = scipy_stats.norm.cdf((rvs[i] - mean_x) / sd_x)
-            phiz.sort()
-            for i in range(1, n + 1):
-                phiz[i - 1] = scipy_stats.beta.cdf(phiz[i - 1], i, n - i + 1)
-            phiz.sort()
-            stat_ps = 0
-            for i in range(1, n + 1):
-                stat_ps += (2 * n + 1 - 2 * i) * np.log(phiz[i - 1]) + (2 * i - 1) * np.log(
-                    1 - phiz[i - 1]
-                )
-            return -n - stat_ps / n
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
+        """
+        rvs = _normal_sample(rvs, 4)
+        n = len(rvs)
+        z = np.sort((rvs - np.mean(rvs)) / np.std(rvs, ddof=1))
+        i = np.arange(1, n + 1)
+        # BetaCDF(Phi(z);i,n+1-i) is a binomial upper tail. Use the
+        # complementary normal probability for the right half of the sample.
+        p = scipy_stats.norm.cdf(-np.abs(z))
+        low = scipy_stats.beta.logcdf(p, i, n + 1 - i)
+        high = scipy_stats.beta.logsf(p, i, n + 1 - i)
+        positive = z > 0
+        low[positive] = scipy_stats.beta.logsf(p[positive], n + 1 - i[positive], i[positive])
+        high[positive] = scipy_stats.beta.logcdf(p[positive], n + 1 - i[positive], i[positive])
+        for j in np.flatnonzero(~np.isfinite(low) | ~np.isfinite(high)):
+            k = np.arange(n + 1)
+            terms = (
+                gammaln(n + 1)
+                - gammaln(k + 1)
+                - gammaln(n - k + 1)
+                + k * scipy_stats.norm.logcdf(z[j])
+                + (n - k) * scipy_stats.norm.logsf(z[j])
+            )
+            low[j] = logsumexp(terms[j + 1 :])
+            high[j] = logsumexp(terms[: j + 1])
+        # Sorting by decreasing survival log also distinguishes CDFs rounded
+        # to one. The pair (low, -high) supplies a stable lexicographic order.
+        order = np.lexsort((-high, low))
+        return float(-n - np.sum((2 * n + 1 - 2 * i) * low[order] + (2 * i - 1) * high[order]) / n)
 
 
 class DoornikHansenNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Univariate Doornik-Hansen normality statistic.
 
-    The null hypothesis is the normal family with unknown mean and variance.
-    No distribution parameters are accepted; ``hypothesis().parameters()``
-    returns ``{}``.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    The statistic is the sum of squares of transformed sample skewness and
-    kurtosis. Both moments are computed about the sample mean, so neither a
-    population mean nor a population variance is supplied. Large values
-    correspond to the right-tail alternative.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 8
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    The formulas require a nonconstant sample and can be undefined at very
-    small sample sizes. The reference studies the small-sample approximation
-    from ten observations. This class computes the statistic only; it does not
-    apply the paper's asymptotic chi-square calibration.
+    Return Z1**2+Z2**2, with the Doornik-Hansen transformations of
+    g1=m3/m2**1.5 and g2=m4/m2**2 (Appendix A of the author preprint).
+    Z1 uses asinh; Z2 uses the real cube root and includes the g1**2
+    adjustment to kurtosis. The chi-square law is asymptotic.
 
     References
     ----------
@@ -2035,6 +2625,14 @@ class DoornikHansenNormalityGofStatistic(AbstractNormalityGofStatistic):
        An Omnibus Test for Univariate and Multivariate Normality.
        Oxford Bulletin of Economics and Statistics, 70(s1), 927-939.
        https://doi.org/10.1111/j.1468-0084.2008.00537.x
+
+    Examples
+    --------
+    >>> statistic = DoornikHansenNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -2054,22 +2652,29 @@ class DoornikHansenNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute DoornikHansen for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 8.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 8)
         return self.doornik_hansen(rvs)
 
     def doornik_hansen(self, x):
@@ -2111,7 +2716,7 @@ class DoornikHansenNormalityGofStatistic(AbstractNormalityGofStatistic):
         k = (n + 5) * (n + 7) * p4 / (12 * d)
         alpha = a + skew**2 * c
         q = 2 * (kurt - 1 - skew**2) * k
-        z = (0.5 * q / alpha) ** (1 / 3) - 1 + 1 / (9 * alpha)
+        z = np.cbrt(0.5 * q / alpha) - 1 + 1 / (9 * alpha)
         z *= math.sqrt(9 * alpha)
         return z
 
@@ -2119,20 +2724,32 @@ class DoornikHansenNormalityGofStatistic(AbstractNormalityGofStatistic):
 class RobustJarqueBeraNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Gel-Gastwirth robust Jarque-Bera normality statistic.
 
-    The null hypothesis is the normal family with unknown mean and variance.
-    No distribution parameters are accepted; ``hypothesis().parameters()``
-    returns ``{}``.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    The scale estimate is ``sqrt(pi / 2)`` times the average absolute
-    deviation from the sample median. Third and fourth moments are still
-    centered at the sample mean. The statistic combines their standardized
-    squares with the constants 6 and 64 used in this implementation.
-    Large values correspond to the right-tail alternative.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 4
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Use finite observations with positive scale. A scalar statistic is
-    returned; no asymptotic chi-square p-value is computed here.
+    Let J=sqrt(pi/2)*mean(abs(x-median(x))). Return
+    n*(m3/J**3)**2/6 + n*(m4/J**4-3)**2/64.
+    Moments are centered at the sample mean, whereas J uses the median.
+    The reference identifies this robust-scale modification; small-sample
+    chi-square calibration is not justified.
 
     References
     ----------
@@ -2140,6 +2757,14 @@ class RobustJarqueBeraNormalityGofStatistic(AbstractNormalityGofStatistic):
        A robust modification of the Jarque-Bera test of normality.
        Economics Letters, 99(1), 30-32.
        https://doi.org/10.1016/j.econlet.2007.05.022
+
+    Examples
+    --------
+    >>> statistic = RobustJarqueBeraNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -2159,22 +2784,29 @@ class RobustJarqueBeraNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute RobustJarqueBera for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 4.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 4)
         y = np.sort(rvs)
         n = len(rvs)
         m = np.median(y)
@@ -2189,20 +2821,31 @@ class RobustJarqueBeraNormalityGofStatistic(AbstractNormalityGofStatistic):
 class BontempsMeddahi1NormalityGofStatistic(AbstractNormalityGofStatistic):
     """Bontemps-Meddahi normality statistic using Hermite orders 3 and 4.
 
-    The null hypothesis is the normal family with unknown mean and variance.
-    No distribution parameters are accepted; ``hypothesis().parameters()``
-    returns ``{}``.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    The sample is centered and scaled using its mean and standard deviation
-    with ``ddof=1``. Sums of the normalized third and fourth Hermite
-    polynomials are squared and divided by the sample size. Large values
-    correspond to the right-tail alternative.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 4
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Use at least four finite observations with nonzero sample variance.
-    This is the independent-observation version; the covariance correction
-    for dependent time series discussed in the article is not implemented.
+    Let z=(x-mean(x))/s1 and h_j=He_j/sqrt(j!), where He_j
+    are probabilists' Hermite polynomials. Return
+    (sum(h_3(z))**2+sum(h_4(z))**2)/n.
+    The sample-variance convention ddof=1 is part of this implementation.
 
     References
     ----------
@@ -2210,6 +2853,14 @@ class BontempsMeddahi1NormalityGofStatistic(AbstractNormalityGofStatistic):
        Testing normality: a GMM approach.
        Journal of Econometrics, 124(1), 149-186.
        https://doi.org/10.1016/j.jeconom.2004.02.014
+
+    Examples
+    --------
+    >>> statistic = BontempsMeddahi1NormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -2229,22 +2880,29 @@ class BontempsMeddahi1NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute BontempsMeddahi1 for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 4.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 4)
         n = len(rvs)
 
         if n > 3:
@@ -2260,7 +2918,7 @@ class BontempsMeddahi1NormalityGofStatistic(AbstractNormalityGofStatistic):
 
             for i in range(n):
                 var_x += rvs[i] ** 2
-            var_x = (n * (var_x / n - mean_x**2)) / (n - 1)
+            var_x = np.var(rvs, ddof=1)
             sd_x = math.sqrt(var_x)
 
             for i in range(n):
@@ -2277,20 +2935,31 @@ class BontempsMeddahi1NormalityGofStatistic(AbstractNormalityGofStatistic):
 class BontempsMeddahi2NormalityGofStatistic(AbstractNormalityGofStatistic):
     """Bontemps-Meddahi normality statistic using Hermite orders 3 through 6.
 
-    The null hypothesis is the normal family with unknown mean and variance.
-    No distribution parameters are accepted; ``hypothesis().parameters()``
-    returns ``{}``.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    After centering and scaling with the sample mean and standard deviation
-    with ``ddof=1``, the calculation combines squared sums of four normalized
-    Hermite polynomials. It extends the third-and-fourth-order statistic with
-    orders five and six. Large values correspond to the right-tail alternative.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 4
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Use at least four finite observations with nonzero sample variance.
-    The implementation assumes independent observations and does not estimate
-    a covariance matrix for serially dependent data.
+    Let z=(x-mean(x))/s1 and h_j=He_j/sqrt(j!), where He_j
+    are probabilists' Hermite polynomials. Return
+    sum_j(sum_i(h_j(z_i))**2)/n for j=3,4,5,6.
+    The sample-variance convention ddof=1 is part of this implementation.
 
     References
     ----------
@@ -2298,6 +2967,14 @@ class BontempsMeddahi2NormalityGofStatistic(AbstractNormalityGofStatistic):
        Testing normality: a GMM approach.
        Journal of Econometrics, 124(1), 149-186.
        https://doi.org/10.1016/j.jeconom.2004.02.014
+
+    Examples
+    --------
+    >>> statistic = BontempsMeddahi2NormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -2317,22 +2994,29 @@ class BontempsMeddahi2NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute BontempsMeddahi2 for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 4.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 4)
         return self.stat15(rvs)
 
     @staticmethod
@@ -2357,20 +3041,33 @@ class BontempsMeddahi2NormalityGofStatistic(AbstractNormalityGofStatistic):
 class BonettSeierNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Bonett-Seier statistic based on a modified Geary kurtosis measure.
 
-    The null hypothesis is the normal family with unknown mean and variance.
-    No distribution parameters are accepted; ``hypothesis().parameters()``
-    returns ``{}``.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    The statistic compares the sample standard deviation with the average
-    absolute deviation about the sample mean. The ratio is log-transformed,
-    scaled by 13.29, centered at 3, and multiplied by ``sqrt(n + 2) / 3.54``.
-    Departures in either direction correspond to the two-sided alternative.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    Both tails of the statistic defines rejection. Use at least 4
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Use at least four finite observations with nonzero dispersion. This class
-    implements the signed Geary-based component described in the article,
-    not its joint procedure combining two different kurtosis measures.
+    The publication was identified, but the exact finite-sample
+    implementation is not fully certified against its primary text.
+
+    Let d=mean(abs(x-mean(x))) and omega=13.29*log(s0/d).
+    Return sqrt(n+2)*(omega-3)/3.54, a signed kurtosis transform.
+    The constants are rounded approximations; use finite-sample simulation.
 
     References
     ----------
@@ -2378,6 +3075,14 @@ class BonettSeierNormalityGofStatistic(AbstractNormalityGofStatistic):
        A test of normality with high uniform power.
        Computational Statistics & Data Analysis, 40(3), 435-445.
        https://doi.org/10.1016/S0167-9473(02)00074-9
+
+    Examples
+    --------
+    >>> statistic = BonettSeierNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -2397,22 +3102,29 @@ class BonettSeierNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute BonettSeier for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 4.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 4)
         return self.stat17(rvs)
 
     @staticmethod
@@ -2443,21 +3155,33 @@ class BonettSeierNormalityGofStatistic(AbstractNormalityGofStatistic):
 class MartinezIglewiczNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Martinez-Iglewicz statistic comparing two estimates of dispersion.
 
-    The null hypothesis is the normal family with unknown mean and variance.
-    No distribution parameters are accepted; ``hypothesis().parameters()``
-    returns ``{}``.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    The numerator uses squared deviations from the sample median. The
-    denominator is a biweight-style scale estimate using nine times the
-    median absolute deviation as its tuning scale. Large values correspond
-    to the right-tail alternative.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 4
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Use at least four finite observations, a positive median absolute
-    deviation, and a nonzero biweight denominator. The current implementation
-    evaluates the biweight polynomials for all observations without truncating
-    terms whose standardized absolute deviation is at least one.
+    Let M=median(x), A=median(abs(x-M)), u=(x-M)/(9*A),
+    and I={i: abs(u_i)<1}. Define B=n*sum_I((x_i-M)**2*
+    (1-u_i**2)**4)/(sum_I((1-u_i**2)*(1-5*u_i**2)))**2.
+    Return sum((x-M)**2)/((n-1)*B). Contributions with abs(u)>=1
+    are zero in both biweight sums. Zero MAD or a zero biweight
+    denominator makes the estimator undefined and raises ValueError.
 
     References
     ----------
@@ -2465,6 +3189,14 @@ class MartinezIglewiczNormalityGofStatistic(AbstractNormalityGofStatistic):
        A test for departure from normality based on a biweight estimator of scale.
        Biometrika, 68(1), 331-333.
        https://doi.org/10.1093/biomet/68.1.331
+
+    Examples
+    --------
+    >>> statistic = MartinezIglewiczNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -2484,22 +3216,29 @@ class MartinezIglewiczNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute MartinezIglewicz for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 4.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 4)
         return self.stat32(rvs)
 
     @staticmethod
@@ -2521,11 +3260,16 @@ class MartinezIglewiczNormalityGofStatistic(AbstractNormalityGofStatistic):
                 a = (x_tmp[n // 2] + x_tmp[n // 2 - 1]) / 2.0
             else:
                 a = x_tmp[n // 2]
-            a = 9.0 * a
+            a = 9.0 * _positive_scale(a, "median absolute deviation")
 
             z = aux1 / a
-            term1 = np.sum(aux1**2 * (1 - z**2) ** 4)
-            term2 = np.sum((1 - z**2) * (1 - 5 * z**2))
+            inside = np.abs(z) < 1
+            zi = z[inside]
+            term1 = np.sum(aux1[inside] ** 2 * (1 - zi**2) ** 4)
+            term2 = np.sum((1 - zi**2) * (1 - 5 * zi**2))
+            _positive_scale(term1, "biweight numerator")
+            if term2 == 0:
+                raise ValueError("Biweight scale denominator is zero")
             term3 = np.sum(aux1**2)
 
             sb2 = (n * term1) / term2**2
@@ -2536,20 +3280,34 @@ class MartinezIglewiczNormalityGofStatistic(AbstractNormalityGofStatistic):
 class CabanaCabana1NormalityGofStatistic(AbstractNormalityGofStatistic):
     """Cabaña-Cabaña normality statistic focused on skewness departures.
 
-    The null hypothesis is the normal family with unknown mean and variance.
-    No distribution parameters are accepted; ``hypothesis().parameters()``
-    returns ``{}``.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    The calculation evaluates a transformed empirical process at the sample
-    points after standardization by the sample mean and standard deviation
-    with ``ddof=1``. It uses normalized Hermite polynomials through degree
-    eight, corresponding to the fixed truncation order ``l=5``.
-    The maximum absolute process value gives a right-tail statistic.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 4
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Use at least four finite observations with nonzero sample variance.
-    The normality construction is described in the 2003 paper cited below.
+    Use the l=5 process in Cabana and Cabana, equation (7).
+    For z=(x-mean(x))/s1, h_j=He_j/sqrt(j!), H_j=sum(h_j(z))/sqrt(n),
+    P(t)=sum_{j=1..5}(h_(j-1)(t)*H_(j+3)/sqrt(j)). Return
+    sup_t abs(Phi(t)*H_3-phi(t)*P(t)). Evaluate every real stationary
+    point (roots of H_3+t*P-P') and both limits at infinity.
+    This is the supremum of the truncated process, not the untruncated
+    infinite series. Polynomial root solving is subject to float64 accuracy.
 
     References
     ----------
@@ -2557,6 +3315,14 @@ class CabanaCabana1NormalityGofStatistic(AbstractNormalityGofStatistic):
        Tests of Normality Based on Transformed Empirical Processes.
        Methodology and Computing in Applied Probability, 5, 309-335.
        https://doi.org/10.1023/A:1026235220018
+
+    Examples
+    --------
+    >>> statistic = CabanaCabana1NormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -2576,78 +3342,68 @@ class CabanaCabana1NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute CabanaCabana1 for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 4.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 4)
         return self.stat19(rvs)
 
     @staticmethod
     def stat19(x):
-        n = len(x)
-
-        if n > 3:
-            z_data = (x - np.mean(x)) / np.std(x, ddof=1)
-            mean_h3 = np.sum(z_data**3 - 3 * z_data) / (np.sqrt(6) * np.sqrt(n))
-            mean_h4 = np.sum(z_data**4 - 6 * z_data**2 + 3) / (2 * np.sqrt(6) * np.sqrt(n))
-            mean_h5 = np.sum(z_data**5 - 10 * z_data**3 + 15 * z_data) / (
-                2 * np.sqrt(30) * np.sqrt(n)
-            )
-            mean_h6 = np.sum(z_data**6 - 15 * z_data**4 + 45 * z_data**2 - 15) / (
-                12 * np.sqrt(5) * np.sqrt(n)
-            )
-            mean_h7 = np.sum(z_data**7 - 21 * z_data**5 + 105 * z_data**3 - 105 * z_data) / (
-                12 * np.sqrt(35) * np.sqrt(n)
-            )
-            mean_h8 = np.sum(
-                z_data**8 - 28 * z_data**6 + 210 * z_data**4 - 420 * z_data**2 + 105
-            ) / (24 * np.sqrt(70) * np.sqrt(n))
-            vector_aux1 = (
-                mean_h4
-                + mean_h5 * z_data / np.sqrt(2)
-                + mean_h6 * (z_data**2 - 1) / np.sqrt(6)
-                + mean_h7 * (z_data**3 - 3 * z_data) / (2 * np.sqrt(6))
-                + mean_h8 * (z_data**4 - 6 * z_data**2 + 3) / (2 * np.sqrt(30))
-            )
-            stat_tsl = np.max(
-                np.abs(
-                    scipy_stats.norm.cdf(z_data) * mean_h3
-                    - scipy_stats.norm.pdf(z_data) * vector_aux1
-                )
-            )
-            return stat_tsl
+        return _cabana_supremum(x, kurtosis=False)
 
 
 class CabanaCabana2NormalityGofStatistic(AbstractNormalityGofStatistic):
     """Cabaña-Cabaña-style normality statistic focused on kurtosis departures.
 
-    The null hypothesis is the normal family with unknown mean and variance.
-    No distribution parameters are accepted; ``hypothesis().parameters()``
-    returns ``{}``.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    The sample is standardized by its mean and standard deviation with
-    ``ddof=1``. A transformed empirical process built from Hermite
-    polynomials through degree eight is evaluated at these sample points.
-    The largest absolute value gives a right-tail statistic.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 4
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Use at least four finite observations with nonzero sample variance.
-    The current formula repeats its highest-order contribution. Consequently,
-    critical values for the published ``l=5`` formula cannot be assumed to
-    apply directly to this implementation.
+    Use the l=5 process in Cabana and Cabana, equation (8).
+    For z=(x-mean(x))/s1, h_j=He_j/sqrt(j!), H_j=sum(h_j(z))/sqrt(n),
+    Q(t)=sum_{j=2..5}((sqrt(j/(j-1))*h_(j-2)(t)+h_j(t))*H_(j+3)).
+    Set P(t)=H_3+t*H_4+Q(t). Return
+    sup_t abs(Phi(t)*H_4-phi(t)*P(t)). Evaluate every real stationary
+    point (roots of H_4+t*P-P') and both limits at infinity.
+    The H_8 term occurs once. This is the truncated-process supremum;
+    polynomial root solving is subject to float64 accuracy.
 
     References
     ----------
@@ -2655,6 +3411,14 @@ class CabanaCabana2NormalityGofStatistic(AbstractNormalityGofStatistic):
        Tests of Normality Based on Transformed Empirical Processes.
        Methodology and Computing in Applied Probability, 5, 309-335.
        https://doi.org/10.1023/A:1026235220018
+
+    Examples
+    --------
+    >>> statistic = CabanaCabana2NormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -2674,130 +3438,63 @@ class CabanaCabana2NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute CabanaCabana2 for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 4.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 4)
         return self.stat20(rvs)
 
     @staticmethod
     def stat20(x):
-        n = len(x)
-
-        if n > 3:
-            # TODO: Move variance calculation
-
-            var_x = n * np.var(x) / (n - 1)
-            sd_x = np.sqrt(var_x)
-            z = (x - np.mean(x)) / sd_x
-            h0 = np.zeros(n)
-            h1 = np.zeros(n)
-            h2 = np.zeros(n)
-            h3 = np.zeros(n)
-            h4 = np.zeros(n)
-            h5 = np.zeros(n)
-            h6 = np.zeros(n)
-            h7 = np.zeros(n)
-            h8 = np.zeros(n)
-
-            h3_tilde = 0
-            h4_tilde = 0
-            h5_tilde = 0
-            h6_tilde = 0
-            h7_tilde = 0
-            h8_tilde = 0
-
-            for i in range(n):
-                h0[i] = 1
-                h1[i] = z[i]
-                h2[i] = (math.pow(z[i], 2.0) - 1.0) / np.sqrt(2.0)
-                h3[i] = (math.pow(z[i], 3.0) - 3.0 * z[i]) / np.sqrt(6.0)
-                h4[i] = (math.pow(z[i], 4.0) - 6.0 * math.pow(z[i], 2.0) + 3.0) / (
-                    2.0 * np.sqrt(6.0)
-                )
-                h5[i] = (math.pow(z[i], 5.0) - 10.0 * math.pow(z[i], 3.0) + 15.0 * z[i]) / (
-                    2.0 * np.sqrt(30.0)
-                )
-                h6[i] = (
-                    math.pow(z[i], 6.0)
-                    - 15.0 * math.pow(z[i], 4.0)
-                    + 45.0 * math.pow(z[i], 2.0)
-                    - 15.0
-                ) / (12.0 * np.sqrt(5.0))
-                h7[i] = (
-                    math.pow(z[i], 7.0)
-                    - 21.0 * math.pow(z[i], 5.0)
-                    + 105.0 * math.pow(z[i], 3.0)
-                    - 105.0 * z[i]
-                ) / (12.0 * np.sqrt(35.0))
-                h8[i] = (
-                    math.pow(z[i], 8.0)
-                    - 28.0 * math.pow(z[i], 6.0)
-                    + 210.0 * math.pow(z[i], 4.0)
-                    - 420.0 * math.pow(z[i], 2.0)
-                    + 105.0
-                ) / (24.0 * np.sqrt(70.0))
-
-                h3_tilde = h3_tilde + h3[i]
-                h4_tilde = h4_tilde + h4[i]
-                h5_tilde = h5_tilde + h5[i]
-                h6_tilde = h6_tilde + h6[i]
-                h7_tilde = h7_tilde + h7[i]
-                h8_tilde = h8_tilde + h8[i]
-
-            h3_tilde = h3_tilde / np.sqrt(n)
-            h4_tilde = h4_tilde / np.sqrt(n)
-            h5_tilde = h5_tilde / np.sqrt(n)
-            h6_tilde = h6_tilde / np.sqrt(n)
-            h7_tilde = h7_tilde / np.sqrt(n)
-            h8_tilde = h8_tilde / np.sqrt(n)
-
-            vector_aux2 = (
-                (np.sqrt(2) * h0 + h2) * h5_tilde
-                + (np.sqrt(3 / 2) * h1 + h3) * h6_tilde
-                + (np.sqrt(4 / 3) * h2 + h4) * h7_tilde
-                + (np.sqrt(5 / 4) * h3 + h5) * h8_tilde
-                + (np.sqrt(5 / 4) * h3 + h5) * h8_tilde
-            )
-            stat_tkl = np.max(
-                np.abs(
-                    -scipy_stats.norm.pdf(z) * h3_tilde
-                    + (scipy_stats.norm.cdf(z) - z * scipy_stats.norm.pdf(z)) * h4_tilde
-                    - scipy_stats.norm.pdf(z) * vector_aux2
-                )
-            )
-            return stat_tkl
+        return _cabana_supremum(x, kurtosis=True)
 
 
 class ChenShapiroNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Chen-Shapiro normality statistic based on normalized spacings.
 
-    The null hypothesis is the normal family with unknown mean and variance.
-    No distribution parameters are accepted; ``hypothesis().parameters()``
-    returns ``{}``.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    Successive sample spacings are divided by spacings of the normal scores
-    ``norm.ppf((i - 0.375) / (n + 0.25))``. Their average is standardized by
-    the sample standard deviation with ``ddof=1`` to form ``QH``.
-    The returned statistic is ``sqrt(n) * (1 - QH)``; large values correspond
-    to the right-tail alternative.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 4
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Use at least four finite observations with nonzero sample variance.
-    The calculation estimates location and scale implicitly from the sample.
+    For u_i=Phi**-1((i-3/8)/(n+1/4)), return
+    sqrt(n)*(1-sum_i((x_(i+1)-x_(i))/(u_(i+1)-u_i))/((n-1)*s1)).
+    This is the upper-tail QH* version, not the lower-tail raw QH.
 
     References
     ----------
@@ -2805,6 +3502,14 @@ class ChenShapiroNormalityGofStatistic(AbstractNormalityGofStatistic):
        An alternative test for normality based on normalized spacings.
        Journal of Statistical Computation and Simulation, 53(3-4), 269-287.
        https://doi.org/10.1080/00949659508811711
+
+    Examples
+    --------
+    >>> statistic = ChenShapiroNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -2824,22 +3529,29 @@ class ChenShapiroNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute ChenShapiro for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 4.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 4)
         return self.stat26(rvs)
 
     @staticmethod
@@ -2859,20 +3571,37 @@ class ChenShapiroNormalityGofStatistic(AbstractNormalityGofStatistic):
 class ZhangQNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Zhang normality statistic based on a ratio of ordered-sample contrasts.
 
-    The null hypothesis is the normal family with unknown mean and variance.
-    No distribution parameters are accepted; ``hypothesis().parameters()``
-    returns ``{}``.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    Two linear combinations of the ordered observations use coefficients
-    constructed from approximate expected normal scores. The statistic is
-    ``log(q1 / q2)``. Location cancels from each contrast and scale cancels
-    from their ratio. The implementation declares a right-tail alternative.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    Both tails of the statistic defines rejection. Use at least 8
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    At least eight finite observations are needed because the coefficients
-    access the first eight normal scores. The contrasts must yield a positive,
-    finite ratio. Smaller samples are not supported by the current formula.
+    The publication was identified, but the exact finite-sample
+    implementation is not fully certified against its primary text.
+
+    For u_i=Phi**-1((i-3/8)/(n+1/4)), set
+    q1=mean_{i=2..n}((x_(i)-x_(1))/(u_i-u_1)),
+    q2=mean_{i=1..n-4}((x_(i+4)-x_(i))/(u_(i+4)-u_i)).
+    Return log(q1)-log(q2). The four-spacing construction and Blom
+    approximation are explicit implementation choices. Both contrasts
+    must be positive. Both critical tails are used for the signed log ratio;
+    this is the Q component, not a combined Q/Q* p-value procedure.
 
     References
     ----------
@@ -2880,11 +3609,19 @@ class ZhangQNormalityGofStatistic(AbstractNormalityGofStatistic):
        Omnibus test of normality using the Q statistic.
        Journal of Applied Statistics, 26(4), 519-528.
        https://doi.org/10.1080/02664769922395
+
+    Examples
+    --------
+    >>> statistic = ZhangQNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
     def alternative(self) -> Alternative:
-        return RightAlternative()
+        return TwoSidedAlternative()
 
     @staticmethod
     @override
@@ -2899,22 +3636,29 @@ class ZhangQNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute ZhangQ for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 8.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 8)
         return self.stat27(rvs)
 
     @staticmethod
@@ -2943,28 +3687,45 @@ class ZhangQNormalityGofStatistic(AbstractNormalityGofStatistic):
                 b[i - 1] = (1.0 / (u[i - 1] - u[i + 3]) - 1.0 / (u[i - 5] - u[i - 1])) / (n - 4)
             q1 = np.dot(a, xs)
             q2 = np.dot(b, xs)
-            stat_q = np.log(q1 / q2)
+            stat_q = np.log(_positive_scale(q1, "Q numerator")) - np.log(
+                _positive_scale(q2, "Q denominator")
+            )
             return stat_q
 
 
 class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Coin normality statistic based on polynomial regression.
 
-    The null hypothesis is the normal family with unknown mean and variance.
-    No distribution parameters are accepted; ``hypothesis().parameters()``
-    returns ``{}``.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    The ordered sample is centered and scaled using its sample mean and
-    standard deviation with ``ddof=1``. A regression on approximate expected
-    normal order statistics and their cubes produces a cubic coefficient.
-    The returned statistic is the square of that coefficient, with large
-    values corresponding to the right-tail alternative.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 4
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Use at least four finite observations with nonzero sample variance.
-    The normal-score approximation used here reports possible inaccuracy
-    when the sample contains more than 2000 observations.
+    The publication was identified, but the exact finite-sample
+    implementation is not fully certified against its primary text.
+
+    Regress z_(i)=(x_(i)-mean(x))/s1 on a_i and a_i**3 without
+    an intercept, where a_i are approximate expected normal order scores
+    from nscor2. Return the square of the cubic coefficient. Normal-score
+    approximations are only supported here for n<=2000. The reference
+    identifies the regression procedure; its score approximation is
+    retained and must be reproduced in calibration.
 
     References
     ----------
@@ -2972,6 +3733,14 @@ class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
        A goodness-of-fit test for normality based on polynomial regression.
        Computational Statistics & Data Analysis, 52(4), 2185-2198.
        https://doi.org/10.1016/j.csda.2007.07.012
+
+    Examples
+    --------
+    >>> statistic = CoinNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -2991,22 +3760,31 @@ class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute Coin for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 4.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 4)
+        if len(rvs) > 2000:
+            raise ValueError("Coin normal-score approximation requires n <= 2000")
         return self.stat30(rvs)
 
     def stat30(self, x):
@@ -3031,7 +3809,7 @@ class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
 
             for i in range(n):
                 var_x += x[i] ** 2
-            var_x = (n * (var_x / n - mean_x**2)) / (n - 1)
+            var_x = np.var(x, ddof=1)
             sd_x = math.sqrt(var_x)
 
             for i in range(n):
@@ -3098,7 +3876,7 @@ class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
         if n <= 1:
             raise ValueError("n<=1")
         if n > 2000:
-            print("Values may be inaccurate because of the size of N")
+            raise ValueError("Normal-score approximation requires n <= 2000")
 
         s[0] = b1
         if n == 2:
@@ -3130,21 +3908,30 @@ class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
 class DagostinoNormalityGofStatistic(AbstractNormalityGofStatistic):
     """D'Agostino's normality statistic based on ordered observations.
 
-    The null hypothesis is the normal family with unknown mean and variance.
-    No distribution parameters are accepted; ``hypothesis().parameters()``
-    returns ``{}``.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    A linear contrast of the order statistics is divided by the sample
-    standard deviation computed with ``ddof=0`` and by ``n**2`` to form ``D``.
-    This implementation returns
-    ``sqrt(n) * (D - 0.28209479) / 0.02998598``.
-    Both low and high values correspond to the two-sided alternative.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    Both tails of the statistic defines rejection. Use at least 4
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Use at least four finite observations with nonzero sample variance.
-    This order-statistic construction is distinct from the skewness-and-
-    kurtosis D'Agostino-Pearson statistic.
+    D=sum_i((i-(n+1)/2)*x_(i))/(n**2*s0). Return
+    sqrt(n)*(D-0.28209479)/0.02998598. This is the signed,
+    asymptotically standardized D statistic, not D'Agostino-Pearson K2.
 
     References
     ----------
@@ -3152,6 +3939,14 @@ class DagostinoNormalityGofStatistic(AbstractNormalityGofStatistic):
        An omnibus test of normality for moderate and large size samples.
        Biometrika, 58(2), 341-348.
        https://doi.org/10.1093/biomet/58.2.341
+
+    Examples
+    --------
+    >>> statistic = DagostinoNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -3171,27 +3966,33 @@ class DagostinoNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute Dagostino for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 4.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 4)
         n = len(rvs)
         if n > 3:
             xs = np.sort(rvs)  # We sort the data
-            mean_x = sum(xs) / n
-            var_x = sum(x_i**2 for x_i in xs) / n - mean_x**2
+            var_x = np.var(xs, ddof=0)
             t = sum((i - 0.5 * (n + 1)) * xs[i - 1] for i in range(1, n + 1))
             d = t / ((n**2) * math.sqrt(var_x))
             stat_da = math.sqrt(n) * (d - 0.28209479) / 0.02998598
@@ -3202,21 +4003,35 @@ class DagostinoNormalityGofStatistic(AbstractNormalityGofStatistic):
 class ZhangQStarNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Reflected Zhang ``Q*`` normality statistic.
 
-    The null hypothesis is the normal family with unknown mean and variance.
-    No distribution parameters are accepted; ``hypothesis().parameters()``
-    returns ``{}``.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    This variant applies the Zhang ``Q`` construction to the negated,
-    reverse-ordered sample. It returns the logarithm of the ratio of two
-    linear contrasts. Shifts and positive rescaling cancel from the result.
-    The implementation declares a right-tail alternative.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    Both tails of the statistic defines rejection. Use at least 8
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    At least eight finite observations are needed because the coefficients
-    access the first eight normal scores. A positive, finite contrast ratio
-    is required. This is the reflected component alone, not a joint
-    combination of the ``Q`` and ``Q*`` p-values.
+    The publication was identified, but the exact finite-sample
+    implementation is not fully certified against its primary text.
+
+    Return Zhang Q evaluated on the reflected sample -x, using
+    u_i=Phi**-1((i-3/8)/(n+1/4)), the mean spacing from the minimum
+    for q1 and mean four-spacing for q2; return log(q1)-log(q2).
+    Both contrasts must be positive. Both tails of the signed log ratio
+    are used. This is a reflected component, not combined Q/Q* inference.
 
     References
     ----------
@@ -3224,11 +4039,19 @@ class ZhangQStarNormalityGofStatistic(AbstractNormalityGofStatistic):
        Omnibus test of normality using the Q statistic.
        Journal of Applied Statistics, 26(4), 519-528.
        https://doi.org/10.1080/02664769922395
+
+    Examples
+    --------
+    >>> statistic = ZhangQStarNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
     def alternative(self) -> Alternative:
-        return RightAlternative()
+        return TwoSidedAlternative()
 
     @staticmethod
     @override
@@ -3243,22 +4066,29 @@ class ZhangQStarNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute ZhangQStar for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 8.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 8)
         n = len(rvs)
 
         if n > 3:
@@ -3285,77 +4115,41 @@ class ZhangQStarNormalityGofStatistic(AbstractNormalityGofStatistic):
             q1_star = -np.dot(a, xs[::-1])
             q2_star = -np.dot(b, xs[::-1])
 
-            q_star = np.log(q1_star / q2_star)
+            q_star = np.log(_positive_scale(q1_star, "Q* numerator")) - np.log(
+                _positive_scale(q2_star, "Q* denominator")
+            )
             return q_star
-
-
-"""
-class ZhangQQStarNormalityTest(AbstractNormalityTestStatistic):  # TODO: check for correctness
-
-    @staticmethod
-    @override
-    def code():
-        return 'ZQQ' + '_' + super(AbstractNormalityTestStatistic, AbstractNormalityTestStatistic)
-        .code()
-
-    @override
-    def execute_statistic(self, rvs, **kwargs):
-        return self.stat28(rvs)
-
-    @staticmethod
-    def stat28(x):
-        n = len(x)
-
-        if n > 3:
-            # Computation of the value of the test statistic
-            def stat27(x):
-                pass
-
-            def stat34(x):
-                pass
-
-            p_value27 = [1.0]
-            p_value34 = [1.0]
-
-            stat27(x)  # stat Q de Zhang
-
-            if p_value27[0] > 0.5:
-                p_val1 = 1.0 - p_value27[0]
-            else:
-                p_val1 = p_value27[0]
-
-            stat34(x)  # stat Q* de Zhang
-
-            if p_value34[0] > 0.5:
-                p_val2 = 1.0 - p_value34[0]
-            else:
-                p_val2 = p_value34[0]
-
-            # Combinaison des valeurs-p (Fisher, 1932)
-            stat = -2.0 * (np.log(p_val1) + np.log(p_val2))
-
-            return stat  # Here is the test statistic value
-"""
 
 
 class SWRGNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Rahman-Govindarajulu modification of the Shapiro-Wilk statistic.
 
-    The null hypothesis is the normal family with unknown mean and variance.
-    No distribution parameters are accepted; ``hypothesis().parameters()``
-    returns ``{}``.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    Weights are formed from second differences of normal-score density
-    products and normalized to unit length. The squared weighted sum of the
-    ordered sample is divided by its centered sum of squares. Use at least
-    four finite observations with nonzero sample variance.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The lower tail of the statistic defines rejection. Use at least 4
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    The returned value is the raw ``W_RG`` ratio, not ``1 - W_RG``. The
-    published Shapiro-Wilk-type test uses small values as evidence against
-    normality, while this implementation currently declares a right-tail
-    alternative. Account for that mismatch when using it for decisions.
+    For m_i=Phi**-1(i/(n+1)), f_i=phi(m_i), form weights
+    a*_i=-(n+1)*(n+2)*f_i*(m_(i-1)*f_(i-1)-2*m_i*f_i
+    +m_(i+1)*f_(i+1)), taking missing endpoint terms as zero.
+    Normalize a=a*/sqrt(sum(a* **2)); return
+    (sum(a_i*x_(i)))**2/sum((x-mean(x))**2). Small W_RG rejects.
 
     References
     ----------
@@ -3363,11 +4157,19 @@ class SWRGNormalityGofStatistic(AbstractNormalityGofStatistic):
        A modification of the test of Shapiro and Wilk for normality.
        Journal of Applied Statistics, 24(2), 219-236.
        https://doi.org/10.1080/02664769723828
+
+    Examples
+    --------
+    >>> statistic = SWRGNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
     def alternative(self) -> Alternative:
-        return RightAlternative()
+        return LeftAlternative()
 
     @staticmethod
     @override
@@ -3382,22 +4184,29 @@ class SWRGNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute SWRG for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 4.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 4)
         n = len(rvs)
 
         if n > 3:
@@ -3423,20 +4232,31 @@ class SWRGNormalityGofStatistic(AbstractNormalityGofStatistic):
 class GMGNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Gel-Miao-Gastwirth normality statistic directed at heavy tails.
 
-    The null hypothesis is the normal family with unknown mean and variance.
-    No distribution parameters are accepted; ``hypothesis().parameters()``
-    returns ``{}``.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    The statistic divides the sample standard deviation with ``ddof=0`` by
-    ``sqrt(pi / 2)`` times the average absolute deviation from the sample
-    median. This ratio is close to one under normality, and large values
-    correspond to the right-tail alternative aimed at heavy-tailed departures.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 4
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    Use at least four finite observations with positive dispersion.
-    The returned value is the raw ratio; no large-sample centering, scaling,
-    or p-value approximation from the article is applied.
+    Return s0/J, where J=sqrt(pi/2)*mean(abs(x-median(x))).
+    This is a directed upper-tail statistic for heavy-tailed departures.
+    The ddof=0 convention is retained; its finite-sample law differs
+    from versions using the unbiased sample variance.
 
     References
     ----------
@@ -3444,6 +4264,14 @@ class GMGNormalityGofStatistic(AbstractNormalityGofStatistic):
        Robust directed tests of normality against heavy-tailed alternatives.
        Computational Statistics & Data Analysis, 51(5), 2734-2746.
        https://doi.org/10.1016/j.csda.2006.08.022
+
+    Examples
+    --------
+    >>> statistic = GMGNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -3463,22 +4291,29 @@ class GMGNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute GMG for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 4.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 4)
         return self.stat33(rvs)
 
     @staticmethod
@@ -3526,38 +4361,54 @@ class GMGNormalityGofStatistic(AbstractNormalityGofStatistic):
             return stat_rsj  # Here is the test statistic value
 
 
-""" Title: Statistique de test de Brys-Hubert-Struyf MC-LR
-Ref. (book or article): Brys, G., Hubert, M. and Struyf, A. (2008), Goodness-of-fit tests based on
-a robust measure of skewness, Computational Statistics, Vol. 23, Issue 3, pp. 429-442.
-"""
-
-
 class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Brys-Hubert-Struyf MC-LR statistic for the normal family.
 
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
+
     Notes
     -----
-    The null hypothesis is normality with unknown mean and variance;
-    `hypothesis().parameters()` is an empty dictionary. No distribution
-    parameters are accepted by the constructor.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 4
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    The statistic combines the medcouple with left and right medcouples in
-    a quadratic form [1]_. These measure skewness and tail weight without
-    fixing the location or scale. Large values provide evidence against
-    normality; the class uses a right-sided alternative.
-
-    Warnings
-    --------
-    The current medcouple implementation is incomplete. It may fail to
-    terminate for samples with five or more observations and is not suitable
-    for reliable inference until repaired. Existing regression tests for
-    these sample sizes are disabled for this reason.
+    Return n*v.T*V**-1*v with v=(MC, LMC-0.198828, RMC-0.198828),
+    V=[[1.24581,0.322918,-0.322918],[0.322918,2.62068,-0.0123455],
+    [-0.322918,-0.0123455,2.62068]]. LMC=-MC(x<median(x));
+    RMC=MC(x>median(x)); median observations belong to neither half.
+    MC is the median of (upper+lower-2*median)/(upper-lower) over
+    lower<=median<=upper, with antisymmetric rank values for zero ties.
+    At least two observations must remain in each strict half. Constant
+    halves have MC=0. The exact kernel median uses O(n**2) time and
+    memory, unlike the fast selection algorithm in the paper. Constants
+    agree with the rounded normal row in Table 1; simulate for finite n.
 
     References
     ----------
     .. [1] Brys, G., Hubert, M., and Struyf, A. (2008). "Goodness-of-fit tests
        based on a robust measure of skewness." Computational Statistics,
        23, 429-442. https://doi.org/10.1007/s00180-007-0083-7
+
+    Examples
+    --------
+    >>> statistic = BHSNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -3577,22 +4428,29 @@ class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute BHS for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 4.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 4)
         return self.stat16(rvs)
 
     def stat16(self, x):
@@ -3601,13 +4459,13 @@ class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
         if n > 3:
             # Computation of the value of the test statistic
             x_sorted = np.sort(x)
-            if n % 2 == 0:
-                x1 = x_sorted[: n // 2]
-                x2 = x_sorted[n // 2 :]
-            else:
-                x1 = x_sorted[: (n // 2) + 1]
-                x2 = x_sorted[(n // 2) + 1 :]
-
+            median = np.median(x_sorted)
+            x1 = x_sorted[x_sorted < median]
+            x2 = x_sorted[x_sorted > median]
+            if min(len(x1), len(x2)) < 2:
+                raise ValueError(
+                    "BHS requires at least two observations on each side of the median"
+                )
             eps = [2.220446e-16, 2.225074e-308]
             w1 = self.mc_c_d(x, eps, [1000, 0])
             w2 = self.mc_c_d(x1, eps, [1000, 0])
@@ -3628,315 +4486,94 @@ class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
             return stat_tmclr  # Here is the test statistic value
 
     # TODO: refactor
-    # flake8: noqa: C901
     def mc_c_d(self, z, eps, iter_):
+        """Compute the exact medcouple; compatibility arguments do not tune it.
+
+        The kernel matrix uses O(n**2) memory and time. Median ties use the
+        antisymmetric rank convention of Brys, Hubert and Struyf.
         """
-        NOTE:
-            eps = [eps1, eps2]
-            iter = [max_it, trace_lev] as input
-                  = [it, converged] as output
-        """
-        trace_lev = iter_[1]
-        it = 0
-        converged = True
-        med_c = None  # "the" result
-        # dbl_max = 1.7976931348623158e+308
-        dbl_max = 1.7976931348623158e308
-        large = dbl_max / 4.0
-
-        n = len(z)
-        if n < 3:
-            med_c = 0.0
-            iter_[0] = it  # to return
-            iter_[1] = converged
-            return med_c
-
-        # copy data before sort()ing in place, also reflecting it -- dealing with +-Inf.
-        # NOTE: x[0] "empty" so we can use 1-indexing below
-        x = [0.0] * (n + 1)
-        for i in range(n):
-            zi = z[i]
-            x[i + 1] = -(large if zi == float("inf") else (-large if zi == -float("inf") else zi))
-
-        x[1:] = sorted(x[1:])  # full sort
-
-        # x_med := median(x[1:n]) = -median(z[0:(n-1)])
-        if n % 2:  # n even
-            x_med = x[(n // 2) + 1]
-        else:  # n odd
-            ind = n // 2
-            x_med = (x[ind] + x[ind + 1]) / 2.0
-
-        if abs(x[1] - x_med) < eps[0] * (eps[0] + abs(x_med)):
-            med_c = -1.0
-            iter_[0] = it  # to return
-            iter_[1] = converged
-            return med_c
-        elif abs(x[n] - x_med) < eps[0] * (eps[0] + abs(x_med)):
-            med_c = 1.0
-            iter_[0] = it  # to return
-            iter_[1] = converged
-            return med_c
-        # else: median is not at the border
-        if trace_lev:
-            print(f"mc_C_d(z[1:{n}], trace_lev={trace_lev}): Median = {-x_med} (not at the border)")
-
-        # center x[] wrt median --> such that then median(x[1:n]) == 0
-        for i in range(1, n + 1):
-            x[i] -= x_med
-
-        # Now scale to inside [-0.5, 0.5] and flip sign such that afterwards
-        # x[1] >= x[2] >= ... >= x[n]
-        x_den = -2 * max(-x[1], x[n])
-        for i in range(1, n + 1):
-            x[i] /= x_den
-        x_med /= x_den
-        if trace_lev >= 2:
-            print(f" x[] has been rescaled (* 1/s) with s = {-x_den}")
-
-        j = 1
-        x_eps = eps[0] * (eps[0] + abs(x_med))
-        while j <= n and x[j] > x_eps:  # test relative to x_med
-            j += 1
-        if trace_lev >= 2:
-            print(f"   x1[] := {{x | x_j > x_eps = {x_eps}}}    has {j - 1} (='j-1') entries")
-        i = 1
-        x2 = x[j - 1 :]  # pointer -- corresponding to x2[i] = x[j]
-        while j <= n and x[j] > -x_eps:  # test relative to x_med
-            j += 1
-            i += 1
-        # now x1[] := {x | x_j > -eps} also includes the median (0)
-        if trace_lev >= 2:
-            print(f"'median-x' {{x | -eps < x_i <= eps}} has {i - 1} (= 'k') entries")
-        h1 = j - 1  # == size of x1[] == the sum of those two sizes above
-        # conceptually, x2[] := {x | x_j <= eps} (which includes the median 0)
-        h2 = i + (n - j)  # == size of x2[] == maximal size of whi_med() arrays
-
-        if trace_lev:
-            print(f"  now allocating 2+5 work arrays of size (1+) h2={h2} each:")
-        # work arrays for whi_med_i()
-        a_cand = [0.0] * h2
-        a_srt = [0.0] * h2
-        iw_cand = [0] * h2
-        # work arrays for the fast-median-of-table algorithm: currently still with 1-indexing
-        left = [1] * (h2 + 1)
-        right = [h1] * (h2 + 1)
-        p = [0] * (h2 + 1)
-        q = [0] * (h2 + 1)
-
-        nr = h1 * h2  # <-- careful to *NOT* overflow
-        knew = nr // 2 + 1
-        if trace_lev >= 2:
-            print(f" (h1,h2, nr, knew) = ({h1},{h2}, {nr}, {knew})")
-
-        trial = -2.0  # -Wall
-        work = [0.0] * n
-        iwt = [0] * n
-        is_found = False
-        nl = 0
-        neq = 0
-        # MK: 'neq' counts the number of observations in the inside the tolerance range,
-        # i.e., where left > right + 1, since we would miss those when just using 'nl-nr'.
-        # This is to prevent index overflow in work[] later on.
-        # left might be larger than right + 1 since we are only testing with accuracy eps_trial
-        # and therefore there might be more than one observation in the `tolerance range`
-        # between < and <=.
-        while not is_found and (nr - nl + neq > n) and it < iter_[0]:
-            if trace_lev >= 2:
-                print(f"  it={it}")
-            it += 1
-            j = 0
-            for i in range(1, h2 + 1):
-                if left[i] <= right[i]:
-                    iwt[j] = right[i] - left[i] + 1
-                    k = left[i] + (iwt[j] // 2)
-                    work[j] = self.h_kern(x[k], x2[i - 1], k, i, h1 + 1, eps[1])
-                    j += 1
-            if trace_lev >= 4:
-                # print(" before whi_med(): work and iwt, each [0:({})]".format(j - 1))
-                if j >= 100:
-                    for i in range(90):
-                        print(f" {work[i]:8g}", end="")
-                    print("\n  ... ", end="")
-                    for i in range(j - 4, j):
-                        print(f" {work[i]:8g}", end="")
-                    print("\n", end="")
-                    for i in range(90):
-                        print(f" {iwt[i]:8d}", end="")
-                    print("\n  ... ", end="")
-                    for i in range(j - 4, j):
-                        print(f" {iwt[i]:8d}", end="")
-                    print("\n", end="")
-                else:  # j <= 99
-                    for i in range(j):
-                        print(f" {work[i]:8g}", end="")
-                    print("\n", end="")
-                    for i in range(j):
-                        print(f" {iwt[i]:8d}", end="")
-                    print("\n", end="")
-            trial = self.whi_med_i(work, iwt, j, a_cand, a_srt, iw_cand)
-            eps_trial = eps[0] * (eps[0] + abs(trial))
-            if trace_lev >= 3:
-                print(f"{' ':2s} it={it:2d}, whi_med(*, n={j:6d})= {trial:8g} ", end="")
-
-            j = 1
-            for i in range(h2, 0, -1):
-                while (
-                    j <= h1
-                    and self.h_kern(x[j], x2[i - 1], j, i, h1 + 1, eps[1]) - trial > eps_trial
-                ):
-                    j += 1
-                p[i] = j - 1
-
-            j = h1
-            sum_p = 0
-            sum_q = 0
-            for i in range(1, h2 + 1):
-                while (
-                    j >= 1
-                    and trial - self.h_kern(x[j], x2[i - 1], j, i, h1 + 1, eps[1]) > eps_trial
-                ):
-                    j -= 1
-                q[i] = j + 1
-
-                sum_p += p[i]
-                sum_q += j  # = q[i]-1
-
-            if trace_lev >= 3:
-                if trace_lev == 3:
-                    print(f"sum_(p,q)= ({sum_p},{sum_q})", end="")
-                else:  # trace_lev >= 4
-                    print(f"\n{' ':3s} p[1:{h2}]:", end="")
-                    lrg = h2 >= 100
-                    i_m = 95 if lrg else h2
-                    for i in range(1, i_m + 1):
-                        print(f" {p[i]:2d}", end="")
-                    if lrg:
-                        print(" ...", end="")
-                    print(f" sum={sum_p:4.0f}")
-                    print(f"{' ':3s} q[1:{h2}]:", end="")
-                    for i in range(1, i_m + 1):
-                        print(f" {q[i]:2d}", end="")
-                    if lrg:
-                        print(" ...", end="")
-                    print(f" sum={sum_q:4.0f}")
-
-            if knew <= sum_p:
-                if trace_lev >= 3:
-                    print("; sum_p >= kn")
-                for i in range(1, h2 + 1):
-                    right[i] = p[i]
-                    if left[i] > right[i] + 1:
-                        neq += left[i] - right[i] - 1
-                nr = sum_p
-            else:  # knew > sum_p
-                is_found = knew <= sum_q  # i.e. sum_p < knew <= sum_q
-
-                if trace_lev >= 3:
-                    print("; s_p < kn ?<=? s_q: {}".format("TRUE" if is_found else "no"))
-                if is_found:
-                    med_c = trial
-                else:  # knew > sum_q
-                    for i in range(1, h2 + 1):
-                        left[i] = q[i]
-                        if left[i] > right[i] + 1:
-                            neq += left[i] - right[i] - 1
-                    nl = sum_q
-
-        converged = is_found or (nr - nl + neq <= n)
-        if not converged:
-            if trace_lev:
-                print(f"maximal number of iterations ({iter_[0]} =? {it}) reached prematurely")
-            # still:
-            med_c = trial
-
-        if converged and not is_found:  # e.g., for mc(1:4)
-            j = 0
-            for i in range(1, h2 + 1):
-                if left[i] <= right[i]:
-                    for k in range(left[i], right[i] + 1):
-                        work[j] = -self.h_kern(x[k], x2[i - 1], k, i, h1 + 1, eps[1])
-                        j += 1
-            if trace_lev:
-                print(
-                    f"  not found [it={it},  (nr,nl) = ({nr},{nl})], -> (knew-nl, j) ="
-                    f" ({knew - nl},{j})"
-                )
-            # using rPsort(work, n,k), since we don't need work[] anymore
-            work[: (knew - nl)] = sorted(work[: (knew - nl)])
-            med_c = -work[knew - nl - 1]
-
-        if converged and trace_lev >= 2:
-            print(f"converged in {it} iterations")
-
-        iter_[0] = it  # to return
-        iter_[1] = converged
-
-        return med_c
+        x = np.sort(np.asarray(z, dtype=float))
+        if x.size < 2:
+            raise ValueError("A medcouple requires at least two observations")
+        x = x - np.median(x)
+        lower = x[x <= 0]
+        upper = x[x >= 0]
+        denominator = upper[:, None] - lower[None, :]
+        numerator = upper[:, None] + lower[None, :]
+        kernel = np.divide(
+            numerator, denominator, out=np.zeros_like(denominator), where=denominator != 0
+        )
+        ties = np.count_nonzero(x == 0)
+        if ties:
+            ranks = np.arange(ties)
+            kernel[:ties, -ties:] = np.sign(ranks[:, None] + ranks[None, :] - ties + 1)
+        iter_[:] = [0, True]
+        return float(np.median(kernel))
 
     @staticmethod
     def h_kern(a, b, ai, bi, ab, eps):
-        if np.abs(a - b) < 2.0 * eps or b > 0:
+        if abs(a - b) < 2 * eps or b > 0:
             return np.sign(ab - (ai + bi))
-        else:
-            return (a + b) / (a - b)
+        return (a + b) / (a - b)
 
     @staticmethod
     def whi_med_i(a, w, n, a_cand, a_srt, w_cand):
-        w_tot = sum(w)
-        w_rest = 0
-
-        while True:
-            a_srt[:] = sorted(a)
-            n2 = n // 2
-            trial = a_srt[n2]
-
-            w_left = sum(w[i] for i in range(n) if a[i] < trial)
-            w_mid = sum(w[i] for i in range(n) if a[i] == trial)
-            # w_right = sum(w[i] for i in range(n) if a[i] > trial)
-
-            k_cand = 0
-            if 2 * (w_rest + w_left) > w_tot:
-                for i in range(n):
-                    if a[i] < trial:
-                        a_cand[k_cand] = a[i]
-                        w_cand[k_cand] = w[i]
-                        k_cand += 1
-            elif 2 * (w_rest + w_left + w_mid) <= w_tot:
-                for i in range(n):
-                    if a[i] > trial:
-                        a_cand[k_cand] = a[i]
-                        w_cand[k_cand] = w[i]
-                        k_cand += 1
-                w_rest += w_left + w_mid
-            else:
-                return trial
-
-            n = k_cand
-            for i in range(n):
-                a[i] = a_cand[i]
-                w[i] = w_cand[i]
+        """Return the upper weighted median of the first n entries."""
+        order = np.argsort(np.asarray(a)[:n])
+        weights = np.asarray(w)[:n][order]
+        if n == 0 or np.any(weights < 0) or np.sum(weights) <= 0:
+            raise ValueError("Positive total weight is required")
+        index = np.searchsorted(np.cumsum(weights), np.sum(weights) / 2, side="right")
+        return float(np.asarray(a)[:n][order[index]])
 
 
 class SpiegelhalterNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Spiegelhalter statistic for the normal family.
 
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
+
     Notes
     -----
-    The null hypothesis is normality with unknown mean and variance;
-    `hypothesis().parameters()` is an empty dictionary. No distribution
-    parameters are accepted by the constructor.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    Both tails of the statistic defines rejection. Use at least 4
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    The statistic combines the standardized sample range and mean absolute
-    deviation [1]_. Location and scale cancel in the calculation. This class
-    uses a two-sided alternative and requires at least four observations
-    with nonzero sample variance.
+    The publication was identified, but the exact finite-sample
+    implementation is not fully certified against its primary text.
+
+    Let U=(max(x)-min(x))/s1, G=sum(abs(x-mean(x)))/
+    (s1*sqrt(n*(n-1))), and c_n=Gamma(n+1)**(1/(n-1))/(2*n).
+    Return ((c_n*U)**(-(n-1))+G**(-(n-1)))**(1/(n-1)).
+    Log-gamma and logaddexp evaluate this expression without overflowing.
+    Both critical tails are retained; the full primary formula and
+    its tail convention could not be independently checked in this review.
 
     References
     ----------
     .. [1] Spiegelhalter, D. J. (1977). "A test for normality against
        symmetric alternatives." Biometrika, 64(2), 415-418.
        https://doi.org/10.1093/biomet/64.2.415
+
+    Examples
+    --------
+    >>> statistic = SpiegelhalterNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -3956,22 +4593,29 @@ class SpiegelhalterNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute Spiegelhalter for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 4.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 4)
         return self.stat41(rvs)
 
     @staticmethod
@@ -3996,40 +4640,45 @@ class SpiegelhalterNormalityGofStatistic(AbstractNormalityGofStatistic):
             for i in range(n):
                 g += abs(x[i] - mean)
             g /= sd * math.sqrt(n) * math.sqrt(n - 1)
-            if n < 150:
-                cn = 0.5 * math.gamma(n + 1) ** (1 / (n - 1)) / n
-            else:
-                cn = (
-                    (2 * math.pi) ** (1 / (2 * (n - 1)))
-                    * ((n * math.sqrt(n)) / math.e) ** (1 / (n - 1))
-                    / (2 * math.e)
-                )  # Stirling approximation
-
-            stat_sp = ((cn * u) ** (-(n - 1)) + g ** (-(n - 1))) ** (1 / (n - 1))
-
+            log_cn = gammaln(n + 1) / (n - 1) - np.log(2 * n)
+            log_a = -(n - 1) * (log_cn + np.log(u))
+            log_b = -(n - 1) * np.log(g)
+            stat_sp = np.exp(np.logaddexp(log_a, log_b) / (n - 1))
             return stat_sp  # Here is the test statistic value
 
 
 class DesgagneLafayeNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Desgagne-Lafaye de Micheaux-Leblanc R_n normality statistic.
 
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
+
     Notes
     -----
-    The null hypothesis is normality with unknown mean and variance;
-    `hypothesis().parameters()` is an empty dictionary. No distribution
-    parameters are accepted by the constructor.
+    H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+    Location and positive scale cancel, allowing N(0,1) null simulation.
+    Every simulated sample must go through execute_statistic again.
+    The upper tail of the statistic defines rejection. Use at least 4
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    The sample is centered and divided by its standard deviation computed
-    with `ddof=0`. The statistic combines three logarithmic measures of
-    tail thickness in a quadratic form, as in the Rao score test against
-    generalized exponential power alternatives [1]_. The implementation
-    evaluates `R_n`, although its historical short code is `DLDMZEPD`.
-
-    Large values provide evidence against normality; the class uses a
-    right-sided alternative. At least four observations and nonzero sample
-    variance are required. A centered observation equal to zero can produce
-    a nonfinite result because the current implementation evaluates its
-    logarithm directly.
+    For z=(x-mean(x))/s0, let r=(0.18240929-mean(z**2*log(abs(z)))/2,
+    0.5348223-mean(log(1+abs(z))),
+    0.20981558-mean(log(log(e+abs(z))))). Return n*r.T*A*r, where
+    A is the rounded inverse fitted-score covariance in stat35.
+    The first integrand is zero at z=0 by continuity. Theorem 1 of the
+    author preprint accounts for fitting mean and variance. A is ill
+    conditioned; rounding its constants limits precision. Small-sample
+    chi-square calibration is inappropriate.
 
     References
     ----------
@@ -4037,6 +4686,14 @@ class DesgagneLafayeNormalityGofStatistic(AbstractNormalityGofStatistic):
        "Test of Normality Against Generalized Exponential Power
        Alternatives." Communications in Statistics - Theory and Methods,
        42(1), 164-190. https://doi.org/10.1080/03610926.2011.577548
+
+    Examples
+    --------
+    >>> statistic = DesgagneLafayeNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -4056,22 +4713,29 @@ class DesgagneLafayeNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic for the observed sample.
+        """Compute DesgagneLafaye for this sample.
 
         Parameters
         ----------
         rvs : array_like, shape (n,)
-            One-dimensional sample of finite observations. Sample-size and
-            dispersion requirements are described in the class notes.
+            Finite real one-dimensional observations, n >= 4.
+            Nonzero dispersion and the scales specified in Notes are required.
         **kwargs : dict, optional
-            Unused keyword arguments accepted for interface compatibility.
+            Unused keywords accepted for interface compatibility.
 
         Returns
         -------
         statistic : float
-            Value of the statistic for a supported sample. This method does
-            not return a p-value or a hypothesis-test decision.
+            Scalar statistic in the normalization stated in the class notes.
+            No p-value or test decision is computed.
+
+        Raises
+        ------
+        ValueError
+            If the sample is nonfinite, nonreal, multidimensional, too short,
+            or a required scale or transformation is undefined.
         """
+        rvs = _normal_sample(rvs, 4)
         return self.stat35(rvs)
 
     @staticmethod
@@ -4089,15 +4753,15 @@ class DesgagneLafayeNormalityGofStatistic(AbstractNormalityGofStatistic):
 
             for i in range(n):
                 varpop_x += x[i] ** 2
-            varpop_x = varpop_x / n - mean_x**2
+            varpop_x = np.var(x, ddof=0)
             sd_x = np.sqrt(varpop_x)
             for i in range(n):
                 y[i] = (x[i] - mean_x) / sd_x
 
             # Formulas given in our paper p. 169
             for i in range(n):
-                r1 += y[i] ** 2 * np.log(abs(y[i]))
-                r2 += np.log(1.0 + abs(y[i]))
+                r1 += xlogy(y[i] ** 2, abs(y[i]))
+                r2 += np.log1p(abs(y[i]))
                 r3 += np.log(np.log(2.71828182846 + abs(y[i])))
             r1 = 0.18240929 - 0.5 * r1 / n
             r2 = 0.5348223 - r2 / n
@@ -4116,42 +4780,10 @@ class DesgagneLafayeNormalityGofStatistic(AbstractNormalityGofStatistic):
 class AbstractGraphNormalityGofStatistic(
     AbstractNormalityGofStatistic, AbstractGraphTestStatistic, ABC
 ):
-    """Base class for normal proximity-graph statistics with known variance.
+    """Base for local normal proximity graphs with fixed positive variance.
 
-    Parameters
-    ----------
-    var : float, optional
-        Finite positive variance fixed by the null hypothesis. Default is
-        1. This is a variance, not a standard deviation. Keyword-only.
-
-    Raises
-    ------
-    ValueError
-        If the variance is nonpositive or nonfinite.
-
-    Notes
-    -----
-    The null hypothesis is normality with variance `var` and an arbitrary
-    mean; `hypothesis().parameters()` returns `{"var": var}`.
-
-    Observations are graph vertices. Two vertices are joined when their
-    absolute difference is strictly smaller than
-    `(max(rvs) - min(rvs)) / (10 * np.var(rvs, ddof=0))`.
-    For zero sample variance, the denominator involving variance is omitted.
-    The threshold uses the empirical variance, not the hypothesized `var`.
-
-    The construction is invariant to shifts but not to changes of scale.
-    Consequently, `var` determines the null distribution used for
-    calibration without directly entering the statistic. Subclasses use
-    a two-sided alternative.
-
-    This threshold rule is documented from the PySATL implementation [1]_.
-    An originating research article has not been identified.
-
-    References
-    ----------
-    .. [1] PySATL. "pysatl-criterion", normal proximity-graph implementation.
-       https://github.com/PySATL/pysatl-criterion
+    Concrete class notes specify the radius, graph summary and calibration.
+    The graph eliminates location only; its null law depends on variance.
     """
 
     @override
@@ -4181,12 +4813,57 @@ class AbstractGraphNormalityGofStatistic(
         parent_code = AbstractNormalityGofStatistic.code()
         return f"GRAPH_{parent_code}"
 
+    @override
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the local proximity-graph statistic without modifying input.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            At least two finite real observations with positive variance.
+        **kwargs : dict, optional
+            Unused compatibility keywords.
+
+        Returns
+        -------
+        statistic : float
+            Graph summary; both tails are used in calibration at fixed variance.
+
+        Raises
+        ------
+        ValueError
+            If the sample or the graph radius is undefined in float64.
+        """
+        x = _normal_sample(rvs, 2, standardize=False)
+        dist = self._compute_dist(x)
+        if self.short_code() == "CLIQUENUMBER":
+            x.sort()
+            left = 0
+            result = 1
+            for right in range(len(x)):
+                while left < right and x[right] - x[left] >= dist:
+                    left += 1
+                result = max(result, right - left + 1)
+            return float(result)
+        if self.short_code() == "INDEPENDENCENUMBER":
+            x.sort()
+            last = x[0]
+            result = 1
+            for value in x[1:]:
+                if value - last >= dist:
+                    result += 1
+                    last = value
+            return float(result)
+        return float(self.get_graph_stat(self._make_adjacency_list(x, dist)))
+
     @staticmethod
     @override
     def _compute_dist(rvs):
-        base_dist = AbstractGraphTestStatistic._compute_dist(rvs)
-        variance = np.var(rvs)
-        return base_dist / variance if variance != 0 else base_dist
+        with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+            variance = np.var(rvs)
+            dist = (np.max(rvs) - np.min(rvs)) / (10 * variance)
+        _positive_scale(variance, "sample variance")
+        return _positive_scale(dist, "graph radius")
 
 
 class GraphEdgesNumberNormalityGofStatistic(
@@ -4197,29 +4874,43 @@ class GraphEdgesNumberNormalityGofStatistic(
     Parameters
     ----------
     var : float, optional
-        Finite positive null variance, specified as a keyword argument.
-        Default is 1. The null mean is unspecified.
+        Positive finite scalar variance fixed under H0; default 1.
 
-    See Also
-    --------
-    AbstractGraphNormalityGofStatistic : Graph construction and calibration.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    Counts the undirected edges in the sample proximity graph.
+    H0 is N(mu,var), with unknown mu and fixed var; hypothesis() reports var.
+    Calibrate at this variance; setting the simulation mean to zero is valid.
+    Both tails of the statistic defines rejection. Use at least 2
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    The null hypothesis is normality with arbitrary mean and variance
-    `var`; `hypothesis().parameters()` returns `{"var": var}`.
-    The alternative is two-sided. The graph threshold and its dependence
-    on sample scale are described in `AbstractGraphNormalityGofStatistic`.
+    Connect i and j when abs(x_i-x_j) < (max(x)-min(x))/(10*m2),
+    where m2=mean((x-mean(x))**2). Return the number of edges.
+    This local construction is translation invariant but not scale invariant.
+    var selects the null law for calibration; it is not inserted in the radius.
+    A primary source for this exact normality test was not located. No
+    published null law or omnibus power claim is made. Extreme scales that
+    make the radius or variance unrepresentable raise ValueError.
 
-    This is the PySATL implementation [1]_; an originating research article
-    has not been identified.
-
-    References
-    ----------
-    .. [1] PySATL. "pysatl-criterion", normal proximity-graph implementation.
-       https://github.com/PySATL/pysatl-criterion
+    Examples
+    --------
+    >>> statistic = GraphEdgesNumberNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -4238,29 +4929,43 @@ class GraphMaxDegreeNormalityGofStatistic(
     Parameters
     ----------
     var : float, optional
-        Finite positive null variance, specified as a keyword argument.
-        Default is 1. The null mean is unspecified.
+        Positive finite scalar variance fixed under H0; default 1.
 
-    See Also
-    --------
-    AbstractGraphNormalityGofStatistic : Graph construction and calibration.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    Returns the largest number of neighbors of any sample vertex.
+    H0 is N(mu,var), with unknown mu and fixed var; hypothesis() reports var.
+    Calibrate at this variance; setting the simulation mean to zero is valid.
+    Both tails of the statistic defines rejection. Use at least 2
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    The null hypothesis is normality with arbitrary mean and variance
-    `var`; `hypothesis().parameters()` returns `{"var": var}`.
-    The alternative is two-sided. The graph threshold and its dependence
-    on sample scale are described in `AbstractGraphNormalityGofStatistic`.
+    Connect i and j when abs(x_i-x_j) < (max(x)-min(x))/(10*m2),
+    where m2=mean((x-mean(x))**2). Return the maximum degree.
+    This local construction is translation invariant but not scale invariant.
+    var selects the null law for calibration; it is not inserted in the radius.
+    A primary source for this exact normality test was not located. No
+    published null law or omnibus power claim is made. Extreme scales that
+    make the radius or variance unrepresentable raise ValueError.
 
-    This is the PySATL implementation [1]_; an originating research article
-    has not been identified.
-
-    References
-    ----------
-    .. [1] PySATL. "pysatl-criterion", normal proximity-graph implementation.
-       https://github.com/PySATL/pysatl-criterion
+    Examples
+    --------
+    >>> statistic = GraphMaxDegreeNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -4279,30 +4984,43 @@ class GraphAverageDegreeNormalityGofStatistic(
     Parameters
     ----------
     var : float, optional
-        Finite positive null variance, specified as a keyword argument.
-        Default is 1. The null mean is unspecified.
+        Positive finite scalar variance fixed under H0; default 1.
 
-    See Also
-    --------
-    AbstractGraphNormalityGofStatistic : Graph construction and calibration.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    Returns the mean number of neighbors per sample vertex, equal to twice
-    the edge count divided by the sample size.
+    H0 is N(mu,var), with unknown mu and fixed var; hypothesis() reports var.
+    Calibrate at this variance; setting the simulation mean to zero is valid.
+    Both tails of the statistic defines rejection. Use at least 2
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    The null hypothesis is normality with arbitrary mean and variance
-    `var`; `hypothesis().parameters()` returns `{"var": var}`.
-    The alternative is two-sided. The graph threshold and its dependence
-    on sample scale are described in `AbstractGraphNormalityGofStatistic`.
+    Connect i and j when abs(x_i-x_j) < (max(x)-min(x))/(10*m2),
+    where m2=mean((x-mean(x))**2). Return the mean vertex degree.
+    This local construction is translation invariant but not scale invariant.
+    var selects the null law for calibration; it is not inserted in the radius.
+    A primary source for this exact normality test was not located. No
+    published null law or omnibus power claim is made. Extreme scales that
+    make the radius or variance unrepresentable raise ValueError.
 
-    This is the PySATL implementation [1]_; an originating research article
-    has not been identified.
-
-    References
-    ----------
-    .. [1] PySATL. "pysatl-criterion", normal proximity-graph implementation.
-       https://github.com/PySATL/pysatl-criterion
+    Examples
+    --------
+    >>> statistic = GraphAverageDegreeNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -4321,30 +5039,43 @@ class GraphConnectedComponentsNormalityGofStatistic(
     Parameters
     ----------
     var : float, optional
-        Finite positive null variance, specified as a keyword argument.
-        Default is 1. The null mean is unspecified.
+        Positive finite scalar variance fixed under H0; default 1.
 
-    See Also
-    --------
-    AbstractGraphNormalityGofStatistic : Graph construction and calibration.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    Counts the connected components of the sample proximity graph using
-    depth-first traversal.
+    H0 is N(mu,var), with unknown mu and fixed var; hypothesis() reports var.
+    Calibrate at this variance; setting the simulation mean to zero is valid.
+    Both tails of the statistic defines rejection. Use at least 2
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    The null hypothesis is normality with arbitrary mean and variance
-    `var`; `hypothesis().parameters()` returns `{"var": var}`.
-    The alternative is two-sided. The graph threshold and its dependence
-    on sample scale are described in `AbstractGraphNormalityGofStatistic`.
+    Connect i and j when abs(x_i-x_j) < (max(x)-min(x))/(10*m2),
+    where m2=mean((x-mean(x))**2). Return the number of connected components.
+    This local construction is translation invariant but not scale invariant.
+    var selects the null law for calibration; it is not inserted in the radius.
+    A primary source for this exact normality test was not located. No
+    published null law or omnibus power claim is made. Extreme scales that
+    make the radius or variance unrepresentable raise ValueError.
 
-    This is the PySATL implementation [1]_; an originating research article
-    has not been identified.
-
-    References
-    ----------
-    .. [1] PySATL. "pysatl-criterion", normal proximity-graph implementation.
-       https://github.com/PySATL/pysatl-criterion
+    Examples
+    --------
+    >>> statistic = GraphConnectedComponentsNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -4363,31 +5094,44 @@ class GraphCliqueNumberNormalityGofStatistic(
     Parameters
     ----------
     var : float, optional
-        Finite positive null variance, specified as a keyword argument.
-        Default is 1. The null mean is unspecified.
+        Positive finite scalar variance fixed under H0; default 1.
 
-    See Also
-    --------
-    AbstractGraphNormalityGofStatistic : Graph construction and calibration.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    Uses a sorted sliding window to estimate the maximum clique size in
-    the sample proximity graph. The current implementation sorts the input
-    sample in place.
+    H0 is N(mu,var), with unknown mu and fixed var; hypothesis() reports var.
+    Calibrate at this variance; setting the simulation mean to zero is valid.
+    Both tails of the statistic defines rejection. Use at least 2
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    The null hypothesis is normality with arbitrary mean and variance
-    `var`; `hypothesis().parameters()` returns `{"var": var}`.
-    The alternative is two-sided. The graph threshold and its dependence
-    on sample scale are described in `AbstractGraphNormalityGofStatistic`.
+    Connect i and j when abs(x_i-x_j) < (max(x)-min(x))/(10*m2),
+    where m2=mean((x-mean(x))**2). Return the largest clique size
+    (using sorted intervals).
+    This local construction is translation invariant but not scale invariant.
+    var selects the null law for calibration; it is not inserted in the radius.
+    A primary source for this exact normality test was not located. No
+    published null law or omnibus power claim is made. Extreme scales that
+    make the radius or variance unrepresentable raise ValueError.
 
-    This is the PySATL implementation [1]_; an originating research article
-    has not been identified.
-
-    References
-    ----------
-    .. [1] PySATL. "pysatl-criterion", normal proximity-graph implementation.
-       https://github.com/PySATL/pysatl-criterion
+    Examples
+    --------
+    >>> statistic = GraphCliqueNumberNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -4406,31 +5150,44 @@ class GraphIndependenceNumberNormalityGofStatistic(
     Parameters
     ----------
     var : float, optional
-        Finite positive null variance, specified as a keyword argument.
-        Default is 1. The null mean is unspecified.
+        Positive finite scalar variance fixed under H0; default 1.
 
-    See Also
-    --------
-    AbstractGraphNormalityGofStatistic : Graph construction and calibration.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar statistic.
+    hypothesis()
+        Report fixed null parameters only.
+    alternative()
+        Report the critical tail.
 
     Notes
     -----
-    Greedily selects separated observations in sorted order to compute the
-    maximum independent-set size in the sample proximity graph. The
-    implementation sorts a copy and preserves the input sample.
+    H0 is N(mu,var), with unknown mu and fixed var; hypothesis() reports var.
+    Calibrate at this variance; setting the simulation mean to zero is valid.
+    Both tails of the statistic defines rejection. Use at least 2
+    finite real observations in one dimension. Nonzero dispersion is required.
+    Ties are accepted unless a scale or contrast becomes undefined.
+    Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+    the standard normal CDF and density, s0=std(x,ddof=0), and
+    s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-    The null hypothesis is normality with arbitrary mean and variance
-    `var`; `hypothesis().parameters()` returns `{"var": var}`.
-    The alternative is two-sided. The graph threshold and its dependence
-    on sample scale are described in `AbstractGraphNormalityGofStatistic`.
+    Connect i and j when abs(x_i-x_j) < (max(x)-min(x))/(10*m2),
+    where m2=mean((x-mean(x))**2). Return the largest independent set
+    size (using a sorted greedy scan).
+    This local construction is translation invariant but not scale invariant.
+    var selects the null law for calibration; it is not inserted in the radius.
+    A primary source for this exact normality test was not located. No
+    published null law or omnibus power claim is made. Extreme scales that
+    make the radius or variance unrepresentable raise ValueError.
 
-    This is the PySATL implementation [1]_; an originating research article
-    has not been identified.
-
-    References
-    ----------
-    .. [1] PySATL. "pysatl-criterion", normal proximity-graph implementation.
-       https://github.com/PySATL/pysatl-criterion
+    Examples
+    --------
+    >>> statistic = GraphIndependenceNumberNormalityGofStatistic()
+    >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+    >>> value = statistic.execute_statistic(sample)
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod

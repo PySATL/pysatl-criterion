@@ -1,76 +1,49 @@
 # Skewness test for normality
 
-## Description
+D'Agostino transformed-skewness statistic for the normal family.
 
-Performs the Skewness goodness-of-fit test for the hypothesis of normality.
-The null hypothesis is the normal family with unknown mean and variance.
+## Methods
 
-Hypothesis of Normality
-The population mean and variance are free parameters of the normal family.
-The statistic estimates them from the sample or eliminates them through
-location- and scale-invariant calculations. No mean or variance is fixed in
-advance, so `hypothesis().parameters()` returns `{}`. Estimates computed from
-observations are not added to that dictionary.
+execute_statistic(rvs, **kwargs)
+    Return one scalar statistic.
+hypothesis()
+    Report fixed null parameters only.
+alternative()
+    Report the critical tail.
 
-Test Statistic
-The statistic is based on a transformed sample skewness statistic.
+## Notes
 
-## Usage
+H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+Location and positive scale cancel, allowing N(0,1) null simulation.
+Every simulated sample must go through execute_statistic again.
+Both tails of the statistic defines rejection. Use at least 8
+finite real observations in one dimension. Nonzero dispersion is required.
+Ties are accepted unless a scale or contrast becomes undefined.
+Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+the standard normal CDF and density, s0=std(x,ddof=0), and
+s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    SkewNormalityGofStatistic,
-)
-
-
-test_statistic = SkewNormalityGofStatistic()
-assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
-```
-
-## Arguments
-
-This class takes no constructor arguments.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-
-`hypothesis().parameters()` is empty: the mean and variance are
-unrestricted. The standardized third central moment is transformed to
-a signed `Z` score using the sample-size-dependent approximation
-in [1]. Location shifts and positive scale changes leave it unchanged.
-
-At least eight finite observations and nonzero variance are required.
-Positive and negative values correspond to opposite skewness directions.
-The current `alternative()` is `RightAlternative`, so its configured
-rejection direction targets large positive scores. It is not an omnibus
-normality statistic; `DAPNormalityGofStatistic` combines squared
-skewness and kurtosis scores. This class returns no p-value.
+Return the signed D'Agostino transform delta*asinh(y/alpha) of
+g1=m3/m2**1.5, with the sample-size coefficients in skew_test.
+In particular, exactly zero sample skewness maps to zero. This tests
+skewness departures in either direction; it is not an omnibus test.
 
 ## References
 
-1. D'Agostino, R. B. (1970). Transformation to normality of the null distribution of g1. Biometrika, 57(3), 679-681. [Source](https://doi.org/10.1093/biomet/57.3.679)
-
-## Author(s)
-
-Alexey Mironov
+[1] D'Agostino, R. B. (1970). Transformation to normality of the null
+   distribution of g1. Biometrika, 57(3), 679-681.
+   https://doi.org/10.1093/biomet/57.3.679
 
 ## Examples
 
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    SkewNormalityGofStatistic,
-)
+import numpy as np
+from pysatl_criterion.statistics.goodness_of_fit.normal import SkewNormalityGofStatistic
 
-
-test_statistic = SkewNormalityGofStatistic()
-assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
+statistic = SkewNormalityGofStatistic()
+sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+value = statistic.execute_statistic(sample)
+bool(np.isfinite(value))
 ```
+
+See [review and calibration changes](../../../normal-statistics-review.md).

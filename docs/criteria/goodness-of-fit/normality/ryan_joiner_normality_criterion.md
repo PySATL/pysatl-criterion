@@ -1,78 +1,62 @@
 # Ryan-Joiner test for normality
 
-## Description
+Ryan-Joiner probability-plot correlation statistic for normality.
 
-Performs the Ryan-Joiner goodness-of-fit test for the hypothesis of normality.
-The null hypothesis is the normal family with unknown mean and variance.
+## Parameters
 
-Hypothesis of Normality
-The population mean and variance are free parameters of the normal family.
-The statistic estimates them from the sample or eliminates them through
-location- and scale-invariant calculations. No mean or variance is fixed in
-advance, so `hypothesis().parameters()` returns `{}`. Estimates computed from
-observations are not added to that dictionary.
+weighted : bool, optional
+    If True, average the plotting probabilities within each group of
+    tied observations before applying the normal quantile function.
+    Default is False.
+cte_alpha : {'3/8', '1/2', '0'}, optional
+    Plotting-position constant ``a`` in ``(i-a)/(n-2*a+1)`` for one-based
+    ranks. Default is ``'3/8'``. Unrecognized values currently fall back
+    to ``3/8``.
 
-Test Statistic
-The statistic is based on the correlation between ordered observations and expected normal scores.
+## Methods
 
-## Usage
+execute_statistic(rvs, **kwargs)
+    Return one scalar statistic.
+hypothesis()
+    Report fixed null parameters only.
+alternative()
+    Report the critical tail.
 
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    RyanJoinerNormalityGofStatistic,
-)
+## Notes
 
+H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+Location and positive scale cancel, allowing N(0,1) null simulation.
+Every simulated sample must go through execute_statistic again.
+The lower tail of the statistic defines rejection. Use at least 3
+finite real observations in one dimension. Nonzero dispersion is required.
+Ties are accepted unless a scale or contrast becomes undefined.
+Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+the standard normal CDF and density, s0=std(x,ddof=0), and
+s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-test_statistic = RyanJoinerNormalityGofStatistic(weighted=False, cte_alpha="3/8")
-assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
-```
-
-## Arguments
-
-`weighted` and `cte_alpha` configure the statistic, not the normal distribution.
-
-`weighted` - whether tied observations use grouped plotting positions. Default value is `False`.
-
-`cte_alpha` - plotting-position constant. Supported values include `3/8`, `1/2`, and `0`.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-
-The null allows arbitrary normal mean and positive variance;
-`hypothesis().parameters()` is empty. The two constructor arguments
-configure the statistic, not the distribution under the null.
-
-The statistic is the Pearson correlation of sorted observations with
-their normal scores. Smaller values indicate poorer fit, and
-`alternative()` returns `LeftAlternative`. Supply finite,
-nonconstant data with at least three observations for a nontrivial
-result. Calibration must use the same plotting-position and tie options.
+Return corr(x_(i), Phi**-1(p_i)), p_i=(i-alpha)/(n+1-2*alpha).
+cte_alpha selects alpha=0, 3/8, or 1/2. If weighted=True, replace
+positions of tied observations by their group mean before taking
+normal quantiles. This tie convention and nondefault positions need
+separate calibration; they are not fixed distribution parameters.
 
 ## References
 
-1. Ryan, T. A., Jr. and Joiner, B. L. (1976). Normal Probability Plots and Tests for Normality. Technical report, Statistics Department, The Pennsylvania State University. Original report: [Source](https://www.additive-net.de/de/component/jdownloads/send/70-support/236-normal-probability-plots-and-tests-for-normality-thomas-a-ryan-jr-bryan-l-joiner)
-
-## Author(s)
-
-Alexey Mironov
+[1] Ryan, T. A., Jr. and Joiner, B. L. (1976). Normal Probability
+   Plots and Tests for Normality. Technical report, Statistics
+   Department, The Pennsylvania State University. Original report:
+   https://www.additive-net.de/en/component/jdownloads/send/70-support/236-normal-probability-plots-and-tests-for-normality-thomas-a-ryan-jr-bryan-l-joiner
 
 ## Examples
 
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    RyanJoinerNormalityGofStatistic,
-)
+import numpy as np
+from pysatl_criterion.statistics.goodness_of_fit.normal import RyanJoinerNormalityGofStatistic
 
-
-test_statistic = RyanJoinerNormalityGofStatistic(weighted=False, cte_alpha="3/8")
-assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
+statistic = RyanJoinerNormalityGofStatistic()
+sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+value = statistic.execute_statistic(sample)
+bool(np.isfinite(value))
 ```
+
+See [review and calibration changes](../../../normal-statistics-review.md).

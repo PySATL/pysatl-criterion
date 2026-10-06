@@ -1,73 +1,49 @@
 # Chen-Shapiro test for normality
 
-## Description
+Chen-Shapiro normality statistic based on normalized spacings.
 
-Performs the Chen-Shapiro goodness-of-fit test for the hypothesis of normality.
-The null hypothesis is the normal family with unknown mean and variance.
+## Methods
 
-Hypothesis of Normality
-The population mean and variance are free parameters of the normal family.
-The statistic estimates them from the sample or eliminates them through
-location- and scale-invariant calculations. No mean or variance is fixed in
-advance, so `hypothesis().parameters()` returns `{}`. Estimates computed from
-observations are not added to that dictionary.
+execute_statistic(rvs, **kwargs)
+    Return one scalar statistic.
+hypothesis()
+    Report fixed null parameters only.
+alternative()
+    Report the critical tail.
 
-Test Statistic
-The statistic is based on normalized spacings of ordered observations and expected normal quantiles.
+## Notes
 
-## Usage
+H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+Location and positive scale cancel, allowing N(0,1) null simulation.
+Every simulated sample must go through execute_statistic again.
+The upper tail of the statistic defines rejection. Use at least 4
+finite real observations in one dimension. Nonzero dispersion is required.
+Ties are accepted unless a scale or contrast becomes undefined.
+Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+the standard normal CDF and density, s0=std(x,ddof=0), and
+s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    ChenShapiroNormalityGofStatistic,
-)
-
-
-test_statistic = ChenShapiroNormalityGofStatistic()
-assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
-```
-
-## Arguments
-
-This class takes no constructor arguments.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-
-Successive sample spacings are divided by spacings of the normal scores
-`norm.ppf((i - 0.375) / (n + 0.25))`. Their average is standardized by
-the sample standard deviation with `ddof=1` to form `QH`.
-The returned statistic is `sqrt(n) * (1 - QH)`; large values correspond
-to the right-tail alternative.
-
-Use at least four finite observations with nonzero sample variance.
-The calculation estimates location and scale implicitly from the sample.
+For u_i=Phi**-1((i-3/8)/(n+1/4)), return
+sqrt(n)*(1-sum_i((x_(i+1)-x_(i))/(u_(i+1)-u_i))/((n-1)*s1)).
+This is the upper-tail QH* version, not the lower-tail raw QH.
 
 ## References
 
-1. Chen, L. and Shapiro, S. S. (1995). An alternative test for normality based on normalized spacings. Journal of Statistical Computation and Simulation, 53(3-4), 269-287. [Source](https://doi.org/10.1080/00949659508811711)
-
-## Author(s)
-
-Alexey Mironov
+[1] Chen, L. and Shapiro, S. S. (1995).
+   An alternative test for normality based on normalized spacings.
+   Journal of Statistical Computation and Simulation, 53(3-4), 269-287.
+   https://doi.org/10.1080/00949659508811711
 
 ## Examples
 
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    ChenShapiroNormalityGofStatistic,
-)
+import numpy as np
+from pysatl_criterion.statistics.goodness_of_fit.normal import ChenShapiroNormalityGofStatistic
 
-
-test_statistic = ChenShapiroNormalityGofStatistic()
-assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
+statistic = ChenShapiroNormalityGofStatistic()
+sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+value = statistic.execute_statistic(sample)
+bool(np.isfinite(value))
 ```
+
+See [review and calibration changes](../../../normal-statistics-review.md).

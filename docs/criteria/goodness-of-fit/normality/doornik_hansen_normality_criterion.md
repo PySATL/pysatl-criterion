@@ -1,74 +1,50 @@
 # Doornik-Hansen test for normality
 
-## Description
+Univariate Doornik-Hansen normality statistic.
 
-Performs the Doornik-Hansen goodness-of-fit test for the hypothesis of normality.
-The null hypothesis is the normal family with unknown mean and variance.
+## Methods
 
-Hypothesis of Normality
-The population mean and variance are free parameters of the normal family.
-The statistic estimates them from the sample or eliminates them through
-location- and scale-invariant calculations. No mean or variance is fixed in
-advance, so `hypothesis().parameters()` returns `{}`. Estimates computed from
-observations are not added to that dictionary.
+execute_statistic(rvs, **kwargs)
+    Return one scalar statistic.
+hypothesis()
+    Report fixed null parameters only.
+alternative()
+    Report the critical tail.
 
-Test Statistic
-The statistic is based on transformed skewness and kurtosis components.
+## Notes
 
-## Usage
+H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+Location and positive scale cancel, allowing N(0,1) null simulation.
+Every simulated sample must go through execute_statistic again.
+The upper tail of the statistic defines rejection. Use at least 8
+finite real observations in one dimension. Nonzero dispersion is required.
+Ties are accepted unless a scale or contrast becomes undefined.
+Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+the standard normal CDF and density, s0=std(x,ddof=0), and
+s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    DoornikHansenNormalityGofStatistic,
-)
-
-
-test_statistic = DoornikHansenNormalityGofStatistic()
-assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
-```
-
-## Arguments
-
-This class takes no constructor arguments.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-
-The statistic is the sum of squares of transformed sample skewness and
-kurtosis. Both moments are computed about the sample mean, so neither a
-population mean nor a population variance is supplied. Large values
-correspond to the right-tail alternative.
-
-The formulas require a nonconstant sample and can be undefined at very
-small sample sizes. The reference studies the small-sample approximation
-from ten observations. This class computes the statistic only; it does not
-apply the paper's asymptotic chi-square calibration.
+Return Z1**2+Z2**2, with the Doornik-Hansen transformations of
+g1=m3/m2**1.5 and g2=m4/m2**2 (Appendix A of the author preprint).
+Z1 uses asinh; Z2 uses the real cube root and includes the g1**2
+adjustment to kurtosis. The chi-square law is asymptotic.
 
 ## References
 
-1. Doornik, J. A. and Hansen, H. (2008). An Omnibus Test for Univariate and Multivariate Normality. Oxford Bulletin of Economics and Statistics, 70(s1), 927-939. [Source](https://doi.org/10.1111/j.1468-0084.2008.00537.x)
-
-## Author(s)
-
-Alexey Mironov
+[1] Doornik, J. A. and Hansen, H. (2008).
+   An Omnibus Test for Univariate and Multivariate Normality.
+   Oxford Bulletin of Economics and Statistics, 70(s1), 927-939.
+   https://doi.org/10.1111/j.1468-0084.2008.00537.x
 
 ## Examples
 
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    DoornikHansenNormalityGofStatistic,
-)
+import numpy as np
+from pysatl_criterion.statistics.goodness_of_fit.normal import DoornikHansenNormalityGofStatistic
 
-
-test_statistic = DoornikHansenNormalityGofStatistic()
-assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
+statistic = DoornikHansenNormalityGofStatistic()
+sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+value = statistic.execute_statistic(sample)
+bool(np.isfinite(value))
 ```
+
+See [review and calibration changes](../../../normal-statistics-review.md).

@@ -150,7 +150,7 @@ def test_ad_normality_criterion_code():
                 0.7927679,
                 -2.6990387,
             ],
-            0.9122889,
+            0.3441813375294321,
         ),
         (
             [
@@ -165,16 +165,11 @@ def test_ad_normality_criterion_code():
                 0.46238934,
                 -0.29856372,
             ],
-            1.239515,
+            1.2395146770941097,
         ),
     ],
 )
-# TODO: the medcouple port in BHSNormalityGofStatistic.mc_c_d / whi_med_i is
-# incomplete: it does not terminate for samples of this size (n >= 5) and, when
-# forced to stop, returns values that disagree with the R robustbase reference
-# (e.g. 0.55 vs the expected 0.9122889). Unskip once the algorithm is ported
-# correctly.
-@pytest.mark.skip(reason="medcouple port incomplete: non-terminating / wrong result for n >= 5")
+# References enumerate exact kernels and use the covariance from the normal row.
 def test_bhs_normality_criterion(data, result):
     statistic = BHSNormalityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
@@ -320,7 +315,7 @@ def test_bontemps_meddahi2_normality_criterion_code():
                 -0.69521329,
                 0.10573062,
             ],
-            0.2897665,
+            0.29559057704228553,
         ),
         (
             [
@@ -335,10 +330,11 @@ def test_bontemps_meddahi2_normality_criterion_code():
                 0.11683112,
                 0.68954236,
             ],
-            0.5265257,
+            0.5712902967017264,
         ),
     ],
 )
+# References use direct Hermite evaluation and scalar optimization over the real line.
 def test_cabana_cabana_1_normality_criterion(data, result):
     statistic = CabanaCabana1NormalityGofStatistic().execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
@@ -361,7 +357,7 @@ def test_cabana_cabana_1_normality_criterion_code():
                 -0.4324158,
                 2.8578810,
             ],
-            0.2497146,
+            0.3229439292565821,
         ),
         (
             [
@@ -376,7 +372,7 @@ def test_cabana_cabana_1_normality_criterion_code():
                 0.11683112,
                 0.68954236,
             ],
-            0.1238103,
+            0.13855058980134685,
         ),
     ],
 )

@@ -1,76 +1,47 @@
 # Jarque-Bera test for normality
 
-## Description
+Jarque-Bera statistic based on sample skewness and excess kurtosis.
 
-Performs the Jarque-Bera goodness-of-fit test for the hypothesis of normality.
-The null hypothesis is the normal family with unknown mean and variance.
+## Methods
 
-Hypothesis of Normality
-The population mean and variance are free parameters of the normal family.
-The statistic estimates them from the sample or eliminates them through
-location- and scale-invariant calculations. No mean or variance is fixed in
-advance, so `hypothesis().parameters()` returns `{}`. Estimates computed from
-observations are not added to that dictionary.
+execute_statistic(rvs, **kwargs)
+    Return one scalar statistic.
+hypothesis()
+    Report fixed null parameters only.
+alternative()
+    Report the critical tail.
 
-Test Statistic
-The statistic is based on sample skewness and kurtosis departures from their normal-distribution values.
+## Notes
 
-## Usage
+H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+Location and positive scale cancel, allowing N(0,1) null simulation.
+Every simulated sample must go through execute_statistic again.
+The upper tail of the statistic defines rejection. Use at least 2
+finite real observations in one dimension. Nonzero dispersion is required.
+Ties are accepted unless a scale or contrast becomes undefined.
+Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+the standard normal CDF and density, s0=std(x,ddof=0), and
+s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    JBNormalityGofStatistic,
-)
-
-
-test_statistic = JBNormalityGofStatistic()
-assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
-```
-
-## Arguments
-
-This class takes no constructor arguments.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-
-The null allows every normal mean and positive variance;
-`hypothesis().parameters()` is empty. Centered, standardized moments
-remove location and scale. The implementation returns
-`n/6 * (skewness**2 + excess_kurtosis**2/4)` using the biased moment
-estimators in `scipy.stats.skew` and `scipy.stats.kurtosis`.
-
-Larger values indicate departures from normality;
-`alternative()` returns `RightAlternative`. The input is flattened.
-Supply finite observations with nonzero variance. The asymptotic
-chi-squared calibration described in [1] is not a finite-sample
-identity, and this class computes no p-value.
+JB = n*(g1**2/6 + (g2-3)**2/24), where
+g1=m3/m2**1.5, g2=m4/m2**2, and mk=mean((x-mean(x))**k).
 
 ## References
 
-1. Jarque, C. M. and Bera, A. K. (1987). A Test for Normality of Observations and Regression Residuals. International Statistical Review, 55(2), 163-172. [Source](https://doi.org/10.2307/1403192)
-
-## Author(s)
-
-Alexey Mironov
+[1] Jarque, C. M. and Bera, A. K. (1987). A Test for Normality of
+   Observations and Regression Residuals. International Statistical
+   Review, 55(2), 163-172. https://doi.org/10.2307/1403192
 
 ## Examples
 
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    JBNormalityGofStatistic,
-)
+import numpy as np
+from pysatl_criterion.statistics.goodness_of_fit.normal import JBNormalityGofStatistic
 
-
-test_statistic = JBNormalityGofStatistic()
-assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
+statistic = JBNormalityGofStatistic()
+sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+value = statistic.execute_statistic(sample)
+bool(np.isfinite(value))
 ```
+
+See [review and calibration changes](../../../normal-statistics-review.md).

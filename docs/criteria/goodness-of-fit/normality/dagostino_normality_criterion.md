@@ -1,74 +1,49 @@
 # D'Agostino test for normality
 
-## Description
+D'Agostino's normality statistic based on ordered observations.
 
-Performs the D'Agostino goodness-of-fit test for the hypothesis of normality.
-The null hypothesis is the normal family with unknown mean and variance.
+## Methods
 
-Hypothesis of Normality
-The population mean and variance are free parameters of the normal family.
-The statistic estimates them from the sample or eliminates them through
-location- and scale-invariant calculations. No mean or variance is fixed in
-advance, so `hypothesis().parameters()` returns `{}`. Estimates computed from
-observations are not added to that dictionary.
+execute_statistic(rvs, **kwargs)
+    Return one scalar statistic.
+hypothesis()
+    Report fixed null parameters only.
+alternative()
+    Report the critical tail.
 
-Test Statistic
-The statistic is based on a transformed linear combination of ordered observations.
+## Notes
 
-## Usage
+H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+Location and positive scale cancel, allowing N(0,1) null simulation.
+Every simulated sample must go through execute_statistic again.
+Both tails of the statistic defines rejection. Use at least 4
+finite real observations in one dimension. Nonzero dispersion is required.
+Ties are accepted unless a scale or contrast becomes undefined.
+Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+the standard normal CDF and density, s0=std(x,ddof=0), and
+s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    DagostinoNormalityGofStatistic,
-)
-
-
-test_statistic = DagostinoNormalityGofStatistic()
-assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
-```
-
-## Arguments
-
-This class takes no constructor arguments.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-
-A linear contrast of the order statistics is divided by the sample
-standard deviation computed with `ddof=0` and by `n**2` to form `D`.
-This implementation returns
-`sqrt(n) * (D - 0.28209479) / 0.02998598`.
-Both low and high values correspond to the two-sided alternative.
-
-Use at least four finite observations with nonzero sample variance.
-This order-statistic construction is distinct from the skewness-and-
-kurtosis D'Agostino-Pearson statistic.
+D=sum_i((i-(n+1)/2)*x_(i))/(n**2*s0). Return
+sqrt(n)*(D-0.28209479)/0.02998598. This is the signed,
+asymptotically standardized D statistic, not D'Agostino-Pearson K2.
 
 ## References
 
-1. D'Agostino, R. B. (1971). An omnibus test of normality for moderate and large size samples. Biometrika, 58(2), 341-348. [Source](https://doi.org/10.1093/biomet/58.2.341)
-
-## Author(s)
-
-Alexey Mironov
+[1] D'Agostino, R. B. (1971).
+   An omnibus test of normality for moderate and large size samples.
+   Biometrika, 58(2), 341-348.
+   https://doi.org/10.1093/biomet/58.2.341
 
 ## Examples
 
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    DagostinoNormalityGofStatistic,
-)
+import numpy as np
+from pysatl_criterion.statistics.goodness_of_fit.normal import DagostinoNormalityGofStatistic
 
-
-test_statistic = DagostinoNormalityGofStatistic()
-assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
+statistic = DagostinoNormalityGofStatistic()
+sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+value = statistic.execute_statistic(sample)
+bool(np.isfinite(value))
 ```
+
+See [review and calibration changes](../../../normal-statistics-review.md).

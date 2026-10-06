@@ -1,73 +1,53 @@
 # Cabana-Cabana1 test for normality
 
-## Description
+Cabaña-Cabaña normality statistic focused on skewness departures.
 
-Performs the Cabana-Cabana1 goodness-of-fit test for the hypothesis of normality.
-The null hypothesis is the normal family with unknown mean and variance.
+## Methods
 
-Hypothesis of Normality
-The population mean and variance are free parameters of the normal family.
-The statistic estimates them from the sample or eliminates them through
-location- and scale-invariant calculations. No mean or variance is fixed in
-advance, so `hypothesis().parameters()` returns `{}`. Estimates computed from
-observations are not added to that dictionary.
+execute_statistic(rvs, **kwargs)
+    Return one scalar statistic.
+hypothesis()
+    Report fixed null parameters only.
+alternative()
+    Report the critical tail.
 
-Test Statistic
-The statistic is based on Hermite-polynomial components and fitted normal CDF/PDF values.
+## Notes
 
-## Usage
+H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+Location and positive scale cancel, allowing N(0,1) null simulation.
+Every simulated sample must go through execute_statistic again.
+The upper tail of the statistic defines rejection. Use at least 4
+finite real observations in one dimension. Nonzero dispersion is required.
+Ties are accepted unless a scale or contrast becomes undefined.
+Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+the standard normal CDF and density, s0=std(x,ddof=0), and
+s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    CabanaCabana1NormalityGofStatistic,
-)
-
-
-test_statistic = CabanaCabana1NormalityGofStatistic()
-assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
-```
-
-## Arguments
-
-This class takes no constructor arguments.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-
-The calculation evaluates a transformed empirical process at the sample
-points after standardization by the sample mean and standard deviation
-with `ddof=1`. It uses normalized Hermite polynomials through degree
-eight, corresponding to the fixed truncation order `l=5`.
-The maximum absolute process value gives a right-tail statistic.
-
-Use at least four finite observations with nonzero sample variance.
-The normality construction is described in the 2003 paper cited below.
+Use the l=5 process in Cabana and Cabana, equation (7).
+For z=(x-mean(x))/s1, h_j=He_j/sqrt(j!), H_j=sum(h_j(z))/sqrt(n),
+P(t)=sum_{j=1..5}(h_(j-1)(t)*H_(j+3)/sqrt(j)). Return
+sup_t abs(Phi(t)*H_3-phi(t)*P(t)). Evaluate every real stationary
+point (roots of H_3+t*P-P') and both limits at infinity.
+This is the supremum of the truncated process, not the untruncated
+infinite series. Polynomial root solving is subject to float64 accuracy.
 
 ## References
 
-1. Cabaña, A. and Cabaña, E. M. (2003). Tests of Normality Based on Transformed Empirical Processes. Methodology and Computing in Applied Probability, 5, 309-335. [Source](https://doi.org/10.1023/A:1026235220018)
-
-## Author(s)
-
-Alexey Mironov
+[1] Cabaña, A. and Cabaña, E. M. (2003).
+   Tests of Normality Based on Transformed Empirical Processes.
+   Methodology and Computing in Applied Probability, 5, 309-335.
+   https://doi.org/10.1023/A:1026235220018
 
 ## Examples
 
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    CabanaCabana1NormalityGofStatistic,
-)
+import numpy as np
+from pysatl_criterion.statistics.goodness_of_fit.normal import CabanaCabana1NormalityGofStatistic
 
-
-test_statistic = CabanaCabana1NormalityGofStatistic()
-assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
+statistic = CabanaCabana1NormalityGofStatistic()
+sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+value = statistic.execute_statistic(sample)
+bool(np.isfinite(value))
 ```
+
+See [review and calibration changes](../../../normal-statistics-review.md).

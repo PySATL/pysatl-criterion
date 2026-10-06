@@ -54,12 +54,7 @@ def test_normal_family_rejects_fixed_distribution_parameters(statistic_class):
 
 @pytest.mark.parametrize("statistic_class", FAMILY_STATISTICS)
 def test_normal_family_statistics_are_invariant_to_location_and_scale(statistic_class):
-    # BHS has a known nonterminating median search for larger samples.
-    sample = (
-        np.array([-1.7, -0.2, 0.8, 2.5])
-        if statistic_class is normal.BHSNormalityGofStatistic
-        else np.random.default_rng(101).normal(size=32)
-    )
+    sample = np.random.default_rng(101).normal(size=32)
     statistic = statistic_class()
     expected = statistic.execute_statistic(sample.copy())
     actual = statistic.execute_statistic(5 + 2 * sample)
@@ -136,4 +131,5 @@ def test_graph_independence_accepts_arrays_without_reordering_the_input():
     statistic = normal.GraphIndependenceNumberNormalityGofStatistic(var=2)
     assert statistic.execute_statistic(sample) == statistic.execute_statistic(sample.tolist())
     np.testing.assert_array_equal(sample, original)
-    assert statistic.execute_statistic(np.array([])) == 0
+    with pytest.raises(ValueError):
+        statistic.execute_statistic(np.array([]))

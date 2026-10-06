@@ -1,77 +1,49 @@
 # Hosking1 test for normality
 
-## Description
+Hosking L-moment normality statistic without trimming.
 
-Performs the Hosking1 goodness-of-fit test for the hypothesis of normality.
-The null hypothesis is the normal family with unknown mean and variance.
+## Methods
 
-Hypothesis of Normality
-The population mean and variance are free parameters of the normal family.
-The statistic estimates them from the sample or eliminates them through
-location- and scale-invariant calculations. No mean or variance is fixed in
-advance, so `hypothesis().parameters()` returns `{}`. Estimates computed from
-observations are not added to that dictionary.
+execute_statistic(rvs, **kwargs)
+    Return one scalar statistic.
+hypothesis()
+    Report fixed null parameters only.
+alternative()
+    Report the critical tail.
 
-Test Statistic
-The statistic is based on sample L-moment ratios for skewness and kurtosis.
+## Notes
 
-## Usage
+H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+Location and positive scale cancel, allowing N(0,1) null simulation.
+Every simulated sample must go through execute_statistic again.
+The upper tail of the statistic defines rejection. Use at least 4
+finite real observations in one dimension. Nonzero dispersion is required.
+Ties are accepted unless a scale or contrast becomes undefined.
+Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+the standard normal CDF and density, s0=std(x,ddof=0), and
+s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    Hosking1NormalityGofStatistic,
-)
-
-
-test_statistic = Hosking1NormalityGofStatistic()
-assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
-```
-
-## Arguments
-
-This class takes no constructor arguments.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-
-The normal mean and variance are unrestricted;
-`hypothesis().parameters()` is empty. Sample L-skewness and L-kurtosis
-are ratios of linear combinations of order statistics [1]. These
-ratios remove location and positive scale. Their squared deviations
-from normal reference values are divided by tabulated variances.
-
-This implementation selects fixed numerical reference constants for
-`n <= 25`, `25 < n <= 50`, and `n > 50`. Supply at least four
-finite, nonconstant observations. The current `alternative()` returns
-`TwoSidedAlternative` although the statistic is a nonnegative
-quadratic discrepancy. Reference [1] describes the L-moment foundation,
-not the provenance of these implementation-specific numerical constants.
-
-## References
-
-1. Hosking, J. R. M. (1990). L-Moments: Analysis and Estimation of Distributions Using Linear Combinations of Order Statistics. Journal of the Royal Statistical Society, Series B, 52(1), 105-124. [Source](https://doi.org/10.1111/j.2517-6161.1990.tb01775.x)
-
-## Author(s)
-
-Alexey Mironov
+Local quadratic discrepancy of L-moment ratios with trim t=0.
+For r=2,3,4, L_r=sum_i x_(i)*sum_{k=0..r-1}((-1)**k*
+C(r-1,k)*C(i-1,r+t-1-k)*C(n-i,t+k))/(r*C(n,r+2*t)).
+Return (L3/L2)**2/v3+(L4/L2-mu4)**2/v4. The constants
+(mu4,v3,v4) are the three historical rows in the implementation
+for n<=25, 25<n<=50 and n>50. They are not a consistent
+asymptotic covariance sequence. A primary source for this exact
+omnibus formula and these rows was not located; the L-moment
+papers alone do not validate this test. Treat it as a local
+statistic and simulate its null law at the actual n. L2 must be positive.
 
 ## Examples
 
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    Hosking1NormalityGofStatistic,
-)
+import numpy as np
+from pysatl_criterion.statistics.goodness_of_fit.normal import Hosking1NormalityGofStatistic
 
-
-test_statistic = Hosking1NormalityGofStatistic()
-assert test_statistic.hypothesis().parameters() == {}
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
+statistic = Hosking1NormalityGofStatistic()
+sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+value = statistic.execute_statistic(sample)
+bool(np.isfinite(value))
 ```
+
+See [review and calibration changes](../../../normal-statistics-review.md).
