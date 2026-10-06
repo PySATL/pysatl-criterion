@@ -15,6 +15,10 @@ y=x/mean(x). The implemented formula is:
     shift of an exponential law. Both tails are used. Constant samples
     are undefined; n >= 3 avoids the identically-one n=2 case.
 
+Computation uses `z=(x-min(x))/(max(x)-min(x))` before evaluating W.
+Affine invariance preserves the formula while avoiding cancellation
+in `mean(x)-min(x)` for nearly constant observations.
+
 Reject in both tails. Calibrate the exact statistic returned here.
 Use independent continuous, uncensored observations. Rounded or tied
 data require calibration of the observation process. No parameters
@@ -72,6 +76,11 @@ print(value)
    Test for the Exponential Distribution (Complete Samples).
    Technometrics 14, 355-370.
    https://doi.org/10.1080/00401706.1972.10488921
+
+2. Spinelli, J. J. and Stephens, M. A. (1987). Tests for Exponentiality
+   When Origin and Scale Parameters Are Unknown. Technometrics 29, 471–476,
+   Section 3, pp. 474–475.
+   https://www.stat.cmu.edu/technometrics/80-89/VOL-29-04/v2904471.pdf
 
 ## Author(s)
 

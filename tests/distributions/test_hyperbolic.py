@@ -258,10 +258,10 @@ def test_hyperbolic_distribution_descriptor():
     ]
 
 
-def test_hyperbolic_nan_sample_propagates():
-    """An undefined CDF value should produce an undefined statistic."""
-    result = KuiperHyperbolicGofStatistic().execute_statistic([0.0, np.nan, 1.0])
-    assert np.isnan(result)
+def test_hyperbolic_nan_sample_is_rejected():
+    """NaN is not an observation on the real support."""
+    with pytest.raises(ValueError, match="finite"):
+        KuiperHyperbolicGofStatistic().execute_statistic([0.0, np.nan, 1.0])
 
 
 def test_kolmogorov_smirnov_requires_precomputed_cdf():

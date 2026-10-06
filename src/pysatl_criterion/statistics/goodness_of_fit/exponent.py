@@ -72,7 +72,7 @@ def _scalar(value, name):
         raise ValueError(f"{name} must be a finite real scalar")
     try:
         value = float(value)
-    except (ValueError, TypeError) as exc:
+    except (ValueError, TypeError, OverflowError) as exc:
         raise ValueError(f"{name} must be a finite real scalar") from exc
     if not np.isfinite(value):
         raise ValueError(f"{name} must be a finite real scalar")
@@ -486,10 +486,13 @@ class AtkinsonExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     y=x/mean(x). The implemented formula is::
 
         sqrt(n) * abs(mean(y**p)**(1/p) - Gamma(1+p)**(1/p)).
-        This is an unstandardized absolute moment contrast. No universal
-        normal or chi-square calibration is claimed. Negative powers at zero
-    use the limiting power mean zero. Near p=0 a log-gamma series is used;
-    near p=1 the contrast can lose relative precision through subtraction.
+
+    This is an unstandardized absolute moment contrast. No universal
+    normal or chi-square calibration is claimed. Negative powers at zero
+    use the limiting power mean zero. Near p=0 a log-gamma series is used.
+    For abs(p) < 1e-100 and strictly positive observations, the geometric
+    mean limit is used: the power correction is below float64 precision.
+    Near p=1 the contrast can lose relative precision through subtraction.
 
     Reject in the upper tail. Calibrate the exact statistic returned here.
     Use independent continuous, uncensored observations. Rounded or tied
@@ -572,6 +575,11 @@ class AtkinsonExponentialityGofStatistic(AbstractExponentialityGofStatistic):
         else:
             with np.errstate(divide="ignore"):
                 logs = np.log(rvs) - np.log(np.mean(rvs))
+            # At this scale the power correction is below float64 precision.
+            # Avoid multiplying by a subnormal p and then dividing by it.
+            if abs(p) < 1e-100 and np.all(np.isfinite(logs)):
+                empirical = np.exp(np.mean(logs))
+                return float(np.sqrt(len(rvs)) * abs(empirical - np.exp(-np.euler_gamma)))
             with np.errstate(over="ignore", under="ignore", invalid="ignore"):
                 powers = p * logs
             if np.all(np.isfinite(powers)) and np.max(np.abs(powers)) < 0.5:
@@ -582,7 +590,9 @@ class AtkinsonExponentialityGofStatistic(AbstractExponentialityGofStatistic):
                 with np.errstate(over="ignore", under="ignore"):
                     log_mean = scipy_special.logsumexp(p * (logs - pivot)) - np.log(len(rvs))
                     empirical = np.exp(pivot + log_mean / p)
-        if abs(p) < 1e-4:
+        if abs(p) < 1e-100:
+            log_reference = -np.euler_gamma
+        elif abs(p) < 1e-4:
             # Taylor series of log Gamma(1+p)/p, avoiding rounding 1+p to 1.
             log_reference = -np.euler_gamma + sum(
                 (-1) ** k * scipy_special.zeta(k, 1) * p ** (k - 1) / k for k in range(2, 6)
@@ -2146,6 +2156,10 @@ class ShapiroWilkExponentialityGofStatistic(AbstractExponentialityGofStatistic):
         shift of an exponential law. Both tails are used. Constant samples
         are undefined; n >= 3 avoids the identically-one n=2 case.
 
+    Computation uses z=(x-min(x))/(max(x)-min(x)) before evaluating W.
+    Affine invariance preserves the formula while avoiding cancellation
+    in mean(x)-min(x) for nearly constant observations.
+
     Reject in both tails. Calibrate the exact statistic returned here.
     Use independent continuous, uncensored observations. Rounded or tied
     data require calibration of the observation process. No parameters
@@ -2160,6 +2174,10 @@ class ShapiroWilkExponentialityGofStatistic(AbstractExponentialityGofStatistic):
        Test for the Exponential Distribution (Complete Samples).
        Technometrics 14, 355-370.
        https://doi.org/10.1080/00401706.1972.10488921
+    .. [2] Spinelli, J. J. and Stephens, M. A. (1987). Tests for
+       Exponentiality When Origin and Scale Parameters Are Unknown.
+       Technometrics 29, 471-476, Section 3, pp. 474-475.
+       https://www.stat.cmu.edu/technometrics/80-89/VOL-29-04/v2904471.pdf
 
     Examples
     --------
@@ -2218,9 +2236,12 @@ class ShapiroWilkExponentialityGofStatistic(AbstractExponentialityGofStatistic):
         if np.ptp(rvs) == 0:
             raise ValueError("Shapiro-Wilk requires a nonconstant sample")
         n = len(rvs)
-        rvs.sort()
-        y = np.mean(rvs)
-        sw = n * (y - rvs[0]) ** 2 / ((n - 1) * np.sum((rvs - y) ** 2))
+        # W is affine invariant. Center before taking the mean so a small
+        # spread around a large common offset is not lost to cancellation.
+        shifted = rvs - np.min(rvs)
+        shifted /= np.max(shifted)
+        y = np.mean(shifted)
+        sw = n * y**2 / ((n - 1) * np.sum((shifted - y) ** 2))
         return float(sw)
 
 

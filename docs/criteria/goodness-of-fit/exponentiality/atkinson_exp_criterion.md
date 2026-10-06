@@ -11,10 +11,13 @@ Write n for sample size, x_(i) for sorted observations, and
 y=x/mean(x). The implemented formula is:
 
     sqrt(n) * abs(mean(y**p)**(1/p) - Gamma(1+p)**(1/p)).
-    This is an unstandardized absolute moment contrast. No universal
-    normal or chi-square calibration is claimed. Negative powers at zero
-    use the limiting power mean zero. Near p=0 a log-gamma series is used;
-    near p=1 the contrast can lose relative precision through subtraction.
+
+This is an unstandardized absolute moment contrast. No universal
+normal or chi-square calibration is claimed. Negative powers at zero
+use the limiting power mean zero. Near p=0 a log-gamma series is used.
+For abs(p) < 1e-100 and strictly positive observations, the geometric
+mean limit is used: the power correction is below float64 precision.
+Near p=1 the contrast can lose relative precision through subtraction.
 
 Reject in the upper tail. Calibrate the exact statistic returned here.
 Use independent continuous, uncensored observations. Rounded or tied
