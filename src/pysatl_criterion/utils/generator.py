@@ -33,6 +33,11 @@ def get_hypothesis_generator(
         raise ValueError("No schema-aware sampler for this distribution")
     distribution = statistic.distribution()
     params = statistic.hypothesis().parameters()
+    if distribution == DistributionType.INVERSE_GAMMA:
+        raise ValueError(
+            "Inverse Gamma requires external calibration; no built-in generator exists. "
+            "For fitted KS specify a shape greater than two and refit every replicate"
+        )
     if distribution == DistributionType.BETA:
         if "alpha" not in params or "beta" not in params:
             raise ValueError(

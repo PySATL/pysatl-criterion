@@ -11,7 +11,6 @@ from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.alternative import (
     Alternative,
     AlternativeType,
-    LeftAlternative,
     RightAlternative,
 )
 from pysatl_criterion.statistics.goodness_of_fit.common import (
@@ -26,14 +25,59 @@ from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
 class AbstractInverseGammaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
+    """Shared shape/scale hypothesis and validation for Inverse Gamma statistics."""
+
     def __init__(self, alpha: float = 1.0, beta: float = 1.0):
 
-        if alpha <= 0:
-            raise ValueError("Shape must be positive.")
-        if beta <= 0:
-            raise ValueError("Scale must be positive.")
+        alpha = self._positive_parameter(alpha, "Shape")
+        beta = self._positive_parameter(beta, "Scale")
         self.alpha = alpha
         self.beta = beta
+
+    @staticmethod
+    def _positive_parameter(value, name):
+        array = np.asarray(value)
+        if array.ndim != 0 or array.dtype.kind not in "iuf":
+            raise ValueError(f"{name} must be positive, finite and scalar.")
+        value = float(array)
+        if not np.isfinite(value) or value <= 0:
+            raise ValueError(f"{name} must be positive, finite and scalar.")
+        return value
+
+    @staticmethod
+    def _prepare_sample(rvs, minimum=1):
+        sample = np.asarray(rvs)
+        if sample.ndim != 1 or sample.dtype.kind not in "iuf":
+            raise ValueError("Sample must be a one-dimensional real numeric array")
+        if sample.size < minimum:
+            raise ValueError(f"At least {minimum} observations are required")
+        sample = np.asarray(sample, dtype=float)
+        if not np.all(np.isfinite(sample)) or np.any(sample <= 0):
+            raise ValueError("Observations must be finite and strictly positive for Inverse Gamma")
+        return np.sort(sample)
+
+    def _cdf(self, sample):
+        values = scipy_stats.invgamma.cdf(sample, a=self.alpha, scale=self.beta)
+        if (
+            not np.all(np.isfinite(values))
+            or np.any(values < 0)
+            or np.any(values > 1)
+            or np.any(np.diff(values) < 0)
+        ):
+            raise FloatingPointError("Invalid Inverse Gamma CDF values")
+        return values
+
+    def _log_probabilities(self, sample):
+        log_cdf = scipy_stats.invgamma.logcdf(sample, a=self.alpha, scale=self.beta)
+        log_sf = scipy_stats.invgamma.logsf(sample, a=self.alpha, scale=self.beta)
+        if (
+            not np.all(np.isfinite(log_cdf))
+            or not np.all(np.isfinite(log_sf))
+            or np.any(log_cdf > 0)
+            or np.any(log_sf > 0)
+        ):
+            raise FloatingPointError("Inverse Gamma log tails exceed numerical precision")
+        return log_cdf, log_sf
 
     @override
     def hypothesis(self) -> GoodnessOfFitHypothesis:
@@ -51,6 +95,68 @@ class AbstractInverseGammaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
 
 
 class KolmogorovSmirnovInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, KSStatistic):
+    """Kolmogorov--Smirnov distance to a fixed Inverse Gamma CDF.
+
+    Parameters
+    ----------
+    alternative_type : AlternativeType, default: TWO_TAILED
+        Direction of CDF deviation; use an enum member.
+    mode : {"auto", "exact", "approx", "asymp"}, default: "auto"
+        Compatibility option; no p-value is calculated.
+    alpha : float, default: 1.0
+        Fixed finite positive shape.
+    beta : float, default: 1.0
+        Fixed finite positive scale (not reciprocal scale).
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar without modifying the input or retaining estimates.
+    hypothesis()
+        Return fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the right critical tail.
+
+    Notes
+    -----
+    The iid null model has density beta**alpha/Gamma(alpha) *
+    x**(-alpha-1)*exp(-beta/x), x > 0, with location fixed at zero.
+    Write u_i=F(x_(i)), i=1,...,n, for sorted observations.
+    D+ = max(i/n-u_i), D- = max(u_i-(i-1)/n). Return max(D+,D-)
+    for TWO_TAILED, D+ for RIGHT, D- for LEFT. All reject for large values.
+    Stored calibration is blocked for directional KS because its key omits
+    direction. The mode argument does not affect the scalar statistic.
+
+    Both parameters are fixed; no fitting is performed. Under the continuous
+    null the probability transform removes alpha and beta from the null law,
+    which still depends on n. Large values reject. Ties and constants are
+    accepted; rounded data need separate calibration. The built-in Monte
+    Carlo resolver has no Inverse Gamma generator; simulate externally.
+    Finite positive observations give mathematically finite statistics.
+    Numerical log-tail underflow or overflow raises FloatingPointError,
+    rather than replacing probabilities with epsilon. Ordinary CDF values
+    and spacings may still round in extreme tails.
+    The reference concerns the general statistic, applied here through the
+    fixed CDF or cell probabilities, not an Inverse Gamma fitted test.
+
+    References
+    ----------
+    .. [1] Anderson, T. W. and Darling, D. A. (1952). Asymptotic Theory of
+       Certain "Goodness of Fit" Criteria Based on Stochastic Processes.
+       Ann. Math. Statist. 23, 193-212. https://doi.org/10.1214/aoms/1177729437
+
+    Examples
+    --------
+    >>> statistic = KolmogorovSmirnovInverseGammaGofStatistic(alpha=3.0, beta=2.0)
+    >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
+    >>> bool(np.isfinite(value))
+    True
+    """
+
+    def _validate_storage_calibration(self):
+        if self.alternative_type != AlternativeType.TWO_TAILED:
+            raise ValueError("Stored KS calibration does not encode the CDF direction")
+
     @override
     def __init__(
         self,
@@ -60,6 +166,10 @@ class KolmogorovSmirnovInverseGammaGofStatistic(AbstractInverseGammaGofStatistic
         beta: float = 1.0,
     ):
         AbstractInverseGammaGofStatistic.__init__(self, alpha=alpha, beta=beta)
+        if alternative_type not in tuple(AlternativeType):
+            raise ValueError("alternative_type must be an AlternativeType member")
+        if mode not in ("auto", "exact", "approx", "asymp"):
+            raise ValueError("Invalid KS mode")
         KSStatistic.__init__(self, alternative_type=alternative_type, mode=mode)
 
     @staticmethod
@@ -75,18 +185,91 @@ class KolmogorovSmirnovInverseGammaGofStatistic(AbstractInverseGammaGofStatistic
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the Kolmogorov-Smirnov test statistic for Inverse Gamma distribution.
+        """Compute the statistic defined in the class Notes.
 
-        :param rvs: array of observations assumed to follow InvGamma(shape, scale).
-        :return: Kolmogorov–Smirnov D statistic computed with the InvGamma CDF.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real strictly positive observations. At least one value;
+            ties and constant samples are allowed.
+        **kwargs : dict
+            Unused compatibility arguments.
+
+        Returns
+        -------
+        float or numpy.float64
+            Scalar statistic; large values reject the null.
+
+        Raises
+        ------
+        ValueError
+            If sample dimension, size, finiteness or support is invalid.
+        FloatingPointError
+            If CDF evaluation, required log tails or quantiles are numerically
+            invalid, or the statistic exceeds float64 range.
+
+        Notes
+        -----
+        No mathematically infinite result occurs for admissible finite data.
+        No p-value or finite-sample correction is returned.
         """
-        sorted_rvs = np.sort(np.asarray(rvs))
-        cdf_vals = scipy_stats.invgamma.cdf(sorted_rvs, a=self.alpha, scale=self.beta)
+        sorted_rvs = self._prepare_sample(rvs)
+        cdf_vals = self._cdf(sorted_rvs)
         return KSStatistic.do_execute_statistic(self, sorted_rvs, cdf_vals)
 
 
 class LillieforsInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, LillieforsTest):
+    """KS distance to an Inverse Gamma CDF fitted by sample moments.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar without modifying the input or retaining estimates.
+    hypothesis()
+        Return fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the right critical tail.
+
+    Notes
+    -----
+    The iid null model has density beta**alpha/Gamma(alpha) *
+    x**(-alpha-1)*exp(-beta/x), x > 0, with location fixed at zero.
+    Write u_i=F(x_(i)), i=1,...,n, for sorted observations.
+    Both parameters are unknown. Fit alpha_hat = 2 + mean(x)**2/S2 and
+    beta_hat = mean(x)*(alpha_hat-1), with S2 = sum((x-mean(x))**2)/(n-1).
+    Return max(D+,D-) to the fitted CDF, refitting independently each call.
+    Rescaling by max(x) prevents moment overflow without changing the distance.
+    The moment model requires alpha > 2 (finite variance); fourth moments
+    require alpha > 4. This restriction is not encoded in hypothesis metadata.
+    The null law depends on alpha, though scaling removes beta. Ordinary KS
+    tables are invalid. External shape-specific calibration or a justified
+    composite-null procedure must refit every replicate. Generic Monte Carlo
+    and storage calibration are blocked. No primary source confirming this
+    exact Inverse Gamma moment-fitted test and calibration was found.
+    The constructor now takes no alpha/beta; hypothesis parameters are empty.
+
+    Finite positive observations give mathematically finite statistics.
+    Numerical log-tail underflow or overflow raises FloatingPointError,
+    rather than replacing probabilities with epsilon. Ordinary CDF values
+    and spacings may still round in extreme tails.
+
+    Examples
+    --------
+    >>> statistic = LillieforsInverseGammaGofStatistic()
+    >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
+    >>> bool(np.isfinite(value))
+    True
+    """
+
+    def __init__(self):
+        """Create a moment-fitted statistic with both parameters unknown."""
+
+    def hypothesis(self) -> GoodnessOfFitHypothesis:
+        return GoodnessOfFitHypothesis({})
+
+    def _validate_storage_calibration(self):
+        raise ValueError("Fitted Inverse Gamma KS requires external shape-specific calibration")
+
     @staticmethod
     @override
     def short_code() -> str:
@@ -99,41 +282,108 @@ class LillieforsInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, Lilli
         return f"{short_code}_{AbstractInverseGammaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs):
-        """
-        Execute the Lilliefors test statistic for Inverse Gamma distribution.
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic defined in the class Notes.
 
-        :param rvs: array of observations assumed to follow InvGamma(shape, scale).
-        :return: Lilliefors-adjusted Kolmogorov–Smirnov statistic with estimated
-                 Inverse Gamma parameters.
-        :raises ValueError: if sample is empty or mean/variance is not valid for
-                             Inverse Gamma estimation.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real strictly positive observations. At least two values;
+            positive sample variance is required.
+        **kwargs : dict
+            Unused compatibility arguments.
+
+        Returns
+        -------
+        float or numpy.float64
+            Scalar statistic; large values reject the null.
+
+        Raises
+        ------
+        ValueError
+            If sample dimension, size, finiteness or support is invalid or
+            moment estimates are numerically degenerate.
+        FloatingPointError
+            If CDF evaluation, required log tails or quantiles are numerically
+            invalid, or the statistic exceeds float64 range.
+
+        Notes
+        -----
+        No mathematically infinite result occurs for admissible finite data.
+        No p-value or finite-sample correction is returned.
         """
-        sample = np.asarray(rvs, dtype=float)
-        n = sample.size
-        if n == 0:
-            raise ValueError("At least one observation is required for the Lilliefors statistic.")
+        sample = self._prepare_sample(rvs, minimum=2)
+        sample = sample / sample[-1]
+        if np.any(sample == 0):
+            raise ValueError("Sample dynamic range exceeds numerical precision")
         mean = np.mean(sample)
         var = np.var(sample, ddof=1)
-
-        if mean <= 0 or var <= 0:
-            raise ValueError(
-                "Sample mean and variance must be positive for Inverse Gamma parameter estimation."
-            )
-
-        alpha_hat = 2.0 + (mean**2) / var
-        beta_hat = mean * (alpha_hat - 1.0)
-
-        if alpha_hat <= 2.0 or beta_hat <= 0.0:
-            raise ValueError("Estimated parameters are out of valid range for Inverse Gamma ")
-
-        sorted_sample = np.sort(sample)
-        cdf_vals = scipy_stats.invgamma.cdf(sorted_sample, a=alpha_hat, scale=beta_hat)
-
-        return super(LillieforsTest, self).do_execute_statistic(sorted_sample, cdf_vals)
+        if var <= 0:
+            raise ValueError("Sample variance must be positive")
+        with np.errstate(over="ignore", divide="ignore", invalid="ignore"):
+            alpha_hat = 2.0 + mean**2 / var
+            beta_hat = mean * (alpha_hat - 1.0)
+        if not np.isfinite(alpha_hat) or not np.isfinite(beta_hat) or alpha_hat <= 2:
+            raise ValueError("Inverse Gamma moment estimates exceed numerical precision")
+        cdf = scipy_stats.invgamma.cdf(sample, a=alpha_hat, scale=beta_hat)
+        if not np.all(np.isfinite(cdf)):
+            raise FloatingPointError("Invalid fitted CDF")
+        return float(KSStatistic.do_execute_statistic(self, sample, cdf))
 
 
 class AndersonDarlingInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, ADStatistic):
+    """Anderson--Darling statistic for a fixed Inverse Gamma CDF.
+
+    Parameters
+    ----------
+    alpha : float, default: 1.0
+        Fixed finite positive shape.
+    beta : float, default: 1.0
+        Fixed finite positive scale (not reciprocal scale).
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar without modifying the input or retaining estimates.
+    hypothesis()
+        Return fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the right critical tail.
+
+    Notes
+    -----
+    The iid null model has density beta**alpha/Gamma(alpha) *
+    x**(-alpha-1)*exp(-beta/x), x > 0, with location fixed at zero.
+    Write u_i=F(x_(i)), i=1,...,n, for sorted observations.
+    A2 = -n - sum((2*i-1)/n * (log(u_i)+log(1-u_(n+1-i)))).
+    Log-CDF and log-survival are evaluated directly without probability clipping.
+
+    Both parameters are fixed; no fitting is performed. Under the continuous
+    null the probability transform removes alpha and beta from the null law,
+    which still depends on n. Large values reject. Ties and constants are
+    accepted; rounded data need separate calibration. The built-in Monte
+    Carlo resolver has no Inverse Gamma generator; simulate externally.
+    Finite positive observations give mathematically finite statistics.
+    Numerical log-tail underflow or overflow raises FloatingPointError,
+    rather than replacing probabilities with epsilon. Ordinary CDF values
+    and spacings may still round in extreme tails.
+    The reference concerns the general statistic, applied here through the
+    fixed CDF or cell probabilities, not an Inverse Gamma fitted test.
+
+    References
+    ----------
+    .. [1] Anderson, T. W. and Darling, D. A. (1952). Asymptotic Theory of
+       Certain "Goodness of Fit" Criteria Based on Stochastic Processes.
+       Ann. Math. Statist. 23, 193-212. https://doi.org/10.1214/aoms/1177729437
+
+    Examples
+    --------
+    >>> statistic = AndersonDarlingInverseGammaGofStatistic(alpha=3.0, beta=2.0)
+    >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
+    >>> bool(np.isfinite(value))
+    True
+    """
+
     @staticmethod
     @override
     def short_code() -> str:
@@ -147,10 +397,37 @@ class AndersonDarlingInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, 
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        sorted_rvs = np.sort(np.asarray(rvs))
+        """Compute the statistic defined in the class Notes.
 
-        log_cdf = scipy_stats.invgamma.logcdf(sorted_rvs, a=self.alpha, scale=self.beta)
-        log_sf = scipy_stats.invgamma.logsf(sorted_rvs, a=self.alpha, scale=self.beta)
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real strictly positive observations. At least one value;
+            ties and constant samples are allowed.
+        **kwargs : dict
+            Unused compatibility arguments.
+
+        Returns
+        -------
+        float or numpy.float64
+            Scalar statistic; large values reject the null.
+
+        Raises
+        ------
+        ValueError
+            If sample dimension, size, finiteness or support is invalid.
+        FloatingPointError
+            If CDF evaluation, required log tails or quantiles are numerically
+            invalid, or the statistic exceeds float64 range.
+
+        Notes
+        -----
+        No mathematically infinite result occurs for admissible finite data.
+        No p-value or finite-sample correction is returned.
+        """
+        sorted_rvs = self._prepare_sample(rvs)
+
+        log_cdf, log_sf = self._log_probabilities(sorted_rvs)
 
         return super().do_execute_statistic(sorted_rvs, log_cdf=log_cdf, log_sf=log_sf)
 
@@ -158,6 +435,58 @@ class AndersonDarlingInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, 
 class CramerVonMisesInverseGammaGofStatistic(
     AbstractInverseGammaGofStatistic, CrammerVonMisesStatistic
 ):
+    """Cramer--von Mises statistic for a fixed Inverse Gamma CDF.
+
+    Parameters
+    ----------
+    alpha : float, default: 1.0
+        Fixed finite positive shape.
+    beta : float, default: 1.0
+        Fixed finite positive scale (not reciprocal scale).
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar without modifying the input or retaining estimates.
+    hypothesis()
+        Return fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the right critical tail.
+
+    Notes
+    -----
+    The iid null model has density beta**alpha/Gamma(alpha) *
+    x**(-alpha-1)*exp(-beta/x), x > 0, with location fixed at zero.
+    Write u_i=F(x_(i)), i=1,...,n, for sorted observations.
+    W2 = 1/(12*n) + sum((u_i-(2*i-1)/(2*n))**2).
+    No finite-sample adjustment is applied.
+
+    Both parameters are fixed; no fitting is performed. Under the continuous
+    null the probability transform removes alpha and beta from the null law,
+    which still depends on n. Large values reject. Ties and constants are
+    accepted; rounded data need separate calibration. The built-in Monte
+    Carlo resolver has no Inverse Gamma generator; simulate externally.
+    Finite positive observations give mathematically finite statistics.
+    Numerical log-tail underflow or overflow raises FloatingPointError,
+    rather than replacing probabilities with epsilon. Ordinary CDF values
+    and spacings may still round in extreme tails.
+    The reference concerns the general statistic, applied here through the
+    fixed CDF or cell probabilities, not an Inverse Gamma fitted test.
+
+    References
+    ----------
+    .. [1] Anderson, T. W. and Darling, D. A. (1952). Asymptotic Theory of
+       Certain "Goodness of Fit" Criteria Based on Stochastic Processes.
+       Ann. Math. Statist. 23, 193-212. https://doi.org/10.1214/aoms/1177729437
+
+    Examples
+    --------
+    >>> statistic = CramerVonMisesInverseGammaGofStatistic(alpha=3.0, beta=2.0)
+    >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
+    >>> bool(np.isfinite(value))
+    True
+    """
+
     @staticmethod
     @override
     def short_code() -> str:
@@ -171,9 +500,37 @@ class CramerVonMisesInverseGammaGofStatistic(
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        sorted_rvs = np.sort(np.asarray(rvs))
+        """Compute the statistic defined in the class Notes.
 
-        cdf_vals = scipy_stats.invgamma.cdf(sorted_rvs, a=self.alpha, scale=self.beta)
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real strictly positive observations. At least one value;
+            ties and constant samples are allowed.
+        **kwargs : dict
+            Unused compatibility arguments.
+
+        Returns
+        -------
+        float or numpy.float64
+            Scalar statistic; large values reject the null.
+
+        Raises
+        ------
+        ValueError
+            If sample dimension, size, finiteness or support is invalid.
+        FloatingPointError
+            If CDF evaluation, required log tails or quantiles are numerically
+            invalid, or the statistic exceeds float64 range.
+
+        Notes
+        -----
+        No mathematically infinite result occurs for admissible finite data.
+        No p-value or finite-sample correction is returned.
+        """
+        sorted_rvs = self._prepare_sample(rvs)
+
+        cdf_vals = self._cdf(sorted_rvs)
 
         return CrammerVonMisesStatistic.do_execute_statistic(self, sorted_rvs, cdf_vals)
 
@@ -182,7 +539,11 @@ class AbstractBinnedInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, C
     lambda_value: float = 1.0
 
     def __init__(self, bins: int = 8, alpha: float = 1.0, beta: float = 1.0):
-        if bins < 2:
+        if (
+            isinstance(bins, (bool, np.bool_))
+            or not isinstance(bins, (int, np.integer))
+            or bins < 2
+        ):
             raise ValueError("At least two bins are required for binned Inverse Gamma statistics.")
         self.bins = bins
         AbstractInverseGammaGofStatistic.__init__(self, alpha=alpha, beta=beta)
@@ -190,19 +551,13 @@ class AbstractBinnedInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, C
 
     def _counts_and_expected(self, rvs):
 
-        sample = np.asarray(rvs)
+        sample = self._prepare_sample(rvs)
         n = sample.size
-        if n == 0:
-            raise ValueError(
-                "At least one observation is required for binned Inverse Gamma statistics."
-            )
-        if np.any(sample <= 0):
-            raise ValueError(
-                "All observations must be strictly positive for Inverse Gamma distribution."
-            )
         quantiles = np.linspace(0.0, 1.0, self.bins + 1)
-        edges = scipy_stats.invgamma.ppf(quantiles, a=self.alpha, scale=1.0 / self.beta)
-        edges[0] = -np.inf
+        edges = scipy_stats.invgamma.ppf(quantiles, a=self.alpha, scale=self.beta)
+        if not np.all(np.isfinite(edges[1:-1])) or np.any(np.diff(edges) <= 0):
+            raise FloatingPointError("Inverse Gamma quantile bins are numerically degenerate")
+        edges[0] = 0.0
         edges[-1] = np.inf
         counts, _ = np.histogram(sample, bins=edges)
         expected = np.full(self.bins, n / self.bins)
@@ -210,7 +565,7 @@ class AbstractBinnedInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, C
         return counts, expected
 
     @override
-    def execute_statistic(self, rvs):
+    def execute_statistic(self, rvs, **kwargs):
         counts, expected = self._counts_and_expected(rvs)
         return float(
             Chi2Statistic.do_execute_statistic(self, counts, expected, lambda_=self.lambda_value)
@@ -218,7 +573,70 @@ class AbstractBinnedInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, C
 
 
 class Chi2PearsonInverseGammaGofStatistic(AbstractBinnedInverseGammaGofStatistic):
+    """Pearson statistic using fixed equiprobable Inverse Gamma bins.
+
+    Parameters
+    ----------
+    bins : int, default: 8
+        Number of fixed equiprobable cells, at least two; booleans rejected.
+    alpha : float, default: 1.0
+        Fixed finite positive shape.
+    beta : float, default: 1.0
+        Fixed finite positive scale (not reciprocal scale).
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar without modifying the input or retaining estimates.
+    hypothesis()
+        Return fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the right critical tail.
+
+    Notes
+    -----
+    The iid null model has density beta**alpha/Gamma(alpha) *
+    x**(-alpha-1)*exp(-beta/x), x > 0, with location fixed at zero.
+    Write u_i=F(x_(i)), i=1,...,n, for sorted observations.
+    X2 = sum((O_j-n/bins)**2/(n/bins)), where O_j are histogram counts
+    between fixed null quantiles j/bins. Interior edges belong to the right
+    cell. Zero counts are allowed. The asymptotic reference has bins-1 degrees
+    of freedom when expected counts are sufficiently large; sparse samples
+    require multinomial simulation. Storage calibration is blocked because
+    its key omits bins. The finite-sample null also depends on bins.
+
+    Both parameters are fixed; no fitting is performed. Under the continuous
+    null the probability transform removes alpha and beta from the null law,
+    which still depends on n. Large values reject. Ties and constants are
+    accepted; rounded data need separate calibration. The built-in Monte
+    Carlo resolver has no Inverse Gamma generator; simulate externally.
+    Finite positive observations give mathematically finite statistics.
+    Numerical log-tail underflow or overflow raises FloatingPointError,
+    rather than replacing probabilities with epsilon. Ordinary CDF values
+    and spacings may still round in extreme tails.
+    The reference concerns the general statistic, applied here through the
+    fixed CDF or cell probabilities, not an Inverse Gamma fitted test.
+
+    References
+    ----------
+    .. [1] Pearson, K. (1900). On the criterion that a given system of
+       deviations from the probable in the case of a correlated system of
+       variables is such that it can be reasonably supposed to have arisen
+       from random sampling. Philosophical Magazine 50, 157-175.
+       https://doi.org/10.1080/14786440009463897
+
+    Examples
+    --------
+    >>> statistic = Chi2PearsonInverseGammaGofStatistic(alpha=3.0, beta=2.0)
+    >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
+    >>> bool(np.isfinite(value))
+    True
+    """
+
     lambda_value = 1.0
+
+    def _validate_storage_calibration(self):
+        raise ValueError("Stored Pearson calibration does not encode bins; calibrate externally")
 
     @staticmethod
     @override
@@ -233,11 +651,91 @@ class Chi2PearsonInverseGammaGofStatistic(AbstractBinnedInverseGammaGofStatistic
         return f"{short_code}_{AbstractInverseGammaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs):
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic defined in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real strictly positive observations. At least one value;
+            ties and constant samples are allowed.
+        **kwargs : dict
+            Unused compatibility arguments.
+
+        Returns
+        -------
+        float or numpy.float64
+            Scalar statistic; large values reject the null.
+
+        Raises
+        ------
+        ValueError
+            If sample dimension, size, finiteness or support is invalid.
+        FloatingPointError
+            If CDF evaluation, required log tails or quantiles are numerically
+            invalid, or the statistic exceeds float64 range.
+
+        Notes
+        -----
+        No mathematically infinite result occurs for admissible finite data.
+        No p-value or finite-sample correction is returned.
+        """
         return super().execute_statistic(rvs)
 
 
 class WatsonInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
+    """Watson centered Cramer--von Mises statistic after the fixed CDF.
+
+    Parameters
+    ----------
+    alpha : float, default: 1.0
+        Fixed finite positive shape.
+    beta : float, default: 1.0
+        Fixed finite positive scale (not reciprocal scale).
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar without modifying the input or retaining estimates.
+    hypothesis()
+        Return fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the right critical tail.
+
+    Notes
+    -----
+    The iid null model has density beta**alpha/Gamma(alpha) *
+    x**(-alpha-1)*exp(-beta/x), x > 0, with location fixed at zero.
+    Write u_i=F(x_(i)), i=1,...,n, for sorted observations.
+    With d_i = u_i-(2*i-1)/(2*n), return
+    U2 = 1/(12*n) + sum((d_i-mean(d))**2), equivalently
+    W2-n*(mean(u)-1/2)**2. Centering avoids cancellation. No correction is used.
+
+    Both parameters are fixed; no fitting is performed. Under the continuous
+    null the probability transform removes alpha and beta from the null law,
+    which still depends on n. Large values reject. Ties and constants are
+    accepted; rounded data need separate calibration. The built-in Monte
+    Carlo resolver has no Inverse Gamma generator; simulate externally.
+    Finite positive observations give mathematically finite statistics.
+    Numerical log-tail underflow or overflow raises FloatingPointError,
+    rather than replacing probabilities with epsilon. Ordinary CDF values
+    and spacings may still round in extreme tails.
+    The reference concerns the general statistic, applied here through the
+    fixed CDF or cell probabilities, not an Inverse Gamma fitted test.
+
+    References
+    ----------
+    .. [1] Watson, G. S. (1961). Goodness-of-fit tests on a circle.
+       Biometrika 48, 109-114. https://doi.org/10.1093/biomet/48.1-2.109
+
+    Examples
+    --------
+    >>> statistic = WatsonInverseGammaGofStatistic(alpha=3.0, beta=2.0)
+    >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
+    >>> bool(np.isfinite(value))
+    True
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -255,25 +753,98 @@ class WatsonInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic defined in the class Notes.
 
-        sorted_rvs = np.sort(np.asarray(rvs))
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real strictly positive observations. At least one value;
+            ties and constant samples are allowed.
+        **kwargs : dict
+            Unused compatibility arguments.
+
+        Returns
+        -------
+        float or numpy.float64
+            Scalar statistic; large values reject the null.
+
+        Raises
+        ------
+        ValueError
+            If sample dimension, size, finiteness or support is invalid.
+        FloatingPointError
+            If CDF evaluation, required log tails or quantiles are numerically
+            invalid, or the statistic exceeds float64 range.
+
+        Notes
+        -----
+        No mathematically infinite result occurs for admissible finite data.
+        No p-value or finite-sample correction is returned.
+        """
+        sorted_rvs = self._prepare_sample(rvs)
         n = len(sorted_rvs)
 
-        if n == 0:
-            raise ValueError("Sample cannot be empty.")
-
-        if np.any(sorted_rvs <= 0):
-            raise ValueError("Inverse Gamma requires strictly positive observations.")
-        cdf_vals = scipy_stats.invgamma.cdf(sorted_rvs, a=self.alpha, scale=1.0 / self.beta)
+        cdf_vals = self._cdf(sorted_rvs)
 
         u = (2 * np.arange(1, n + 1) - 1) / (2 * n)
         diff = cdf_vals - u
-        w_squared = 1.0 / (12 * n) + np.sum(diff**2)
-        mean_adj = np.sum(cdf_vals) - n / 2.0
-        return float(w_squared - (mean_adj**2) / n)
+        return float(1.0 / (12 * n) + np.sum((diff - np.mean(diff)) ** 2))
 
 
 class KuiperInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
+    """Kuiper statistic after the fixed Inverse Gamma CDF.
+
+    Parameters
+    ----------
+    alpha : float, default: 1.0
+        Fixed finite positive shape.
+    beta : float, default: 1.0
+        Fixed finite positive scale (not reciprocal scale).
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar without modifying the input or retaining estimates.
+    hypothesis()
+        Return fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the right critical tail.
+
+    Notes
+    -----
+    The iid null model has density beta**alpha/Gamma(alpha) *
+    x**(-alpha-1)*exp(-beta/x), x > 0, with location fixed at zero.
+    Write u_i=F(x_(i)), i=1,...,n, for sorted observations.
+    V = max(i/n-u_i) + max(u_i-(i-1)/n).
+    This applies the circular uniformity statistic to the probability transform.
+    No sqrt(n) scaling or finite-sample correction is applied.
+
+    Both parameters are fixed; no fitting is performed. Under the continuous
+    null the probability transform removes alpha and beta from the null law,
+    which still depends on n. Large values reject. Ties and constants are
+    accepted; rounded data need separate calibration. The built-in Monte
+    Carlo resolver has no Inverse Gamma generator; simulate externally.
+    Finite positive observations give mathematically finite statistics.
+    Numerical log-tail underflow or overflow raises FloatingPointError,
+    rather than replacing probabilities with epsilon. Ordinary CDF values
+    and spacings may still round in extreme tails.
+    The reference concerns the general statistic, applied here through the
+    fixed CDF or cell probabilities, not an Inverse Gamma fitted test.
+
+    References
+    ----------
+    .. [1] Kuiper, N. H. (1960). Tests concerning random points on a circle.
+       Indagationes Mathematicae (Proceedings) 63, 38-47.
+       https://doi.org/10.1016/S1385-7258(60)50006-0
+
+    Examples
+    --------
+    >>> statistic = KuiperInverseGammaGofStatistic(alpha=3.0, beta=2.0)
+    >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
+    >>> bool(np.isfinite(value))
+    True
+    """
+
     @override
     def alternative(self) -> Alternative:
         return RightAlternative()
@@ -290,22 +861,39 @@ class KuiperInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
         return f"{short_code}_INVGAMMA_{AbstractInverseGammaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs):
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic defined in the class Notes.
 
-        sorted_rvs = np.sort(np.asarray(rvs))
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real strictly positive observations. At least one value;
+            ties and constant samples are allowed.
+        **kwargs : dict
+            Unused compatibility arguments.
+
+        Returns
+        -------
+        float or numpy.float64
+            Scalar statistic; large values reject the null.
+
+        Raises
+        ------
+        ValueError
+            If sample dimension, size, finiteness or support is invalid.
+        FloatingPointError
+            If CDF evaluation, required log tails or quantiles are numerically
+            invalid, or the statistic exceeds float64 range.
+
+        Notes
+        -----
+        No mathematically infinite result occurs for admissible finite data.
+        No p-value or finite-sample correction is returned.
+        """
+        sorted_rvs = self._prepare_sample(rvs)
         n = len(sorted_rvs)
 
-        if n == 0:
-            raise ValueError(
-                "At least one observation is required to compute the Kuiper statistic."
-            )
-
-        if np.any(sorted_rvs <= 0):
-            raise ValueError(
-                "All observations must be strictly positive for Inverse Gamma distribution."
-            )
-
-        cdf_vals = scipy_stats.invgamma.cdf(sorted_rvs, a=self.alpha, scale=1.0 / self.beta)
+        cdf_vals = self._cdf(sorted_rvs)
 
         i = np.arange(1, n + 1)
         d_plus = np.max(i / n - cdf_vals)
@@ -314,6 +902,54 @@ class KuiperInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
 
 
 class MinToshiyukiInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, MinToshiyukiStatistic):
+    """Locally defined tail-weighted EDF discrepancy for Inverse Gamma.
+
+    Parameters
+    ----------
+    alpha : float, default: 1.0
+        Fixed finite positive shape.
+    beta : float, default: 1.0
+        Fixed finite positive scale (not reciprocal scale).
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar without modifying the input or retaining estimates.
+    hypothesis()
+        Return fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the right critical tail.
+
+    Notes
+    -----
+    The iid null model has density beta**alpha/Gamma(alpha) *
+    x**(-alpha-1)*exp(-beta/x), x > 0, with location fixed at zero.
+    Write u_i=F(x_(i)), i=1,...,n, for sorted observations.
+    T = sum(max(i/n-u_i, u_i-(i-1)/n)/sqrt(u_i*(1-u_i)))/sqrt(n).
+    The weights use direct log-CDF and log-survival to avoid cancellation.
+    No primary source verifying this exact formula under the legacy name
+    Min--Toshiyuki was found. Work by Liao and Shimokawa on Weibull and
+    extreme-value tests does not establish this Inverse Gamma procedure.
+    Treat this as a local discrepancy requiring its own calibration.
+
+    Both parameters are fixed; no fitting is performed. Under the continuous
+    null the probability transform removes alpha and beta from the null law,
+    which still depends on n. Large values reject. Ties and constants are
+    accepted; rounded data need separate calibration. The built-in Monte
+    Carlo resolver has no Inverse Gamma generator; simulate externally.
+    Finite positive observations give mathematically finite statistics.
+    Numerical log-tail underflow or overflow raises FloatingPointError,
+    rather than replacing probabilities with epsilon. Ordinary CDF values
+    and spacings may still round in extreme tails.
+
+    Examples
+    --------
+    >>> statistic = MinToshiyukiInverseGammaGofStatistic(alpha=3.0, beta=2.0)
+    >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
+    >>> bool(np.isfinite(value))
+    True
+    """
+
     @staticmethod
     @override
     def short_code():
@@ -327,29 +963,99 @@ class MinToshiyukiInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, Min
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        sorted_rvs = np.sort(np.asarray(rvs))
-        n = len(sorted_rvs)
+        """Compute the statistic defined in the class Notes.
 
-        if n == 0:
-            raise ValueError(
-                "At least one observation is required to compute the Min-Toshiyuki statistic."
-            )
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real strictly positive observations. At least one value;
+            ties and constant samples are allowed.
+        **kwargs : dict
+            Unused compatibility arguments.
 
-        if np.any(sorted_rvs <= 0):
-            raise ValueError(
-                "All observations must be strictly positive for Inverse Gamma distribution."
-            )
+        Returns
+        -------
+        float or numpy.float64
+            Scalar statistic; large values reject the null.
 
-        cdf_vals = scipy_stats.invgamma.cdf(sorted_rvs, a=self.alpha, scale=1.0 / self.beta)
-        return MinToshiyukiStatistic.do_execute_statistic(self, cdf_vals)
+        Raises
+        ------
+        ValueError
+            If sample dimension, size, finiteness or support is invalid.
+        FloatingPointError
+            If CDF evaluation, required log tails or quantiles are numerically
+            invalid, or the statistic exceeds float64 range.
+
+        Notes
+        -----
+        No mathematically infinite result occurs for admissible finite data.
+        No p-value or finite-sample correction is returned.
+        """
+        sample = self._prepare_sample(rvs)
+        cdf = self._cdf(sample)
+        log_cdf, log_sf = self._log_probabilities(sample)
+        n = sample.size
+        i = np.arange(1, n + 1)
+        deviations = np.maximum(i / n - cdf, cdf - (i - 1) / n)
+        with np.errstate(over="ignore"):
+            result = np.sum(deviations * np.exp(-0.5 * (log_cdf + log_sf))) / np.sqrt(n)
+        if not np.isfinite(result):
+            raise FloatingPointError("Weighted EDF statistic exceeds float64 range")
+        return float(result)
 
 
 class GreenwoodInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
-    """
-    Greenwood spacing statistic measuring uniformized Inverse Gamma gaps.
+    """Greenwood sum of squared spacings after the fixed CDF.
 
-    Test based on sum of squared spacings between consecutive Inverse Gamma CDF values.
-    Sensitive to clustering of observations.
+    Parameters
+    ----------
+    alpha : float, default: 1.0
+        Fixed finite positive shape.
+    beta : float, default: 1.0
+        Fixed finite positive scale (not reciprocal scale).
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar without modifying the input or retaining estimates.
+    hypothesis()
+        Return fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the right critical tail.
+
+    Notes
+    -----
+    The iid null model has density beta**alpha/Gamma(alpha) *
+    x**(-alpha-1)*exp(-beta/x), x > 0, with location fixed at zero.
+    Write u_i=F(x_(i)), i=1,...,n, for sorted observations.
+    G = sum((u_(i+1)-u_i)**2), i=0,...,n, with u_0=0 and u_(n+1)=1.
+    Include both endpoint gaps. This is the unscaled sum, with null mean
+    2/(n+2); large values detect clustering. No normal approximation is used.
+
+    Both parameters are fixed; no fitting is performed. Under the continuous
+    null the probability transform removes alpha and beta from the null law,
+    which still depends on n. Large values reject. Ties and constants are
+    accepted; rounded data need separate calibration. The built-in Monte
+    Carlo resolver has no Inverse Gamma generator; simulate externally.
+    Finite positive observations give mathematically finite statistics.
+    Numerical log-tail underflow or overflow raises FloatingPointError,
+    rather than replacing probabilities with epsilon. Ordinary CDF values
+    and spacings may still round in extreme tails.
+    The reference concerns the general statistic, applied here through the
+    fixed CDF or cell probabilities, not an Inverse Gamma fitted test.
+
+    References
+    ----------
+    .. [1] Greenwood, M. (1946). The statistical study of infectious diseases.
+       J. R. Stat. Soc. 109, 85-110, discussion of random intervals, pp. 99-101.
+       https://www.ime.usp.br/~abe/lista/pdfr62zHOGxek.pdf
+
+    Examples
+    --------
+    >>> statistic = GreenwoodInverseGammaGofStatistic(alpha=3.0, beta=2.0)
+    >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -369,21 +1075,38 @@ class GreenwoodInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the Greenwood test statistic for Inverse Gamma distribution.
+        """Compute the statistic defined in the class Notes.
 
-        :param rvs: array of observations assumed to follow Inv-Gamma(alpha, beta).
-        :return: Greenwood spacing statistic G = sum(D_i^2) where spacings D_i are computed
-        from Inverse Gamma CDF values.
-        :raises ValueError: if spacings are negative.
-        :raises ValueError: if any observation is <= 0 (Inverse Gamma domain is (0, ∞)).
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real strictly positive observations. At least one value;
+            ties and constant samples are allowed.
+        **kwargs : dict
+            Unused compatibility arguments.
+
+        Returns
+        -------
+        float or numpy.float64
+            Scalar statistic; large values reject the null.
+
+        Raises
+        ------
+        ValueError
+            If sample dimension, size, finiteness or support is invalid.
+        FloatingPointError
+            If CDF evaluation, required log tails or quantiles are numerically
+            invalid, or the statistic exceeds float64 range.
+
+        Notes
+        -----
+        No mathematically infinite result occurs for admissible finite data.
+        No p-value or finite-sample correction is returned.
         """
 
-        rvs_array = np.asarray(rvs)
-        if np.any(rvs_array <= 0):
-            raise ValueError("All observations must be positive for Inverse Gamma distribution.")
+        rvs_array = self._prepare_sample(rvs)
         sorted_rvs = np.sort(rvs_array)
-        cdf_vals = scipy_stats.invgamma.cdf(sorted_rvs, a=self.alpha, scale=1 / self.beta)
+        cdf_vals = self._cdf(sorted_rvs)
         spacings = np.diff(np.concatenate(([0.0], cdf_vals, [1.0])))
 
         if np.any(spacings < 0):
@@ -396,17 +1119,62 @@ class GreenwoodInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
 
 
 class ZhangAInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
-    """
-    Zhang ZA statistic for Inverse Gamma distribution.
+    """Zhang ZA likelihood-ratio statistic after the fixed CDF.
 
-    Test based on weighted sum of log-likelihood ratios.
-    Analog of Anderson-Darling test. Sensitive to deviations in the tails.
-    Rejects for small values of the statistic (left-tailed).
+    Parameters
+    ----------
+    alpha : float, default: 1.0
+        Fixed finite positive shape.
+    beta : float, default: 1.0
+        Fixed finite positive scale (not reciprocal scale).
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar without modifying the input or retaining estimates.
+    hypothesis()
+        Return fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the right critical tail.
+
+    Notes
+    -----
+    The iid null model has density beta**alpha/Gamma(alpha) *
+    x**(-alpha-1)*exp(-beta/x), x > 0, with location fixed at zero.
+    Write u_i=F(x_(i)), i=1,...,n, for sorted observations.
+    ZA = -sum(log(u_i)/(n-i+1/2) + log(1-u_i)/(i-1/2)).
+    Large values reject. Log tails are evaluated directly; epsilon clipping
+    has been removed and passing epsilon raises TypeError.
+
+    Both parameters are fixed; no fitting is performed. Under the continuous
+    null the probability transform removes alpha and beta from the null law,
+    which still depends on n. Large values reject. Ties and constants are
+    accepted; rounded data need separate calibration. The built-in Monte
+    Carlo resolver has no Inverse Gamma generator; simulate externally.
+    Finite positive observations give mathematically finite statistics.
+    Numerical log-tail underflow or overflow raises FloatingPointError,
+    rather than replacing probabilities with epsilon. Ordinary CDF values
+    and spacings may still round in extreme tails.
+    The reference concerns the general statistic, applied here through the
+    fixed CDF or cell probabilities, not an Inverse Gamma fitted test.
+
+    References
+    ----------
+    .. [1] Zhang, J. (2002). Powerful Goodness-of-fit Tests Based on the
+       Likelihood Ratio. JRSS B 64, 281-294.
+       https://doi.org/10.1111/1467-9868.00337
+
+    Examples
+    --------
+    >>> statistic = ZhangAInverseGammaGofStatistic(alpha=3.0, beta=2.0)
+    >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
     def alternative(self) -> Alternative:
-        return LeftAlternative()
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -421,47 +1189,102 @@ class ZhangAInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic defined in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real strictly positive observations. At least one value;
+            ties and constant samples are allowed.
+        **kwargs : dict
+            Unused compatibility arguments. Passing epsilon raises TypeError.
+
+        Returns
+        -------
+        float or numpy.float64
+            Scalar statistic; large values reject the null.
+
+        Raises
+        ------
+        ValueError
+            If sample dimension, size, finiteness or support is invalid.
+        FloatingPointError
+            If CDF evaluation, required log tails or quantiles are numerically
+            invalid, or the statistic exceeds float64 range.
+        TypeError
+            If the removed epsilon setting is supplied.
+
+        Notes
+        -----
+        No mathematically infinite result occurs for admissible finite data.
+        No p-value or finite-sample correction is returned.
         """
-        ZA = -sum_{i=1}^{n} [ ln(U_i) / (n - i + 0.5) + ln(1 - U_i) / (i - 0.5) ]
-        where U_i = F(X_(i)) is the Inverse Gamma CDF value.
-        """
-        epsilon = kwargs.get("epsilon", 1e-10)
-
-        rvs_array = np.asarray(rvs)
-        if np.any(rvs_array <= 0):
-            raise ValueError("All observations must be positive for Inverse Gamma distribution.")
-
-        sorted_rvs = np.sort(rvs_array)
-        n = len(sorted_rvs)
-
-        cdf_vals = scipy_stats.invgamma.cdf(sorted_rvs, a=self.alpha, scale=1.0 / self.beta)
-        cdf_vals = np.clip(cdf_vals, epsilon, 1.0 - epsilon)
-
-        if np.any((cdf_vals < 0) | (cdf_vals > 1)):
-            raise ValueError("CDF values must be in [0, 1]; check parameters.")
-        za = 0.0
-        for i, F_val in enumerate(cdf_vals, start=1):
-            term = np.log(F_val) / (n - i + 0.5) + np.log(1.0 - F_val) / (i - 0.5)
-            za -= term
-
-        return float(za)
+        if "epsilon" in kwargs:
+            raise TypeError("epsilon clipping is no longer supported")
+        sample = self._prepare_sample(rvs)
+        log_cdf, log_sf = self._log_probabilities(sample)
+        n = sample.size
+        i = np.arange(1, n + 1)
+        return float(-np.sum(log_cdf / (n - i + 0.5) + log_sf / (i - 0.5)))
 
 
 class ZhangCInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
-    """
-    Zhang ZC statistic for Inverse Gamma distribution.
+    """Zhang ZC likelihood-ratio statistic after the fixed CDF.
 
-    Test based on sum of squared log-likelihood ratios.
-    Analog of Cramér-von Mises test. Sensitive to general deviations.
-    Rejects for small values of the statistic (left-tailed).
+    Parameters
+    ----------
+    alpha : float, default: 1.0
+        Fixed finite positive shape.
+    beta : float, default: 1.0
+        Fixed finite positive scale (not reciprocal scale).
 
-    ZC = sum_{i=1}^{n} [ ln( (1/U_i - 1) / ((n - 0.5)/(i - 0.75) - 1) ) ]^2
-    where U_i = F(X_(i)) is the Inverse Gamma CDF value.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar without modifying the input or retaining estimates.
+    hypothesis()
+        Return fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the right critical tail.
+
+    Notes
+    -----
+    The iid null model has density beta**alpha/Gamma(alpha) *
+    x**(-alpha-1)*exp(-beta/x), x > 0, with location fixed at zero.
+    Write u_i=F(x_(i)), i=1,...,n, for sorted observations.
+    ZC = sum((log((1-u_i)/u_i)-log((n-i+1/4)/(i-3/4)))**2).
+    Large values reject. Direct log tails avoid subtracting a rounded CDF
+    from one. Passing the removed epsilon setting raises TypeError.
+
+    Both parameters are fixed; no fitting is performed. Under the continuous
+    null the probability transform removes alpha and beta from the null law,
+    which still depends on n. Large values reject. Ties and constants are
+    accepted; rounded data need separate calibration. The built-in Monte
+    Carlo resolver has no Inverse Gamma generator; simulate externally.
+    Finite positive observations give mathematically finite statistics.
+    Numerical log-tail underflow or overflow raises FloatingPointError,
+    rather than replacing probabilities with epsilon. Ordinary CDF values
+    and spacings may still round in extreme tails.
+    The reference concerns the general statistic, applied here through the
+    fixed CDF or cell probabilities, not an Inverse Gamma fitted test.
+
+    References
+    ----------
+    .. [1] Zhang, J. (2002). Powerful Goodness-of-fit Tests Based on the
+       Likelihood Ratio. JRSS B 64, 281-294.
+       https://doi.org/10.1111/1467-9868.00337
+
+    Examples
+    --------
+    >>> statistic = ZhangCInverseGammaGofStatistic(alpha=3.0, beta=2.0)
+    >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
     def alternative(self) -> Alternative:
-        return LeftAlternative()
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -476,45 +1299,102 @@ class ZhangCInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        epsilon = kwargs.get("epsilon", 1e-10)
+        """Compute the statistic defined in the class Notes.
 
-        rvs_array = np.asarray(rvs)
-        if np.any(rvs_array <= 0):
-            raise ValueError("All observations must be positive for Inverse Gamma distribution.")
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real strictly positive observations. At least one value;
+            ties and constant samples are allowed.
+        **kwargs : dict
+            Unused compatibility arguments. Passing epsilon raises TypeError.
 
-        sorted_rvs = np.sort(rvs_array)
-        n = len(sorted_rvs)
+        Returns
+        -------
+        float or numpy.float64
+            Scalar statistic; large values reject the null.
 
-        cdf_vals = scipy_stats.invgamma.cdf(sorted_rvs, a=self.alpha, scale=1.0 / self.beta)
-        cdf_vals = np.clip(cdf_vals, epsilon, 1.0 - epsilon)
+        Raises
+        ------
+        ValueError
+            If sample dimension, size, finiteness or support is invalid.
+        FloatingPointError
+            If CDF evaluation, required log tails or quantiles are numerically
+            invalid, or the statistic exceeds float64 range.
+        TypeError
+            If the removed epsilon setting is supplied.
 
-        if np.any((cdf_vals < 0) | (cdf_vals > 1)):
-            raise ValueError("CDF values must be in [0, 1]; check parameters.")
-
-        zc = 0.0
-        for i, F_val in enumerate(cdf_vals, start=1):
-            odds_theor = (1.0 - F_val) / F_val
-            odds_emp = (n - 0.5) / (i - 0.75) - 1.0
-            if odds_emp <= 0:
-                odds_emp = epsilon
-
-            log_ratio = np.log(odds_theor / odds_emp)
-            zc += log_ratio**2
-
-        return float(zc)
+        Notes
+        -----
+        No mathematically infinite result occurs for admissible finite data.
+        No p-value or finite-sample correction is returned.
+        """
+        if "epsilon" in kwargs:
+            raise TypeError("epsilon clipping is no longer supported")
+        sample = self._prepare_sample(rvs)
+        log_cdf, log_sf = self._log_probabilities(sample)
+        n = sample.size
+        i = np.arange(1, n + 1)
+        log_odds = np.log(n - i + 0.25) - np.log(i - 0.75)
+        with np.errstate(over="ignore"):
+            result = np.sum((log_sf - log_cdf - log_odds) ** 2)
+        if not np.isfinite(result):
+            raise FloatingPointError("Zhang C statistic exceeds float64 range")
+        return float(result)
 
 
 class ZhangKInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
-    """
-    Zhang ZK statistic for Inverse Gamma distribution.
+    """Zhang ZK likelihood-ratio statistic after the fixed CDF.
 
-    Test based on maximum of log-likelihood ratios.
-    Analog of Kolmogorov-Smirnov test. Sensitive to the maximum deviation.
-    Rejects for large values of the statistic (right-tailed).
+    Parameters
+    ----------
+    alpha : float, default: 1.0
+        Fixed finite positive shape.
+    beta : float, default: 1.0
+        Fixed finite positive scale (not reciprocal scale).
 
-    ZK = max_{i} [ (i - 0.5) * ln((i - 0.5) / (n * U_i)) +
-                   (n - i + 0.5) * ln((n - i + 0.5) / (n * (1 - U_i))) ]
-    where U_i = F(X_(i)) is the Inverse Gamma CDF value.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar without modifying the input or retaining estimates.
+    hypothesis()
+        Return fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the right critical tail.
+
+    Notes
+    -----
+    The iid null model has density beta**alpha/Gamma(alpha) *
+    x**(-alpha-1)*exp(-beta/x), x > 0, with location fixed at zero.
+    Write u_i=F(x_(i)), i=1,...,n, for sorted observations.
+    With p_i=(i-1/2)/n, ZK = n*max(p_i*log(p_i/u_i)
+    + (1-p_i)*log((1-p_i)/(1-u_i))). Large values reject.
+    Direct log tails replace probability clipping. Passing epsilon raises TypeError.
+
+    Both parameters are fixed; no fitting is performed. Under the continuous
+    null the probability transform removes alpha and beta from the null law,
+    which still depends on n. Large values reject. Ties and constants are
+    accepted; rounded data need separate calibration. The built-in Monte
+    Carlo resolver has no Inverse Gamma generator; simulate externally.
+    Finite positive observations give mathematically finite statistics.
+    Numerical log-tail underflow or overflow raises FloatingPointError,
+    rather than replacing probabilities with epsilon. Ordinary CDF values
+    and spacings may still round in extreme tails.
+    The reference concerns the general statistic, applied here through the
+    fixed CDF or cell probabilities, not an Inverse Gamma fitted test.
+
+    References
+    ----------
+    .. [1] Zhang, J. (2002). Powerful Goodness-of-fit Tests Based on the
+       Likelihood Ratio. JRSS B 64, 281-294.
+       https://doi.org/10.1111/1467-9868.00337
+
+    Examples
+    --------
+    >>> statistic = ZhangKInverseGammaGofStatistic(alpha=3.0, beta=2.0)
+    >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -534,26 +1414,41 @@ class ZhangKInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        epsilon = kwargs.get("epsilon", 1e-10)
+        """Compute the statistic defined in the class Notes.
 
-        rvs_array = np.asarray(rvs)
-        if np.any(rvs_array <= 0):
-            raise ValueError("All observations must be positive for Inverse Gamma distribution.")
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real strictly positive observations. At least one value;
+            ties and constant samples are allowed.
+        **kwargs : dict
+            Unused compatibility arguments. Passing epsilon raises TypeError.
 
-        sorted_rvs = np.sort(rvs_array)
-        n = len(sorted_rvs)
+        Returns
+        -------
+        float or numpy.float64
+            Scalar statistic; large values reject the null.
 
-        cdf_vals = scipy_stats.invgamma.cdf(sorted_rvs, a=self.alpha, scale=1.0 / self.beta)
-        cdf_vals = np.clip(cdf_vals, epsilon, 1.0 - epsilon)
+        Raises
+        ------
+        ValueError
+            If sample dimension, size, finiteness or support is invalid.
+        FloatingPointError
+            If CDF evaluation, required log tails or quantiles are numerically
+            invalid, or the statistic exceeds float64 range.
+        TypeError
+            If the removed epsilon setting is supplied.
 
-        if np.any((cdf_vals < 0) | (cdf_vals > 1)):
-            raise ValueError("CDF values must be in [0, 1]; check parameters.")
-        zk = 0.0
-        for i, F_val in enumerate(cdf_vals, start=1):
-            term1 = (i - 0.5) * np.log((i - 0.5) / (n * F_val))
-            term2 = (n - i + 0.5) * np.log((n - i + 0.5) / (n * (1.0 - F_val)))
-            term = term1 + term2
-
-            zk = max(zk, term)
-
-        return float(zk)
+        Notes
+        -----
+        No mathematically infinite result occurs for admissible finite data.
+        No p-value or finite-sample correction is returned.
+        """
+        if "epsilon" in kwargs:
+            raise TypeError("epsilon clipping is no longer supported")
+        sample = self._prepare_sample(rvs)
+        log_cdf, log_sf = self._log_probabilities(sample)
+        n = sample.size
+        i = np.arange(1, n + 1)
+        p = (i - 0.5) / n
+        return float(np.max(n * (p * (np.log(p) - log_cdf) + (1 - p) * (np.log1p(-p) - log_sf))))
