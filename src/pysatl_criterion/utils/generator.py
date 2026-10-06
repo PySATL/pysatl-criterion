@@ -42,6 +42,11 @@ def get_hypothesis_generator(
             )
         params = {"a": params.pop("alpha"), "b": params.pop("beta"), **params}
     elif distribution == DistributionType.GAMMA:
+        if "alpha" not in params or "beta" not in params:
+            raise ValueError(
+                "A composite Gamma null requires external shape-specific calibration; "
+                "refit with execute_statistic on every simulated sample"
+            )
         params = {"alfa": params.pop("alpha"), **params}
     elif distribution == DistributionType.LOG_NORMAL:
         params = {"mu": math.log(params.pop("scale")), **params}

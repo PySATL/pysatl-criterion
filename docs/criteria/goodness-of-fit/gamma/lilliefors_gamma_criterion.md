@@ -1,52 +1,27 @@
-# Lilliefors test for gamma distribution
+# KS distance to a Gamma CDF fitted by sample moments.
 
-## Description
-Performs Lilliefors-type goodness-of-fit test for the hypothesis that the sample comes from a gamma distribution.
-The implementation estimates gamma parameters from the sample before computing a Kolmogorov-Smirnov type statistic.
-
-Hypothesis of Gamma Distribution
-The null hypothesis is that the data comes from a gamma distribution.
+Fit shape = mean(x)**2 / S2 and scale = S2 / mean(x), where
+S2 = sum((x-mean(x))**2)/(n-1). Compute max(D+,D-) using the fitted
+CDF. Both parameters are unknown; hypothesis().parameters() is empty.
+Each call fits independently after rescaling to avoid overflow.
+A nonconstant sample of size at least two with positive mean is required.
+Zero is accepted as a support boundary by this moment estimator.
+This is a Lilliefors-type construction, not the normality test or its
+tables. No primary source verifying this exact Gamma moment estimator
+and finite-sample calibration was found. The null law depends on shape.
+Generic Monte Carlo and storage calibration are blocked: external
+calibration must specify the shape or a justified composite-null scheme
+and refit each replicate. Ordinary KS tables are inappropriate.
+The constructor no longer accepts alpha or beta.
 
 ## Usage
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    LillieforsGammaGofStatistic,
-)
+from pysatl_criterion.statistics.goodness_of_fit.gamma import LillieforsGammaGofStatistic
 
-
-test_statistic = LillieforsGammaGofStatistic(alpha=2, beta=1)
-statistic_result = test_statistic.execute_statistic([0.42, 0.77, 1.05, 1.48, 1.96, 2.34, 3.12])
-print(statistic_result)
+statistic = LillieforsGammaGofStatistic()
+value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
 ```
 
-## Arguments
-`alpha` - positive shape parameter stored in the statistic hypothesis. Default value is `1.0`.
-
-`beta` - positive rate parameter stored in the statistic hypothesis. Default value is `1.0`.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-The implementation estimates gamma parameters with
-
-$$ \hat\alpha = \frac{\bar X^2}{S^2}, \quad \hat\theta = \frac{S^2}{\bar X}. $$
-
-The sorted sample is then transformed by the estimated gamma cumulative distribution function.
-
-## Author(s)
-Sergey Golovachev, Alexey Mironov
-
-## References
-Lilliefors, H.W. (1967): On the Kolmogorov-Smirnov test for normality with mean and variance unknown. - Journal of the American Statistical Association, vol. 62, pp. 399-402.
-
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    LillieforsGammaGofStatistic,
-)
-
-
-test_statistic = LillieforsGammaGofStatistic(alpha=2, beta=1)
-statistic_result = test_statistic.execute_statistic([0.42, 0.77, 1.05, 1.48, 1.96, 2.34, 3.12])
-print(statistic_result)
-```
+Returns a scalar; large values oppose the null. Invalid samples raise `ValueError`.
+See the [audit](../../../gamma-statistics-audit.md) for calibration changes.

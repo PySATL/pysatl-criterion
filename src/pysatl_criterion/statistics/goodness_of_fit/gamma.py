@@ -11,7 +11,6 @@ from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.alternative import (
     Alternative,
     AlternativeType,
-    LeftAlternative,
     RightAlternative,
     TwoSidedAlternative,
 )
@@ -35,6 +34,42 @@ from pysatl_criterion.statistics.goodness_of_fit.graph_goodness_of_fit import (
 from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
+def _scalar(value, name):
+    """Return a finite real scalar setting."""
+    if (
+        isinstance(value, (bool, np.bool_, str, bytes))
+        or np.ndim(value) != 0
+        or np.iscomplexobj(value)
+    ):
+        raise ValueError(f"{name} must be a finite real scalar")
+    try:
+        value = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"{name} must be a finite real scalar") from exc
+    if not np.isfinite(value):
+        raise ValueError(f"{name} must be a finite real scalar")
+    return value
+
+
+def _sample(rvs, minimum=1):
+    """Validate the closed Gamma support, retaining zero as a boundary value."""
+    if np.iscomplexobj(rvs) or (np.ma.isMaskedArray(rvs) and np.any(rvs.mask)):
+        raise ValueError("Sample must be real and contain no masked observations")
+    try:
+        sample = np.array(rvs, dtype=float, copy=True)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("Sample must be numeric") from exc
+    if sample.ndim != 1:
+        raise ValueError("Sample must be one-dimensional")
+    if sample.size == 0:
+        raise ValueError("At least one observation is required")
+    if sample.size < minimum:
+        raise ValueError("At least two observations are required")
+    if not np.all(np.isfinite(sample)) or np.any(sample < 0):
+        raise ValueError("Sample must contain finite nonnegative observations")
+    return sample
+
+
 class AbstractGammaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     """
     Abstract base class for Gamma distribution goodness-of-fit statistics.
@@ -48,12 +83,28 @@ class AbstractGammaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
         :param beta: rate parameter (beta) > 0.
         :raises ValueError: if shape or rate is not positive.
         """
+        alpha = _scalar(alpha, "Shape")
+        beta = _scalar(beta, "Rate")
         if alpha <= 0:
             raise ValueError("Shape must be positive.")
         if beta <= 0:
             raise ValueError("Rate must be positive.")
         self.alpha = alpha
         self.beta = beta
+
+    def _scaled(self, sample):
+        with np.errstate(over="ignore", under="ignore"):
+            return sample * self.beta
+
+    def _cdf(self, sample):
+        return scipy_stats.gamma.cdf(self._scaled(sample), a=self.alpha)
+
+    def _logs(self, sample):
+        scaled = self._scaled(sample)
+        return (
+            scipy_stats.gamma.logcdf(scaled, a=self.alpha),
+            scipy_stats.gamma.logsf(scaled, a=self.alpha),
+        )
 
     @override
     def hypothesis(self) -> GoodnessOfFitHypothesis:
@@ -81,11 +132,56 @@ class AbstractGammaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
 
 
 class KolmogorovSmirnovGammaGofStatistic(AbstractGammaGofStatistic, KSStatistic):
-    """
-    Kolmogorov–Smirnov EDF test computed with the Gamma reference CDF.
+    """KS distance to a fixed Gamma CDF.
 
-    Compares the empirical distribution function with the theoretical Gamma
-    distribution function. Sensitive to differences in both location and shape.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Fixed finite positive shape and rate, respectively. Both default to 1.
+    alternative_type : AlternativeType, optional
+        TWO_TAILED (default), RIGHT or LEFT selects D, D+ or D-.
+    mode : {"auto", "exact", "asymp", "approx"}, optional
+        Compatibility setting; no effect on the scalar statistic.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Compute one scalar statistic without changing the sample.
+    hypothesis()
+        Return fixed null parameters; omitted keys mean unknown parameters.
+
+    Notes
+    -----
+    For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+    where Gamma has shape alpha, rate beta and known origin zero.
+    Parameters are fixed, not fitted. Samples must be finite, real,
+    one-dimensional and nonempty, in the closed support [0, infinity).
+    Zero is accepted as a boundary value. Ties and constant samples are
+    allowed except where stated. Inputs and instance state are unchanged.
+    Continuous-null calibration assumes iid observations; rounded data
+    require calibration of the observation process.
+
+    D+ = max(i/n-u_i), D- = max(u_i-(i-1)/n), i=1,...,n.
+    Return max(D+,D-), D+, or D- for TWO_TAILED, RIGHT, or LEFT.
+    All three reject for large values. No parameters are fitted.
+    Stored calibration supports only the default two-sided CDF distance.
+
+    The fixed-CDF probability transform gives a parameter-free null law
+    in exact arithmetic. Reject for large values. The referenced general
+    statistic is applied through the Gamma CDF, not a special Gamma table.
+
+    References
+    ----------
+    .. [1] N. Smirnov (1948), "Table for Estimating the Goodness of Fit of Empirical
+       Distributions", Ann. Math. Statist. 19, 279-281.
+       https://doi.org/10.1214/aoms/1177730256
+
+    Examples
+    --------
+    >>> statistic = KolmogorovSmirnovGammaGofStatistic()
+    >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -97,7 +193,15 @@ class KolmogorovSmirnovGammaGofStatistic(AbstractGammaGofStatistic, KSStatistic)
         beta: float = 1.0,
     ):
         AbstractGammaGofStatistic.__init__(self, alpha=alpha, beta=beta)
+        if alternative_type not in tuple(AlternativeType):
+            raise ValueError("Invalid CDF deviation direction")
+        if mode not in ("auto", "exact", "asymp", "approx"):
+            raise ValueError("Invalid KS mode")
         KSStatistic.__init__(self, alternative_type=alternative_type, mode=mode)
+
+    def _validate_storage_calibration(self):
+        if self.alternative_type != AlternativeType.TWO_TAILED:
+            raise ValueError("Stored KS calibration does not encode the CDF direction")
 
     @staticmethod
     @override
@@ -122,25 +226,82 @@ class KolmogorovSmirnovGammaGofStatistic(AbstractGammaGofStatistic, KSStatistic)
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the Kolmogorov-Smirnov test statistic for Gamma distribution.
+        """Compute the scalar statistic defined in the class Notes.
 
-        :param rvs: array of observations assumed to follow Gamma(shape, scale).
-        :return: Kolmogorov–Smirnov D statistic computed with the Gamma CDF.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real nonnegative observations. Zero is a support boundary.
+            At least one observation; ties and constant samples are allowed.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float or numpy.float64
+            The statistic in the class Notes. No p-value is calculated.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the stated shape, support or size constraints,
+            or the required estimates/quantiles are numerically degenerate.
+
+        Notes
+        -----
+        See the class Notes for the exact formula, critical tail and
+        calibration requirements.
         """
 
-        sorted_rvs = np.sort(np.asarray(rvs))
-        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.alpha, scale=1 / self.beta)
+        sorted_rvs = np.sort(_sample(rvs))
+        cdf_vals = self._cdf(sorted_rvs)
         return KSStatistic.do_execute_statistic(self, sorted_rvs, cdf_vals)
 
 
 class LillieforsGammaGofStatistic(AbstractGammaGofStatistic, LillieforsTest):
-    """
-    Lilliefors correction that re-estimates Gamma parameters before KS.
+    """KS distance to a Gamma CDF fitted by sample moments.
 
-    Modification of Kolmogorov-Smirnov test for the case when Gamma distribution
-    parameters are estimated from the data rather than specified a priori.
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Compute one scalar statistic without changing the sample.
+    hypothesis()
+        Return fixed null parameters; omitted keys mean unknown parameters.
+
+    Notes
+    -----
+    Fit shape = mean(x)**2 / S2 and scale = S2 / mean(x), where
+    S2 = sum((x-mean(x))**2)/(n-1). Compute max(D+,D-) using the fitted
+    CDF. Both parameters are unknown; hypothesis().parameters() is empty.
+    Each call fits independently after rescaling to avoid overflow.
+    A nonconstant sample of size at least two with positive mean is required.
+    Zero is accepted as a support boundary by this moment estimator.
+    This is a Lilliefors-type construction, not the normality test or its
+    tables. No primary source verifying this exact Gamma moment estimator
+    and finite-sample calibration was found. The null law depends on shape.
+    Generic Monte Carlo and storage calibration are blocked: external
+    calibration must specify the shape or a justified composite-null scheme
+    and refit each replicate. Ordinary KS tables are inappropriate.
+    The constructor no longer accepts alpha or beta.
+
+    Reject for large values. No p-value is computed by this class.
+
+    Examples
+    --------
+    >>> statistic = LillieforsGammaGofStatistic()
+    >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
+    >>> bool(np.isfinite(value))
+    True
     """
+
+    def __init__(self):
+        """Create a moment-fitted Gamma KS statistic with no fixed parameters."""
+
+    def hypothesis(self) -> GoodnessOfFitHypothesis:
+        return GoodnessOfFitHypothesis({})
+
+    def _validate_storage_calibration(self):
+        raise ValueError("Fitted Gamma KS requires external shape-specific calibration")
 
     @staticmethod
     @override
@@ -164,40 +325,100 @@ class LillieforsGammaGofStatistic(AbstractGammaGofStatistic, LillieforsTest):
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs):
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the scalar statistic defined in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real nonnegative observations. Zero is a support boundary.
+            At least two observations; the sample must be nonconstant.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float or numpy.float64
+            The statistic in the class Notes. No p-value is calculated.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the stated shape, support or size constraints,
+            or the required estimates/quantiles are numerically degenerate.
+
+        Notes
+        -----
+        Both moment estimates are recomputed from this sample.
+        No fitted values are stored; see class Notes for calibration limits.
         """
-        Execute the Lilliefors test statistic for Gamma distribution.
 
-        :param rvs: array of observations assumed to follow Gamma(shape, scale).
-        :return: Lilliefors-adjusted Kolmogorov–Smirnov statistic with estimated Gamma parameters.
-        :raises ValueError: if sample is empty or mean/variance is not positive.
-        """
-
-        sample = np.asarray(rvs, dtype=float)
-        n = sample.size
-        if n == 0:
-            raise ValueError("At least one observation is required for the Lilliefors statistic.")
-
+        sample = _sample(rvs, minimum=2)
+        maximum = np.max(sample)
+        if maximum == 0:
+            raise ValueError("Sample mean and variance must be positive")
+        sample /= maximum
         mean = np.mean(sample)
         var = np.var(sample, ddof=1)
-        if mean <= 0 or var <= 0:
-            raise ValueError(
-                "Sample mean and variance must be positive for Gamma parameter estimation."
-            )
-
-        shape_hat = mean**2 / var
+        if var <= 0:
+            raise ValueError("Sample mean and variance must be positive")
+        with np.errstate(over="ignore"):
+            shape_hat = mean**2 / var
         scale_hat = var / mean
+        if not np.isfinite(shape_hat) or shape_hat <= 0 or scale_hat <= 0:
+            raise ValueError("Gamma moment estimates exceed float64 precision")
         sorted_sample = np.sort(sample)
         cdf_vals = scipy_stats.gamma.cdf(sorted_sample, a=shape_hat, scale=scale_hat)
-        return super(LillieforsTest, self).do_execute_statistic(sorted_sample, cdf_vals)
+        return KSStatistic.do_execute_statistic(self, sorted_sample, cdf_vals)
 
 
 class AndersonDarlingGammaGofStatistic(AbstractGammaGofStatistic, ADStatistic):
-    """
-    Anderson–Darling EDF statistic fitted to the Gamma distribution.
+    """Anderson-Darling statistic for a fixed Gamma CDF.
 
-    Modification of Kolmogorov-Smirnov test that gives more weight to the tails
-    of the distribution, making it more sensitive to tail deviations.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Fixed finite positive shape and rate, respectively. Both default to 1.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Compute one scalar statistic without changing the sample.
+    hypothesis()
+        Return fixed null parameters; omitted keys mean unknown parameters.
+
+    Notes
+    -----
+    For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+    where Gamma has shape alpha, rate beta and known origin zero.
+    Parameters are fixed, not fitted. Samples must be finite, real,
+    one-dimensional and nonempty, in the closed support [0, infinity).
+    Zero is accepted as a boundary value. Ties and constant samples are
+    allowed except where stated. Inputs and instance state are unchanged.
+    Continuous-null calibration assumes iid observations; rounded data
+    require calibration of the observation process.
+
+    A2 = -n - sum((2*i-1)*(log(u_i)+log(1-u_(n+1-i))))/n.
+    Direct log-CDF and log-survival evaluations retain upper-tail precision.
+    Zero observations give positive infinity. Extreme tails may underflow
+    in SciPy, also producing infinity; no epsilon clipping is applied.
+
+    The fixed-CDF probability transform gives a parameter-free null law
+    in exact arithmetic. Reject for large values. The referenced general
+    statistic is applied through the Gamma CDF, not a special Gamma table.
+
+    References
+    ----------
+    .. [1] T. W. Anderson and D. A. Darling (1952), "Asymptotic Theory of Certain
+       Goodness of Fit Criteria Based on Stochastic Processes", Ann. Math.
+       Statist. 23, 193-212. https://doi.org/10.1214/aoms/1177729437
+
+    Examples
+    --------
+    >>> statistic = AndersonDarlingGammaGofStatistic()
+    >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -223,25 +444,83 @@ class AndersonDarlingGammaGofStatistic(AbstractGammaGofStatistic, ADStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the Anderson-Darling test statistic for Gamma distribution.
+        """Compute the scalar statistic defined in the class Notes.
 
-        :param rvs: array of observations assumed to follow Gamma(shape, scale).
-        :return: Anderson–Darling A^2 statistic tailored to the Gamma model.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real nonnegative observations. Zero is a support boundary.
+            At least one observation; ties and constant samples are allowed.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float or numpy.float64
+            The statistic in the class Notes. No p-value is calculated.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the stated shape, support or size constraints,
+            or the required estimates/quantiles are numerically degenerate.
+
+        Notes
+        -----
+        Zero observations return positive infinity. Extreme tails can
+        underflow in SciPy log-probabilities; no epsilon clipping is applied.
         """
 
-        sorted_rvs = np.sort(np.asarray(rvs))
-        log_cdf = scipy_stats.gamma.logcdf(sorted_rvs, a=self.alpha, scale=1 / self.beta)
-        log_sf = scipy_stats.gamma.logsf(sorted_rvs, a=self.alpha, scale=1 / self.beta)
+        sorted_rvs = np.sort(_sample(rvs))
+        log_cdf, log_sf = self._logs(sorted_rvs)
         return super().do_execute_statistic(sorted_rvs, log_cdf=log_cdf, log_sf=log_sf)
 
 
 class CramerVonMisesGammaGofStatistic(AbstractGammaGofStatistic, CrammerVonMisesStatistic):
-    """
-    Cramér–von Mises quadratic EDF test specialized for Gamma samples.
+    """Cramer-von Mises statistic for a fixed Gamma CDF.
 
-    Goodness-of-fit test that measures the integrated squared difference between
-    the empirical and theoretical cumulative distribution functions.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Fixed finite positive shape and rate, respectively. Both default to 1.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Compute one scalar statistic without changing the sample.
+    hypothesis()
+        Return fixed null parameters; omitted keys mean unknown parameters.
+
+    Notes
+    -----
+    For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+    where Gamma has shape alpha, rate beta and known origin zero.
+    Parameters are fixed, not fitted. Samples must be finite, real,
+    one-dimensional and nonempty, in the closed support [0, infinity).
+    Zero is accepted as a boundary value. Ties and constant samples are
+    allowed except where stated. Inputs and instance state are unchanged.
+    Continuous-null calibration assumes iid observations; rounded data
+    require calibration of the observation process.
+
+    W2 = 1/(12*n) + sum((u_i-(2*i-1)/(2*n))**2).
+    No fitted-parameter correction or additional n scaling is applied.
+
+    The fixed-CDF probability transform gives a parameter-free null law
+    in exact arithmetic. Reject for large values. The referenced general
+    statistic is applied through the Gamma CDF, not a special Gamma table.
+
+    References
+    ----------
+    .. [1] T. W. Anderson and D. A. Darling (1952), "Asymptotic Theory of Certain
+       Goodness of Fit Criteria Based on Stochastic Processes", Ann. Math.
+       Statist. 23, 193-212. https://doi.org/10.1214/aoms/1177729437
+
+    Examples
+    --------
+    >>> statistic = CramerVonMisesGammaGofStatistic()
+    >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -267,24 +546,84 @@ class CramerVonMisesGammaGofStatistic(AbstractGammaGofStatistic, CrammerVonMises
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the Cramér-von Mises test statistic for Gamma distribution.
+        """Compute the scalar statistic defined in the class Notes.
 
-        :param rvs: array of observations assumed to follow Gamma(shape, scale).
-        :return: Cramér–von Mises W^2 statistic using the Gamma CDF.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real nonnegative observations. Zero is a support boundary.
+            At least one observation; ties and constant samples are allowed.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float or numpy.float64
+            The statistic in the class Notes. No p-value is calculated.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the stated shape, support or size constraints,
+            or the required estimates/quantiles are numerically degenerate.
+
+        Notes
+        -----
+        See the class Notes for the exact formula, critical tail and
+        calibration requirements.
         """
 
-        sorted_rvs = np.sort(np.asarray(rvs))
-        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.alpha, scale=1 / self.beta)
+        sorted_rvs = np.sort(_sample(rvs))
+        cdf_vals = self._cdf(sorted_rvs)
         return CrammerVonMisesStatistic.do_execute_statistic(self, sorted_rvs, cdf_vals)
 
 
 class WatsonGammaGofStatistic(AbstractGammaGofStatistic):
-    """
-    Watson's rotation-invariant EDF statistic using Gamma CDF values.
+    """Watson centered EDF statistic after the Gamma transform.
 
-    Modification of Cramér-von Mises test that is invariant under location changes,
-    making it suitable for circular data analysis.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Fixed finite positive shape and rate, respectively. Both default to 1.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Compute one scalar statistic without changing the sample.
+    hypothesis()
+        Return fixed null parameters; omitted keys mean unknown parameters.
+
+    Notes
+    -----
+    For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+    where Gamma has shape alpha, rate beta and known origin zero.
+    Parameters are fixed, not fitted. Samples must be finite, real,
+    one-dimensional and nonempty, in the closed support [0, infinity).
+    Zero is accepted as a boundary value. Ties and constant samples are
+    allowed except where stated. Inputs and instance state are unchanged.
+    Continuous-null calibration assumes iid observations; rounded data
+    require calibration of the observation process.
+
+    U2 = W2 - n*(mean(u)-1/2)**2, where
+    W2 = 1/(12*n) + sum((u_i-(2*i-1)/(2*n))**2).
+    Circular rotation invariance concerns transformed uniform values,
+    not translation of the original Gamma observations.
+
+    The fixed-CDF probability transform gives a parameter-free null law
+    in exact arithmetic. Reject for large values. The referenced general
+    statistic is applied through the Gamma CDF, not a special Gamma table.
+
+    References
+    ----------
+    .. [1] G. S. Watson (1961), "Goodness-of-fit tests on a circle",
+       Biometrika 48, 109-114. https://doi.org/10.1093/biomet/48.1-2.109
+
+    Examples
+    --------
+    >>> statistic = WatsonGammaGofStatistic()
+    >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -314,22 +653,37 @@ class WatsonGammaGofStatistic(AbstractGammaGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the Watson test statistic for Gamma distribution.
+        """Compute the scalar statistic defined in the class Notes.
 
-        :param rvs: array of observations assumed to follow Gamma(shape, scale).
-        :return: Watson U^2 statistic derived from the Gamma CDF values.
-        :raises ValueError: if sample is empty.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real nonnegative observations. Zero is a support boundary.
+            At least one observation; ties and constant samples are allowed.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float or numpy.float64
+            The statistic in the class Notes. No p-value is calculated.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the stated shape, support or size constraints,
+            or the required estimates/quantiles are numerically degenerate.
+
+        Notes
+        -----
+        See the class Notes for the exact formula, critical tail and
+        calibration requirements.
         """
 
-        sorted_rvs = np.sort(np.asarray(rvs))
+        sorted_rvs = np.sort(_sample(rvs))
         n = len(sorted_rvs)
-        if n == 0:
-            raise ValueError(
-                "At least one observation is required to compute the Watson statistic."
-            )
 
-        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.alpha, scale=1 / self.beta)
+        cdf_vals = self._cdf(sorted_rvs)
         u = (2 * np.arange(1, n + 1) - 1) / (2 * n)
         diff = cdf_vals - u
         w_squared = 1.0 / (12 * n) + np.sum(diff**2)
@@ -338,11 +692,50 @@ class WatsonGammaGofStatistic(AbstractGammaGofStatistic):
 
 
 class KuiperGammaGofStatistic(AbstractGammaGofStatistic):
-    """
-    Kuiper's circular EDF statistic after Gamma probability transform.
+    """Kuiper EDF range after the Gamma transform.
 
-    Variant of Kolmogorov-Smirnov test that sums the maximum positive and negative
-    deviations, making it equally sensitive to deviations in both tails.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Fixed finite positive shape and rate, respectively. Both default to 1.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Compute one scalar statistic without changing the sample.
+    hypothesis()
+        Return fixed null parameters; omitted keys mean unknown parameters.
+
+    Notes
+    -----
+    For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+    where Gamma has shape alpha, rate beta and known origin zero.
+    Parameters are fixed, not fitted. Samples must be finite, real,
+    one-dimensional and nonempty, in the closed support [0, infinity).
+    Zero is accepted as a boundary value. Ties and constant samples are
+    allowed except where stated. Inputs and instance state are unchanged.
+    Continuous-null calibration assumes iid observations; rounded data
+    require calibration of the observation process.
+
+    V = max(i/n-u_i) + max(u_i-(i-1)/n), i=1,...,n.
+    No finite-sample correction is applied.
+
+    The fixed-CDF probability transform gives a parameter-free null law
+    in exact arithmetic. Reject for large values. The referenced general
+    statistic is applied through the Gamma CDF, not a special Gamma table.
+
+    References
+    ----------
+    .. [1] N. H. Kuiper (1960), "Tests concerning random points on a circle",
+       Indagationes Mathematicae (Proceedings) 63, 38-47.
+       https://doi.org/10.1016/S1385-7258(60)50006-0
+
+    Examples
+    --------
+    >>> statistic = KuiperGammaGofStatistic()
+    >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -371,23 +764,38 @@ class KuiperGammaGofStatistic(AbstractGammaGofStatistic):
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs):
-        """
-        Execute the Kuiper test statistic for Gamma distribution.
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the scalar statistic defined in the class Notes.
 
-        :param rvs: array of observations assumed to follow Gamma(shape, scale).
-        :return: Kuiper V = D+ + D- statistic after the Gamma probability integral transform.
-        :raises ValueError: if sample is empty.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real nonnegative observations. Zero is a support boundary.
+            At least one observation; ties and constant samples are allowed.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float or numpy.float64
+            The statistic in the class Notes. No p-value is calculated.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the stated shape, support or size constraints,
+            or the required estimates/quantiles are numerically degenerate.
+
+        Notes
+        -----
+        See the class Notes for the exact formula, critical tail and
+        calibration requirements.
         """
 
-        sorted_rvs = np.sort(np.asarray(rvs))
-        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.alpha, scale=1 / self.beta)
+        sorted_rvs = np.sort(_sample(rvs))
+        cdf_vals = self._cdf(sorted_rvs)
 
         n = len(sorted_rvs)
-        if n == 0:
-            raise ValueError(
-                "At least one observation is required to compute the Kuiper statistic."
-            )
 
         i = np.arange(1, n + 1)
         d_plus = np.max(i / n - cdf_vals)
@@ -396,11 +804,53 @@ class KuiperGammaGofStatistic(AbstractGammaGofStatistic):
 
 
 class GreenwoodGammaGofStatistic(AbstractGammaGofStatistic):
-    """
-    Greenwood spacing statistic measuring uniformized Gamma gaps.
+    """Sum of squared Gamma probability spacings.
 
-    Test based on sum of squared spacings between consecutive Gamma CDF values.
-    Sensitive to clustering of observations.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Fixed finite positive shape and rate, respectively. Both default to 1.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Compute one scalar statistic without changing the sample.
+    hypothesis()
+        Return fixed null parameters; omitted keys mean unknown parameters.
+
+    Notes
+    -----
+    For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+    where Gamma has shape alpha, rate beta and known origin zero.
+    Parameters are fixed, not fitted. Samples must be finite, real,
+    one-dimensional and nonempty, in the closed support [0, infinity).
+    Zero is accepted as a boundary value. Ties and constant samples are
+    allowed except where stated. Inputs and instance state are unchanged.
+    Continuous-null calibration assumes iid observations; rounded data
+    require calibration of the observation process.
+
+    G = sum(D_j**2), j=1,...,n+1, where D_j=u_j-u_(j-1),
+    u_0=0 and u_(n+1)=1. Both endpoint spacings are included.
+    Repeated observations give zero spacings and are permitted.
+    The selected right tail detects unusually large squared spacings;
+    it does not test against exceptionally regular spacing.
+
+    The fixed-CDF probability transform gives a parameter-free null law
+    in exact arithmetic. Reject for large values. The referenced general
+    statistic is applied through the Gamma CDF, not a special Gamma table.
+
+    References
+    ----------
+    .. [1] M. Greenwood (1946), "The Statistical Study of Infectious Diseases",
+       J. R. Statist. Soc. 109, 85-103.
+       https://doi.org/10.1111/j.2397-2335.1946.tb04649.x
+
+    Examples
+    --------
+    >>> statistic = GreenwoodGammaGofStatistic()
+    >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -430,17 +880,35 @@ class GreenwoodGammaGofStatistic(AbstractGammaGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the Greenwood test statistic for Gamma distribution.
+        """Compute the scalar statistic defined in the class Notes.
 
-        :param rvs: array of observations assumed to follow Gamma(shape, scale).
-        :return: Greenwood spacing statistic G = sum(D_i^2) where spacings D_i are computed
-        from Gamma CDF values.
-        :raises ValueError: if spacings are negative.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real nonnegative observations. Zero is a support boundary.
+            At least one observation; ties and constant samples are allowed.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float or numpy.float64
+            The statistic in the class Notes. No p-value is calculated.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the stated shape, support or size constraints,
+            or the required estimates/quantiles are numerically degenerate.
+
+        Notes
+        -----
+        See the class Notes for the exact formula, critical tail and
+        calibration requirements.
         """
 
-        sorted_rvs = np.sort(np.asarray(rvs))
-        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.alpha, scale=1 / self.beta)
+        sorted_rvs = np.sort(_sample(rvs))
+        cdf_vals = self._cdf(sorted_rvs)
         spacings = np.diff(np.concatenate(([0.0], cdf_vals, [1.0])))
         if np.any(spacings < 0):
             raise ValueError("Spacings must be non-negative; check input data ordering.")
@@ -448,11 +916,49 @@ class GreenwoodGammaGofStatistic(AbstractGammaGofStatistic):
 
 
 class MoranGammaGofStatistic(AbstractGammaGofStatistic):
-    """
-    Moran log-spacing statistic applied to Gamma-transformed uniforms.
+    """Negative log product of Gamma probability spacings.
 
-    Test based on sum of log-transformed spacings between consecutive Gamma CDF values.
-    Sensitive to uniformity of probability integral transform.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Fixed finite positive shape and rate, respectively. Both default to 1.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Compute one scalar statistic without changing the sample.
+    hypothesis()
+        Return fixed null parameters; omitted keys mean unknown parameters.
+
+    Notes
+    -----
+    For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+    where Gamma has shape alpha, rate beta and known origin zero.
+    Parameters are fixed, not fitted. Samples must be finite, real,
+    one-dimensional and nonempty, in the closed support [0, infinity).
+    Zero is accepted as a boundary value. Ties and constant samples are
+    allowed except where stated. Inputs and instance state are unchanged.
+    Continuous-null calibration assumes iid observations; rounded data
+    require calibration of the observation process.
+
+    M = -sum(log(n*D_j)), j=1,...,n+1, with D_j=u_j-u_(j-1),
+    u_0=0 and u_(n+1)=1. The historical n scaling is retained: this
+    is shifted upward by (n+1)*log((n+1)/n) relative to (n+1) scaling.
+    Zero observations or repeated values give positive infinity.
+    Log-CDF differences in the lower tail and log-survival differences
+    in the upper tail avoid subtracting CDF values rounded to one.
+    Unresolved spacings at float64 precision also produce infinity.
+    No primary source for this exact normalization was verified in the
+    source search; do not reuse tables with another normalization.
+
+    Reject for large values. No p-value is computed by this class.
+
+    Examples
+    --------
+    >>> statistic = MoranGammaGofStatistic()
+    >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -482,34 +988,89 @@ class MoranGammaGofStatistic(AbstractGammaGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the Moran test statistic for Gamma distribution.
+        """Compute the scalar statistic defined in the class Notes.
 
-        :param rvs: array of observations assumed to follow Gamma(shape, scale).
-        :return: Moran spacing statistic M = -sum(log(n * D_i)) based on Gamma CDF spacings.
-        :raises ValueError: if sample is empty or spacings are not strictly positive.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real nonnegative observations. Zero is a support boundary.
+            At least one observation; ties and constant samples are allowed.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float or numpy.float64
+            The statistic in the class Notes. No p-value is calculated.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the stated shape, support or size constraints,
+            or the required estimates/quantiles are numerically degenerate.
+
+        Notes
+        -----
+        Zero spacings (ties or the zero boundary) return positive infinity.
+        Unresolved spacings at float64 precision also return infinity.
         """
 
-        sorted_rvs = np.sort(np.asarray(rvs))
+        sorted_rvs = np.sort(_sample(rvs))
         n = len(sorted_rvs)
-        if n == 0:
-            raise ValueError("At least one observation is required to compute the Moran statistic.")
 
-        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.alpha, scale=1 / self.beta)
-        spacings = np.diff(np.concatenate(([0.0], cdf_vals, [1.0])))
-        if np.any(spacings <= 0):
-            raise ValueError("Spacings must be strictly positive for the Moran statistic.")
-
-        scaled_spacings = n * spacings
-        return float(-np.sum(np.log(scaled_spacings)))
+        log_cdf, log_sf = self._logs(sorted_rvs)
+        lower = log_cdf[1:] <= -np.log(2.0)
+        high = np.where(lower, log_cdf[1:], log_sf[:-1])
+        low = np.where(lower, log_cdf[:-1], log_sf[1:])
+        with np.errstate(divide="ignore", invalid="ignore"):
+            interior = high + np.log(-np.expm1(low - high))
+        interior = np.where(high == low, -np.inf, interior)
+        log_spacings = np.concatenate(([log_cdf[0]], interior, [log_sf[-1]]))
+        return float(-np.sum(log_spacings) - (n + 1) * np.log(n))
 
 
 class MinToshiyukiGammaGofStatistic(AbstractGammaGofStatistic, MinToshiyukiStatistic):
-    """
-    Min–Toshiyuki tail-sensitive EDF statistic under a Gamma model.
+    """Locally defined tail-weighted Gamma EDF discrepancy.
 
-    EDF statistic with adaptive tail sensitivity that up-weights deviations
-    near the distribution tails using Gamma CDF values.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Fixed finite positive shape and rate, respectively. Both default to 1.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Compute one scalar statistic without changing the sample.
+    hypothesis()
+        Return fixed null parameters; omitted keys mean unknown parameters.
+
+    Notes
+    -----
+    For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+    where Gamma has shape alpha, rate beta and known origin zero.
+    Parameters are fixed, not fitted. Samples must be finite, real,
+    one-dimensional and nonempty, in the closed support [0, infinity).
+    Zero is accepted as a boundary value. Ties and constant samples are
+    allowed except where stated. Inputs and instance state are unchanged.
+    Continuous-null calibration assumes iid observations; rounded data
+    require calibration of the observation process.
+
+    T = sum(max(i/n-u_i, u_i-(i-1)/n)/sqrt(u_i*(1-u_i)))/sqrt(n).
+    Weights use log-CDF and log-survival values for tail accuracy.
+    Zero observations yield positive infinity; extreme weights may overflow.
+    The public name is retained. No primary source establishing this exact
+    formula as a Gamma test was found. Liao and Shimokawa (1999) studied
+    other families and do not establish this Gamma calibration.
+    Use simulation of this formula under the specified Gamma null.
+
+    Reject for large values. No p-value is computed by this class.
+
+    Examples
+    --------
+    >>> statistic = MinToshiyukiGammaGofStatistic()
+    >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -535,17 +1096,40 @@ class MinToshiyukiGammaGofStatistic(AbstractGammaGofStatistic, MinToshiyukiStati
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the Min-Toshiyuki test statistic for Gamma distribution.
+        """Compute the scalar statistic defined in the class Notes.
 
-        :param rvs: array of observations assumed to follow Gamma(shape, scale).
-        :return: Min–Toshiyuki statistic that up-weights EDF deviations near the distribution tails
-        using Gamma CDF values.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real nonnegative observations. Zero is a support boundary.
+            At least one observation; ties and constant samples are allowed.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float or numpy.float64
+            The statistic in the class Notes. No p-value is calculated.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the stated shape, support or size constraints,
+            or the required estimates/quantiles are numerically degenerate.
+
+        Notes
+        -----
+        Zero observations return positive infinity. Extreme tail weights
+        can overflow; no epsilon clipping is applied.
         """
 
-        sorted_rvs = np.sort(np.asarray(rvs))
-        cdf_vals = scipy_stats.gamma.cdf(sorted_rvs, a=self.alpha, scale=1 / self.beta)
-        return MinToshiyukiStatistic.do_execute_statistic(self, cdf_vals)
+        sorted_rvs = np.sort(_sample(rvs))
+        cdf_vals = self._cdf(sorted_rvs)
+        n = sorted_rvs.size
+        d = np.maximum(np.arange(1, n + 1) / n - cdf_vals, cdf_vals - np.arange(n) / n)
+        log_cdf, log_sf = self._logs(sorted_rvs)
+        with np.errstate(over="ignore"):
+            return float(np.sum(d * np.exp(-0.5 * (log_cdf + log_sf))) / np.sqrt(n))
 
 
 class AbstractBinnedGammaGofStatistic(AbstractGammaGofStatistic, Chi2Statistic, ABC):
@@ -559,34 +1143,63 @@ class AbstractBinnedGammaGofStatistic(AbstractGammaGofStatistic, Chi2Statistic, 
     lambda_value: float = 1.0
 
     def __init__(self, bins: int = 8, alpha: float = 1.0, beta: float = 1.0):
-        if bins < 2:
+        if (
+            isinstance(bins, (bool, np.bool_))
+            or not isinstance(bins, (int, np.integer))
+            or bins < 2
+        ):
             raise ValueError("At least two bins are required for binned Gamma statistics.")
         self.bins = bins
         AbstractGammaGofStatistic.__init__(self, alpha=alpha, beta=beta)
         self.lambda_value = getattr(self, "lambda_value", 1.0)
 
+    def _validate_storage_calibration(self):
+        raise ValueError(
+            "Gamma histogram calibration must include bins and power; "
+            "the storage key does not include these settings"
+        )
+
     def _counts_and_expected(self, rvs):
-        sample = np.asarray(rvs)
+        sample = _sample(rvs)
         n = sample.size
-        if n == 0:
-            raise ValueError("At least one observation is required for binned Gamma statistics.")
 
         quantiles = np.linspace(0.0, 1.0, self.bins + 1)
-        edges = scipy_stats.gamma.ppf(quantiles, a=self.alpha, scale=1 / self.beta)
+        edges = scipy_stats.gamma.ppf(quantiles, a=self.alpha)
+        if not np.all(np.isfinite(edges[1:-1])) or np.any(np.diff(edges) <= 0):
+            raise ValueError("Gamma quantile bins collapse at float64 precision")
         edges[0] = -np.inf
         edges[-1] = np.inf
-        counts, _ = np.histogram(sample, bins=edges)
+        counts, _ = np.histogram(self._scaled(sample), bins=edges)
         expected = np.full(self.bins, n / self.bins)
         return counts, expected
 
     @override
-    def execute_statistic(self, rvs):
-        """
-        Execute the binned chi-squared test statistic for Gamma distribution.
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the scalar statistic defined in the class Notes.
 
-        :param rvs: array of observations assumed to follow Gamma(shape, scale).
-        :return: chi-squared test statistic value computed on equiprobable Gamma bins.
-        :raises ValueError: if sample is empty.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real nonnegative observations. Zero is a support boundary.
+            At least one observation; ties and constant samples are allowed.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float or numpy.float64
+            The statistic in the class Notes. No p-value is calculated.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the stated shape, support or size constraints,
+            or the required estimates/quantiles are numerically degenerate.
+
+        Notes
+        -----
+        Empty bins return positive infinity for power <= -1.
+        For power > -1 their contribution is evaluated by continuity.
         """
         counts, expected = self._counts_and_expected(rvs)
         return float(
@@ -595,11 +1208,56 @@ class AbstractBinnedGammaGofStatistic(AbstractGammaGofStatistic, Chi2Statistic, 
 
 
 class Chi2PearsonGammaGofStatistic(AbstractBinnedGammaGofStatistic):
-    """
-    Pearson chi-square frequency test based on Gamma equiprobable bins.
+    """Pearson statistic on equiprobable Gamma quantile bins.
 
-    Implements Karl Pearson's (1900) frequency test by binning via the Gamma
-    quantile function so each bin has equal theoretical probability.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Fixed finite positive shape and rate, respectively. Both default to 1.
+    bins : int, optional
+        Number of equal-probability bins, at least 2. Default is 8.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Compute one scalar statistic without changing the sample.
+    hypothesis()
+        Return fixed null parameters; omitted keys mean unknown parameters.
+
+    Notes
+    -----
+    For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+    where Gamma has shape alpha, rate beta and known origin zero.
+    Parameters are fixed, not fitted. Samples must be finite, real,
+    one-dimensional and nonempty, in the closed support [0, infinity).
+    Zero is accepted as a boundary value. Ties and constant samples are
+    allowed except where stated. Inputs and instance state are unchanged.
+    Continuous-null calibration assumes iid observations; rounded data
+    require calibration of the observation process.
+
+    X2 = sum((O_j-E_j)**2/E_j), with E_j=n/bins and O_j the bin counts.
+    Bins are [q_j,q_(j+1)); the last includes its right endpoint.
+    Here q_j=Gamma.ppf(j/bins, alpha, scale=1/beta).
+    This is the power-divergence family at power=1.
+    Reject for large values. Under the fixed null, counts are multinomial
+    with probabilities 1/bins. Null calibration depends on n, bins and power.
+    The chi-square(bins-1) approximation requires sufficiently large expected
+    counts. Storage lookup is blocked because its key omits bins and power;
+    use MonteCarloLimitDistributionResolver, which uses this instance.
+    Unrepresentable quantile boundaries raise ValueError.
+
+    References
+    ----------
+    .. [1] N. Cressie and T. R. C. Read (1984), "Multinomial Goodness-Of-Fit
+       Tests", J. R. Statist. Soc. B 46, 440-464.
+       https://doi.org/10.1111/j.2517-6161.1984.tb01318.x
+
+    Examples
+    --------
+    >>> statistic = Chi2PearsonGammaGofStatistic()
+    >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     lambda_value = 1.0
@@ -626,23 +1284,88 @@ class Chi2PearsonGammaGofStatistic(AbstractBinnedGammaGofStatistic):
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs):
-        """
-        Execute Pearson chi-square statistic for Gamma distribution.
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the scalar statistic defined in the class Notes.
 
-        :param rvs: array of observations assumed to follow Gamma(shape, scale).
-        :return: Pearson chi-square statistic computed on equiprobable Gamma bins.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real nonnegative observations. Zero is a support boundary.
+            At least one observation; ties and constant samples are allowed.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float or numpy.float64
+            The statistic in the class Notes. No p-value is calculated.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the stated shape, support or size constraints,
+            or the required estimates/quantiles are numerically degenerate.
+
+        Notes
+        -----
+        See the class Notes for the exact formula, critical tail and
+        calibration requirements.
         """
 
         return super().execute_statistic(rvs)
 
 
 class LikelihoodRatioGammaGofStatistic(AbstractBinnedGammaGofStatistic):
-    """
-    Log-likelihood ratio (G-test) for Gamma reference distribution.
+    """Multinomial likelihood-ratio statistic on Gamma quantile bins.
 
-    Follows the classical G-test described by S. S. Wilks (1935) and tests
-    histogram counts against expected Gamma frequencies.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Fixed finite positive shape and rate, respectively. Both default to 1.
+    bins : int, optional
+        Number of equal-probability bins, at least 2. Default is 8.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Compute one scalar statistic without changing the sample.
+    hypothesis()
+        Return fixed null parameters; omitted keys mean unknown parameters.
+
+    Notes
+    -----
+    For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+    where Gamma has shape alpha, rate beta and known origin zero.
+    Parameters are fixed, not fitted. Samples must be finite, real,
+    one-dimensional and nonempty, in the closed support [0, infinity).
+    Zero is accepted as a boundary value. Ties and constant samples are
+    allowed except where stated. Inputs and instance state are unchanged.
+    Continuous-null calibration assumes iid observations; rounded data
+    require calibration of the observation process.
+
+    G2 = 2*sum(O_j*log(O_j/E_j)), with E_j=n/bins.
+    Zero counts contribute zero by continuity. Bins use Gamma quantiles
+    at j/bins, include the left boundary, and cover the entire support.
+    This is the power-divergence limit at power=0.
+    Reject for large values. Under the fixed null, counts are multinomial
+    with probabilities 1/bins. Null calibration depends on n, bins and power.
+    The chi-square(bins-1) approximation requires sufficiently large expected
+    counts. Storage lookup is blocked because its key omits bins and power;
+    use MonteCarloLimitDistributionResolver, which uses this instance.
+    Unrepresentable quantile boundaries raise ValueError.
+
+    References
+    ----------
+    .. [1] N. Cressie and T. R. C. Read (1984), "Multinomial Goodness-Of-Fit
+       Tests", J. R. Statist. Soc. B 46, 440-464.
+       https://doi.org/10.1111/j.2517-6161.1984.tb01318.x
+
+    Examples
+    --------
+    >>> statistic = LikelihoodRatioGammaGofStatistic()
+    >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     lambda_value = 0.0
@@ -669,23 +1392,92 @@ class LikelihoodRatioGammaGofStatistic(AbstractBinnedGammaGofStatistic):
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs):
-        """
-        Execute likelihood-ratio statistic for Gamma distribution.
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the scalar statistic defined in the class Notes.
 
-        :param rvs: array of observations assumed to follow Gamma(shape, scale).
-        :return: likelihood-ratio statistic using equiprobable Gamma quantile bins.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real nonnegative observations. Zero is a support boundary.
+            At least one observation; ties and constant samples are allowed.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float or numpy.float64
+            The statistic in the class Notes. No p-value is calculated.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the stated shape, support or size constraints,
+            or the required estimates/quantiles are numerically degenerate.
+
+        Notes
+        -----
+        See the class Notes for the exact formula, critical tail and
+        calibration requirements.
         """
 
         return super().execute_statistic(rvs)
 
 
 class CressieReadGammaGofStatistic(AbstractBinnedGammaGofStatistic):
-    """
-    Cressie–Read power-divergence statistic for Gamma data.
+    """Cressie-Read power divergence on Gamma quantile bins.
 
-    Power-divergence statistic bridging Pearson (lambda=1) and G-tests (lambda=0).
-    Defaults to the recommended lambda=2/3 value from Read & Cressie (1988).
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Fixed finite positive shape and rate, respectively. Both default to 1.
+    bins : int, optional
+        Number of equal-probability bins, at least 2. Default is 8.
+    power : float, optional
+        Finite real divergence power. Default is 2/3.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Compute one scalar statistic without changing the sample.
+    hypothesis()
+        Return fixed null parameters; omitted keys mean unknown parameters.
+
+    Notes
+    -----
+    For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+    where Gamma has shape alpha, rate beta and known origin zero.
+    Parameters are fixed, not fitted. Samples must be finite, real,
+    one-dimensional and nonempty, in the closed support [0, infinity).
+    Zero is accepted as a boundary value. Ties and constant samples are
+    allowed except where stated. Inputs and instance state are unchanged.
+    Continuous-null calibration assumes iid observations; rounded data
+    require calibration of the observation process.
+
+    T = 2*sum(O_j*((O_j/E_j)**power-1))/(power*(power+1)),
+    where E_j=n/bins. Quantile bins include their left boundary.
+    power=0 uses 2*sum(O_j*log(O_j/E_j)); power=-1 uses
+    2*sum(E_j*log(E_j/O_j)). Zero counts contribute zero for
+    power>-1 in the first formula and give infinity for power<=-1.
+    Large powers may overflow; values very near 0 or -1 can lose precision.
+    Reject for large values. Under the fixed null, counts are multinomial
+    with probabilities 1/bins. Null calibration depends on n, bins and power.
+    The chi-square(bins-1) approximation requires sufficiently large expected
+    counts. Storage lookup is blocked because its key omits bins and power;
+    use MonteCarloLimitDistributionResolver, which uses this instance.
+    Unrepresentable quantile boundaries raise ValueError.
+
+    References
+    ----------
+    .. [1] N. Cressie and T. R. C. Read (1984), "Multinomial Goodness-Of-Fit
+       Tests", J. R. Statist. Soc. B 46, 440-464.
+       https://doi.org/10.1111/j.2517-6161.1984.tb01318.x
+
+    Examples
+    --------
+    >>> statistic = CressieReadGammaGofStatistic()
+    >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     def __init__(
@@ -695,7 +1487,7 @@ class CressieReadGammaGofStatistic(AbstractBinnedGammaGofStatistic):
         alpha: float = 1.0,
         beta: float = 1.0,
     ):
-        self.lambda_value = power
+        self.lambda_value = _scalar(power, "power")
         super().__init__(bins=bins, alpha=alpha, beta=beta)
 
     @staticmethod
@@ -720,28 +1512,86 @@ class CressieReadGammaGofStatistic(AbstractBinnedGammaGofStatistic):
         return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs):
-        """
-        Execute Cressie-Read power-divergence statistic for Gamma distribution.
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the scalar statistic defined in the class Notes.
 
-        :param rvs: array of observations assumed to follow Gamma(shape, scale).
-        :return: power-divergence statistic bridging Pearson and G-tests.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real nonnegative observations. Zero is a support boundary.
+            At least one observation; ties and constant samples are allowed.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float or numpy.float64
+            The statistic in the class Notes. No p-value is calculated.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the stated shape, support or size constraints,
+            or the required estimates/quantiles are numerically degenerate.
+
+        Notes
+        -----
+        Empty bins return positive infinity for power <= -1.
+        For power > -1 their contribution is evaluated by continuity.
         """
 
         return super().execute_statistic(rvs)
 
 
 class ProbabilityPlotCorrelationGammaGofStatistic(AbstractGammaGofStatistic):
-    """
-    Filliben-style PPCC statistic comparing Gamma quantiles to the sample.
+    """Gamma quantile correlation discrepancy with Blom positions.
 
-    Probability plot correlation coefficient test that measures linear alignment
-    between ordered sample values and theoretical Gamma quantiles.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Fixed finite positive shape and rate, respectively. Both default to 1.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Compute one scalar statistic without changing the sample.
+    hypothesis()
+        Return fixed null parameters; omitted keys mean unknown parameters.
+
+    Notes
+    -----
+    For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+    where Gamma has shape alpha, rate beta and known origin zero.
+    Parameters are fixed, not fitted. Samples must be finite, real,
+    one-dimensional and nonempty, in the closed support [0, infinity).
+    Zero is accepted as a boundary value. Ties and constant samples are
+    allowed except where stated. Inputs and instance state are unchanged.
+    Continuous-null calibration assumes iid observations; rounded data
+    require calibration of the observation process.
+
+    Return 1-r, where r is the Pearson correlation of ordered x with
+    Gamma.ppf((i-0.375)/(n+0.25), alpha, scale=1). The rate cancels
+    from correlation; beta remains fixed in the declared null hypothesis.
+    The statistic cannot detect positive affine changes of the sample.
+    The null law depends on alpha. A nonconstant sample with n>=2 is
+    required; for n=2 the statistic is degenerate and has no useful power.
+    Independent rescaling of data and quantiles avoids moment overflow.
+    No primary source validating this exact Gamma/Blom test was found;
+    Filliben normality tables do not calibrate it.
+
+    Reject for large values. No p-value is computed by this class.
+
+    Examples
+    --------
+    >>> statistic = ProbabilityPlotCorrelationGammaGofStatistic()
+    >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
     def alternative(self) -> Alternative:
-        return LeftAlternative()
+        return RightAlternative()
 
     @staticmethod
     @override
@@ -766,23 +1616,43 @@ class ProbabilityPlotCorrelationGammaGofStatistic(AbstractGammaGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the probability plot correlation coefficient test for Gamma distribution.
+        """Compute the scalar statistic defined in the class Notes.
 
-        :param rvs: array of observations assumed to follow Gamma(shape, scale).
-        :return: one minus the probability-plot correlation coefficient. Values near zero
-        indicate strong linear alignment with theoretical Gamma quantiles.
-        :raises ValueError: if sample has fewer than 2 observations or data is degenerate.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real nonnegative observations. Zero is a support boundary.
+            At least two observations; the sample must be nonconstant.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float or numpy.float64
+            The statistic in the class Notes. No p-value is calculated.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the stated shape, support or size constraints,
+            or the required estimates/quantiles are numerically degenerate.
+
+        Notes
+        -----
+        See the class Notes for the exact formula, critical tail and
+        calibration requirements.
         """
 
-        sample = np.sort(np.asarray(rvs, dtype=float))
+        sample = np.sort(_sample(rvs, minimum=2))
         n = sample.size
-        if n < 2:
-            raise ValueError("At least two observations are required for the PPCC statistic.")
 
         plotting_positions = (np.arange(1, n + 1) - 0.375) / (n + 0.25)
-        expected = scipy_stats.gamma.ppf(plotting_positions, a=self.alpha, scale=1 / self.beta)
+        expected = scipy_stats.gamma.ppf(plotting_positions, a=self.alpha)
 
+        if np.max(sample) == 0 or not np.all(np.isfinite(expected)) or np.max(expected) == 0:
+            raise ValueError("Degenerate data encountered while computing PPCC statistic.")
+        sample /= np.max(sample)
+        expected /= np.max(expected)
         sample_centered = sample - np.mean(sample)
         expected_centered = expected - np.mean(expected)
         numerator = np.sum(sample_centered * expected_centered)
@@ -791,7 +1661,7 @@ class ProbabilityPlotCorrelationGammaGofStatistic(AbstractGammaGofStatistic):
             raise ValueError("Degenerate data encountered while computing PPCC statistic.")
 
         corr = numerator / denominator
-        return float(1.0 - corr)
+        return float(1.0 - np.clip(corr, -1.0, 1.0))
 
 
 class AbstractGraphGammaGofStatistic(AbstractGammaGofStatistic, AbstractGraphTestStatistic):
@@ -818,14 +1688,10 @@ class AbstractGraphGammaGofStatistic(AbstractGammaGofStatistic, AbstractGraphTes
         return f"GRAPH_{parent_code}"
 
     def _transform_sample(self, rvs):
-        sample = np.asarray(rvs, dtype=float)
-        if sample.size == 0:
-            raise ValueError(
-                "At least one observation is required to compute Gamma graph statistics."
-            )
+        sample = _sample(rvs)
 
         sorted_sample = np.sort(sample)
-        uniformized = scipy_stats.gamma.cdf(sorted_sample, a=self.alpha, scale=1 / self.beta)
+        uniformized = self._cdf(sorted_sample)
         return uniformized.tolist()
 
     def _evaluate_graph_statistic(self, transformed_sample, **kwargs):
@@ -835,25 +1701,80 @@ class AbstractGraphGammaGofStatistic(AbstractGammaGofStatistic, AbstractGraphTes
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the graph-based test statistic for Gamma distribution.
+        """Compute the scalar statistic defined in the class Notes.
 
-        :param rvs: array of observations assumed to follow Gamma(shape, scale).
-        :return: graph-based test statistic value computed on Gamma-CDF transformed data.
-        :raises ValueError: if sample is empty.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real nonnegative observations. Zero is a support boundary.
+            At least one observation; ties and constant samples are allowed.
+        **kwargs : dict, optional
+            Reserved for interface compatibility; ignored.
+
+        Returns
+        -------
+        statistic : float or numpy.float64
+            The statistic in the class Notes. No p-value is calculated.
+
+        Raises
+        ------
+        ValueError
+            If the sample violates the stated shape, support or size constraints,
+            or the required estimates/quantiles are numerically degenerate.
+
+        Notes
+        -----
+        Uses the strict distance rule in the concrete class Notes.
+        A nonempty constant sample yields an edgeless graph.
         """
         transformed_sample = self._transform_sample(rvs)
-        return self._evaluate_graph_statistic(transformed_sample, **kwargs)
+        return float(self._evaluate_graph_statistic(transformed_sample, **kwargs))
 
 
 class GraphEdgesNumberGammaGofStatistic(
     AbstractGraphGammaGofStatistic, GraphEdgesNumberTestStatistic
 ):
-    """
-    Counts edges in the proximity graph built on Gamma-CDF spacings.
+    """Number of undirected edges, sum(degrees)/2.
 
-    Graph-based test that counts edges in proximity graph constructed from
-    Gamma probability integral transform of the data.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Fixed finite positive shape and rate, respectively. Both default to 1.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Compute one scalar statistic without changing the sample.
+    hypothesis()
+        Return fixed null parameters; omitted keys mean unknown parameters.
+
+    Notes
+    -----
+    For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+    where Gamma has shape alpha, rate beta and known origin zero.
+    Parameters are fixed, not fitted. Samples must be finite, real,
+    one-dimensional and nonempty, in the closed support [0, infinity).
+    Zero is accepted as a boundary value. Ties and constant samples are
+    allowed except where stated. Inputs and instance state are unchanged.
+    Continuous-null calibration assumes iid observations; rounded data
+    require calibration of the observation process.
+
+    Number of undirected edges, sum(degrees)/2.
+    Vertices are observations transformed by the fixed Gamma CDF.
+    An edge joins i and j exactly when abs(u_i-u_j) < h, with
+    h=(max(u)-min(u))/10. This uses CDF positions, not their spacings.
+    Ties are separate vertices; h=0 yields an edgeless graph.
+    Both tails are selected as a local convention; calibrate this exact
+    graph construction. No primary source establishing this Gamma-specific
+    procedure or its power properties was found. Floating-point saturation
+    of the CDF can merge distinct tail values.
+
+    Examples
+    --------
+    >>> statistic = GraphEdgesNumberGammaGofStatistic()
+    >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -870,11 +1791,47 @@ class GraphEdgesNumberGammaGofStatistic(
 
 
 class GraphMaxDegreeGammaGofStatistic(AbstractGraphGammaGofStatistic, GraphMaxDegreeTestStatistic):
-    """
-    Maximum degree in the Gamma-induced proximity graph.
+    """Maximum vertex degree.
 
-    Graph-based test that computes maximum vertex degree in proximity graph
-    constructed from Gamma probability integral transform of the data.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Fixed finite positive shape and rate, respectively. Both default to 1.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Compute one scalar statistic without changing the sample.
+    hypothesis()
+        Return fixed null parameters; omitted keys mean unknown parameters.
+
+    Notes
+    -----
+    For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+    where Gamma has shape alpha, rate beta and known origin zero.
+    Parameters are fixed, not fitted. Samples must be finite, real,
+    one-dimensional and nonempty, in the closed support [0, infinity).
+    Zero is accepted as a boundary value. Ties and constant samples are
+    allowed except where stated. Inputs and instance state are unchanged.
+    Continuous-null calibration assumes iid observations; rounded data
+    require calibration of the observation process.
+
+    Maximum vertex degree.
+    Vertices are observations transformed by the fixed Gamma CDF.
+    An edge joins i and j exactly when abs(u_i-u_j) < h, with
+    h=(max(u)-min(u))/10. This uses CDF positions, not their spacings.
+    Ties are separate vertices; h=0 yields an edgeless graph.
+    Both tails are selected as a local convention; calibrate this exact
+    graph construction. No primary source establishing this Gamma-specific
+    procedure or its power properties was found. Floating-point saturation
+    of the CDF can merge distinct tail values.
+
+    Examples
+    --------
+    >>> statistic = GraphMaxDegreeGammaGofStatistic()
+    >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -893,11 +1850,47 @@ class GraphMaxDegreeGammaGofStatistic(AbstractGraphGammaGofStatistic, GraphMaxDe
 class GraphAverageDegreeGammaGofStatistic(
     AbstractGraphGammaGofStatistic, GraphAverageDegreeTestStatistic
 ):
-    """
-    Average vertex degree of the Gamma proximity graph.
+    """Mean vertex degree, 2*edges/n.
 
-    Graph-based test that computes average vertex degree in proximity graph
-    constructed from Gamma probability integral transform of the data.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Fixed finite positive shape and rate, respectively. Both default to 1.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Compute one scalar statistic without changing the sample.
+    hypothesis()
+        Return fixed null parameters; omitted keys mean unknown parameters.
+
+    Notes
+    -----
+    For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+    where Gamma has shape alpha, rate beta and known origin zero.
+    Parameters are fixed, not fitted. Samples must be finite, real,
+    one-dimensional and nonempty, in the closed support [0, infinity).
+    Zero is accepted as a boundary value. Ties and constant samples are
+    allowed except where stated. Inputs and instance state are unchanged.
+    Continuous-null calibration assumes iid observations; rounded data
+    require calibration of the observation process.
+
+    Mean vertex degree, 2*edges/n.
+    Vertices are observations transformed by the fixed Gamma CDF.
+    An edge joins i and j exactly when abs(u_i-u_j) < h, with
+    h=(max(u)-min(u))/10. This uses CDF positions, not their spacings.
+    Ties are separate vertices; h=0 yields an edgeless graph.
+    Both tails are selected as a local convention; calibrate this exact
+    graph construction. No primary source establishing this Gamma-specific
+    procedure or its power properties was found. Floating-point saturation
+    of the CDF can merge distinct tail values.
+
+    Examples
+    --------
+    >>> statistic = GraphAverageDegreeGammaGofStatistic()
+    >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -916,11 +1909,47 @@ class GraphAverageDegreeGammaGofStatistic(
 class GraphConnectedComponentsGammaGofStatistic(
     AbstractGraphGammaGofStatistic, GraphConnectedComponentsTestStatistic
 ):
-    """
-    Number of connected components in the Gamma proximity graph.
+    """Number of connected components, including isolated vertices.
 
-    Graph-based test that counts connected components in proximity graph
-    constructed from Gamma probability integral transform of the data.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Fixed finite positive shape and rate, respectively. Both default to 1.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Compute one scalar statistic without changing the sample.
+    hypothesis()
+        Return fixed null parameters; omitted keys mean unknown parameters.
+
+    Notes
+    -----
+    For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+    where Gamma has shape alpha, rate beta and known origin zero.
+    Parameters are fixed, not fitted. Samples must be finite, real,
+    one-dimensional and nonempty, in the closed support [0, infinity).
+    Zero is accepted as a boundary value. Ties and constant samples are
+    allowed except where stated. Inputs and instance state are unchanged.
+    Continuous-null calibration assumes iid observations; rounded data
+    require calibration of the observation process.
+
+    Number of connected components, including isolated vertices.
+    Vertices are observations transformed by the fixed Gamma CDF.
+    An edge joins i and j exactly when abs(u_i-u_j) < h, with
+    h=(max(u)-min(u))/10. This uses CDF positions, not their spacings.
+    Ties are separate vertices; h=0 yields an edgeless graph.
+    Both tails are selected as a local convention; calibrate this exact
+    graph construction. No primary source establishing this Gamma-specific
+    procedure or its power properties was found. Floating-point saturation
+    of the CDF can merge distinct tail values.
+
+    Examples
+    --------
+    >>> statistic = GraphConnectedComponentsGammaGofStatistic()
+    >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -939,11 +1968,47 @@ class GraphConnectedComponentsGammaGofStatistic(
 class GraphCliqueNumberGammaGofStatistic(
     AbstractGraphGammaGofStatistic, GraphCliqueNumberTestStatistic
 ):
-    """
-    Largest clique observed in the Gamma proximity graph.
+    """Size of the largest clique (1 for a nonempty edgeless graph).
 
-    Graph-based test that computes maximum clique size in proximity graph
-    constructed from Gamma probability integral transform of the data.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Fixed finite positive shape and rate, respectively. Both default to 1.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Compute one scalar statistic without changing the sample.
+    hypothesis()
+        Return fixed null parameters; omitted keys mean unknown parameters.
+
+    Notes
+    -----
+    For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+    where Gamma has shape alpha, rate beta and known origin zero.
+    Parameters are fixed, not fitted. Samples must be finite, real,
+    one-dimensional and nonempty, in the closed support [0, infinity).
+    Zero is accepted as a boundary value. Ties and constant samples are
+    allowed except where stated. Inputs and instance state are unchanged.
+    Continuous-null calibration assumes iid observations; rounded data
+    require calibration of the observation process.
+
+    Size of the largest clique (1 for a nonempty edgeless graph).
+    Vertices are observations transformed by the fixed Gamma CDF.
+    An edge joins i and j exactly when abs(u_i-u_j) < h, with
+    h=(max(u)-min(u))/10. This uses CDF positions, not their spacings.
+    Ties are separate vertices; h=0 yields an edgeless graph.
+    Both tails are selected as a local convention; calibrate this exact
+    graph construction. No primary source establishing this Gamma-specific
+    procedure or its power properties was found. Floating-point saturation
+    of the CDF can merge distinct tail values.
+
+    Examples
+    --------
+    >>> statistic = GraphCliqueNumberGammaGofStatistic()
+    >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -959,17 +2024,62 @@ class GraphCliqueNumberGammaGofStatistic(
         return f"{short_code}_{parent_code}"
 
     def _evaluate_graph_statistic(self, transformed_sample, **kwargs):
-        return GraphCliqueNumberTestStatistic.execute_statistic(self, transformed_sample, **kwargs)
+        distance = self._compute_dist(transformed_sample)
+        if distance == 0:
+            return 1.0
+        right = 0
+        largest = 1
+        for left, value in enumerate(transformed_sample):
+            while right < len(transformed_sample) and transformed_sample[right] - value < distance:
+                right += 1
+            largest = max(largest, right - left)
+        return float(largest)
 
 
 class GraphIndependenceNumberGammaGofStatistic(
     AbstractGraphGammaGofStatistic, GraphIndependenceNumberTestStatistic
 ):
-    """
-    Independence number of the Gamma proximity graph.
+    """Size of the largest independent set (n for an edgeless graph).
 
-    Graph-based test that computes maximum independent set size in proximity graph
-    constructed from Gamma probability integral transform of the data.
+    Parameters
+    ----------
+    alpha, beta : float, optional
+        Fixed finite positive shape and rate, respectively. Both default to 1.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Compute one scalar statistic without changing the sample.
+    hypothesis()
+        Return fixed null parameters; omitted keys mean unknown parameters.
+
+    Notes
+    -----
+    For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+    where Gamma has shape alpha, rate beta and known origin zero.
+    Parameters are fixed, not fitted. Samples must be finite, real,
+    one-dimensional and nonempty, in the closed support [0, infinity).
+    Zero is accepted as a boundary value. Ties and constant samples are
+    allowed except where stated. Inputs and instance state are unchanged.
+    Continuous-null calibration assumes iid observations; rounded data
+    require calibration of the observation process.
+
+    Size of the largest independent set (n for an edgeless graph).
+    Vertices are observations transformed by the fixed Gamma CDF.
+    An edge joins i and j exactly when abs(u_i-u_j) < h, with
+    h=(max(u)-min(u))/10. This uses CDF positions, not their spacings.
+    Ties are separate vertices; h=0 yields an edgeless graph.
+    Both tails are selected as a local convention; calibrate this exact
+    graph construction. No primary source establishing this Gamma-specific
+    procedure or its power properties was found. Floating-point saturation
+    of the CDF can merge distinct tail values.
+
+    Examples
+    --------
+    >>> statistic = GraphIndependenceNumberGammaGofStatistic()
+    >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -985,6 +2095,11 @@ class GraphIndependenceNumberGammaGofStatistic(
         return f"{short_code}_{parent_code}"
 
     def _evaluate_graph_statistic(self, transformed_sample, **kwargs):
-        return GraphIndependenceNumberTestStatistic.execute_statistic(
-            self, transformed_sample, **kwargs
-        )
+        distance = self._compute_dist(transformed_sample)
+        last = transformed_sample[0]
+        count = 1
+        for value in transformed_sample[1:]:
+            if value - last >= distance:
+                count += 1
+                last = value
+        return float(count)

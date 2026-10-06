@@ -1,48 +1,39 @@
-# Graph clique number test for gamma distribution
+# Size of the largest clique (1 for a nonempty edgeless graph).
 
-## Description
-Performs graph clique number goodness-of-fit test for the hypothesis that the sample comes from a gamma distribution.
-The statistic computes the largest clique size in a proximity graph built on gamma CDF transformed observations.
+Size of the largest clique (1 for a nonempty edgeless graph).
+Vertices are observations transformed by the fixed Gamma CDF.
+An edge joins i and j exactly when abs(u_i-u_j) < h, with
+h=(max(u)-min(u))/10. This uses CDF positions, not their spacings.
+Ties are separate vertices; h=0 yields an edgeless graph.
+Both tails are selected as a local convention; calibrate this exact
+graph construction. No primary source establishing this Gamma-specific
+procedure or its power properties was found. Floating-point saturation
+of the CDF can merge distinct tail values.
 
-Hypothesis of Gamma Distribution
-The null hypothesis is that the data comes from a gamma distribution with positive shape parameter `alpha` and positive rate parameter `beta`.
+For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+where Gamma has shape alpha, rate beta and known origin zero.
+Parameters are fixed, not fitted. Samples must be finite, real,
+one-dimensional and nonempty, in the closed support [0, infinity).
+Zero is accepted as a boundary value. Ties and constant samples are
+allowed except where stated. Inputs and instance state are unchanged.
+Continuous-null calibration assumes iid observations; rounded data
+require calibration of the observation process.
+
+## Parameters
+
+```text
+alpha, beta : float, optional
+    Fixed finite positive shape and rate, respectively. Both default to 1.
+```
 
 ## Usage
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    GraphCliqueNumberGammaGofStatistic,
-)
+from pysatl_criterion.statistics.goodness_of_fit.gamma import GraphCliqueNumberGammaGofStatistic
 
-
-test_statistic = GraphCliqueNumberGammaGofStatistic(alpha=2, beta=1)
-statistic_result = test_statistic.execute_statistic([0.42, 0.77, 1.05, 1.48, 1.96, 2.34, 3.12])
-print(statistic_result)
+statistic = GraphCliqueNumberGammaGofStatistic()
+value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
 ```
 
-## Arguments
-`alpha` - positive shape parameter of the gamma distribution. Default value is `1.0`.
-
-`beta` - positive rate parameter of the gamma distribution. Default value is `1.0`.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-The sample is transformed to gamma CDF values. A proximity graph is built on the transformed values, and the statistic is the maximum clique size.
-
-## Author(s)
-Sergey Golovachev, Alexey Mironov
-
-## References
-The statistic follows the graph-based implementation in `pysatl_criterion.statistics.goodness_of_fit.gamma`.
-
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    GraphCliqueNumberGammaGofStatistic,
-)
-
-
-test_statistic = GraphCliqueNumberGammaGofStatistic(alpha=2, beta=1)
-statistic_result = test_statistic.execute_statistic([0.42, 0.77, 1.05, 1.48, 1.96, 2.34, 3.12])
-print(statistic_result)
-```
+Returns a scalar; both tails are used. Invalid samples raise `ValueError`.
+See the [audit](../../../gamma-statistics-audit.md) for calibration changes.

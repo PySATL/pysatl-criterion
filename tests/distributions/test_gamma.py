@@ -93,7 +93,8 @@ def test_lilliefors_gamma_statistic():
     Returns
     -------
     float
-        EDF discrepancy (expected 0.12149161117056506) following Lilliefors (1967).
+        EDF discrepancy (expected 0.12149161117056506) from direct evaluation
+        of the moment-fitted CDF.
     """
 
     statistic = LillieforsGammaGofStatistic().execute_statistic(_SAMPLE)
@@ -188,7 +189,8 @@ def test_min_toshiyuki_gamma_statistic():
     Returns
     -------
     float
-        Tail-sensitive score (expected 1.586859983429235) from Min & Toshiyuki (2015).
+        Tail-sensitive score (expected 1.586859983429235) from direct evaluation
+        of the documented local formula.
     """
 
     statistic = MinToshiyukiGammaGofStatistic(alpha=_SHAPE, beta=1 / _SCALE).execute_statistic(
@@ -226,7 +228,8 @@ def test_moran_gamma_statistic():
     Returns
     -------
     float
-        Sum of negative log-scaled spacings (expected 3.906045589439027) per Moran (1950).
+        Sum of negative log-scaled spacings (expected 3.906045589439027)
+        with the documented n scaling.
     """
 
     statistic = MoranGammaGofStatistic(
@@ -429,11 +432,10 @@ def test_lilliefors_gamma_requires_positive_moments():
 
 
 def test_moran_gamma_detects_non_positive_spacings():
-    """Duplicate-valued samples cause zero spacings and should error out."""
+    """Duplicate-valued samples give positive infinity by the log-spacing limit."""
 
     statistic = MoranGammaGofStatistic(alpha=_SHAPE, beta=1 / _SCALE)
-    with pytest.raises(ValueError, match="Spacings must be strictly positive"):
-        statistic.execute_statistic([1.0, 1.0, 1.0])
+    assert statistic.execute_statistic([1.0, 1.0, 1.0]) == np.inf
 
 
 def test_gamma_binned_statistics_validate_bin_count():
@@ -471,7 +473,7 @@ def test_graph_gamma_statistics_require_sample():
     """Graph-based Gamma tests should reject empty datasets."""
 
     statistic = GraphEdgesNumberGammaGofStatistic(alpha=_SHAPE, beta=1 / _SCALE)
-    with pytest.raises(ValueError, match="Gamma graph statistics"):
+    with pytest.raises(ValueError, match="At least one observation"):
         statistic.execute_statistic([])
 
 

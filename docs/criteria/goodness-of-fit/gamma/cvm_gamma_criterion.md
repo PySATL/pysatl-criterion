@@ -1,54 +1,40 @@
-# Cramer-von Mises test for gamma distribution
+# Cramer-von Mises statistic for a fixed Gamma CDF.
 
-## Description
-Performs Cramer-von Mises goodness-of-fit test for the hypothesis that the sample comes from a gamma distribution.
-The statistic accumulates squared differences between empirical plotting positions and gamma cumulative distribution function values.
+W2 = 1/(12*n) + sum((u_i-(2*i-1)/(2*n))**2).
+No fitted-parameter correction or additional n scaling is applied.
 
-Hypothesis of Gamma Distribution
-The null hypothesis is that the data comes from a gamma distribution with positive shape parameter `alpha` and positive rate parameter `beta`.
+For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+where Gamma has shape alpha, rate beta and known origin zero.
+Parameters are fixed, not fitted. Samples must be finite, real,
+one-dimensional and nonempty, in the closed support [0, infinity).
+Zero is accepted as a boundary value. Ties and constant samples are
+allowed except where stated. Inputs and instance state are unchanged.
+Continuous-null calibration assumes iid observations; rounded data
+require calibration of the observation process.
+
+## Parameters
+
+```text
+alpha, beta : float, optional
+    Fixed finite positive shape and rate, respectively. Both default to 1.
+```
+
+## Source
+
+T. W. Anderson and D. A. Darling (1952), "Asymptotic Theory of Certain
+Goodness of Fit Criteria Based on Stochastic Processes", Ann. Math.
+Statist. 23, 193-212. https://doi.org/10.1214/aoms/1177729437
+
+The general statistic is applied to Gamma probabilities.
 
 ## Usage
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    CramerVonMisesGammaGofStatistic,
-)
+from pysatl_criterion.statistics.goodness_of_fit.gamma import CramerVonMisesGammaGofStatistic
 
-
-test_statistic = CramerVonMisesGammaGofStatistic(alpha=2, beta=1)
-statistic_result = test_statistic.execute_statistic([0.42, 0.77, 1.05, 1.48, 1.96, 2.34, 3.12])
-print(statistic_result)
+statistic = CramerVonMisesGammaGofStatistic()
+value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
 ```
 
-## Arguments
-`alpha` - positive shape parameter of the gamma distribution. Default value is `1.0`.
-
-`beta` - positive rate parameter of the gamma distribution. Default value is `1.0`.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-The Cramer-von Mises statistic is
-
-$$ W_n^2 = \frac{1}{12n} + \sum_{i=1}^{n} \left(F_0(X_{(i)}) - \frac{2i - 1}{2n}\right)^2 $$
-
-where $F_0$ is the reference gamma cumulative distribution function.
-
-## Author(s)
-Sergey Golovachev, Alexey Mironov
-
-## References
-Cramer, H. (1928): On the composition of elementary errors. - Skandinavisk Aktuarietidskrift, vol. 11, pp. 141-180.
-
-von Mises, R. (1931): Wahrscheinlichkeitsrechnung und ihre Anwendung in der Statistik und theoretischen Physik. - Leipzig: Deuticke.
-
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    CramerVonMisesGammaGofStatistic,
-)
-
-
-test_statistic = CramerVonMisesGammaGofStatistic(alpha=2, beta=1)
-statistic_result = test_statistic.execute_statistic([0.42, 0.77, 1.05, 1.48, 1.96, 2.34, 3.12])
-print(statistic_result)
-```
+Returns a scalar; large values oppose the null. Invalid samples raise `ValueError`.
+See the [audit](../../../gamma-statistics-audit.md) for calibration changes.

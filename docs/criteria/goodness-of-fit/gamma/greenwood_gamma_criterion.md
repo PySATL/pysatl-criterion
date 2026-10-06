@@ -1,50 +1,43 @@
-# Greenwood test for gamma distribution
+# Sum of squared Gamma probability spacings.
 
-## Description
-Performs Greenwood spacing goodness-of-fit test for the hypothesis that the sample comes from a gamma distribution.
-The statistic measures squared spacings after transforming observations by the gamma cumulative distribution function.
+G = sum(D_j**2), j=1,...,n+1, where D_j=u_j-u_(j-1),
+u_0=0 and u_(n+1)=1. Both endpoint spacings are included.
+Repeated observations give zero spacings and are permitted.
+The selected right tail detects unusually large squared spacings;
+it does not test against exceptionally regular spacing.
 
-Hypothesis of Gamma Distribution
-The null hypothesis is that the data comes from a gamma distribution with positive shape parameter `alpha` and positive rate parameter `beta`.
+For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+where Gamma has shape alpha, rate beta and known origin zero.
+Parameters are fixed, not fitted. Samples must be finite, real,
+one-dimensional and nonempty, in the closed support [0, infinity).
+Zero is accepted as a boundary value. Ties and constant samples are
+allowed except where stated. Inputs and instance state are unchanged.
+Continuous-null calibration assumes iid observations; rounded data
+require calibration of the observation process.
+
+## Parameters
+
+```text
+alpha, beta : float, optional
+    Fixed finite positive shape and rate, respectively. Both default to 1.
+```
+
+## Source
+
+M. Greenwood (1946), "The Statistical Study of Infectious Diseases",
+J. R. Statist. Soc. 109, 85-103.
+https://doi.org/10.1111/j.2397-2335.1946.tb04649.x
+
+The general statistic is applied to Gamma probabilities.
 
 ## Usage
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    GreenwoodGammaGofStatistic,
-)
+from pysatl_criterion.statistics.goodness_of_fit.gamma import GreenwoodGammaGofStatistic
 
-
-test_statistic = GreenwoodGammaGofStatistic(alpha=2, beta=1)
-statistic_result = test_statistic.execute_statistic([0.42, 0.77, 1.05, 1.48, 1.96, 2.34, 3.12])
-print(statistic_result)
+statistic = GreenwoodGammaGofStatistic()
+value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
 ```
 
-## Arguments
-`alpha` - positive shape parameter of the gamma distribution. Default value is `1.0`.
-
-`beta` - positive rate parameter of the gamma distribution. Default value is `1.0`.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-The implementation computes spacings $D_i$ between consecutive gamma CDF values after adding 0 and 1, and returns
-
-$$ G = \sum_i D_i^2. $$
-
-## Author(s)
-Sergey Golovachev, Alexey Mironov
-
-## References
-Greenwood, M. (1946): The statistical study of infectious diseases. - Journal of the Royal Statistical Society, Series A, vol. 109, pp. 85-110.
-
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    GreenwoodGammaGofStatistic,
-)
-
-
-test_statistic = GreenwoodGammaGofStatistic(alpha=2, beta=1)
-statistic_result = test_statistic.execute_statistic([0.42, 0.77, 1.05, 1.48, 1.96, 2.34, 3.12])
-print(statistic_result)
-```
+Returns a scalar; large values oppose the null. Invalid samples raise `ValueError`.
+See the [audit](../../../gamma-statistics-audit.md) for calibration changes.

@@ -1,49 +1,41 @@
-# Watson test for gamma distribution
+# Watson centered EDF statistic after the Gamma transform.
 
-## Description
-Performs Watson goodness-of-fit test for the hypothesis that the sample comes from a gamma distribution.
-The Watson statistic is a centered modification of the Cramer-von Mises statistic.
+U2 = W2 - n*(mean(u)-1/2)**2, where
+W2 = 1/(12*n) + sum((u_i-(2*i-1)/(2*n))**2).
+Circular rotation invariance concerns transformed uniform values,
+not translation of the original Gamma observations.
 
-Hypothesis of Gamma Distribution
-The null hypothesis is that the data comes from a gamma distribution with positive shape parameter `alpha` and positive rate parameter `beta`.
+For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+where Gamma has shape alpha, rate beta and known origin zero.
+Parameters are fixed, not fitted. Samples must be finite, real,
+one-dimensional and nonempty, in the closed support [0, infinity).
+Zero is accepted as a boundary value. Ties and constant samples are
+allowed except where stated. Inputs and instance state are unchanged.
+Continuous-null calibration assumes iid observations; rounded data
+require calibration of the observation process.
+
+## Parameters
+
+```text
+alpha, beta : float, optional
+    Fixed finite positive shape and rate, respectively. Both default to 1.
+```
+
+## Source
+
+G. S. Watson (1961), "Goodness-of-fit tests on a circle",
+Biometrika 48, 109-114. https://doi.org/10.1093/biomet/48.1-2.109
+
+The general statistic is applied to Gamma probabilities.
 
 ## Usage
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    WatsonGammaGofStatistic,
-)
+from pysatl_criterion.statistics.goodness_of_fit.gamma import WatsonGammaGofStatistic
 
-
-test_statistic = WatsonGammaGofStatistic(alpha=2, beta=1)
-statistic_result = test_statistic.execute_statistic([0.42, 0.77, 1.05, 1.48, 1.96, 2.34, 3.12])
-print(statistic_result)
+statistic = WatsonGammaGofStatistic()
+value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
 ```
 
-## Arguments
-`alpha` - positive shape parameter of the gamma distribution. Default value is `1.0`.
-
-`beta` - positive rate parameter of the gamma distribution. Default value is `1.0`.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-The implementation computes Cramer-von Mises terms from gamma CDF values and subtracts the Watson centering correction.
-Large values indicate stronger deviation from the gamma model.
-
-## Author(s)
-Sergey Golovachev, Alexey Mironov
-
-## References
-Watson, G.S. (1961): Goodness-of-fit tests on a circle. - Biometrika, vol. 48, pp. 109-114.
-
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    WatsonGammaGofStatistic,
-)
-
-
-test_statistic = WatsonGammaGofStatistic(alpha=2, beta=1)
-statistic_result = test_statistic.execute_statistic([0.42, 0.77, 1.05, 1.48, 1.96, 2.34, 3.12])
-print(statistic_result)
-```
+Returns a scalar; large values oppose the null. Invalid samples raise `ValueError`.
+See the [audit](../../../gamma-statistics-audit.md) for calibration changes.

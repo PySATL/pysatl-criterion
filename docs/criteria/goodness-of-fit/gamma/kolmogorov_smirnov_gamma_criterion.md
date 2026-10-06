@@ -1,61 +1,46 @@
-# Kolmogorov-Smirnov test for gamma distribution
+# KS distance to a fixed Gamma CDF.
 
-## Description
-Performs Kolmogorov-Smirnov goodness-of-fit test for the hypothesis that the sample comes from a gamma distribution.
-The statistic compares the empirical distribution function with the theoretical gamma cumulative distribution function.
+D+ = max(i/n-u_i), D- = max(u_i-(i-1)/n), i=1,...,n.
+Return max(D+,D-), D+, or D- for TWO_TAILED, RIGHT, or LEFT.
+All three reject for large values. No parameters are fitted.
+Stored calibration supports only the default two-sided CDF distance.
 
-Hypothesis of Gamma Distribution
-The null hypothesis is that the data comes from a gamma distribution with positive shape parameter `alpha` and positive rate parameter `beta`.
+For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
+where Gamma has shape alpha, rate beta and known origin zero.
+Parameters are fixed, not fitted. Samples must be finite, real,
+one-dimensional and nonempty, in the closed support [0, infinity).
+Zero is accepted as a boundary value. Ties and constant samples are
+allowed except where stated. Inputs and instance state are unchanged.
+Continuous-null calibration assumes iid observations; rounded data
+require calibration of the observation process.
 
-Test Statistic
-The statistic is based on the maximum distance between the empirical distribution function and the reference gamma cumulative distribution function.
+## Parameters
+
+```text
+alpha, beta : float, optional
+    Fixed finite positive shape and rate, respectively. Both default to 1.
+alternative_type : AlternativeType, optional
+    TWO_TAILED (default), RIGHT or LEFT selects D, D+ or D-.
+mode : {"auto", "exact", "asymp", "approx"}, optional
+    Compatibility setting; no effect on the scalar statistic.
+```
+
+## Source
+
+N. Smirnov (1948), "Table for Estimating the Goodness of Fit of Empirical
+Distributions", Ann. Math. Statist. 19, 279-281.
+https://doi.org/10.1214/aoms/1177730256
+
+The general statistic is applied to Gamma probabilities.
 
 ## Usage
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    KolmogorovSmirnovGammaGofStatistic,
-)
+from pysatl_criterion.statistics.goodness_of_fit.gamma import KolmogorovSmirnovGammaGofStatistic
 
-
-test_statistic = KolmogorovSmirnovGammaGofStatistic(alpha=2, beta=1)
-statistic_result = test_statistic.execute_statistic([0.42, 0.77, 1.05, 1.48, 1.96, 2.34, 3.12])
-print(statistic_result)
+statistic = KolmogorovSmirnovGammaGofStatistic()
+value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
 ```
 
-## Arguments
-`alpha` - positive shape parameter of the gamma distribution. Default value is `1.0`.
-
-`beta` - positive rate parameter of the gamma distribution. Default value is `1.0`.
-
-`alternative_type` - alternative hypothesis type used by the Kolmogorov-Smirnov statistic.
-
-`mode` - calculation mode passed to the Kolmogorov-Smirnov statistic. Default value is `auto`.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-The implementation evaluates the gamma cumulative distribution function using `scale=1 / beta`:
-
-$$ F_0(x) = F_{\Gamma(\alpha, 1 / \beta)}(x). $$
-
-The transformed ordered observations are passed to the common Kolmogorov-Smirnov statistic implementation.
-
-## Author(s)
-Sergey Golovachev, Alexey Mironov
-
-## References
-Kolmogorov, A.N. (1933): Sulla determinazione empirica di una legge di distribuzione. - Giornale dell'Istituto Italiano degli Attuari, vol. 4, pp. 83-91.
-
-Smirnov, N.V. (1948): Table for estimating the goodness of fit of empirical distributions. - Annals of Mathematical Statistics, vol. 19, pp. 279-281.
-
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    KolmogorovSmirnovGammaGofStatistic,
-)
-
-
-test_statistic = KolmogorovSmirnovGammaGofStatistic(alpha=2, beta=1)
-statistic_result = test_statistic.execute_statistic([0.42, 0.77, 1.05, 1.48, 1.96, 2.34, 3.12])
-print(statistic_result)
-```
+Returns a scalar; large values oppose the null. Invalid samples raise `ValueError`.
+See the [audit](../../../gamma-statistics-audit.md) for calibration changes.
