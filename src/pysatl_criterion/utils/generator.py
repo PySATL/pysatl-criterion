@@ -55,6 +55,12 @@ def get_hypothesis_generator(
         params = {"alfa": params.pop("alpha"), **params}
     elif distribution == DistributionType.LOG_NORMAL:
         params = {"mu": math.log(params.pop("scale")), **params}
+    elif distribution == DistributionType.LOG_LOGISTIC:
+        raise ValueError(
+            "Log-logistic requires external calibration; no built-in generator exists. "
+            "Preserve interval settings, refit unknown parameters, and for Nikulin "
+            "reproduce the censoring plan"
+        )
     return get_available_generator(distribution, params)
 
 
