@@ -24,13 +24,7 @@ def get_hypothesis_generator(
     """
     hypothesis = statistic.hypothesis()
     if hypothesis.parameter_values is not None:
-        from pysatl_criterion.generator.generators import TRVSGenerator
-
-        if statistic.distribution() == DistributionType.STUDENT:
-            return TRVSGenerator.from_parameters(hypothesis.parameter_values)
-        if statistic.distribution() == DistributionType.UNIFORM:
-            return get_available_generator(DistributionType.UNIFORM, hypothesis.parameters())
-        raise ValueError("No schema-aware sampler for this distribution")
+        return _schema_hypothesis_generator(statistic, hypothesis)
     distribution = statistic.distribution()
     params = statistic.hypothesis().parameters()
     if distribution == DistributionType.PARETO:
@@ -44,6 +38,8 @@ def get_hypothesis_generator(
             "Inverse Gamma requires external calibration; no built-in generator exists. "
             "For fitted KS specify a shape greater than two and refit every replicate"
         )
+    if distribution == DistributionType.WEIBULL:
+        return _weibull_hypothesis_generator(statistic, params)
     if distribution == DistributionType.BETA:
         if "alpha" not in params or "beta" not in params:
             raise ValueError(
@@ -68,6 +64,31 @@ def get_hypothesis_generator(
             "reproduce the censoring plan"
         )
     return get_available_generator(distribution, params)
+
+
+def _schema_hypothesis_generator(statistic, hypothesis):
+    """Resolve the existing schema-aware samplers without filling free parameters."""
+    from pysatl_criterion.generator.generators import TRVSGenerator
+
+    if statistic.distribution() == DistributionType.STUDENT:
+        return TRVSGenerator.from_parameters(hypothesis.parameter_values)
+    if statistic.distribution() == DistributionType.UNIFORM:
+        return get_available_generator(DistributionType.UNIFORM, hypothesis.parameters())
+    raise ValueError("No schema-aware sampler for this distribution")
+
+
+def _weibull_hypothesis_generator(statistic, params):
+    """Keep ordinary composite Weibull separate from specified exponweib."""
+    validate = getattr(statistic, "_validate_monte_carlo_calibration", None)
+    if validate is not None:
+        validate()
+    if params == {"a": 1, "loc": 0}:
+        # These reviewed statistics are invariant under positive affine
+        # transformations of log(X), including reestimation in each replicate.
+        params = {"a": 1, "k": 1}
+    elif set(params) != {"a", "k"}:
+        raise ValueError("Unsupported Weibull null: external calibration is required")
+    return get_available_generator(DistributionType.WEIBULL, params)
 
 
 def get_available_generator(

@@ -1,60 +1,79 @@
-# Kolmogorov-Smirnov test for Weibull distribution
+# Kolmogorov-Smirnov distance for a specified exponentiated Weibull.
 
-## Description
-Performs Kolmogorov-Smirnov goodness-of-fit test for the hypothesis that the sample comes from a Weibull distribution.
-The implementation uses the Weibull distribution utilities from `pysatl_criterion.core.distributions.continues.weibull` where applicable.
+`KolmogorovSmirnovWeibullGofStatistic`
 
-Hypothesis of Weibull Distribution
-The null hypothesis is that the data comes from a Weibull distribution with parameters `a` and `k`.
-The observations passed to `execute_statistic` should be positive for statistics that use logarithms or Weibull probability plots.
+## Constructor
 
-Test Statistic
-The statistic is based on the maximum distance between the empirical distribution function and Weibull CDF values.
+```text
+a, k : float, optional
+    Fixed positive finite shape parameters, default to 1 and 5 respectively.
+    The parameter a is an exponent, not a scale.
 
-## Usage
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    KolmogorovSmirnovWeibullGofStatistic,
-)
-
-
-test_statistic = KolmogorovSmirnovWeibullGofStatistic(a=1, k=2)
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.65, 0.88, 1.12, 1.43, 1.76, 2.05, 2.44, 2.91, 3.37]
-)
-print(statistic_result)
+alternative_type : AlternativeType, optional
+    TWO_TAILED gives D; RIGHT gives D+; LEFT gives D-.
+mode : str, optional
+    Compatibility setting, default "auto"; no effect on the statistic.
 ```
 
-## Arguments
-`a` - Weibull distribution parameter. Default value is `1`.
+## Hypothesis, formula and calibration
 
-`k` - Weibull distribution parameter. Default value is `1` for most statistics; `KolmogorovSmirnovWeibullGofStatistic` defaults to `5`.
+```text
+F(x)=(1-exp(-x**k))**a on x >= 0, with fixed a, k, scale 1
+and location 0. Put u_i=F(x_(i)), i=1,...,n.
 
-`alternative_type` - alternative hypothesis type used by the Kolmogorov-Smirnov statistic.
+D+=max(i/n-u_i); D-=max(u_i-(i-1)/n); D=max(D+,D-).
+Every CDF-deviation direction has a right-tail rejection region.
 
-`mode` - calculation mode passed to the Kolmogorov-Smirnov statistic. Default value is `auto`.
+Reject for right tail values.
+Calibrate using the specified null and the same sample size.
+Previously stored unversioned Weibull calibrations must be regenerated.
+The reference concerns general continuous CDFs, applied here via F.
+```
 
-rvs` - array-like sample data passed to `execute_statistic`.
+## Calling execute_statistic
 
-## Details
-The implementation evaluates the Kolmogorov-Smirnov statistic for the supplied observations. For EDF-based statistics, observations are transformed with the Weibull cumulative distribution function. For spacing, probability plot, Laplace-transform, and moment-style statistics, the implementation follows the corresponding formulas in `pysatl_criterion.statistics.goodness_of_fit.weibull`.
+```text
+Compute the statistic described in the class Notes.
 
-## Author(s)
-Alexey Mironov
+Parameters
+----------
+rvs : array_like
+    One-dimensional finite nonnegative observations, n >= 1.
+    Ties and constant samples are allowed.
+**kwargs : dict
+    Unused common-interface keywords.
+
+Returns
+-------
+statistic : float
+    Scalar discrepancy. Infinite boundary penalties are preserved.
+
+Raises
+------
+ValueError
+    Invalid sample, unsupported settings, or unrepresentable fit.
+
+Notes
+-----
+The input is never changed and estimated parameters are not retained.
+```
+
+## Example
+
+```python
+from pysatl_criterion.statistics.goodness_of_fit.weibull import KolmogorovSmirnovWeibullGofStatistic
+
+test = KolmogorovSmirnovWeibullGofStatistic()
+value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+print(value)
+```
 
 ## References
-The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.weibull`.
 
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    KolmogorovSmirnovWeibullGofStatistic,
-)
+1. N. Smirnov (1948), Table for estimating the goodness of fit of empirical
+   distributions. [Source](https://doi.org/10.1214/aoms/1177730256)
 
 
-test_statistic = KolmogorovSmirnovWeibullGofStatistic(a=1, k=2)
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.65, 0.88, 1.12, 1.43, 1.76, 2.05, 2.44, 2.91, 3.37]
-)
-print(statistic_result)
-```
+See [the Weibull audit](../../../weibull-statistics-audit.md) for migration details,
+source verification limits and calibration changes. Historical class names and codes
+are retained; old critical values must not be reused after a formula change.

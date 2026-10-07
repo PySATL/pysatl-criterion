@@ -1,56 +1,85 @@
-# Mahdi-Doostparast test for Weibull distribution
+# Doostparast weighted record EDF distance with record-likelihood fitting.
 
-## Description
-Performs Mahdi-Doostparast goodness-of-fit test for the hypothesis that the sample comes from a Weibull distribution.
-The implementation uses the Weibull distribution utilities from `pysatl_criterion.core.distributions.continues.weibull` where applicable.
+`MahdiDoostparastWeibullGofStatistic`
 
-Hypothesis of Weibull Distribution
-The null hypothesis is that the data comes from a Weibull distribution with parameters `a` and `k`.
-The observations passed to `execute_statistic` should be positive for statistics that use logarithms or Weibull probability plots.
+## Constructor
 
-Test Statistic
-The statistic is based on integrated deviations involving empirical and Weibull CDF increments.
-
-## Usage
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    MahdiDoostparastWeibullGofStatistic,
-)
-
-
-test_statistic = MahdiDoostparastWeibullGofStatistic(a=1, k=2)
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.65, 0.88, 1.12, 1.43, 1.76, 2.05, 2.44, 2.91, 3.37]
-)
-print(statistic_result)
+```text
+No constructor arguments. Both ordinary-Weibull scale and shape are unknown.
 ```
 
-## Arguments
-`a` - Weibull distribution parameter. Default value is `1`.
+## Hypothesis, formula and calibration
 
-`k` - Weibull distribution parameter. Default value is `1` for most statistics; `KolmogorovSmirnovWeibullGofStatistic` defaults to `5`.
+```text
+F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+and unknown positive scale eta and shape k. No constructor arguments.
+Logarithmic location and scale are eliminated within every call.
 
-`rvs` - array-like sample data passed to `execute_statistic`.
+The input is a complete sequence in acquisition order. Extract lower
+records R_j and the counts K_j of observations until the next record,
+including the record itself. Order records increasingly, carrying counts.
+Fit eta,k by the record likelihood product f(R_j)*S(R_j)**(K_j-1).
+At ordered records, the survival estimate is the product of
+1-1/sum(K_l,l>=j). Return n*integral((S_hat-S_fit)**2/F_fit dF_fit)
+over the entire support, including the first and last intervals.
 
-## Details
-The implementation evaluates the Mahdi-Doostparast statistic for the supplied observations. For EDF-based statistics, observations are transformed with the Weibull cumulative distribution function. For spacing, probability plot, Laplace-transform, and moment-style statistics, the implementation follows the corresponding formulas in `pysatl_criterion.statistics.goodness_of_fit.weibull`.
+Reject for right tail values.
+Calibration must reproduce record extraction and condition on at least
+two records. The generic unconditional resolver is blocked.
+Previously stored unversioned Weibull calibrations must be regenerated.
+Order matters for full acquisition sequences. At least two records
+are required. Precompressed records require counts; do not sort an
+ordinary sample before calling. Inverse-sampling calibration is external.
+```
 
-## Author(s)
-Alexey Mironov
+## Calling execute_statistic
+
+```text
+Compute the statistic described in the class Notes.
+
+Parameters
+----------
+rvs : array_like
+    One-dimensional finite strictly positive observations, n >= 2.
+    Constant samples are invalid; ties are allowed unless stated below.
+record_counts : array_like of int, optional
+    If given, rvs must be strictly decreasing lower records and these
+    positive counts include each record. Otherwise extract from rvs.
+**kwargs : dict
+    Unused common-interface keywords.
+
+Returns
+-------
+statistic : float
+    Scalar discrepancy. Infinite boundary penalties are preserved.
+
+Raises
+------
+ValueError
+    Invalid sample, unsupported settings, or unrepresentable fit.
+
+Notes
+-----
+The input is never changed and estimated parameters are not retained.
+```
+
+## Example
+
+```python
+from pysatl_criterion.statistics.goodness_of_fit.weibull import MahdiDoostparastWeibullGofStatistic
+
+test = MahdiDoostparastWeibullGofStatistic()
+value = test.execute_statistic([3.0, 1.2, 2.1, 0.4, 0.8, 0.2])
+print(value)
+```
 
 ## References
-The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.weibull`.
 
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    MahdiDoostparastWeibullGofStatistic,
-)
+1. M. Doostparast (2011), Goodness-of-fit tests for Weibull populations
+   on the basis of records, equations (9), (10), (13), (14), (17).
+   [Source](https://arxiv.org/abs/1110.5509)
 
 
-test_statistic = MahdiDoostparastWeibullGofStatistic(a=1, k=2)
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.65, 0.88, 1.12, 1.43, 1.76, 2.05, 2.44, 2.91, 3.37]
-)
-print(statistic_result)
-```
+See [the Weibull audit](../../../weibull-statistics-audit.md) for migration details,
+source verification limits and calibration changes. Historical class names and codes
+are retained; old critical values must not be reused after a formula change.

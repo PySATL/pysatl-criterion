@@ -219,31 +219,18 @@ def test_pareto_kl_spacing_fallbacks():
         statistic.execute_statistic([1.0, 1.0, 1.0, 1.0], m=10)
 
 
-def test_weibull_family_base_paths(monkeypatch):
+def test_weibull_family_base_paths():
     values = np.linspace(0.5, 3.0, 10)
     assert weibull.WPPWeibullGofStatistic.alternative(object())
     assert weibull.LaplaceTransformWeibullGofStatistic.alternative(object())
     with pytest.raises(ValueError, match="positive sample"):
         weibull.WPPWeibullGofStatistic.MLEst(np.array([0.0, 1.0]))
-
-    original_minimize = weibull.minimize_scalar
-
-    def call_zero(function, *args, **kwargs):
-        function(0, *kwargs.get("args", ()))
-        return original_minimize(function, *args, **kwargs)
-
-    monkeypatch.setattr(weibull, "minimize_scalar", call_zero)
-    assert weibull.WPPWeibullGofStatistic.MLEst(values)["beta"] > 0
-
-    for statistic_type in (
-        weibull.RSBWeibullGofStatistic.code(),
-        weibull.ST1WeibullGofStatistic.code(),
-        weibull.ST2WeibullGofStatistic.code(),
-    ):
-        assert np.isfinite(weibull.WPPWeibullGofStatistic.execute_statistic(values, statistic_type))
-
-    with pytest.raises(ValueError, match="type must"):
-        weibull.LaplaceTransformWeibullGofStatistic.execute_statistic(object(), values, _type="bad")
+    estimates = weibull.WPPWeibullGofStatistic.MLEst(values)
+    assert estimates["beta"] > 0
+    assert np.all(np.diff(estimates["y"]) > 0)
+    # Family helpers remain abstract: concrete classes implement the common API.
+    with pytest.raises(TypeError):
+        weibull.WPPWeibullGofStatistic()
 
 
 def test_uniform_constant_sample_bins_and_fully_censored_sample():

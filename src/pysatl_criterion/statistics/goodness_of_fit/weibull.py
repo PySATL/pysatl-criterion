@@ -1,19 +1,27 @@
+"""Specified exponentiated-Weibull and fitted ordinary-Weibull statistics.
+
+Fixed-CDF classes use F(x)=(1-exp(-x**k))**a, with location 0 and scale 1.
+Composite classes use F(x)=1-exp(-(x/eta)**k), location 0, eta and k unknown.
+These are different hypotheses. No class mutates observations or stores fits.
+"""
+
 from abc import ABC
+from numbers import Integral, Real
 
 import numpy as np
-from scipy.optimize import minimize_scalar
-from scipy.special import gamma
-from scipy.stats import distributions
+from scipy.optimize import brentq
+from scipy.special import gamma, gammaln, logsumexp, zeta
+from scipy.stats import gumbel_l
 from typing_extensions import override
 
 from pysatl_criterion import DistributionType
 from pysatl_criterion.core.distributions.continues.weibull import generate_weibull_cdf
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.alternative import (
-    Alternative,
     AlternativeType,
     LeftAlternative,
     RightAlternative,
+    TwoSidedAlternative,
 )
 from pysatl_criterion.statistics.goodness_of_fit.common import (
     ADStatistic,
@@ -26,44 +34,219 @@ from pysatl_criterion.statistics.goodness_of_fit.common import (
 from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
+def _scalar(value, name, *, positive=False):
+    message = f"{name}: expected finite {'positive ' if positive else ''}scalars"
+    if isinstance(value, (bool, np.bool_)) or not isinstance(value, Real):
+        raise ValueError(message)  # noqa: TRY004 - shared validation contract uses ValueError
+    try:
+        result = float(value)
+    except (OverflowError, ValueError):
+        raise ValueError(message) from None
+    if not np.isfinite(result) or (positive and result <= 0):
+        raise ValueError(message)
+    return result
+
+
+def _sample(rvs, *, min_size=1, positive=False, nonconstant=False):
+    if np.iscomplexobj(rvs):
+        raise ValueError("Sample must be real")
+    x = np.asarray(rvs, dtype=float)
+    if x.ndim != 1 or x.size < min_size:
+        raise ValueError(f"Sample must be one-dimensional with at least {min_size} observations")
+    if not np.all(np.isfinite(x)) or np.any(x < 0) or (positive and np.any(x == 0)):
+        raise ValueError(
+            "Expected a finite positive sample"
+            if positive
+            else "Sample must contain finite nonnegative observations"
+        )
+    if nonconstant and np.ptp(x) == 0:
+        raise ValueError("A nonconstant sample is required")
+    return x
+
+
+def _logs(rvs, min_size=2):
+    x = _sample(rvs, min_size=min_size, positive=True, nonconstant=True)
+    y = np.sort(np.log(x))
+    if np.ptp(y) == 0:
+        raise ValueError("Logarithms are indistinguishable at float64 precision")
+    return y
+
+
+def _fit_logs(y, counts=None):
+    """Profile likelihood root in a rescaled log domain; optional record counts."""
+    spread = np.ptp(y)
+    v = (y - y[-1]) / spread
+    weights = np.ones(y.size) if counts is None else np.asarray(counts, dtype=float)
+    log_weights = np.log(weights)
+
+    def score(t):
+        w = np.exp(log_weights + t * v - logsumexp(log_weights + t * v))
+        return np.dot(w, v) - np.mean(v) - 1 / t
+
+    upper = 1.0
+    while score(upper) <= 0:
+        upper *= 2
+        if not np.isfinite(upper):
+            raise ValueError("Weibull likelihood root cannot be represented")
+    t = brentq(score, 1e-12, upper, xtol=1e-14)
+    log_mean_power = logsumexp(log_weights + t * v) - np.log(y.size)
+    standardized = t * v - log_mean_power
+    shape = t / spread
+    log_scale = y[-1] + spread * log_mean_power / t
+    if not np.all(np.isfinite(standardized)) or not np.isfinite(shape):
+        raise ValueError("Weibull fit cannot be represented")
+    return standardized, shape, log_scale
+
+
+def _fitted(rvs):
+    return _fit_logs(_logs(rvs))[0]
+
+
+def _log_probabilities(z, a=1):
+    """Log probabilities of (1-exp(-exp(z)))**a, retaining both tails."""
+    z = np.asarray(z)
+    with np.errstate(over="ignore", under="ignore", divide="ignore"):
+        t = np.exp(z)
+        log_cdf = np.empty_like(z)
+        small = z < -36
+        large = t > 36
+        middle = ~(small | large)
+        log_cdf[small] = a * z[small]
+        log_cdf[middle] = a * np.log(-np.expm1(-t[middle]))
+        log_cdf[large] = -np.exp(np.log(a) - t[large])
+        log_sf = np.log(-np.expm1(log_cdf))
+        upper_tail = large & (np.log(a) - t < -36)
+        log_sf[upper_tail] = np.log(a) - t[upper_tail]
+    return log_cdf, log_sf
+
+
+def _weighted_edf(log_cdf, log_sf):
+    u = np.exp(log_cdf)
+    n = len(u)
+    i = np.arange(1, n + 1)
+    d = np.maximum(i / n - u, u - (i - 1) / n)
+    with np.errstate(over="ignore"):
+        return float(np.sum(np.exp(np.log(d) - (log_cdf + log_sf) / 2)) / np.sqrt(n))
+
+
+def _correlation_squared(y, scores):
+    y = y - np.mean(y)
+    scores = scores - np.mean(scores)
+    y = y / np.linalg.norm(y)
+    scores = scores / np.linalg.norm(scores)
+    return float(np.clip(np.dot(y, scores) ** 2, 0, 1))
+
+
+def _moment_components(rvs):
+    y = -_logs(rvs)
+    y = (y - np.mean(y)) / np.std(y)
+    return len(y), np.mean(y**3), np.mean(y**4)
+
+
+def _moment_null():
+    """Delta-method covariance of empirical standardized third/fourth moments."""
+    import math
+
+    # Central moments of a standardized maximum Gumbel, from its cumulants.
+    cumulants = np.zeros(9)
+    for j in range(2, 9):
+        cumulants[j] = math.factorial(j - 1) * zeta(j, 1) / (np.pi / np.sqrt(6)) ** j
+    moments = np.zeros(9)
+    moments[0] = 1
+    for j in range(2, 9):
+        moments[j] = sum(
+            math.comb(j - 1, k - 1) * cumulants[k] * moments[j - k] for k in range(2, j + 1)
+        )
+    g, b = moments[3:5]
+    # Influence functions include estimating the mean and variance.
+    p3 = np.array([g / 2, -3, -1.5 * g, 1])
+    p4 = np.array([b, -4 * g, -2 * b, 0, 1])
+
+    def covariance(p, q):
+        product = np.convolve(p, q)
+        return np.dot(product, moments[: len(product)])
+
+    return g, b, covariance(p3, p3), covariance(p3, p4), covariance(p4, p4)
+
+
 class AbstractWeibullGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
-    """
-    Abstract base class for Weibull distribution goodness-of-fit statistics.
-    """
+    """Base for a specified exponentiated Weibull with unit scale and zero location."""
 
     def __init__(self, a=1, k=1):
-        self.a = a
-        self.k = k
+        self.a = _scalar(a, "a", positive=True)
+        self.k = _scalar(k, "k", positive=True)
 
-    @override
-    def hypothesis(self) -> GoodnessOfFitHypothesis:
+    def hypothesis(self):
         return GoodnessOfFitHypothesis({"a": self.a, "k": self.k})
 
     @staticmethod
-    @override
-    def distribution() -> DistributionType:
-        """
-        Get distribution type.
-
-        :return: DistributionType.
-        """
+    def distribution():
         return DistributionType.WEIBULL
 
     @staticmethod
-    @override
     def code():
-        """
-        Get unique code identifier for Weibull statistics.
-
-        :return: string code in format "WEIBULL_{parent_code}".
-        """
         return f"WEIBULL_{AbstractGoodnessOfFitStatistic.code()}"
 
+    def _validate_storage_calibration(self):
+        raise ValueError(
+            "Weibull statistics were revised: regenerate calibration; "
+            "unversioned stored critical values are not supported"
+        )
 
-# TODO: Check is it real test
+
+class _CompositeWeibullStatistic(AbstractWeibullGofStatistic, ABC):
+    """Ordinary Weibull with fixed location zero and unknown scale and shape."""
+
+    def __init__(self):
+        pass
+
+    def hypothesis(self):
+        # a=1 selects ordinary Weibull; k and scale are deliberately omitted.
+        return GoodnessOfFitHypothesis({"a": 1, "loc": 0})
+
+
 class MinToshiyukiWeibullGofStatistic(AbstractWeibullGofStatistic, MinToshiyukiStatistic):
-    """
-    Min–Toshiyuki tail-sensitive EDF statistic for Weibull distribution.
+    """Weighted EDF distance for a specified exponentiated Weibull.
+
+    Parameters
+    ----------
+    a, k : float, optional
+        Fixed positive finite shape parameters, both default to 1.
+        The parameter a is an exponent, not a scale.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=(1-exp(-x**k))**a on x >= 0, with fixed a, k, scale 1
+    and location 0. Put u_i=F(x_(i)), i=1,...,n.
+
+    L = sum(max(i/n-u_i, u_i-(i-1)/n)/sqrt(u_i*(1-u_i)))/sqrt(n).
+
+    Reject for right tail values.
+    Calibrate using the specified null and the same sample size.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    The historical name uses the given names of Liao and Shimokawa.
+    This fixed-CDF variant is not their fitted-parameter procedure.
+    A zero observation gives positive infinity. Log probabilities preserve
+    finite penalties when a CDF rounds to one; overflow may still give infinity.
+    A primary source establishing this exact implemented formula was not
+    verified in the literature search. Treat it as the specified local
+    discrepancy; no named-test tables or chi-square limit are asserted.
+
+    Examples
+    --------
+    >>> test = MinToshiyukiWeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -87,25 +270,87 @@ class MinToshiyukiWeibullGofStatistic(AbstractWeibullGofStatistic, MinToshiyukiS
         short_code = MinToshiyukiWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
-    @override
-    def execute_statistic(self, rvs):
-        """
-        Execute the Min-Toshiyuki test statistic for Weibull distribution.
+    def alternative(self):
+        return RightAlternative()
 
-        :param rvs: array of observed data samples.
-        :return: Min-Toshiyuki test statistic value.
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite nonnegative observations, n >= 1.
+            Ties and constant samples are allowed.
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
         """
-        rvs = np.sort(rvs)
-        cdf_vals = generate_weibull_cdf(rvs, a=self.a, k=self.k)
-        return super().do_execute_statistic(cdf_vals)
+        x = np.sort(_sample(rvs))
+        with np.errstate(divide="ignore", over="ignore"):
+            z = self.k * np.log(x)
+        return _weighted_edf(*_log_probabilities(z, self.a))
 
 
 class Chi2PearsonWeibullGofStatistic(AbstractWeibullGofStatistic, Chi2Statistic):
-    """
-    Pearson statistic on equiprobable bins of the specified exponentiated Weibull law.
+    """Pearson counts statistic in equal-probability bins.
 
-    Uses ceil(sqrt(n)) bins covering the entire support. Bin boundaries depend
-    on the supplied a, k and sample size, not on observed extrema.
+    Parameters
+    ----------
+    a, k : float, optional
+        Fixed positive finite shape parameters, both default to 1.
+        The parameter a is an exponent, not a scale.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=(1-exp(-x**k))**a on x >= 0, with fixed a, k, scale 1
+    and location 0. Put u_i=F(x_(i)), i=1,...,n.
+
+    B=ceil(sqrt(n)); T=sum((O_j-n/B)**2/(n/B)), j=1,...,B.
+    Bins in CDF space cover [0,1], including both tails.
+
+    Reject for right tail values.
+    Calibrate using the specified null and the same sample size.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    The source gives the general count statistic, applied here to known
+    cell probabilities. For small expected counts use simulation, not
+    chi-square tables; the number of bins depends on sample size.
+    For n=1 there is one bin and the statistic is identically zero.
+
+    References
+    ----------
+    .. [1] K. Pearson (1900), On the criterion that a given system of deviations
+       from the probable in the case of a correlated system of variables is
+       such that it can be reasonably supposed to have arisen from random
+       sampling. https://doi.org/10.1080/14786440009463897
+
+    Examples
+    --------
+    >>> test = Chi2PearsonWeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -129,36 +374,85 @@ class Chi2PearsonWeibullGofStatistic(AbstractWeibullGofStatistic, Chi2Statistic)
         short_code = Chi2PearsonWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
-    @override
-    def execute_statistic(self, rvs):
-        """
-        Execute Pearson's Chi-squared test statistic for Weibull distribution.
+    def alternative(self):
+        return RightAlternative()
 
-        :param rvs: array of observed data samples.
-        :return: Chi-squared test statistic value.
-        """
-        sample = np.asarray(rvs, dtype=float)
-        if sample.ndim != 1 or not sample.size:
-            raise ValueError("Sample must be a nonempty 1D array")
-        if not np.all(np.isfinite(sample)) or np.any(sample < 0):
-            raise ValueError("Sample must contain finite nonnegative observations")
-        for parameter in (self.a, self.k):
-            if np.ndim(parameter) != 0 or not np.isfinite(parameter) or parameter <= 0:
-                raise ValueError("Weibull parameters a and k must be finite positive scalars")
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic described in the class Notes.
 
-        n = sample.size
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite nonnegative observations, n >= 1.
+            Ties and constant samples are allowed.
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
+        """
+        x = _sample(rvs)
+        n = len(x)
         bins = int(np.ceil(np.sqrt(n)))
-        # Equal-width bins in CDF space are quantile bins in sample space.
-        # The endpoints include both tails, even when the CDF rounds to 0 or 1.
-        cdf_vals = generate_weibull_cdf(sample, a=self.a, k=self.k)
-        observed, _ = np.histogram(cdf_vals, bins=np.linspace(0.0, 1.0, bins + 1))
-        expected = np.full(bins, n / bins)
-        return super().do_execute_statistic(observed, expected, 1)
+        u = generate_weibull_cdf(x, a=self.a, k=self.k)
+        observed, _ = np.histogram(u, bins=np.linspace(0, 1, bins + 1))
+        return float(self.do_execute_statistic(observed, np.full(bins, n / bins), 1))
 
 
-class LillieforsWeibullGofStatistic(AbstractWeibullGofStatistic, LillieforsTest):
-    """
-    Lilliefors test statistic for Weibull distribution.
+class LillieforsWeibullGofStatistic(_CompositeWeibullStatistic, LillieforsTest):
+    """KS distance to an ordinary Weibull fitted by maximum likelihood.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+    and unknown positive scale eta and shape k. No constructor arguments.
+    Logarithmic location and scale are eliminated within every call.
+
+    D=max(max(i/n-u_i), max(u_i-(i-1)/n)), where u_i=G(z_i),
+    G(z)=1-exp(-exp(z)), z_i=k_hat*(log(x_(i))-log(eta_hat)).
+    MLE solves the ordinary two-parameter Weibull profile score.
+
+    Reject for right tail values.
+    Calibrate with repeated execute_statistic calls on ordinary Weibull
+    samples. Affine invariance in log(x) permits eta=k=1 for simulation.
+    Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    Lilliefors-type describes the fitted KS procedure; the cited paper
+    compares fitted KS for this model, rather than introducing a criterion
+    with this class name. There is no preliminary fit call.
+
+    References
+    ----------
+    .. [1] M. Liao and T. Shimokawa (1999), A new goodness-of-fit test for type-I
+       extreme-value and 2-parameter Weibull distributions with estimated
+       parameters. https://doi.org/10.1080/00949659908811965
+
+    Examples
+    --------
+    >>> test = LillieforsWeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -182,22 +476,81 @@ class LillieforsWeibullGofStatistic(AbstractWeibullGofStatistic, LillieforsTest)
         short_code = LillieforsWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
-    @override
-    def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the Lilliefors test statistic for Weibull distribution.
+    def alternative(self):
+        return RightAlternative()
 
-        :param rvs: array of observed data samples.
-        :return: Lilliefors test statistic value.
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite strictly positive observations, n >= 2.
+            Constant samples are invalid; ties are allowed unless stated below.
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
         """
-        rvs_sorted = np.sort(rvs)
-        cdf_vals = generate_weibull_cdf(rvs_sorted, a=self.a, k=self.k)
-        return super().do_execute_statistic(rvs, cdf_vals)
+        z = _fitted(rvs)
+        return float(self.do_execute_statistic(z, gumbel_l.cdf(z)))
 
 
 class CrammerVonMisesWeibullGofStatistic(AbstractWeibullGofStatistic, CrammerVonMisesStatistic):
-    """
-    Cramér-von Mises test statistic for Weibull distribution.
+    """Cramer-von Mises distance for a specified exponentiated Weibull.
+
+    Parameters
+    ----------
+    a, k : float, optional
+        Fixed positive finite shape parameters, both default to 1.
+        The parameter a is an exponent, not a scale.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=(1-exp(-x**k))**a on x >= 0, with fixed a, k, scale 1
+    and location 0. Put u_i=F(x_(i)), i=1,...,n.
+
+    W2=1/(12*n)+sum((u_i-(2*i-1)/(2*n))**2).
+
+    Reject for right tail values.
+    Calibrate using the specified null and the same sample size.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    The reference treats the general EDF functional; here the known CDF
+    transforms the null to uniformity.
+
+    References
+    ----------
+    .. [1] T. W. Anderson and D. A. Darling (1952), Asymptotic theory of certain
+       "goodness of fit" criteria based on stochastic processes.
+       https://doi.org/10.1214/aoms/1177729437
+
+    Examples
+    --------
+    >>> test = CrammerVonMisesWeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -221,21 +574,81 @@ class CrammerVonMisesWeibullGofStatistic(AbstractWeibullGofStatistic, CrammerVon
         short_code = CrammerVonMisesWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
-    def execute_statistic(self, rvs):
+    def alternative(self):
+        return RightAlternative()
+
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite nonnegative observations, n >= 1.
+            Ties and constant samples are allowed.
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
         """
-        Execute the Cramér-von Mises test statistic for Weibull distribution.
-
-        :param rvs: array of observed data samples.
-        :return: Cramér-von Mises test statistic value.
-        """
-        rvs_sorted = np.sort(rvs)
-        cdf_vals = generate_weibull_cdf(rvs_sorted, a=self.a, k=self.k)
-        return super().do_execute_statistic(rvs, cdf_vals)
+        x = np.sort(_sample(rvs))
+        return float(self.do_execute_statistic(x, generate_weibull_cdf(x, a=self.a, k=self.k)))
 
 
-class AndersonDarlingWeibullGofStatistic(AbstractWeibullGofStatistic, ADStatistic):
-    """
-    Anderson-Darling test statistic for Weibull distribution.
+class AndersonDarlingWeibullGofStatistic(_CompositeWeibullStatistic, ADStatistic):
+    """Anderson-Darling distance to a maximum-likelihood fitted ordinary Weibull.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+    and unknown positive scale eta and shape k. No constructor arguments.
+    Logarithmic location and scale are eliminated within every call.
+
+    A2=-n-sum((2*i-1)*(log(u_i)+log(1-u_(n+1-i))))/n,
+    where u_i=G(z_i) and z_i are MLE-standardized ordered log observations.
+    No finite-sample correction factor is applied.
+
+    Reject for right tail values.
+    Calibrate with repeated execute_statistic calls on ordinary Weibull
+    samples. Affine invariance in log(x) permits eta=k=1 for simulation.
+    Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    The cited model-specific comparison includes fitted Anderson-Darling.
+    Stable log-CDF and log-survival functions retain small tail probabilities;
+    exp(z) beyond float64 range gives numerical infinity.
+
+    References
+    ----------
+    .. [1] M. Liao and T. Shimokawa (1999), A new goodness-of-fit test for type-I
+       extreme-value and 2-parameter Weibull distributions with estimated
+       parameters. https://doi.org/10.1080/00949659908811965
+
+    Examples
+    --------
+    >>> test = AndersonDarlingWeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -259,38 +672,97 @@ class AndersonDarlingWeibullGofStatistic(AbstractWeibullGofStatistic, ADStatisti
         short_code = AndersonDarlingWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
-    @override
+    def alternative(self):
+        return RightAlternative()
+
     def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the Anderson-Darling test statistic for Weibull distribution.
+        """Compute the statistic described in the class Notes.
 
-        :param rvs: array of observed data samples.
-        :return: Anderson-Darling test statistic value.
-        """
-        rvs = np.log(rvs)
-        y = np.sort(rvs)
-        xbar, s = distributions.gumbel_l.fit(y)
-        w = (y - xbar) / s
-        logcdf = distributions.gumbel_l.logcdf(w)
-        logsf = distributions.gumbel_l.logsf(w)
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite strictly positive observations, n >= 2.
+            Constant samples are invalid; ties are allowed unless stated below.
+        **kwargs : dict
+            Unused common-interface keywords.
 
-        return super().do_execute_statistic(rvs, log_cdf=logcdf, log_sf=logsf)
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
+        """
+        z = _fitted(rvs)
+        log_cdf, log_sf = _log_probabilities(z)
+        return float(self.do_execute_statistic(z, log_cdf=log_cdf, log_sf=log_sf))
 
 
 class KolmogorovSmirnovWeibullGofStatistic(AbstractWeibullGofStatistic, KSStatistic):
-    """
-    Kolmogorov-Smirnov test statistic for Weibull distribution.
+    """Kolmogorov-Smirnov distance for a specified exponentiated Weibull.
+
+    Parameters
+    ----------
+    a, k : float, optional
+        Fixed positive finite shape parameters, default to 1 and 5 respectively.
+        The parameter a is an exponent, not a scale.
+
+    alternative_type : AlternativeType, optional
+        TWO_TAILED gives D; RIGHT gives D+; LEFT gives D-.
+    mode : str, optional
+        Compatibility setting, default "auto"; no effect on the statistic.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=(1-exp(-x**k))**a on x >= 0, with fixed a, k, scale 1
+    and location 0. Put u_i=F(x_(i)), i=1,...,n.
+
+    D+=max(i/n-u_i); D-=max(u_i-(i-1)/n); D=max(D+,D-).
+    Every CDF-deviation direction has a right-tail rejection region.
+
+    Reject for right tail values.
+    Calibrate using the specified null and the same sample size.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    The reference concerns general continuous CDFs, applied here via F.
+
+    References
+    ----------
+    .. [1] N. Smirnov (1948), Table for estimating the goodness of fit of empirical
+       distributions. https://doi.org/10.1214/aoms/1177730256
+
+    Examples
+    --------
+    >>> test = KolmogorovSmirnovWeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
     """
 
-    @override
-    def __init__(
-        self, alternative_type: AlternativeType = AlternativeType.TWO_TAILED, mode="auto", a=1, k=5
-    ):
-        AbstractWeibullGofStatistic.__init__(self, None)
+    def __init__(self, alternative_type=AlternativeType.TWO_TAILED, mode="auto", a=1, k=5):
+        AbstractWeibullGofStatistic.__init__(self, a, k)
+        if alternative_type not in (
+            AlternativeType.TWO_TAILED,
+            AlternativeType.RIGHT,
+            AlternativeType.LEFT,
+        ):
+            raise ValueError("Invalid alternative_type")
         KSStatistic.__init__(self, alternative_type, mode)
-
-        self.a = a
-        self.k = k
 
     @staticmethod
     @override
@@ -313,27 +785,124 @@ class KolmogorovSmirnovWeibullGofStatistic(AbstractWeibullGofStatistic, KSStatis
         short_code = KolmogorovSmirnovWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
-    @override
+    def alternative(self):
+        return RightAlternative()
+
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite nonnegative observations, n >= 1.
+            Ties and constant samples are allowed.
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
         """
-        Execute the Kolmogorov-Smirnov test statistic for Weibull distribution.
+        x = np.sort(_sample(rvs))
+        return float(self.do_execute_statistic(x, generate_weibull_cdf(x, a=self.a, k=self.k)))
 
-        :param rvs: array of observed data samples.
-        :return: Kolmogorov-Smirnov test statistic value.
+
+def _sb_components(y):
+    n = len(y)
+    y = y - np.mean(y)
+    w = np.log((n + 1) / (n - np.arange(1, n) + 1))
+    wi = np.r_[w, n - np.sum(w)]
+    wn = w * (1 + np.log(w)) - 1
+    wn = np.r_[wn, 0.4228 * n - np.sum(wn)]
+    b = np.dot(0.6079 * wn - 0.2570 * wi, y) / n
+    return y, b
+
+
+class WPPWeibullGofStatistic(_CompositeWeibullStatistic, ABC):
+    """Abstract probability-plot family; select a concrete statistic to execute."""
+
+    def alternative(self):
+        return RightAlternative()
+
+    @staticmethod
+    def MLEst(x):
+        """Return ordinary-Weibull MLEs and ascending standardized log data.
+
+        Parameters
+        ----------
+        x : array_like
+            At least two finite positive, nonconstant observations.
+
+        Returns
+        -------
+        estimates : dict
+            ``eta`` (scale), ``beta`` (shape), and ``y`` (standardized logs).
+            Internal statistics use log-scale fits to avoid scale overflow.
+
+        Raises
+        ------
+        ValueError
+            Invalid input or a scale not representable as a positive float.
         """
-        rvs = np.sort(rvs)
-        cdf_vals = generate_weibull_cdf(rvs, a=self.a, k=self.k)
-        return super().do_execute_statistic(rvs, cdf_vals)
+        z, shape, log_scale = _fit_logs(_logs(x))
+        with np.errstate(over="ignore", under="ignore"):
+            scale = np.exp(log_scale)
+        if not np.isfinite(scale) or scale <= 0:
+            raise ValueError("Fitted scale cannot be represented")
+        return {"eta": float(scale), "beta": float(shape), "y": z}
 
 
-class SbWeibullGofStatistic(AbstractWeibullGofStatistic):
+class SbWeibullGofStatistic(WPPWeibullGofStatistic):
+    """Centered log-order linear-estimate ratio (historical SB name).
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+    and unknown positive scale eta and shape k. No constructor arguments.
+    Logarithmic location and scale are eliminated within every call.
+
+    For centered y_i=log(x_(i))-mean(log(x)), let w_i=log((n+1)/(n-i+1)),
+    i<n, w_n=n-sum(w_i). Let v_i=w_i*(1+log(w_i))-1 for i<n and
+    v_n=0.4228*n-sum(v_i). Set b=sum((0.6079*v_i-0.2570*w_i)*y_i)/n.
+    Return n*b**2/sum(y_i**2). Centering removes rounded-coefficient drift.
+
+    Reject for left tail values.
+    Calibrate with repeated execute_statistic calls on ordinary Weibull
+    samples. Affine invariance in log(x) permits eta=k=1 for simulation.
+    Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    Sb and SB retain the same historical code and formula. The rounded
+    linear weights are an approximation, not exact Shapiro-Wilk weights.
+    A primary source establishing this exact implemented formula was not
+    verified in the literature search. Treat it as the specified local
+    discrepancy; no named-test tables or chi-square limit are asserted.
+
+    Examples
+    --------
+    >>> test = SbWeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
     """
-    Shapiro-Wilk type test statistic for Weibull distribution (SB variant).
-    """
-
-    @override
-    def alternative(self) -> Alternative:
-        return LeftAlternative()
 
     @staticmethod
     @override
@@ -356,41 +925,79 @@ class SbWeibullGofStatistic(AbstractWeibullGofStatistic):
         short_code = SbWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
-    @override
+    def alternative(self):
+        return LeftAlternative()
+
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite strictly positive observations, n >= 2.
+            Constant samples are invalid; ties are allowed unless stated below.
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
         """
-        Execute the SB test statistic for Weibull distribution.
-
-        :param rvs: array of observed data samples.
-        :return: WPP test statistic value.
-        """
-        n = len(rvs)
-        lv = np.log(rvs)
-        y = np.sort(lv)
-        interval = np.arange(1, n + 1)
-
-        yb = np.mean(y)
-        S2 = np.sum((y - yb) ** 2)
-        _l = interval[: n - 1]
-        w = np.log((n + 1) / (n - _l + 1))
-        Wi = np.concatenate((w, [n - np.sum(w)]))
-        Wn = w * (1 + np.log(w)) - 1
-        a = 0.4228 * n - np.sum(Wn)
-        Wn = np.concatenate((Wn, [a]))
-        b = (0.6079 * np.sum(Wn * y) - 0.2570 * np.sum(Wi * y)) / n
-        WPP_statistic = n * b**2 / S2
-
-        return WPP_statistic
+        y, b = _sb_components(_logs(rvs))
+        return float(len(y) * b**2 / np.dot(y, y))
 
 
-class ST2WeibullGofStatistic(AbstractWeibullGofStatistic):
+class SBWeibullGofStatistic(WPPWeibullGofStatistic):
+    """Centered log-order linear-estimate ratio (historical SB name).
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+    and unknown positive scale eta and shape k. No constructor arguments.
+    Logarithmic location and scale are eliminated within every call.
+
+    For centered y_i=log(x_(i))-mean(log(x)), let w_i=log((n+1)/(n-i+1)),
+    i<n, w_n=n-sum(w_i). Let v_i=w_i*(1+log(w_i))-1 for i<n and
+    v_n=0.4228*n-sum(v_i). Set b=sum((0.6079*v_i-0.2570*w_i)*y_i)/n.
+    Return n*b**2/sum(y_i**2). Centering removes rounded-coefficient drift.
+
+    Reject for left tail values.
+    Calibrate with repeated execute_statistic calls on ordinary Weibull
+    samples. Affine invariance in log(x) permits eta=k=1 for simulation.
+    Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    Sb and SB retain the same historical code and formula. The rounded
+    linear weights are an approximation, not exact Shapiro-Wilk weights.
+    A primary source establishing this exact implemented formula was not
+    verified in the literature search. Treat it as the specified local
+    discrepancy; no named-test tables or chi-square limit are asserted.
+
+    Examples
+    --------
+    >>> test = SBWeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
     """
-    Smooth test statistic based on kurtosis for Weibull distribution.
-    """
-
-    @override
-    def alternative(self) -> Alternative:
-        return RightAlternative()
 
     @staticmethod
     @override
@@ -398,9 +1005,9 @@ class ST2WeibullGofStatistic(AbstractWeibullGofStatistic):
         """
         Get short code identifier for this test.
 
-        :return: short code string "ST2".
+        :return: short code string "SB".
         """
-        return "ST2"
+        return "SB"
 
     @staticmethod
     @override
@@ -408,41 +1015,85 @@ class ST2WeibullGofStatistic(AbstractWeibullGofStatistic):
         """
         Get unique code identifier for this test.
 
-        :return: string code in format "ST2_WEIBULL_{parent_code}".
+        :return: string code in format "SB_WEIBULL_{parent_code}".
         """
-        short_code = ST2WeibullGofStatistic.short_code()
+        short_code = SBWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
-    @override
+    def alternative(self):
+        return LeftAlternative()
+
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite strictly positive observations, n >= 2.
+            Constant samples are invalid; ties are allowed unless stated below.
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
         """
-        Execute the ST2 smooth test statistic for Weibull distribution.
-
-        :param rvs: array of observed data samples.
-        :return: chi-square-like statistic value based on kurtosis.
-        """
-        n = len(rvs)
-        lv = np.log(rvs)
-        y = np.sort(lv)
-        x = np.sort(-y)
-
-        s = sum((x - np.mean(x)) ** 2) / n
-        b1 = sum(((x - np.mean(x)) / np.sqrt(s)) ** 3) / n
-        b2 = sum(((x - np.mean(x)) / np.sqrt(s)) ** 4) / n
-        V4 = (b2 - 7.55 * b1 + 3.21) / np.sqrt(219.72 / n)
-        WPP_statistic = V4**2
-
-        return WPP_statistic
+        y, b = _sb_components(_logs(rvs))
+        return float(len(y) * b**2 / np.dot(y, y))
 
 
-class ST1WeibullGofStatistic(AbstractWeibullGofStatistic):
+class OKWeibullGofStatistic(WPPWeibullGofStatistic):
+    """Standardized log-order scale ratio (historical OK name).
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+    and unknown positive scale eta and shape k. No constructor arguments.
+    Logarithmic location and scale are eliminated within every call.
+
+    For centered y_i=log(x_(i))-mean(log(x)), let w_i=log((n+1)/(n-i+1)),
+    i<n, w_n=n-sum(w_i). Let v_i=w_i*(1+log(w_i))-1 for i<n and
+    v_n=0.4228*n-sum(v_i). Set b=sum((0.6079*v_i-0.2570*w_i)*y_i)/n.
+    Let S=sum((2*i-1-n)*y_i)/(log(2)*(n-1)*n).
+    Return (b/S-1-0.13/sqrt(n)+1.18/n)/(0.49/sqrt(n)-0.36/n).
+
+    Reject for both tail values.
+    Calibrate with repeated execute_statistic calls on ordinary Weibull
+    samples. Affine invariance in log(x) permits eta=k=1 for simulation.
+    Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    This signed scale ratio uses both tails; no standard-normal calibration
+    is asserted for its empirical finite-sample centering and scaling.
+    A primary source establishing this exact implemented formula was not
+    verified in the literature search. Treat it as the specified local
+    discrepancy; no named-test tables or chi-square limit are asserted.
+
+    Examples
+    --------
+    >>> test = OKWeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
     """
-    Smooth test statistic based on skewness for Weibull distribution.
-    """
-
-    @override
-    def alternative(self) -> Alternative:
-        return RightAlternative()
 
     @staticmethod
     @override
@@ -450,9 +1101,9 @@ class ST1WeibullGofStatistic(AbstractWeibullGofStatistic):
         """
         Get short code identifier for this test.
 
-        :return: short code string "ST1".
+        :return: short code string "OK".
         """
-        return "ST1"
+        return "OK"
 
     @staticmethod
     @override
@@ -460,41 +1111,81 @@ class ST1WeibullGofStatistic(AbstractWeibullGofStatistic):
         """
         Get unique code identifier for this test.
 
-        :return: string code in format "ST1_WEIBULL_{parent_code}".
+        :return: string code in format "OK_WEIBULL_{parent_code}".
         """
-        short_code = ST1WeibullGofStatistic.short_code()
+        short_code = OKWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
-    # Smooth test statistic based on the skewness
-    @override
-    def execute_statistic(self, rvs, *kwargs):
+    def alternative(self):
+        return TwoSidedAlternative()
+
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite strictly positive observations, n >= 2.
+            Constant samples are invalid; ties are allowed unless stated below.
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
         """
-        Execute the ST1 smooth test statistic for Weibull distribution.
-
-        :param rvs: array of observed data samples.
-        :return: chi-square-like statistic value based on skewness.
-        """
-        n = len(rvs)
-        lv = np.log(rvs)
-        y = np.sort(lv)
-        x = np.sort(-y)
-
-        s = sum((x - np.mean(x)) ** 2) / n
-        b1 = sum(((x - np.mean(x)) / np.sqrt(s)) ** 3) / n
-        V3 = (b1 - 1.139547) / np.sqrt(20 / n)
-        WPP_statistic = V3**2
-
-        return WPP_statistic
+        y, b = _sb_components(_logs(rvs))
+        n = len(y)
+        s = np.dot(2 * np.arange(1, n + 1) - 1 - n, y) / (np.log(2) * (n - 1) * n)
+        return float((b / s - 1 - 0.13 / np.sqrt(n) + 1.18 / n) / (0.49 / np.sqrt(n) - 0.36 / n))
 
 
-class RSBWeibullGofStatistic(AbstractWeibullGofStatistic):
+class RSBWeibullGofStatistic(_CompositeWeibullStatistic):
+    """Log-probability-plot correlation discrepancy (historical RSB name).
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+    and unknown positive scale eta and shape k. No constructor arguments.
+    Logarithmic location and scale are eliminated within every call.
+
+    T=n*(1-r**2), where r=corr(log(x_(i)), log(-log(1-i/(n+1)))).
+
+    Reject for right tail values.
+    Calibrate with repeated execute_statistic calls on ordinary Weibull
+    samples. Affine invariance in log(x) permits eta=k=1 for simulation.
+    Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    A primary source establishing this exact implemented formula was not
+    verified in the literature search. Treat it as the specified local
+    discrepancy; no named-test tables or chi-square limit are asserted.
+
+    Examples
+    --------
+    >>> test = RSBWeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
     """
-    Smith-Bain test statistic for Weibull distribution.
-    """
-
-    @override
-    def alternative(self) -> Alternative:
-        return RightAlternative()
 
     @staticmethod
     @override
@@ -517,38 +1208,431 @@ class RSBWeibullGofStatistic(AbstractWeibullGofStatistic):
         short_code = RSBWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
-    # Test statistic of Smith and Bain based on probability plot
-    @override
-    def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the Smith-Bain test statistic for Weibull distribution.
-
-        :param rvs: array of observed data samples.
-        :return: WPP test statistic value.
-        """
-        n = len(rvs)
-        interval = np.arange(1, n + 1)
-
-        m = interval / (n + 1)
-        m = np.log(-np.log(1 - m))
-        mb = np.mean(m)
-        xb = np.mean(np.log(rvs))
-        R = (sum((np.log(rvs) - xb) * (m - mb))) ** 2
-        R = R / sum((np.log(rvs) - xb) ** 2)
-        R = R / sum((m - mb) ** 2)
-        WPP_statistic = n * (1 - R)
-
-        return WPP_statistic
-
-
-class NormalizeSpaceWeibullGofStatistic(AbstractWeibullGofStatistic):
-    """
-    Base class for tests based on normalized spacings for Weibull distribution.
-    """
-
-    @override
-    def alternative(self) -> Alternative:
+    def alternative(self):
         return RightAlternative()
+
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite strictly positive observations, n >= 2.
+            Constant samples are invalid; ties are allowed unless stated below.
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
+        """
+        y = _logs(rvs)
+        n = len(y)
+        scores = np.log(-np.log1p(-np.arange(1, n + 1) / (n + 1)))
+        return float(n * (1 - _correlation_squared(y, scores)))
+
+
+class REJGWeibullGofStatistic(WPPWeibullGofStatistic):
+    """Squared log-probability-plot correlation (historical REJG name).
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+    and unknown positive scale eta and shape k. No constructor arguments.
+    Logarithmic location and scale are eliminated within every call.
+
+    R2=corr(log(x_(i)), log(-log(1-p_i)))**2,
+    p_i=(i-0.3175)/(n+0.365). No fitted shape is needed: it cancels.
+
+    Reject for left tail values.
+    Calibrate with repeated execute_statistic calls on ordinary Weibull
+    samples. Affine invariance in log(x) permits eta=k=1 for simulation.
+    Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    The former implementation returned the fourth power of correlation.
+    Exact attribution of these plotting positions to Evans-Johnson-Green
+    was not verified; use simulation for this explicitly defined variant.
+    A primary source establishing this exact implemented formula was not
+    verified in the literature search. Treat it as the specified local
+    discrepancy; no named-test tables or chi-square limit are asserted.
+
+    Examples
+    --------
+    >>> test = REJGWeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
+    """
+
+    @staticmethod
+    @override
+    def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "REJG".
+        """
+        return "REJG"
+
+    @staticmethod
+    @override
+    def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "REJG_WEIBULL_{parent_code}".
+        """
+        short_code = REJGWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
+
+    def alternative(self):
+        return LeftAlternative()
+
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite strictly positive observations, n >= 2.
+            Constant samples are invalid; ties are allowed unless stated below.
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
+        """
+        y = _logs(rvs)
+        n = len(y)
+        p = (np.arange(1, n + 1) - 0.3175) / (n + 0.365)
+        return _correlation_squared(y, np.log(-np.log1p(-p)))
+
+
+class SPPWeibullGofStatistic(WPPWeibullGofStatistic):
+    """Maximum stabilized probability-plot distance with Weibull MLEs.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+    and unknown positive scale eta and shape k. No constructor arguments.
+    Logarithmic location and scale are eliminated within every call.
+
+    T=max(abs(2/pi*asin(sqrt((i-0.5)/n))-2/pi*asin(sqrt(G(z_i))))),
+    where z_i are ascending MLE-standardized logs, G(z)=1-exp(-exp(z)).
+
+    Reject for right tail values.
+    Calibrate with repeated execute_statistic calls on ordinary Weibull
+    samples. Affine invariance in log(x) permits eta=k=1 for simulation.
+    Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    A primary source establishing this exact implemented formula was not
+    verified in the literature search. Treat it as the specified local
+    discrepancy; no named-test tables or chi-square limit are asserted.
+
+    Examples
+    --------
+    >>> test = SPPWeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
+    """
+
+    @staticmethod
+    @override
+    def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "SPP".
+        """
+        return "SPP"
+
+    @staticmethod
+    @override
+    def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "SPP_WEIBULL_{parent_code}".
+        """
+        short_code = SPPWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
+
+    def alternative(self):
+        return RightAlternative()
+
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite strictly positive observations, n >= 2.
+            Constant samples are invalid; ties are allowed unless stated below.
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
+        """
+        z = _fitted(rvs)
+        r = 2 / np.pi * np.arcsin(np.sqrt((np.arange(1, len(z) + 1) - 0.5) / len(z)))
+        s = 2 / np.pi * np.arcsin(np.sqrt(gumbel_l.cdf(z)))
+        return float(np.max(np.abs(r - s)))
+
+
+class ST1WeibullGofStatistic(_CompositeWeibullStatistic):
+    """Delta-method moment discrepancy for negative log Weibull observations.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+    and unknown positive scale eta and shape k. No constructor arguments.
+    Logarithmic location and scale are eliminated within every call.
+
+    Let Z be the standardized maximum Gumbel. Set g=E(Z**3), b=E(Z**4).
+    For sample standardized -log(x), let g_n and b_n use divisor n.
+    Influence functions are P3(z)=z**3-3*z-1.5*g*z**2+g/2 and
+    P4(z)=z**4-4*g*z-2*b*z**2+b. Put V_ij=E(Pi(Z)*Pj(Z)).
+    Return n*(g_n-g)**2/V_33.
+
+    Reject for right tail values.
+    Calibrate with repeated execute_statistic calls on ordinary Weibull
+    samples. Affine invariance in log(x) permits eta=k=1 for simulation.
+    Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    These are locally defined moment statistics under the historical
+    ST names. Exact cumulants (j-1)!*zeta(j), j>=2, determine moments
+    through order eight. The delta method gives an asymptotic chi-square(1)
+    limit under the null, not an exact finite-sample law or the published
+    smooth-test normalization. Use simulation for finite samples.
+    A primary source establishing this exact implemented formula was not
+    verified in the literature search. Treat it as the specified local
+    discrepancy; no named-test tables or chi-square limit are asserted.
+
+    Examples
+    --------
+    >>> test = ST1WeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
+    """
+
+    @staticmethod
+    @override
+    def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "ST1".
+        """
+        return "ST1"
+
+    @staticmethod
+    @override
+    def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "ST1_WEIBULL_{parent_code}".
+        """
+        short_code = ST1WeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
+
+    def alternative(self):
+        return RightAlternative()
+
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite strictly positive observations, n >= 2.
+            Constant samples are invalid; ties are allowed unless stated below.
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
+        """
+        n, skew, _kurt = _moment_components(rvs)
+        g, _b, v33, _v34, _v44 = _moment_null()
+        return float(n * (skew - g) ** 2 / v33)
+
+
+class ST2WeibullGofStatistic(_CompositeWeibullStatistic):
+    """Delta-method moment discrepancy for negative log Weibull observations.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+    and unknown positive scale eta and shape k. No constructor arguments.
+    Logarithmic location and scale are eliminated within every call.
+
+    Let Z be the standardized maximum Gumbel. Set g=E(Z**3), b=E(Z**4).
+    For sample standardized -log(x), let g_n and b_n use divisor n.
+    Influence functions are P3(z)=z**3-3*z-1.5*g*z**2+g/2 and
+    P4(z)=z**4-4*g*z-2*b*z**2+b. Put V_ij=E(Pi(Z)*Pj(Z)).
+    Return n*((b_n-b)-V_34/V_33*(g_n-g))**2/(V_44-V_34**2/V_33).
+
+    Reject for right tail values.
+    Calibrate with repeated execute_statistic calls on ordinary Weibull
+    samples. Affine invariance in log(x) permits eta=k=1 for simulation.
+    Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    These are locally defined moment statistics under the historical
+    ST names. Exact cumulants (j-1)!*zeta(j), j>=2, determine moments
+    through order eight. The delta method gives an asymptotic chi-square(1)
+    limit under the null, not an exact finite-sample law or the published
+    smooth-test normalization. Use simulation for finite samples.
+    A primary source establishing this exact implemented formula was not
+    verified in the literature search. Treat it as the specified local
+    discrepancy; no named-test tables or chi-square limit are asserted.
+
+    Examples
+    --------
+    >>> test = ST2WeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
+    """
+
+    @staticmethod
+    @override
+    def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "ST2".
+        """
+        return "ST2"
+
+    @staticmethod
+    @override
+    def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "ST2_WEIBULL_{parent_code}".
+        """
+        short_code = ST2WeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
+
+    def alternative(self):
+        return RightAlternative()
+
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite strictly positive observations, n >= 2.
+            Constant samples are invalid; ties are allowed unless stated below.
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
+        """
+        n, skew, kurt = _moment_components(rvs)
+        g, b, v33, v34, v44 = _moment_null()
+        return float(n * ((kurt - b) - v34 / v33 * (skew - g)) ** 2 / (v44 - v34**2 / v33))
+
+
+class NormalizeSpaceWeibullGofStatistic(_CompositeWeibullStatistic, ABC):
+    """Abstract complete-sample normalized-spacing family (no censoring API)."""
 
     @staticmethod
     def GoFNS(t, n, m):
@@ -579,62 +1663,61 @@ class NormalizeSpaceWeibullGofStatistic(AbstractWeibullGofStatistic):
             )
         return res
 
-    @override
-    def execute_statistic(self, rvs, type_):
-        """
-        Execute the normalized spacing test statistic.
+    def alternative(self):
+        return RightAlternative()
 
-        :param rvs: array of observed data samples.
-        :param type_: type of test statistic to compute (TS, LOS, or MSF).
-        :return: normalized spacing test statistic value.
-        :raises ValueError: if MSF test is used with left censoring (s != 0).
-        """
-        m = len(rvs)
-        s = 0  # can be defined
-        r = 0  # can be defined
-        n = m + s + r
-        A = np.sort(np.log(rvs))
-        d1 = A[1 : (m - 1)] - A[: (m - 2)]
-        d2 = A[1:m] - A[: (m - 1)]
-        X = TikuSinghWeibullGofStatistic.GoFNS(r + 1, n, m)
-        mu1 = X[1 : (m - 1)] - X[: (m - 2)]
-        mu2 = X[1:m] - X[: (m - 1)]
-        a = np.arange(r + 1, n - s - 1)
-
-        G1 = d1 / mu1
-        G2 = d2 / mu2
-
-        w1 = 2 * (np.sum((n - s - 1 - a) * G1))
-        w2 = (m - 2) * np.sum(G2)
-
-        NS_statistic = 0
-        if type_ == TikuSinghWeibullGofStatistic.code():
-            NS_statistic = w1 / w2
-        elif type_ == LOSWeibullGofStatistic.code():
-            z = []
-            for i in range(1, m - 1):
-                z.append(np.sum(G2[:i]) / np.sum(G2))
-            z = sorted(z)
-            z1 = sorted(z, reverse=True)
-            interval = range(1, m - 1)
-            NS_statistic = -(m - 2) - (1 / (m - 2)) * np.sum(
-                (2 * np.array(interval) - 1) * (np.log(z) + np.log(1 - np.array(z1)))
-            )
-        elif type_ == MSFWeibullGofStatistic.code():
-            if s != 0:
-                raise ValueError("the test is only applied for right censoring")
-            l1 = m // 2
-            # l2 = m - l1 - 1
-            S = np.sum((A[(l1 + 1) : m] - A[l1 : (m - 1)]) / (X[(l1 + 1) : m] - X[l1 : (m - 1)]))
-            S = S / np.sum((A[1:m] - A[: (m - 1)]) / (X[1:m] - X[: (m - 1)]))
-            NS_statistic = S
-
-        return NS_statistic
+    def _spacings(self, rvs):
+        y = _logs(rvs, min_size=3)
+        means = self.GoFNS(1, len(y), len(y))
+        intervals = np.diff(means)
+        if not np.all(np.isfinite(intervals)) or np.any(intervals <= 0):
+            raise ValueError("Approximate expected log spacings must be positive")
+        gaps = np.diff(y) / intervals
+        return gaps / np.sum(gaps)
 
 
 class TikuSinghWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
-    """
-    Tiku-Singh test statistic for Weibull distribution.
+    """Normalized log-spacing statistic (complete observations).
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+    and unknown positive scale eta and shape k. No constructor arguments.
+    Logarithmic location and scale are eliminated within every call.
+
+    Let y_i=log(x_(i)), mu_i approximate E(log(E_(i))) for unit exponential
+    order statistics. GoFNS uses a fourth-order Taylor approximation to
+    Q(U_(i)), Q(p)=log(-log(1-p)), p=i/(n+1).
+    Let h_i=(y_(i+1)-y_i)/(mu_(i+1)-mu_i), g_i=h_i/sum(h_i).
+    T=2*sum((n-1-i)*g_i, i=1,...,n-2)/(n-2).
+
+    Reject for both tail values.
+    Calibrate with repeated execute_statistic calls on ordinary Weibull
+    samples. Affine invariance in log(x) permits eta=k=1 for simulation.
+    Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    The expectation approximation is retained explicitly; it is not an
+    exact order-statistic expectation. No censored-data calibration is
+    supported. LOS is infinite when a terminal normalized spacing is zero.
+    A primary source establishing this exact implemented formula was not
+    verified in the literature search. Treat it as the specified local
+    discrepancy; no named-test tables or chi-square limit are asserted.
+
+    Examples
+    --------
+    >>> test = TikuSinghWeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -658,23 +1741,82 @@ class TikuSinghWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
         short_code = TikuSinghWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
-    # Tiku-Singh test statistic
-    @override
-    def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the Tiku-Singh test statistic for Weibull distribution.
+    def alternative(self):
+        return TwoSidedAlternative()
 
-        :param rvs: array of observed data samples.
-        :return: Tiku-Singh test statistic value.
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite strictly positive observations, n >= 3.
+            Constant samples are invalid; ties are allowed unless stated below.
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
         """
-        return super().execute_statistic(rvs, self.code())
+        g = self._spacings(rvs)
+        n = len(g) + 1
+        return float(2 * np.dot(np.arange(n - 2, 0, -1), g[:-1]) / (n - 2))
 
 
 class LOSWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
-    """
-    Lockhart-O'Reilly-Stephens test statistic for Weibull distribution.
+    """Normalized log-spacing statistic (complete observations).
 
-    Reference: Lockhart R.A., O'Reilly F. and Stephens M.A. (1986).
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+    and unknown positive scale eta and shape k. No constructor arguments.
+    Logarithmic location and scale are eliminated within every call.
+
+    Let y_i=log(x_(i)), mu_i approximate E(log(E_(i))) for unit exponential
+    order statistics. GoFNS uses a fourth-order Taylor approximation to
+    Q(U_(i)), Q(p)=log(-log(1-p)), p=i/(n+1).
+    Let h_i=(y_(i+1)-y_i)/(mu_(i+1)-mu_i), g_i=h_i/sum(h_i).
+    For z_i=sum(g_j,j<=i), i=1,...,n-2, return the AD functional
+    -(n-2)-sum((2*i-1)*(log(z_i)+log(1-z_(n-1-i))))/(n-2).
+
+    Reject for right tail values.
+    Calibrate with repeated execute_statistic calls on ordinary Weibull
+    samples. Affine invariance in log(x) permits eta=k=1 for simulation.
+    Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    The expectation approximation is retained explicitly; it is not an
+    exact order-statistic expectation. No censored-data calibration is
+    supported. LOS is infinite when a terminal normalized spacing is zero.
+    A primary source establishing this exact implemented formula was not
+    verified in the literature search. Treat it as the specified local
+    discrepancy; no named-test tables or chi-square limit are asserted.
+
+    Examples
+    --------
+    >>> test = LOSWeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -698,22 +1840,85 @@ class LOSWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
         short_code = LOSWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
-    @override
-    def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the Lockhart-O'Reilly-Stephens test statistic.
+    def alternative(self):
+        return RightAlternative()
 
-        :param rvs: array of observed data samples.
-        :return: LOS test statistic value.
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite strictly positive observations, n >= 3.
+            Constant samples are invalid; ties are allowed unless stated below.
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
         """
-        return super().execute_statistic(rvs, self.code())
+        g = self._spacings(rvs)
+        z = np.cumsum(g)[:-1]
+        sf = np.cumsum(g[::-1])[:-1][::-1]
+        if np.any(z == 0) or np.any(sf == 0):
+            return float("inf")
+        q = len(z)
+        return float(-q - np.dot(2 * np.arange(1, q + 1) - 1, np.log(z) + np.log(sf[::-1])) / q)
 
 
 class MSFWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
-    """
-    Mann-Scheuer-Fertig test statistic for Weibull distribution.
+    """Normalized log-spacing statistic (complete observations).
 
-    Reference: Mann N.R., Scheuer E.M. and Fertig K.W. (1973).
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+    and unknown positive scale eta and shape k. No constructor arguments.
+    Logarithmic location and scale are eliminated within every call.
+
+    Let y_i=log(x_(i)), mu_i approximate E(log(E_(i))) for unit exponential
+    order statistics. GoFNS uses a fourth-order Taylor approximation to
+    Q(U_(i)), Q(p)=log(-log(1-p)), p=i/(n+1).
+    Let h_i=(y_(i+1)-y_i)/(mu_(i+1)-mu_i), g_i=h_i/sum(h_i).
+    Return sum(g_i, i=floor(n/2)+1,...,n-1).
+
+    Reject for right tail values.
+    Calibrate with repeated execute_statistic calls on ordinary Weibull
+    samples. Affine invariance in log(x) permits eta=k=1 for simulation.
+    Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    The expectation approximation is retained explicitly; it is not an
+    exact order-statistic expectation. No censored-data calibration is
+    supported. LOS is infinite when a terminal normalized spacing is zero.
+    A primary source establishing this exact implemented formula was not
+    verified in the literature search. Treat it as the specified local
+    discrepancy; no named-test tables or chi-square limit are asserted.
+
+    Examples
+    --------
+    >>> test = MSFWeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -737,437 +1942,81 @@ class MSFWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
         short_code = MSFWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
-    # Lockhart-O'Reilly-Stephens test statistic
-    @override
+    def alternative(self):
+        return RightAlternative()
+
     def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite strictly positive observations, n >= 3.
+            Constant samples are invalid; ties are allowed unless stated below.
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
         """
-        Execute the Mann-Scheuer-Fertig test statistic.
-
-        :param rvs: array of observed data samples.
-        :return: MSF test statistic value.
-        """
-        return super().execute_statistic(rvs, self.code())
+        g = self._spacings(rvs)
+        return float(np.sum(g[(len(g) + 1) // 2 :]))
 
 
-class WPPWeibullGofStatistic(AbstractWeibullGofStatistic):
+class LiaoShimokawaWeibullGofStatistic(_CompositeWeibullStatistic):
+    """Liao-Shimokawa weighted EDF statistic with Weibull MLEs.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+    and unknown positive scale eta and shape k. No constructor arguments.
+    Logarithmic location and scale are eliminated within every call.
+
+    L=sum(max(i/n-u_i,u_i-(i-1)/n)/sqrt(u_i*(1-u_i)))/sqrt(n),
+    where u_i=G(z_i) and z_i are MLE-standardized ordered logs.
+
+    Reject for right tail values.
+    Calibrate with repeated execute_statistic calls on ordinary Weibull
+    samples. Affine invariance in log(x) permits eta=k=1 for simulation.
+    Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    This selects the maximum-likelihood variant, not graphical estimates.
+    Log probabilities retain tail precision; there is no epsilon clipping.
+    Extremely large finite penalties may overflow float64 to infinity.
+
+    References
+    ----------
+    .. [1] M. Liao and T. Shimokawa (1999), A new goodness-of-fit test for type-I
+       extreme-value and 2-parameter Weibull distributions with estimated
+       parameters. https://doi.org/10.1080/00949659908811965
+
+    Examples
+    --------
+    >>> test = LiaoShimokawaWeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
     """
-    Family of Weibull Probability Plot (WPP) test statistics.
-    """
-
-    @override
-    def alternative(self) -> Alternative:
-        return RightAlternative()
-
-    @staticmethod
-    def MLEst(x):
-        """
-        Compute Maximum Likelihood Estimates for Weibull parameters.
-
-        :param x: array of observed data samples.
-        :return: dictionary with 'eta' (scale), 'beta' (shape), and transformed 'y'.
-        :raises ValueError: if data contains non-positive values.
-        """
-        if np.min(x) <= 0:
-            raise ValueError("Data x is not a positive sample")
-
-        lv = -np.log(x)
-        y = np.sort(lv)
-
-        def f1(toto, vect):
-            if toto != 0:
-                f1 = np.sum(vect) / len(vect)
-                f1 -= np.sum(vect * np.exp(-vect * toto)) / np.sum(np.exp(-vect * toto)) - 1 / toto
-            else:
-                f1 = 100
-            return abs(f1)
-
-        result = minimize_scalar(f1, bounds=(0.0001, 50), args=(y,), method="bounded")
-        t = result.x
-        aux = np.sum(np.exp(-y * t)) / len(x)
-        ksi = -(1 / t) * np.log(aux)
-
-        y = -(y - ksi) * t
-        return {"eta": np.exp(-ksi), "beta": t, "y": y}
-
-    # Family of the test statistics based on the probability plot and
-    # shapiro-Wilk type tests
-    @staticmethod
-    @override
-    def execute_statistic(x, type_):
-        """
-        Execute a specific WPP test statistic by type.
-
-        :param x: array of observed data samples.
-        :param type_: code of the specific test to run (OK, SB, RSB, REJG, SPP, ST1, ST2).
-        :return: corresponding WPP test statistic value.
-        """
-        n = len(x)
-        lv = np.log(x)
-        y = np.sort(lv)
-        interval = np.arange(1, n + 1)
-
-        WPP_statistic = 0
-        if type_ == OKWeibullGofStatistic.code():
-            a = interval[:-1]
-            Sig = np.sum((2 * np.concatenate((a, [n])) - 1 - n) * y) / (np.log(2) * (n - 1))
-            w = np.log((n + 1) / (n - a + 1))
-            Wi = np.concatenate((w, [n - np.sum(w)]))
-            Wn = w * (1 + np.log(w)) - 1
-            a = 0.4228 * n - np.sum(Wn)
-            Wn = np.concatenate((Wn, [a]))
-            b = 0.6079 * np.sum(Wn * y) - 0.2570 * np.sum(Wi * y)
-            stat = b / Sig
-            WPP_statistic = (stat - 1 - 0.13 / np.sqrt(n) + 1.18 / n) / (
-                0.49 / np.sqrt(n) - 0.36 / n
-            )
-
-        elif type_ == SBWeibullGofStatistic.code():
-            yb = np.mean(y)
-            S2 = np.sum((y - yb) ** 2)
-            a = interval[:-1]
-            w = np.log((n + 1) / (n - a + 1))
-            Wi = np.concatenate((w, [n - np.sum(w)]))
-            Wn = w * (1 + np.log(w)) - 1
-            a = 0.4228 * n - np.sum(Wn)
-            Wn = np.concatenate((Wn, [a]))
-            b = (0.6079 * np.sum(Wn * y) - 0.2570 * np.sum(Wi * y)) / n
-            WPP_statistic = n * b**2 / S2
-
-        elif type_ == RSBWeibullGofStatistic.code():
-            m = interval / (n + 1)
-            m = np.log(-np.log(1 - m))
-            mb = np.mean(m)
-            xb = np.mean(np.log(x))
-            R = (np.sum((np.log(x) - xb) * (m - mb))) ** 2
-            R /= np.sum((np.log(x) - xb) ** 2)
-            R /= np.sum((m - mb) ** 2)
-            WPP_statistic = n * (1 - R)
-
-        elif type_ == REJGWeibullGofStatistic.code():
-            beta_shape = WPPWeibullGofStatistic.MLEst(x)["beta"]
-            m = np.log(-(np.log(1 - (interval - 0.3175) / (n + 0.365)))) / beta_shape
-            s = (np.sum((y - np.mean(y)) * m)) ** 2 / (
-                np.sum((y - np.mean(y)) ** 2) * np.sum((m - np.mean(m)) ** 2)
-            )
-            WPP_statistic = s**2
-
-        elif type_ == SPPWeibullGofStatistic.code():
-            y = WPPWeibullGofStatistic.MLEst(x)["y"]
-            r = 2 / np.pi * np.arcsin(np.sqrt((interval - 0.5) / n))
-            s = 2 / np.pi * np.arcsin(np.sqrt(1 - np.exp(-np.exp(y))))
-            WPP_statistic = np.max(np.abs(r - s))
-
-        elif type_ == ST1WeibullGofStatistic.code():
-            x = np.sort(-y)
-            s = np.sum((x - np.mean(x)) ** 2) / n
-            b1 = np.sum(((x - np.mean(x)) / np.sqrt(s)) ** 3) / n
-            V3 = (b1 - 1.139547) / np.sqrt(20 / n)
-            WPP_statistic = V3**2
-
-        elif type_ == ST2WeibullGofStatistic.code():
-            x = np.sort(-y)
-            s = np.sum((x - np.mean(x)) ** 2) / n
-            b1 = np.sum(((x - np.mean(x)) / np.sqrt(s)) ** 3) / n
-            b2 = np.sum(((x - np.mean(x)) / np.sqrt(s)) ** 4) / n
-            V4 = (b2 - 7.55 * b1 + 3.21) / np.sqrt(219.72 / n)
-            WPP_statistic = V4**2
-
-        return WPP_statistic
-
-
-class OKWeibullGofStatistic(WPPWeibullGofStatistic):
-    """
-    Ozturk-Korukoglu test statistic for Weibull distribution.
-
-    Reference: Öztürk A. (1986).
-    """
-
-    @override
-    def alternative(self) -> Alternative:
-        return RightAlternative()
-
-    @staticmethod
-    @override
-    def short_code():
-        """
-        Get short code identifier for this test.
-
-        :return: short code string "OK".
-        """
-        return "OK"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "OK_WEIBULL_{parent_code}".
-        """
-        short_code = OKWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
-
-    # Test statistic of Ozturk and Korukoglu
-    @override
-    def execute_statistic(self, rvs):
-        """
-        Execute the Ozturk-Korukoglu test statistic.
-
-        :param rvs: array of observed data samples.
-        :return: OK test statistic value.
-        """
-        return super().execute_statistic(rvs, self.code())
-
-
-class SBWeibullGofStatistic(WPPWeibullGofStatistic):
-    """
-    Shapiro-Wilk type test statistic for Weibull distribution (SB variant).
-
-    Reference: See SbWeibullGofStatistic.
-    """
-
-    @override
-    def alternative(self) -> Alternative:
-        return LeftAlternative()
-
-    @staticmethod
-    @override
-    def short_code():
-        """
-        Get short code identifier for this test.
-
-        :return: short code string "SB".
-        """
-        return "SB"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "SB_WEIBULL_{parent_code}".
-        """
-        short_code = SBWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
-
-    # Test statistic of Shapiro Wilk
-    @override
-    def execute_statistic(self, rvs):
-        """
-        Execute the SB test statistic.
-
-        :param rvs: array of observed data samples.
-        :return: SB test statistic value.
-        """
-        return super().execute_statistic(rvs, self.code())
-
-
-class REJGWeibullGofStatistic(WPPWeibullGofStatistic):
-    """
-    Evans-Johnson-Green test statistic for Weibull distribution.
-    """
-
-    @override
-    def alternative(self) -> Alternative:
-        return LeftAlternative()
-
-    @staticmethod
-    @override
-    def short_code():
-        """
-        Get short code identifier for this test.
-
-        :return: short code string "REJG".
-        """
-        return "REJG"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "REJG_WEIBULL_{parent_code}".
-        """
-        short_code = REJGWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
-
-    # Test statistic of Evans, Johnson and Green based on probability plot
-    @override
-    def execute_statistic(self, rvs):
-        """
-        Execute the Evans-Johnson-Green test statistic.
-
-        :param rvs: array of observed data samples.
-        :return: REJG test statistic value.
-        """
-        return super().execute_statistic(rvs, self.code())
-
-
-class SPPWeibullGofStatistic(WPPWeibullGofStatistic):
-    """
-    Stabilized Probability Plot test statistic for Weibull distribution.
-    """
-
-    @override
-    def alternative(self) -> Alternative:
-        return LeftAlternative()
-
-    @staticmethod
-    @override
-    def short_code():
-        """
-        Get short code identifier for this test.
-
-        :return: short code string "SPP".
-        """
-        return "SPP"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "SPP_WEIBULL_{parent_code}".
-        """
-        short_code = SPPWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
-
-    # Test statistic based on stabilized probability plot
-    @override
-    def execute_statistic(self, rvs):
-        """
-        Execute the Stabilized Probability Plot test statistic.
-
-        :param rvs: array of observed data samples.
-        :return: SPP test statistic value.
-        """
-        return super().execute_statistic(rvs, self.code())
-
-
-# TODO: fix signatures
-
-
-class MahdiDoostparastWeibullGofStatistic(AbstractWeibullGofStatistic):
-    """
-    Mahdi-Doostparast test statistic for Weibull distribution.
-
-    Reference: Doostparast M. (2011).
-    """
-
-    @override
-    def alternative(self) -> Alternative:
-        return RightAlternative()
-
-    @staticmethod
-    @override
-    def short_code():
-        """
-        Get short code identifier for this test.
-
-        :return: short code string "MD".
-        """
-        return "MD"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "MD_WEIBULL_{parent_code}".
-        """
-        short_code = MahdiDoostparastWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
-
-    @override
-    def execute_statistic(self, rvs):
-        """
-        Execute the Mahdi-Doostparast test statistic.
-
-        :param rvs: array of observed data samples.
-        :return: MD test statistic value.
-        """
-        rvs_sorted = np.sort(rvs)
-        n = len(rvs_sorted)
-        emp_cdf = np.arange(1, n + 1) / n
-
-        F_0 = generate_weibull_cdf(rvs_sorted, a=self.a, k=self.k)
-
-        term1 = np.sum(
-            [(emp_cdf[i - 1] - 1) ** 2 * (np.log(F_0[i]) - np.log(F_0[i - 1])) for i in range(1, n)]
-        )
-
-        term2 = np.sum([(emp_cdf[i - 1] - 1) * (F_0[i] - F_0[i - 1]) for i in range(1, n)])
-
-        MD_statistic = n * (term1 + 2 * term2 + 0.5)
-
-        return MD_statistic
-
-
-class WatsonWeibullGofStatistic(CrammerVonMisesWeibullGofStatistic):
-    """
-    Watson test statistic for Weibull distribution.
-    """
-
-    @override
-    def alternative(self) -> Alternative:
-        return RightAlternative()
-
-    @staticmethod
-    @override
-    def short_code():
-        """
-        Get short code identifier for this test.
-
-        :return: short code string "W".
-        """
-        return "W"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "W_WEIBULL_{parent_code}".
-        """
-        short_code = WatsonWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
-
-    @override
-    def execute_statistic(self, rvs):
-        """
-        Execute the Watson test statistic for Weibull distribution.
-
-        :param rvs: array of observed data samples.
-        :return: Watson test statistic value.
-        """
-        rvs_sorted = np.sort(rvs)
-        cdf_vals = generate_weibull_cdf(rvs_sorted, a=self.a, k=self.k)
-        n = len(rvs)
-
-        cramer_statistic = super().execute_statistic(rvs)
-        correction_term = n * (np.mean(cdf_vals) - 0.5) ** 2
-
-        watson_statistic = cramer_statistic - correction_term
-
-        return watson_statistic
-
-
-class LiaoShimokawaWeibullGofStatistic(AbstractWeibullGofStatistic):
-    """
-    Liao-Shimokawa test statistic for Weibull distribution.
-
-    Goodness-of-fit test based on weighted deviations of CDF.
-    Reference: Liao M. and Shimokawa T. (1999).
-    """
-
-    @override
-    def alternative(self) -> Alternative:
-        return RightAlternative()
 
     @staticmethod
     @override
@@ -1190,39 +2039,180 @@ class LiaoShimokawaWeibullGofStatistic(AbstractWeibullGofStatistic):
         short_code = LiaoShimokawaWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
-    @override
-    def execute_statistic(self, rvs):
-        """
-        Execute the Liao-Shimokawa test statistic.
-
-        :param rvs: array of observed data samples.
-        :return: LS test statistic value.
-        """
-        n = len(rvs)
-        rvs_sorted = np.sort(rvs)
-
-        empirical_cdf = np.arange(1, n + 1) / n
-        theoretical_cdf = generate_weibull_cdf(rvs_sorted, a=self.a, k=self.k)
-
-        epsilon = 1e-10  # Small constant to avoid divide by zero
-
-        deviations = np.maximum(
-            empirical_cdf - theoretical_cdf, theoretical_cdf - (np.arange(0, n) / n)
-        )
-        deviations /= np.sqrt(theoretical_cdf * (1 - theoretical_cdf + epsilon))
-
-        ls_statistic = np.sum(deviations) / np.sqrt(n)
-        return ls_statistic
-
-
-class KullbackLeiblerWeibullGofStatistic(AbstractWeibullGofStatistic):
-    """
-    Kullback-Leibler divergence test statistic for Weibull distribution.
-    """
-
-    @override
-    def alternative(self) -> Alternative:
+    def alternative(self):
         return RightAlternative()
+
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite strictly positive observations, n >= 2.
+            Constant samples are invalid; ties are allowed unless stated below.
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
+        """
+        return _weighted_edf(*_log_probabilities(_fitted(rvs)))
+
+
+class WatsonWeibullGofStatistic(CrammerVonMisesWeibullGofStatistic):
+    """Watson centered EDF statistic for a specified exponentiated Weibull.
+
+    Parameters
+    ----------
+    a, k : float, optional
+        Fixed positive finite shape parameters, both default to 1.
+        The parameter a is an exponent, not a scale.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=(1-exp(-x**k))**a on x >= 0, with fixed a, k, scale 1
+    and location 0. Put u_i=F(x_(i)), i=1,...,n.
+
+    U2=W2-n*(mean(u_i)-1/2)**2; W2 is the Cramer-von Mises statistic.
+
+    Reject for right tail values.
+    Calibrate using the specified null and the same sample size.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    The general centered EDF functional is applied to the known CDF.
+    Centering residuals before squaring avoids subtracting two large sums.
+
+    References
+    ----------
+    .. [1] G. S. Watson (1961), Goodness-of-fit tests on a circle.
+       https://doi.org/10.1093/biomet/48.1-2.109
+
+    Examples
+    --------
+    >>> test = WatsonWeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
+    """
+
+    @staticmethod
+    @override
+    def short_code():
+        """
+        Get short code identifier for this test.
+
+        :return: short code string "W".
+        """
+        return "W"
+
+    @staticmethod
+    @override
+    def code():
+        """
+        Get unique code identifier for this test.
+
+        :return: string code in format "W_WEIBULL_{parent_code}".
+        """
+        short_code = WatsonWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
+
+    def alternative(self):
+        return RightAlternative()
+
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite nonnegative observations, n >= 1.
+            Ties and constant samples are allowed.
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
+        """
+        x = np.sort(_sample(rvs))
+        u = generate_weibull_cdf(x, a=self.a, k=self.k)
+        target = (np.arange(1, len(x) + 1) - 0.5) / len(x)
+        delta = u - target
+        return float(1 / (12 * len(x)) + np.sum((delta - np.mean(delta)) ** 2))
+
+
+class KullbackLeiblerWeibullGofStatistic(_CompositeWeibullStatistic):
+    """Spacing-entropy discrepancy from a fitted log-Weibull density.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+    and unknown positive scale eta and shape k. No constructor arguments.
+    Logarithmic location and scale are eliminated within every call.
+
+    For MLE-standardized ordered logs z_i, define
+    H=mean(log(n*(z_(min(n,i+m))-z_(max(1,i-m)))/(2*m))).
+    Return -H-mean(z)+mean(exp(z)), the entropy-based estimate of
+    KL divergence to g(z)=exp(z-exp(z)). The finite-sample estimate may
+    be negative. Default m=min(floor(sqrt(n)),floor((n-1)/2)), at least 1.
+
+    Reject for right tail values.
+    Calibrate with repeated execute_statistic calls on ordinary Weibull
+    samples. Affine invariance in log(x) permits eta=k=1 for simulation.
+    Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    Zero entropy-window spacings give positive infinity. Ties with
+    positive window spacings are allowed. Preserve m in every simulation;
+    the generic resolver supports only the default execution settings.
+    A primary source establishing this exact implemented formula was not
+    verified in the literature search. Treat it as the specified local
+    discrepancy; no named-test tables or chi-square limit are asserted.
+
+    Examples
+    --------
+    >>> test = KullbackLeiblerWeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
+    """
 
     @staticmethod
     @override
@@ -1245,89 +2235,127 @@ class KullbackLeiblerWeibullGofStatistic(AbstractWeibullGofStatistic):
         short_code = KullbackLeiblerWeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
-    @override
-    def execute_statistic(self, rvs, m=None):
-        """
-        Execute the Kullback-Leibler test statistic.
-
-        :param rvs: array of observed data samples.
-        :param m: window size for entropy estimation (default is n//2).
-        :return: KL divergence test statistic value.
-        """
-        n = len(rvs)
-        m = n // 2 if m is None else m
-
-        log_rvs = np.log(np.sort(rvs))
-
-        H_mn = np.mean(
-            [
-                np.log((n / (2 * m)) * (log_rvs[min(n - 1, i + m)] - log_rvs[max(0, i - m)]))
-                for i in range(n)
-            ]
-        )
-
-        term2 = np.mean(log_rvs)
-
-        term3 = np.mean(np.exp(log_rvs))
-
-        KL_statistic = -H_mn - term2 + term3
-
-        return KL_statistic
-
-
-class LaplaceTransformWeibullGofStatistic(AbstractWeibullGofStatistic):
-    """
-    Family of test statistics based on Laplace transform for Weibull distribution.
-    """
-
-    @override
-    def alternative(self) -> Alternative:
+    def alternative(self):
         return RightAlternative()
 
-    @override
-    def execute_statistic(self, rvs, m=100, a=-5, _type="LT3_WEIBULL"):
+    def execute_statistic(self, rvs, m=None, **kwargs):
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite strictly positive observations, n >= 3.
+            Constant samples are invalid; ties are allowed unless stated below.
+        m : int, optional
+            Entropy window, 1 <= m < n/2. Default grows as sqrt(n).
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
         """
-        Execute the Laplace transform test statistic.
+        z = _fitted(_sample(rvs, min_size=3, positive=True, nonconstant=True))
+        n = len(z)
+        if m is None:
+            m = min(int(np.sqrt(n)), (n - 1) // 2)
+        if isinstance(m, (bool, np.bool_)) or not isinstance(m, Integral) or not 1 <= m < n / 2:
+            raise ValueError("m must be an integer with 1 <= m < n/2")
+        i = np.arange(n)
+        gaps = z[np.minimum(n - 1, i + m)] - z[np.maximum(0, i - m)]
+        if np.any(gaps == 0):
+            return float("inf")
+        h = np.mean(np.log(gaps) + np.log(n / (2 * m)))
+        return float(-h - np.mean(z) + np.mean(np.exp(z)))
 
-        :param rvs: array of observed data samples.
-        :param m: number of integration points.
-        :param a: shift parameter for transform.
-        :param _type: type of test.
-        :return: Laplace transform test statistic value.
-        :raises ValueError: if invalid type is specified.
-        """
-        n = len(rvs)
 
-        if _type == "LT2_WEIBULL" or _type.startswith("LT2_"):
-            t_values = np.linspace(-m, -1, num=m) / m
+class LaplaceTransformWeibullGofStatistic(_CompositeWeibullStatistic, ABC):
+    """Abstract fitted-Weibull Laplace family; choose LT2 or LT3."""
 
-        elif _type == "LT3_WEIBULL" or _type.startswith("LT3_"):
-            t_values = np.linspace(-2.5, 0.49, m)
+    def alternative(self):
+        return RightAlternative()
 
+    def _laplace(self, rvs, m, a, kind):
+        if isinstance(m, (bool, np.bool_)) or not isinstance(m, Integral) or m < 1:
+            raise ValueError("m must be a positive integer")
+        a = _scalar(a, "a")
+        z = _fitted(rvs)
+        if kind == 2:
+            t = np.arange(-m, 0) / m
         else:
-            raise ValueError("type must be LT2_WEIBULL / LT3_WEIBULL")
-
-        exp_matrix = np.exp(-np.outer(rvs, t_values))
-
-        col_sums = np.sum(exp_matrix, axis=0)
-
-        lt_sum = np.sum(
-            np.exp(-np.exp(a * t_values) + a * t_values) * (gamma(1 - t_values) - col_sums / n) ** 2
-        )
-
-        LT_stat = n * lt_sum
-
-        return LT_stat
+            # Equation (23): step 1/m, NOT m points on the interval.
+            t = np.arange(int(np.ceil(-2.5 * m)), int(np.floor(0.49 * m)) + 1) / m
+        log_empirical = logsumexp(-np.outer(z, t), axis=0) - np.log(len(z))
+        log_theoretical = gammaln(1 - t)
+        # Evaluate squared transform differences with their weights in log
+        # space, avoiding overflow followed by multiplication by zero.
+        with np.errstate(over="ignore", under="ignore", divide="ignore"):
+            log_difference = np.maximum(log_empirical, log_theoretical) + np.log(
+                -np.expm1(-np.abs(log_empirical - log_theoretical))
+            )
+            at = a * t
+            log_weight = np.full_like(at, -np.inf)
+            finite = np.isfinite(at)
+            log_weight[finite] = at[finite] - np.exp(at[finite])
+            terms = np.exp(log_weight + 2 * log_difference)
+        return float(len(z) * np.sum(terms))
 
 
 class LaplaceTransform2WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
-    """
-    Laplace Transform type 2 test statistic for Weibull distribution.
-    """
+    """Krit LT2 discrete Laplace statistic with maximum-likelihood fits.
 
-    @override
-    def alternative(self) -> Alternative:
-        return RightAlternative()
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+    and unknown positive scale eta and shape k. No constructor arguments.
+    Logarithmic location and scale are eliminated within every call.
+
+    T=n*sum(exp(a*t-exp(a*t))*(mean(exp(-t*z))-Gamma(1-t))**2).
+    Here z are MLE-standardized logs and t=-1,-1+1/m,...,-1/m.
+    This is a discrete sum, with no integration-step multiplier.
+
+    Reject for right tail values.
+    Calibrate with repeated execute_statistic calls on ordinary Weibull
+    samples. Affine invariance in log(x) permits eta=k=1 for simulation.
+    Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    Every simulation must preserve m and a. The generic resolver uses
+    the default execution settings only. LT3 at m=100 has 300 grid points.
+    Transform differences are evaluated in log space; statistics beyond the
+    float64 range return positive infinity.
+
+    References
+    ----------
+    .. [1] M. Krit (2014), Goodness-of-fit tests for the Weibull distribution based
+       on the Laplace transform, sections 2, 4, 5.
+       https://numdam.org/item/JSFS_2014__155_3_135_0.pdf
+
+    Examples
+    --------
+    >>> test = LaplaceTransform2WeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
+    """
 
     @staticmethod
     @override
@@ -1350,27 +2378,86 @@ class LaplaceTransform2WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
         short_code = LaplaceTransform2WeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
-    @override
-    def execute_statistic(self, rvs, m=100, a=-5):
-        """
-        Execute the LT2 test statistic.
+    def alternative(self):
+        return RightAlternative()
 
-        :param rvs: array of observed data samples.
-        :param m: number of integration points.
-        :param a: shift parameter.
-        :return: LT2 test statistic value.
+    def execute_statistic(self, rvs, m=100, a=-5, **kwargs):
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite strictly positive observations, n >= 2.
+            Constant samples are invalid; ties are allowed unless stated below.
+        m : int, optional
+            Positive grid resolution, default 100.
+        a : float, optional
+            Finite weight parameter, default -5; not a distribution parameter.
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
         """
-        return super().execute_statistic(rvs, m, a, self.code())
+        return self._laplace(rvs, m, a, 2)
 
 
 class LaplaceTransform3WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
-    """
-    Laplace Transform type 3 test statistic for Weibull distribution.
-    """
+    """Krit LT3 discrete Laplace statistic with maximum-likelihood fits.
 
-    @override
-    def alternative(self) -> Alternative:
-        return RightAlternative()
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+    and unknown positive scale eta and shape k. No constructor arguments.
+    Logarithmic location and scale are eliminated within every call.
+
+    T=n*sum(exp(a*t-exp(a*t))*(mean(exp(-t*z))-Gamma(1-t))**2).
+    Here z are MLE-standardized logs and t=j/m, ceil(-2.5*m)<=j<=floor(0.49*m).
+    This is a discrete sum, with no integration-step multiplier.
+
+    Reject for right tail values.
+    Calibrate with repeated execute_statistic calls on ordinary Weibull
+    samples. Affine invariance in log(x) permits eta=k=1 for simulation.
+    Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    Every simulation must preserve m and a. The generic resolver uses
+    the default execution settings only. LT3 at m=100 has 300 grid points.
+    Transform differences are evaluated in log space; statistics beyond the
+    float64 range return positive infinity.
+
+    References
+    ----------
+    .. [1] M. Krit (2014), Goodness-of-fit tests for the Weibull distribution based
+       on the Laplace transform, sections 2, 4, 5.
+       https://numdam.org/item/JSFS_2014__155_3_135_0.pdf
+
+    Examples
+    --------
+    >>> test = LaplaceTransform3WeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
+    """
 
     @staticmethod
     @override
@@ -1393,27 +2480,85 @@ class LaplaceTransform3WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
         short_code = LaplaceTransform3WeibullGofStatistic.short_code()
         return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
-    def execute_statistic(self, rvs, m=100, a=-5):
-        """
-        Execute the LT3 test statistic.
-
-        :param rvs: array of observed data samples.
-        :param m: number of integration points.
-        :param a: shift parameter.
-        :return: LT3 test statistic value.
-        """
-        return super().execute_statistic(rvs, m, a, self.code())
-
-
-# TODO: Check it. Throws exception on weibull test
-class CabanaQuirozWeibullGofStatistic(AbstractWeibullGofStatistic):
-    """
-    Cabana-Quiroz test statistic for Weibull distribution.
-    """
-
-    @override
-    def alternative(self) -> Alternative:
+    def alternative(self):
         return RightAlternative()
+
+    def execute_statistic(self, rvs, m=100, a=-5, **kwargs):
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite strictly positive observations, n >= 2.
+            Constant samples are invalid; ties are allowed unless stated below.
+        m : int, optional
+            Positive grid resolution, default 100.
+        a : float, optional
+            Finite weight parameter, default -5; not a distribution parameter.
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
+        """
+        return self._laplace(rvs, m, a, 3)
+
+
+class CabanaQuirozWeibullGofStatistic(_CompositeWeibullStatistic):
+    """Krit maximum-likelihood Cabana-Quiroz CQ* quadratic statistic.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+    and unknown positive scale eta and shape k. No constructor arguments.
+    Logarithmic location and scale are eliminated within every call.
+
+    v=sqrt(n)*(mean(exp(-s*z))-Gamma(1-s)), s=(-0.1,0.02).
+    Return v.T @ inverse(A) @ v, A=[[1.59,0.91],[0.91,0.53]],
+    where z are MLE-standardized log observations.
+
+    Reject for right tail values.
+    Calibrate with repeated execute_statistic calls on ordinary Weibull
+    samples. Affine invariance in log(x) permits eta=k=1 for simulation.
+    Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    This uses the specified nonsingular weighting matrix, not an estimated
+    covariance matrix. A chi-square reference law is not asserted.
+    Transform values beyond the float64 range give numerical infinity.
+
+    References
+    ----------
+    .. [1] M. Krit (2014), Goodness-of-fit tests for the Weibull distribution based
+       on the Laplace transform, sections 2, 4, 5.
+       https://numdam.org/item/JSFS_2014__155_3_135_0.pdf
+
+    Examples
+    --------
+    >>> test = CabanaQuirozWeibullGofStatistic()
+    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+    >>> bool(np.isfinite(value))
+    True
+    """
 
     @staticmethod
     @override
@@ -1437,33 +2582,183 @@ class CabanaQuirozWeibullGofStatistic(AbstractWeibullGofStatistic):
             f"{CabanaQuirozWeibullGofStatistic.short_code()}_{AbstractWeibullGofStatistic.code()}"
         )
 
-    # Test statistic of Cabana and Quiroz
-    def execute_statistic(self, rvs):
+    def alternative(self):
+        return RightAlternative()
+
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute the statistic described in the class Notes.
+
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite strictly positive observations, n >= 2.
+            Constant samples are invalid; ties are allowed unless stated below.
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
         """
-        Execute the Cabana-Quiroz test statistic.
+        z = _fitted(rvs)
+        s = np.array([-0.1, 0.02])
+        with np.errstate(over="ignore"):
+            v = np.sqrt(len(z)) * (np.mean(np.exp(-np.outer(z, s)), axis=0) - gamma(1 - s))
+        if not np.all(np.isfinite(v)):
+            return float("inf")
+        # A Cholesky norm keeps the positive quadratic form numerically positive.
+        chol = np.linalg.cholesky(np.array([[1.59, 0.91], [0.91, 0.53]]))
+        transformed = np.linalg.solve(chol, v)
+        with np.errstate(over="ignore"):
+            return float(np.dot(transformed, transformed))
 
-        :param rvs: array of observed data samples.
-        :return: CQ test statistic value.
+
+class MahdiDoostparastWeibullGofStatistic(_CompositeWeibullStatistic):
+    """Doostparast weighted record EDF distance with record-likelihood fitting.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return a scalar statistic, fitting parameters internally when needed.
+    hypothesis()
+        Return the fixed parameters; omitted parameters are unknown.
+    alternative()
+        Return the critical-region tail.
+
+    Notes
+    -----
+    F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+    and unknown positive scale eta and shape k. No constructor arguments.
+    Logarithmic location and scale are eliminated within every call.
+
+    The input is a complete sequence in acquisition order. Extract lower
+    records R_j and the counts K_j of observations until the next record,
+    including the record itself. Order records increasingly, carrying counts.
+    Fit eta,k by the record likelihood product f(R_j)*S(R_j)**(K_j-1).
+    At ordered records, the survival estimate is the product of
+    1-1/sum(K_l,l>=j). Return n*integral((S_hat-S_fit)**2/F_fit dF_fit)
+    over the entire support, including the first and last intervals.
+
+    Reject for right tail values.
+    Calibration must reproduce record extraction and condition on at least
+    two records. The generic unconditional resolver is blocked.
+    Previously stored unversioned Weibull calibrations must be regenerated.
+    Order matters for full acquisition sequences. At least two records
+    are required. Precompressed records require counts; do not sort an
+    ordinary sample before calling. Inverse-sampling calibration is external.
+
+    References
+    ----------
+    .. [1] M. Doostparast (2011), Goodness-of-fit tests for Weibull populations
+       on the basis of records, equations (9), (10), (13), (14), (17).
+       https://arxiv.org/abs/1110.5509
+
+    Examples
+    --------
+    >>> test = MahdiDoostparastWeibullGofStatistic()
+    >>> value = test.execute_statistic([3.0, 1.2, 2.1, 0.4, 0.8, 0.2])
+    >>> bool(np.isfinite(value))
+    True
+    """
+
+    @staticmethod
+    @override
+    def short_code():
         """
-        rvs = np.asarray(rvs)
-        s1 = -0.1
-        s2 = 0.02
-        v1 = 1.59
-        v2 = 0.53
-        v12 = 0.91
+        Get short code identifier for this test.
 
-        n = len(rvs)
+        :return: short code string "MD".
+        """
+        return "MD"
 
-        e1 = np.exp(-rvs * s1)
-        e2 = np.exp(-rvs * s2)
+    @staticmethod
+    @override
+    def code():
+        """
+        Get unique code identifier for this test.
 
-        mean_e1 = np.mean(e1)
-        mean_e2 = np.mean(e2)
-        vn1 = np.sqrt(n) * (mean_e1 - gamma(1 - s1))
-        vn2 = np.sqrt(n) * (mean_e2 - gamma(1 - s2))
+        :return: string code in format "MD_WEIBULL_{parent_code}".
+        """
+        short_code = MahdiDoostparastWeibullGofStatistic.short_code()
+        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
-        Qn = 1 / (v1 * v2 - v12**2)
+    def alternative(self):
+        return RightAlternative()
 
-        CQ_statistic = Qn * (v2 * vn1**2 - 2 * vn1 * vn2 * v12 + v1 * vn2**2)
+    def execute_statistic(self, rvs, record_counts=None, **kwargs):
+        """Compute the statistic described in the class Notes.
 
-        return CQ_statistic
+        Parameters
+        ----------
+        rvs : array_like
+            One-dimensional finite strictly positive observations, n >= 2.
+            Constant samples are invalid; ties are allowed unless stated below.
+        record_counts : array_like of int, optional
+            If given, rvs must be strictly decreasing lower records and these
+            positive counts include each record. Otherwise extract from rvs.
+        **kwargs : dict
+            Unused common-interface keywords.
+
+        Returns
+        -------
+        statistic : float
+            Scalar discrepancy. Infinite boundary penalties are preserved.
+
+        Raises
+        ------
+        ValueError
+            Invalid sample, unsupported settings, or unrepresentable fit.
+
+        Notes
+        -----
+        The input is never changed and estimated parameters are not retained.
+        """
+        x = _sample(rvs, min_size=2, positive=True)
+        if record_counts is None:
+            indices = np.flatnonzero(np.r_[True, x[1:] < np.minimum.accumulate(x)[:-1]])
+            records = x[indices][::-1]
+            counts = np.diff(np.r_[indices, len(x)])[::-1].astype(float)
+        else:
+            raw_counts = np.asarray(record_counts)
+            if (
+                raw_counts.shape != x.shape
+                or raw_counts.dtype.kind not in "iu"
+                or np.any(raw_counts <= 0)
+                or np.any(np.diff(x) >= 0)
+            ):
+                raise ValueError(
+                    "Records must decrease strictly and counts must be positive integers"
+                )
+            records, counts = x[::-1], raw_counts[::-1].astype(float)
+        if len(records) < 2:
+            raise ValueError("At least two lower records are required for fitting")
+        y = _logs(records)
+        z = _fit_logs(y, counts)[0]
+        u = gumbel_l.cdf(z)
+        log_u = _log_probabilities(z)[0]
+        risk = np.cumsum(counts[::-1])[::-1]
+        survival = np.r_[1.0, np.cumprod(1 - 1 / risk)]
+        c = survival - 1
+        # The first c is zero, so its logarithmic term is exactly zero.
+        log_widths = np.diff(np.r_[log_u, 0.0])
+        if np.any(~np.isfinite(log_widths)):
+            raise ValueError("Record CDF intervals cannot be represented")
+        widths = np.diff(np.r_[0.0, u, 1.0])
+        value = np.dot(c[1:] ** 2, log_widths) + 2 * np.dot(c, widths) + 0.5
+        return float(max(0.0, np.sum(counts) * value))
+
+    def _validate_monte_carlo_calibration(self):
+        raise ValueError(
+            "Record calibration must reproduce the sampling scheme and "
+            "condition on at least two records; use external calibration"
+        )

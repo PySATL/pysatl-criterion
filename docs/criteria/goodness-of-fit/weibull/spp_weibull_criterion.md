@@ -1,56 +1,72 @@
-# Stabilized probability plot test for Weibull distribution
+# Maximum stabilized probability-plot distance with Weibull MLEs.
 
-## Description
-Performs Stabilized probability plot goodness-of-fit test for the hypothesis that the sample comes from a Weibull distribution.
-The implementation uses the Weibull distribution utilities from `pysatl_criterion.core.distributions.continues.weibull` where applicable.
+`SPPWeibullGofStatistic`
 
-Hypothesis of Weibull Distribution
-The null hypothesis is that the data comes from a Weibull distribution with parameters `a` and `k`.
-The observations passed to `execute_statistic` should be positive for statistics that use logarithms or Weibull probability plots.
+## Constructor
 
-Test Statistic
-The statistic is based on the maximum discrepancy between stabilized plotting positions and transformed fitted values.
-
-## Usage
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    SPPWeibullGofStatistic,
-)
-
-
-test_statistic = SPPWeibullGofStatistic(a=1, k=2)
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.65, 0.88, 1.12, 1.43, 1.76, 2.05, 2.44, 2.91, 3.37]
-)
-print(statistic_result)
+```text
+No constructor arguments. Both ordinary-Weibull scale and shape are unknown.
 ```
 
-## Arguments
-`a` - Weibull distribution parameter. Default value is `1`.
+## Hypothesis, formula and calibration
 
-`k` - Weibull distribution parameter. Default value is `1` for most statistics; `KolmogorovSmirnovWeibullGofStatistic` defaults to `5`.
+```text
+F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+and unknown positive scale eta and shape k. No constructor arguments.
+Logarithmic location and scale are eliminated within every call.
 
-`rvs` - array-like sample data passed to `execute_statistic`.
+T=max(abs(2/pi*asin(sqrt((i-0.5)/n))-2/pi*asin(sqrt(G(z_i))))),
+where z_i are ascending MLE-standardized logs, G(z)=1-exp(-exp(z)).
 
-## Details
-The implementation evaluates the Stabilized probability plot statistic for the supplied observations. For EDF-based statistics, observations are transformed with the Weibull cumulative distribution function. For spacing, probability plot, Laplace-transform, and moment-style statistics, the implementation follows the corresponding formulas in `pysatl_criterion.statistics.goodness_of_fit.weibull`.
-
-## Author(s)
-Alexey Mironov
-
-## References
-The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.weibull`.
-
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    SPPWeibullGofStatistic,
-)
-
-
-test_statistic = SPPWeibullGofStatistic(a=1, k=2)
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.65, 0.88, 1.12, 1.43, 1.76, 2.05, 2.44, 2.91, 3.37]
-)
-print(statistic_result)
+Reject for right tail values.
+Calibrate with repeated execute_statistic calls on ordinary Weibull
+samples. Affine invariance in log(x) permits eta=k=1 for simulation.
+Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
+Previously stored unversioned Weibull calibrations must be regenerated.
+A primary source establishing this exact implemented formula was not
+verified in the literature search. Treat it as the specified local
+discrepancy; no named-test tables or chi-square limit are asserted.
 ```
+
+## Calling execute_statistic
+
+```text
+Compute the statistic described in the class Notes.
+
+Parameters
+----------
+rvs : array_like
+    One-dimensional finite strictly positive observations, n >= 2.
+    Constant samples are invalid; ties are allowed unless stated below.
+**kwargs : dict
+    Unused common-interface keywords.
+
+Returns
+-------
+statistic : float
+    Scalar discrepancy. Infinite boundary penalties are preserved.
+
+Raises
+------
+ValueError
+    Invalid sample, unsupported settings, or unrepresentable fit.
+
+Notes
+-----
+The input is never changed and estimated parameters are not retained.
+```
+
+## Example
+
+```python
+from pysatl_criterion.statistics.goodness_of_fit.weibull import SPPWeibullGofStatistic
+
+test = SPPWeibullGofStatistic()
+value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+print(value)
+```
+
+
+See [the Weibull audit](../../../weibull-statistics-audit.md) for migration details,
+source verification limits and calibration changes. Historical class names and codes
+are retained; old critical values must not be reused after a formula change.

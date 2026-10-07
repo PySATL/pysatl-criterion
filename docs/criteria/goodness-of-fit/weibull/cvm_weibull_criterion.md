@@ -1,56 +1,75 @@
-# Cramer-von Mises test for Weibull distribution
+# Cramer-von Mises distance for a specified exponentiated Weibull.
 
-## Description
-Performs Cramer-von Mises goodness-of-fit test for the hypothesis that the sample comes from a Weibull distribution.
-The implementation uses the Weibull distribution utilities from `pysatl_criterion.core.distributions.continues.weibull` where applicable.
+`CrammerVonMisesWeibullGofStatistic`
 
-Hypothesis of Weibull Distribution
-The null hypothesis is that the data comes from a Weibull distribution with parameters `a` and `k`.
-The observations passed to `execute_statistic` should be positive for statistics that use logarithms or Weibull probability plots.
+## Constructor
 
-Test Statistic
-The statistic is based on squared differences between Weibull CDF values and expected plotting positions.
-
-## Usage
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    CrammerVonMisesWeibullGofStatistic,
-)
-
-
-test_statistic = CrammerVonMisesWeibullGofStatistic(a=1, k=2)
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.65, 0.88, 1.12, 1.43, 1.76, 2.05, 2.44, 2.91, 3.37]
-)
-print(statistic_result)
+```text
+a, k : float, optional
+    Fixed positive finite shape parameters, both default to 1.
+    The parameter a is an exponent, not a scale.
 ```
 
-## Arguments
-`a` - Weibull distribution parameter. Default value is `1`.
+## Hypothesis, formula and calibration
 
-`k` - Weibull distribution parameter. Default value is `1` for most statistics; `KolmogorovSmirnovWeibullGofStatistic` defaults to `5`.
+```text
+F(x)=(1-exp(-x**k))**a on x >= 0, with fixed a, k, scale 1
+and location 0. Put u_i=F(x_(i)), i=1,...,n.
 
-`rvs` - array-like sample data passed to `execute_statistic`.
+W2=1/(12*n)+sum((u_i-(2*i-1)/(2*n))**2).
 
-## Details
-The implementation evaluates the Cramer-von Mises statistic for the supplied observations. For EDF-based statistics, observations are transformed with the Weibull cumulative distribution function. For spacing, probability plot, Laplace-transform, and moment-style statistics, the implementation follows the corresponding formulas in `pysatl_criterion.statistics.goodness_of_fit.weibull`.
+Reject for right tail values.
+Calibrate using the specified null and the same sample size.
+Previously stored unversioned Weibull calibrations must be regenerated.
+The reference treats the general EDF functional; here the known CDF
+transforms the null to uniformity.
+```
 
-## Author(s)
-Alexey Mironov
+## Calling execute_statistic
+
+```text
+Compute the statistic described in the class Notes.
+
+Parameters
+----------
+rvs : array_like
+    One-dimensional finite nonnegative observations, n >= 1.
+    Ties and constant samples are allowed.
+**kwargs : dict
+    Unused common-interface keywords.
+
+Returns
+-------
+statistic : float
+    Scalar discrepancy. Infinite boundary penalties are preserved.
+
+Raises
+------
+ValueError
+    Invalid sample, unsupported settings, or unrepresentable fit.
+
+Notes
+-----
+The input is never changed and estimated parameters are not retained.
+```
+
+## Example
+
+```python
+from pysatl_criterion.statistics.goodness_of_fit.weibull import CrammerVonMisesWeibullGofStatistic
+
+test = CrammerVonMisesWeibullGofStatistic()
+value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+print(value)
+```
 
 ## References
-The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.weibull`.
 
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    CrammerVonMisesWeibullGofStatistic,
-)
+1. T. W. Anderson and D. A. Darling (1952), Asymptotic theory of certain
+   "goodness of fit" criteria based on stochastic processes.
+   [Source](https://doi.org/10.1214/aoms/1177729437)
 
 
-test_statistic = CrammerVonMisesWeibullGofStatistic(a=1, k=2)
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.65, 0.88, 1.12, 1.43, 1.76, 2.05, 2.44, 2.91, 3.37]
-)
-print(statistic_result)
-```
+See [the Weibull audit](../../../weibull-statistics-audit.md) for migration details,
+source verification limits and calibration changes. Historical class names and codes
+are retained; old critical values must not be reused after a formula change.

@@ -1,56 +1,79 @@
-# Cabana-Quiroz test for Weibull distribution
+# Krit maximum-likelihood Cabana-Quiroz CQ* quadratic statistic.
 
-## Description
-Performs Cabana-Quiroz goodness-of-fit test for the hypothesis that the sample comes from a Weibull distribution.
-The implementation uses the Weibull distribution utilities from `pysatl_criterion.core.distributions.continues.weibull` where applicable.
+`CabanaQuirozWeibullGofStatistic`
 
-Hypothesis of Weibull Distribution
-The null hypothesis is that the data comes from a Weibull distribution with parameters `a` and `k`.
-The observations passed to `execute_statistic` should be positive for statistics that use logarithms or Weibull probability plots.
+## Constructor
 
-Test Statistic
-The statistic is based on two empirical Laplace-transform components combined with a fixed covariance matrix.
-
-## Usage
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    CabanaQuirozWeibullGofStatistic,
-)
-
-
-test_statistic = CabanaQuirozWeibullGofStatistic(a=1, k=2)
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.65, 0.88, 1.12, 1.43, 1.76, 2.05, 2.44, 2.91, 3.37]
-)
-print(statistic_result)
+```text
+No constructor arguments. Both ordinary-Weibull scale and shape are unknown.
 ```
 
-## Arguments
-`a` - Weibull distribution parameter. Default value is `1`.
+## Hypothesis, formula and calibration
 
-`k` - Weibull distribution parameter. Default value is `1` for most statistics; `KolmogorovSmirnovWeibullGofStatistic` defaults to `5`.
+```text
+F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+and unknown positive scale eta and shape k. No constructor arguments.
+Logarithmic location and scale are eliminated within every call.
 
-`rvs` - array-like sample data passed to `execute_statistic`.
+v=sqrt(n)*(mean(exp(-s*z))-Gamma(1-s)), s=(-0.1,0.02).
+Return v.T @ inverse(A) @ v, A=[[1.59,0.91],[0.91,0.53]],
+where z are MLE-standardized log observations.
 
-## Details
-The implementation evaluates the Cabana-Quiroz statistic for the supplied observations. For EDF-based statistics, observations are transformed with the Weibull cumulative distribution function. For spacing, probability plot, Laplace-transform, and moment-style statistics, the implementation follows the corresponding formulas in `pysatl_criterion.statistics.goodness_of_fit.weibull`.
+Reject for right tail values.
+Calibrate with repeated execute_statistic calls on ordinary Weibull
+samples. Affine invariance in log(x) permits eta=k=1 for simulation.
+Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
+Previously stored unversioned Weibull calibrations must be regenerated.
+This uses the specified nonsingular weighting matrix, not an estimated
+covariance matrix. A chi-square reference law is not asserted.
+Transform values beyond the float64 range give numerical infinity.
+```
 
-## Author(s)
-Alexey Mironov
+## Calling execute_statistic
+
+```text
+Compute the statistic described in the class Notes.
+
+Parameters
+----------
+rvs : array_like
+    One-dimensional finite strictly positive observations, n >= 2.
+    Constant samples are invalid; ties are allowed unless stated below.
+**kwargs : dict
+    Unused common-interface keywords.
+
+Returns
+-------
+statistic : float
+    Scalar discrepancy. Infinite boundary penalties are preserved.
+
+Raises
+------
+ValueError
+    Invalid sample, unsupported settings, or unrepresentable fit.
+
+Notes
+-----
+The input is never changed and estimated parameters are not retained.
+```
+
+## Example
+
+```python
+from pysatl_criterion.statistics.goodness_of_fit.weibull import CabanaQuirozWeibullGofStatistic
+
+test = CabanaQuirozWeibullGofStatistic()
+value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+print(value)
+```
 
 ## References
-The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.weibull`.
 
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    CabanaQuirozWeibullGofStatistic,
-)
+1. M. Krit (2014), Goodness-of-fit tests for the Weibull distribution based
+   on the Laplace transform, sections 2, 4, 5.
+   [Source](https://numdam.org/item/JSFS_2014__155_3_135_0.pdf)
 
 
-test_statistic = CabanaQuirozWeibullGofStatistic(a=1, k=2)
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.65, 0.88, 1.12, 1.43, 1.76, 2.05, 2.44, 2.91, 3.37]
-)
-print(statistic_result)
-```
+See [the Weibull audit](../../../weibull-statistics-audit.md) for migration details,
+source verification limits and calibration changes. Historical class names and codes
+are retained; old critical values must not be reused after a formula change.

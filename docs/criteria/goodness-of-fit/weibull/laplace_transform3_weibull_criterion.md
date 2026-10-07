@@ -1,60 +1,84 @@
-# Laplace transform 3 test for Weibull distribution
+# Krit LT3 discrete Laplace statistic with maximum-likelihood fits.
 
-## Description
-Performs Laplace transform 3 goodness-of-fit test for the hypothesis that the sample comes from a Weibull distribution.
-The implementation uses the Weibull distribution utilities from `pysatl_criterion.core.distributions.continues.weibull` where applicable.
+`LaplaceTransform3WeibullGofStatistic`
 
-Hypothesis of Weibull Distribution
-The null hypothesis is that the data comes from a Weibull distribution with parameters `a` and `k`.
-The observations passed to `execute_statistic` should be positive for statistics that use logarithms or Weibull probability plots.
+## Constructor
 
-Test Statistic
-The statistic is based on a squared-distance statistic based on the empirical Laplace transform over type-3 integration points.
-
-## Usage
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    LaplaceTransform3WeibullGofStatistic,
-)
-
-
-test_statistic = LaplaceTransform3WeibullGofStatistic(a=1, k=2)
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.65, 0.88, 1.12, 1.43, 1.76, 2.05, 2.44, 2.91, 3.37], m=20, a=-5
-)
-print(statistic_result)
+```text
+No constructor arguments. Both ordinary-Weibull scale and shape are unknown.
 ```
 
-## Arguments
-`a` - Weibull distribution parameter. Default value is `1`.
+## Hypothesis, formula and calibration
 
-`k` - Weibull distribution parameter. Default value is `1` for most statistics; `KolmogorovSmirnovWeibullGofStatistic` defaults to `5`.
+```text
+F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
+and unknown positive scale eta and shape k. No constructor arguments.
+Logarithmic location and scale are eliminated within every call.
 
-`m` - number of integration points. Default value is `100`.
+T=n*sum(exp(a*t-exp(a*t))*(mean(exp(-t*z))-Gamma(1-t))**2).
+Here z are MLE-standardized logs and t=j/m, ceil(-2.5*m)<=j<=floor(0.49*m).
+This is a discrete sum, with no integration-step multiplier.
 
-`a` - transform shift parameter. Default value is `-5`.
+Reject for right tail values.
+Calibrate with repeated execute_statistic calls on ordinary Weibull
+samples. Affine invariance in log(x) permits eta=k=1 for simulation.
+Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
+Previously stored unversioned Weibull calibrations must be regenerated.
+Every simulation must preserve m and a. The generic resolver uses
+the default execution settings only. LT3 at m=100 has 300 grid points.
+Transform differences are evaluated in log space; statistics beyond the
+float64 range return positive infinity.
+```
 
-rvs` - array-like sample data passed to `execute_statistic`.
+## Calling execute_statistic
 
-## Details
-The implementation evaluates the Laplace transform 3 statistic for the supplied observations. For EDF-based statistics, observations are transformed with the Weibull cumulative distribution function. For spacing, probability plot, Laplace-transform, and moment-style statistics, the implementation follows the corresponding formulas in `pysatl_criterion.statistics.goodness_of_fit.weibull`.
+```text
+Compute the statistic described in the class Notes.
 
-## Author(s)
-Alexey Mironov
+Parameters
+----------
+rvs : array_like
+    One-dimensional finite strictly positive observations, n >= 2.
+    Constant samples are invalid; ties are allowed unless stated below.
+m : int, optional
+    Positive grid resolution, default 100.
+a : float, optional
+    Finite weight parameter, default -5; not a distribution parameter.
+**kwargs : dict
+    Unused common-interface keywords.
+
+Returns
+-------
+statistic : float
+    Scalar discrepancy. Infinite boundary penalties are preserved.
+
+Raises
+------
+ValueError
+    Invalid sample, unsupported settings, or unrepresentable fit.
+
+Notes
+-----
+The input is never changed and estimated parameters are not retained.
+```
+
+## Example
+
+```python
+from pysatl_criterion.statistics.goodness_of_fit.weibull import LaplaceTransform3WeibullGofStatistic
+
+test = LaplaceTransform3WeibullGofStatistic()
+value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+print(value)
+```
 
 ## References
-The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.weibull`.
 
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    LaplaceTransform3WeibullGofStatistic,
-)
+1. M. Krit (2014), Goodness-of-fit tests for the Weibull distribution based
+   on the Laplace transform, sections 2, 4, 5.
+   [Source](https://numdam.org/item/JSFS_2014__155_3_135_0.pdf)
 
 
-test_statistic = LaplaceTransform3WeibullGofStatistic(a=1, k=2)
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.65, 0.88, 1.12, 1.43, 1.76, 2.05, 2.44, 2.91, 3.37], m=20, a=-5
-)
-print(statistic_result)
-```
+See [the Weibull audit](../../../weibull-statistics-audit.md) for migration details,
+source verification limits and calibration changes. Historical class names and codes
+are retained; old critical values must not be reused after a formula change.
