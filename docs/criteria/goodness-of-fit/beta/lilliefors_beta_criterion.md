@@ -12,10 +12,11 @@ Boundary observations are rejected rather than silently clipped.
 ## Usage
 
 ```python
+from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit.beta import LillieforsTestBetaGofStatistic
 
 sample = [0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57]
-statistic = LillieforsTestBetaGofStatistic()
+statistic = LillieforsTestBetaGofStatistic(BetaDistributionDescriptor.DEFAULT.parse({}))
 distance = statistic.execute_statistic(sample)
 print(distance)
 ```

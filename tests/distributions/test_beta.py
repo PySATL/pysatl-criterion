@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 import scipy.stats as scipy_stats
 
+from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
 from pysatl_criterion.statistics.goodness_of_fit.beta import (
     AbstractBetaGofStatistic,
     AndersonDarlingBetaGofStatistic,
@@ -28,23 +29,23 @@ def test_abstract_beta_criterion_parameters():
     """Test parameter validation for AbstractBetaGofStatistic."""
     # Test with concrete class since AbstractBetaGofStatistic is abstract
     # Valid parameters
-    stat = KolmogorovSmirnovBetaGofStatistic(alpha=2, beta=3)
+    stat = KolmogorovSmirnovBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 3}))
     assert stat.alpha == 2
     assert stat.beta == 3
 
     # Invalid alpha
-    with pytest.raises(ValueError, match="alpha must be positive"):
-        KolmogorovSmirnovBetaGofStatistic(alpha=-1, beta=2)
+    with pytest.raises(ValueError, match="Invalid value for a"):
+        KolmogorovSmirnovBetaGofStatistic(Beta.DEFAULT.parse({"a": -1, "b": 2}))
 
-    with pytest.raises(ValueError, match="alpha must be positive"):
-        KolmogorovSmirnovBetaGofStatistic(alpha=0, beta=2)
+    with pytest.raises(ValueError, match="Invalid value for a"):
+        KolmogorovSmirnovBetaGofStatistic(Beta.DEFAULT.parse({"a": 0, "b": 2}))
 
     # Invalid beta
-    with pytest.raises(ValueError, match="beta must be positive"):
-        KolmogorovSmirnovBetaGofStatistic(alpha=2, beta=-1)
+    with pytest.raises(ValueError, match="Invalid value for b"):
+        KolmogorovSmirnovBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": -1}))
 
-    with pytest.raises(ValueError, match="beta must be positive"):
-        KolmogorovSmirnovBetaGofStatistic(alpha=2, beta=0)
+    with pytest.raises(ValueError, match="Invalid value for b"):
+        KolmogorovSmirnovBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 0}))
 
 
 class TestKolmogorovSmirnovBetaGofStatistic:
@@ -147,7 +148,7 @@ class TestKolmogorovSmirnovBetaGofStatistic:
     )
     def test_ks_with_parametrized_data(self, data, alpha, beta, result):
         """Test KS statistic with precomputed expected values."""
-        stat = KolmogorovSmirnovBetaGofStatistic(alpha=alpha, beta=beta)
+        stat = KolmogorovSmirnovBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
         statistic_value = stat.execute_statistic(data)
         assert result == pytest.approx(statistic_value, 0.00001)
 
@@ -157,7 +158,7 @@ class TestKolmogorovSmirnovBetaGofStatistic:
         # Generate from Beta(5, 2) but test against Beta(2, 5)
         data = scipy_stats.beta.rvs(5, 2, size=100)
 
-        stat = KolmogorovSmirnovBetaGofStatistic(alpha=2, beta=5)
+        stat = KolmogorovSmirnovBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}))
         statistic_value = stat.execute_statistic(data)
 
         # Should detect the mismatch
@@ -165,7 +166,7 @@ class TestKolmogorovSmirnovBetaGofStatistic:
 
     def test_ks_validation_errors(self):
         """Test that KS statistic validates input data."""
-        stat = KolmogorovSmirnovBetaGofStatistic(alpha=2, beta=3)
+        stat = KolmogorovSmirnovBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 3}))
 
         # Data outside [0, 1]
         with pytest.raises(ValueError, match="Beta distribution values must be in the interval"):
@@ -242,13 +243,13 @@ class TestAndersonDarlingBetaGofStatistic:
     )
     def test_ad_with_parametrized_data(self, data, alpha, beta, result):
         """Test AD statistic with precomputed expected values."""
-        stat = AndersonDarlingBetaGofStatistic(alpha=alpha, beta=beta)
+        stat = AndersonDarlingBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
         statistic_value = stat.execute_statistic(data)
         assert result == pytest.approx(statistic_value, 0.00001)
 
     def test_ad_validation_errors(self):
         """Test that AD statistic validates input data."""
-        stat = AndersonDarlingBetaGofStatistic(alpha=2, beta=3)
+        stat = AndersonDarlingBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 3}))
 
         with pytest.raises(ValueError, match="Beta distribution values must be in the interval"):
             stat.execute_statistic([0.5, 1.5, 0.3])
@@ -321,13 +322,13 @@ class TestCrammerVonMisesBetaGofStatistic:
     )
     def test_cvm_with_parametrized_data(self, data, alpha, beta, result):
         """Test CVM statistic with precomputed expected values."""
-        stat = CrammerVonMisesBetaGofStatistic(alpha=alpha, beta=beta)
+        stat = CrammerVonMisesBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
         statistic_value = stat.execute_statistic(data)
         assert result == pytest.approx(statistic_value, 0.00001)
 
     def test_cvm_validation_errors(self):
         """Test that CVM statistic validates input data."""
-        stat = CrammerVonMisesBetaGofStatistic(alpha=2, beta=3)
+        stat = CrammerVonMisesBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 3}))
 
         with pytest.raises(ValueError, match="Beta distribution values must be in the interval"):
             stat.execute_statistic([0.5, 1.5, 0.3])
@@ -377,7 +378,7 @@ class TestLillieforsTestBetaGofStatistic:
     )
     def test_lillie_with_parametrized_data(self, data, result):
         """Test Lilliefors statistic with precomputed expected values."""
-        stat = LillieforsTestBetaGofStatistic()
+        stat = LillieforsTestBetaGofStatistic(Beta.DEFAULT.parse({}))
         statistic_value = stat.execute_statistic(data)
         assert result == pytest.approx(statistic_value, 0.00001)
 
@@ -401,7 +402,7 @@ class TestChi2PearsonBetaGofStatistic:
         np.random.seed(seed)
         data = scipy_stats.beta.rvs(alpha, beta, size=n)
 
-        stat = Chi2PearsonBetaGofStatistic(alpha=alpha, beta=beta)
+        stat = Chi2PearsonBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
         statistic_value = stat.execute_statistic(data)
 
         # Statistic should be non-negative
@@ -468,7 +469,7 @@ class TestChi2PearsonBetaGofStatistic:
     )
     def test_chi2_with_parametrized_data(self, data, alpha, beta, result):
         """Test Chi-squared statistic with precomputed expected values."""
-        stat = Chi2PearsonBetaGofStatistic(alpha=alpha, beta=beta)
+        stat = Chi2PearsonBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
         statistic_value = stat.execute_statistic(data)
         assert result == pytest.approx(statistic_value, 0.00001)
 
@@ -540,7 +541,7 @@ class TestWatsonBetaGofStatistic:
     )
     def test_watson_with_parametrized_data(self, data, alpha, beta, result):
         """Test Watson statistic with precomputed expected values."""
-        stat = WatsonBetaGofStatistic(alpha=alpha, beta=beta)
+        stat = WatsonBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
         statistic_value = stat.execute_statistic(data)
         assert result == pytest.approx(statistic_value, 0.00001)
 
@@ -612,7 +613,7 @@ class TestKuiperBetaGofStatistic:
     )
     def test_kuiper_with_parametrized_data(self, data, alpha, beta, result):
         """Test Kuiper statistic with precomputed expected values."""
-        stat = KuiperBetaGofStatistic(alpha=alpha, beta=beta)
+        stat = KuiperBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
         statistic_value = stat.execute_statistic(data)
         assert result == pytest.approx(statistic_value, 0.00001)
 
@@ -684,7 +685,7 @@ class TestMomentBasedBetaGofStatistic:
     )
     def test_moment_with_parametrized_data(self, data, alpha, beta, result):
         """Test Moment-based statistic with precomputed expected values."""
-        stat = MomentBasedBetaGofStatistic(alpha=alpha, beta=beta)
+        stat = MomentBasedBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
         statistic_value = stat.execute_statistic(data)
         assert result == pytest.approx(statistic_value, 0.00001)
 
@@ -756,7 +757,7 @@ class TestSkewnessKurtosisBetaGofStatistic:
     )
     def test_sk_with_parametrized_data(self, data, alpha, beta, result):
         """Test Skewness-Kurtosis statistic with precomputed expected values."""
-        stat = SkewnessKurtosisBetaGofStatistic(alpha=alpha, beta=beta)
+        stat = SkewnessKurtosisBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
         statistic_value = stat.execute_statistic(data)
         assert result == pytest.approx(statistic_value, 0.00001)
 
@@ -782,7 +783,7 @@ class TestRatioBetaGofStatistic:
         data = scipy_stats.beta.rvs(alpha, beta, size=n)
         data = np.clip(data, 0.001, 0.999)
 
-        stat = RatioBetaGofStatistic(alpha=alpha, beta=beta)
+        stat = RatioBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
         statistic_value = stat.execute_statistic(data)
 
         # Statistic should be non-negative
@@ -849,7 +850,7 @@ class TestRatioBetaGofStatistic:
     )
     def test_ratio_with_parametrized_data(self, data, alpha, beta, result):
         """Test Ratio statistic with precomputed expected values."""
-        stat = RatioBetaGofStatistic(alpha=alpha, beta=beta)
+        stat = RatioBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
         statistic_value = stat.execute_statistic(data)
         assert result == pytest.approx(statistic_value, 0.00001)
 
@@ -873,7 +874,7 @@ class TestEntropyBetaGofStatistic:
         np.random.seed(seed)
         data = scipy_stats.beta.rvs(alpha, beta, size=n)
 
-        stat = EntropyBetaGofStatistic(alpha=alpha, beta=beta)
+        stat = EntropyBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
         statistic_value = stat.execute_statistic(data)
 
         # Statistic should be non-negative
@@ -940,7 +941,7 @@ class TestEntropyBetaGofStatistic:
     )
     def test_entropy_with_parametrized_data(self, data, alpha, beta, result):
         """Test Entropy statistic with precomputed expected values."""
-        stat = EntropyBetaGofStatistic(alpha=alpha, beta=beta)
+        stat = EntropyBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
         statistic_value = stat.execute_statistic(data)
         assert result == pytest.approx(statistic_value, 0.00001)
 
@@ -955,17 +956,17 @@ class TestModeBetaGofStatistic:
     def test_mode_parameters_validation(self):
         """Test that Mode statistic validates alpha and beta > 1."""
         # Valid parameters
-        stat = ModeBetaGofStatistic(alpha=2, beta=2)
+        stat = ModeBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 2}))
         assert stat.alpha == 2
         assert stat.beta == 2
 
         # Invalid alpha
         with pytest.raises(ValueError, match="alpha must be greater than 1"):
-            ModeBetaGofStatistic(alpha=1, beta=2)
+            ModeBetaGofStatistic(Beta.DEFAULT.parse({"a": 1, "b": 2}))
 
         # Invalid beta
         with pytest.raises(ValueError, match="beta must be greater than 1"):
-            ModeBetaGofStatistic(alpha=2, beta=1)
+            ModeBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 1}))
 
     @pytest.mark.parametrize(
         ("alpha", "beta", "seed", "n"),
@@ -979,7 +980,7 @@ class TestModeBetaGofStatistic:
         np.random.seed(seed)
         data = scipy_stats.beta.rvs(alpha, beta, size=n)
 
-        stat = ModeBetaGofStatistic(alpha=alpha, beta=beta)
+        stat = ModeBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
         statistic_value = stat.execute_statistic(data)
 
         # Statistic should be non-negative
@@ -1027,7 +1028,7 @@ class TestModeBetaGofStatistic:
     )
     def test_mode_with_parametrized_data(self, data, alpha, beta, result):
         """Test Mode statistic with precomputed expected values."""
-        stat = ModeBetaGofStatistic(alpha=alpha, beta=beta)
+        stat = ModeBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
         statistic_value = stat.execute_statistic(data)
         assert result == pytest.approx(statistic_value, 0.00001)
 
@@ -1042,7 +1043,7 @@ class TestBetaIntegration:
         data = np.random.uniform(0, 1, 100)
 
         # Should fit well to Beta(1, 1)
-        ks_stat = KolmogorovSmirnovBetaGofStatistic(alpha=1, beta=1)
+        ks_stat = KolmogorovSmirnovBetaGofStatistic(Beta.DEFAULT.parse({"a": 1, "b": 1}))
         ks_value = ks_stat.execute_statistic(data)
 
         # Should be relatively small
@@ -1056,17 +1057,17 @@ class TestBetaIntegration:
         data_clipped = np.clip(data, 0.001, 0.999)
 
         statistics = [
-            KolmogorovSmirnovBetaGofStatistic(alpha=2, beta=5),
-            AndersonDarlingBetaGofStatistic(alpha=2, beta=5),
-            CrammerVonMisesBetaGofStatistic(alpha=2, beta=5),
-            LillieforsTestBetaGofStatistic(),
-            Chi2PearsonBetaGofStatistic(alpha=2, beta=5),
-            WatsonBetaGofStatistic(alpha=2, beta=5),
-            KuiperBetaGofStatistic(alpha=2, beta=5),
-            MomentBasedBetaGofStatistic(alpha=2, beta=5),
-            SkewnessKurtosisBetaGofStatistic(alpha=2, beta=5),
-            EntropyBetaGofStatistic(alpha=2, beta=5),
-            ModeBetaGofStatistic(alpha=2, beta=5),
+            KolmogorovSmirnovBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
+            AndersonDarlingBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
+            CrammerVonMisesBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
+            LillieforsTestBetaGofStatistic(Beta.DEFAULT.parse({})),
+            Chi2PearsonBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
+            WatsonBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
+            KuiperBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
+            MomentBasedBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
+            SkewnessKurtosisBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
+            EntropyBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
+            ModeBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
         ]
 
         for stat in statistics:
@@ -1077,6 +1078,6 @@ class TestBetaIntegration:
             assert np.isfinite(value), f"Statistic {stat.code()} returned non-finite value"
 
         # Also test Ratio with clipped data
-        ratio_stat = RatioBetaGofStatistic(alpha=2, beta=5)
+        ratio_stat = RatioBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}))
         ratio_value = ratio_stat.execute_statistic(data_clipped)
         assert np.isfinite(ratio_value)

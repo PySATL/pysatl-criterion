@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from scipy import stats
 
+from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
 from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     MonteCarloLimitDistributionResolver,
     StorageLimitDistributionResolver,
@@ -12,6 +13,7 @@ from pysatl_criterion.persistence.models.distribution_key import DistributionKey
 from pysatl_criterion.persistence.stores.base import IStoreReader
 from pysatl_criterion.statistics.goodness_of_fit import normal
 from pysatl_criterion.utils.generator import get_hypothesis_generator
+from tests.parameter_cases import parameters_for
 
 
 NORMAL_STATISTICS = [
@@ -35,7 +37,7 @@ FAMILY_STATISTICS = [
 
 @pytest.mark.parametrize("statistic_class", NORMAL_STATISTICS)
 def test_normal_statistics_declare_only_fixed_hypothesis_parameters(statistic_class):
-    statistic = statistic_class()
+    statistic = statistic_class(parameters_for(statistic_class))
     if statistic_class in SPECIFIED_STATISTICS:
         expected = {"mean": 0, "var": 1}
     elif statistic_class in GRAPH_STATISTICS:
@@ -48,14 +50,14 @@ def test_normal_statistics_declare_only_fixed_hypothesis_parameters(statistic_cl
 @pytest.mark.parametrize("statistic_class", FAMILY_STATISTICS)
 def test_normal_family_rejects_fixed_distribution_parameters(statistic_class):
     for parameters in ({"mean": 3}, {"var": 4}):
-        with pytest.raises(TypeError):
-            statistic_class(**parameters)
+        with pytest.raises(ValueError):
+            statistic_class(parameters_for(statistic_class, **parameters))
 
 
 @pytest.mark.parametrize("statistic_class", FAMILY_STATISTICS)
 def test_normal_family_statistics_are_invariant_to_location_and_scale(statistic_class):
     sample = np.random.default_rng(101).normal(size=32)
-    statistic = statistic_class()
+    statistic = statistic_class(parameters_for(statistic_class))
     expected = statistic.execute_statistic(sample.copy())
     actual = statistic.execute_statistic(5 + 2 * sample)
     assert np.isfinite(expected)
@@ -64,7 +66,7 @@ def test_normal_family_statistics_are_invariant_to_location_and_scale(statistic_
 
 @pytest.mark.parametrize("statistic_class", GRAPH_STATISTICS)
 def test_normal_graphs_use_known_variance_and_unknown_mean(statistic_class):
-    statistic = statistic_class(var=4)
+    statistic = statistic_class(parameters_for(statistic_class, var=4))
     assert statistic.hypothesis().parameters() == {"var": 4}
     sampler = get_hypothesis_generator(statistic)
     assert sampler.parameters() == {"mean": 0, "var": 4}
@@ -74,8 +76,8 @@ def test_normal_graphs_use_known_variance_and_unknown_mean(statistic_class):
 
     sample = np.random.default_rng(101).normal(size=32)
     assert statistic.execute_statistic(sample.copy()) == statistic.execute_statistic(sample + 5)
-    with pytest.raises(TypeError):
-        statistic_class(mean=3)
+    with pytest.raises(ValueError):
+        statistic_class(parameters_for(statistic_class, mean=3))
     with pytest.raises(TypeError):
         statistic_class(4)
 
@@ -83,16 +85,16 @@ def test_normal_graphs_use_known_variance_and_unknown_mean(statistic_class):
 @pytest.mark.parametrize("statistic_class", GRAPH_STATISTICS)
 @pytest.mark.parametrize("var", [0, -1, np.nan, np.inf, -np.inf])
 def test_normal_graphs_reject_invalid_variance(statistic_class, var):
-    with pytest.raises(ValueError, match="var must be positive and finite"):
-        statistic_class(var=var)
+    with pytest.raises(ValueError, match="Invalid value for var"):
+        statistic_class(parameters_for(statistic_class, var=var))
 
 
 @pytest.mark.parametrize(
     "statistic",
     [
-        normal.ShapiroWilkNormalityGofStatistic(),
-        normal.RyanJoinerNormalityGofStatistic(),
-        *(cls(var=4) for cls in GRAPH_STATISTICS),
+        normal.ShapiroWilkNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({})),
+        normal.RyanJoinerNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({})),
+        *(cls(parameters_for(cls, var=4)) for cls in GRAPH_STATISTICS),
     ],
 )
 def test_normal_family_and_graph_monte_carlo_accept_numpy_samples(statistic):
@@ -104,11 +106,32 @@ def test_normal_family_and_graph_monte_carlo_accept_numpy_samples(statistic):
 @pytest.mark.parametrize(
     "statistic, parameters",
     [
-        (normal.ShapiroWilkNormalityGofStatistic(), {}),
-        (normal.RyanJoinerNormalityGofStatistic(), {}),
-        (normal.GraphEdgesNumberNormalityGofStatistic(var=4), {"var": 4}),
-        (normal.KolmogorovSmirnovNormalityGofStatistic(mean=3, var=4), {"mean": 3, "var": 4}),
-        (normal.CramerVonMiseNormalityGofStatistic(mean=3, var=4), {"mean": 3, "var": 4}),
+        (
+            normal.ShapiroWilkNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({})),
+            {},
+        ),
+        (
+            normal.RyanJoinerNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({})),
+            {},
+        ),
+        (
+            normal.GraphEdgesNumberNormalityGofStatistic(
+                NormalDistributionDescriptor.DEFAULT.parse({"var": 4})
+            ),
+            {"var": 4},
+        ),
+        (
+            normal.KolmogorovSmirnovNormalityGofStatistic(
+                NormalDistributionDescriptor.DEFAULT.parse({"mean": 3, "var": 4})
+            ),
+            {"mean": 3, "var": 4},
+        ),
+        (
+            normal.CramerVonMiseNormalityGofStatistic(
+                NormalDistributionDescriptor.DEFAULT.parse({"mean": 3, "var": 4})
+            ),
+            {"mean": 3, "var": 4},
+        ),
     ],
 )
 def test_normal_storage_lookup_uses_the_hypothesis_parameters(mocker, statistic, parameters):
@@ -119,7 +142,9 @@ def test_normal_storage_lookup_uses_the_hypothesis_parameters(mocker, statistic,
 
 
 def test_normal_family_sampler_uses_a_representative_without_fixing_the_hypothesis():
-    statistic = normal.ShapiroWilkNormalityGofStatistic()
+    statistic = normal.ShapiroWilkNormalityGofStatistic(
+        NormalDistributionDescriptor.DEFAULT.parse({})
+    )
     sampler = get_hypothesis_generator(statistic)
     assert sampler.parameters() == {"mean": 0, "var": 1}
     assert statistic.hypothesis().parameters() == {}
@@ -128,7 +153,9 @@ def test_normal_family_sampler_uses_a_representative_without_fixing_the_hypothes
 def test_graph_independence_accepts_arrays_without_reordering_the_input():
     sample = np.array([0.5, -1.0, 1.5, -0.25, 0.75])
     original = sample.copy()
-    statistic = normal.GraphIndependenceNumberNormalityGofStatistic(var=2)
+    statistic = normal.GraphIndependenceNumberNormalityGofStatistic(
+        NormalDistributionDescriptor.DEFAULT.parse({"var": 2})
+    )
     assert statistic.execute_statistic(sample) == statistic.execute_statistic(sample.tolist())
     np.testing.assert_array_equal(sample, original)
     with pytest.raises(ValueError):

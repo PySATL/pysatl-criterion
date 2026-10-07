@@ -17,14 +17,12 @@ specified Student CDF, not a separately derived Student-specific test.
 
 ## Parameters
 
-df : float, default: 1
-Fixed finite degrees of freedom, strictly positive.
-loc : float, default: 0
-Fixed finite location.
-scale : float, default: 1
-Fixed finite scale, strictly positive.
+```text
+parameters : ParameterValues
+    Values with df, loc, scale fixed; omitted parameters are unknown.
 n_bins : int, default: 10
-Fixed number of equiprobable bins, at least 2; booleans are rejected.
+    Fixed number of equiprobable bins, at least 2; booleans are rejected.
+```
 
 ## Input and result
 
@@ -36,9 +34,10 @@ transformations raise `ValueError`. No preliminary fit or bootstrap is required.
 ## Example
 
 ```python
+from pysatl_criterion.distribution.distributions import StudentDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit.student import ChiSquareStudentGofStatistic
 
-statistic = ChiSquareStudentGofStatistic(df=5)
+statistic = ChiSquareStudentGofStatistic(StudentDistributionDescriptor.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1}))
 value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
 print(value)
 ```

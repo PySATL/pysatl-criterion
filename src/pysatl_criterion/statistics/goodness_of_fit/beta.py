@@ -16,7 +16,8 @@ import scipy.stats as scipy_stats
 from scipy.optimize import minimize_scalar
 from typing_extensions import override
 
-from pysatl_criterion import DistributionType
+from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
+from pysatl_criterion.distribution.parameters import HypothesisSupport, ParameterValues
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.alternative import Alternative, AlternativeType, RightAlternative
 from pysatl_criterion.statistics.goodness_of_fit.common import (
@@ -26,7 +27,6 @@ from pysatl_criterion.statistics.goodness_of_fit.common import (
     KSStatistic,
     LillieforsTest,
 )
-from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
 class AbstractBetaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
@@ -35,19 +35,8 @@ class AbstractBetaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
 
     The Beta distribution is a continuous probability distribution defined on the interval [0, 1]
     parameterized by two positive shape parameters, denoted by α (alpha) and β (beta).
+    Subclasses declare which parameters are fixed by their hypothesis.
     """
-
-    def __init__(self, alpha=1, beta=1):
-        if np.ndim(alpha) != 0 or np.iscomplexobj(alpha) or not np.isfinite(alpha) or alpha <= 0:
-            raise ValueError("alpha must be positive and finite")
-        if np.ndim(beta) != 0 or np.iscomplexobj(beta) or not np.isfinite(beta) or beta <= 0:
-            raise ValueError("beta must be positive and finite")
-        self.alpha = alpha
-        self.beta = beta
-
-    @override
-    def hypothesis(self) -> GoodnessOfFitHypothesis:
-        return GoodnessOfFitHypothesis({"alpha": self.alpha, "beta": self.beta})
 
     @staticmethod
     def _validate_rvs(rvs, min_size=1):
@@ -66,6 +55,39 @@ class AbstractBetaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
             raise ValueError("Beta distribution values must be in the interval [0, 1]")
         return rvs
 
+    @staticmethod
+    @override
+    def distribution() -> type[Beta]:
+        """Return the distribution descriptor class."""
+        return Beta
+
+    @classmethod
+    @override
+    def code(cls) -> str:
+        """Return the identifier using the concrete statistic's short code."""
+        family_code = f"BETA_{AbstractGoodnessOfFitStatistic.code()}"
+        if "short_code" in cls.__abstractmethods__:
+            return family_code
+        return f"{cls.short_code()}_{family_code}"
+
+
+class AbstractSpecifiedBetaGofStatistic(AbstractBetaGofStatistic, ABC):
+    """Base for Beta statistics with both shape parameters fixed by the hypothesis."""
+
+    @property
+    def alpha(self) -> float:
+        """Read the first shape by its stable parameter identity."""
+        return self._parameters[Beta.ALPHA]
+
+    @property
+    def beta(self) -> float:
+        """Read the second shape by its stable parameter identity."""
+        return self._parameters[Beta.BETA]
+
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (HypothesisSupport(Beta.DEFAULT, frozenset(Beta.DEFAULT.parameters)),)
+
     def _standardized_moments(self, order):
         """Central moments of Z=(X-E[X])/sd(X), using the Beta Stein identity."""
         total = self.alpha + self.beta
@@ -80,35 +102,14 @@ class AbstractBetaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
             )
         return moments
 
-    @staticmethod
-    @override
-    def distribution() -> DistributionType:
-        """
-        Get distribution type.
 
-        :return: DistributionType.
-        """
-        return DistributionType.BETA
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for Beta distribution statistics.
-
-        :return: string code in format "BETA_{parent_code}".
-        """
-        return f"BETA_{AbstractGoodnessOfFitStatistic.code()}"
-
-
-class KolmogorovSmirnovBetaGofStatistic(AbstractBetaGofStatistic, KSStatistic):
+class KolmogorovSmirnovBetaGofStatistic(AbstractSpecifiedBetaGofStatistic, KSStatistic):
     """Kolmogorov-Smirnov distance to a fully specified Beta distribution.
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Finite positive shape parameters fixed by the null hypothesis.
-        Both default to 1. No shape parameters are estimated.
+    parameters : ParameterValues
+        Beta.DEFAULT values with both positive shape parameters fixed.
     alternative_type : AlternativeType, optional
         TWO_TAILED (default) selects D, RIGHT selects D+, LEFT selects D-.
     mode : str, optional
@@ -142,7 +143,7 @@ class KolmogorovSmirnovBetaGofStatistic(AbstractBetaGofStatistic, KSStatistic):
 
     Examples
     --------
-    >>> statistic = KolmogorovSmirnovBetaGofStatistic(alpha=2, beta=5)
+    >>> statistic = KolmogorovSmirnovBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}))
     >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
     >>> bool(value >= 0)
     True
@@ -150,12 +151,12 @@ class KolmogorovSmirnovBetaGofStatistic(AbstractBetaGofStatistic, KSStatistic):
 
     def __init__(
         self,
-        alpha=1,
-        beta=1,
+        parameters: ParameterValues,
+        *,
         alternative_type: AlternativeType = AlternativeType.TWO_TAILED,
         mode="auto",
     ):
-        AbstractBetaGofStatistic.__init__(self, alpha, beta)
+        AbstractSpecifiedBetaGofStatistic.__init__(self, parameters)
         if not isinstance(alternative_type, AlternativeType):
             raise TypeError("alternative_type must be an AlternativeType")
         KSStatistic.__init__(self, alternative_type, mode)
@@ -171,19 +172,6 @@ class KolmogorovSmirnovBetaGofStatistic(AbstractBetaGofStatistic, KSStatistic):
             Stable identifier for this statistic.
         """
         return "KS"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier.
-
-        Returns
-        -------
-        code : str
-            Stable identifier for this statistic.
-        """
-        short_code = KolmogorovSmirnovBetaGofStatistic.short_code()
-        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
@@ -217,14 +205,13 @@ class KolmogorovSmirnovBetaGofStatistic(AbstractBetaGofStatistic, KSStatistic):
         return KSStatistic.do_execute_statistic(self, rvs_sorted, cdf_vals)
 
 
-class AndersonDarlingBetaGofStatistic(AbstractBetaGofStatistic, ADStatistic):
+class AndersonDarlingBetaGofStatistic(AbstractSpecifiedBetaGofStatistic, ADStatistic):
     """Anderson-Darling statistic for a fully specified Beta distribution.
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Finite positive shape parameters fixed by the null hypothesis.
-        Both default to 1. No shape parameters are estimated.
+    parameters : ParameterValues
+        Beta.DEFAULT values with both positive shape parameters fixed.
 
     Methods
     -------
@@ -252,7 +239,7 @@ class AndersonDarlingBetaGofStatistic(AbstractBetaGofStatistic, ADStatistic):
 
     Examples
     --------
-    >>> statistic = AndersonDarlingBetaGofStatistic(alpha=2, beta=5)
+    >>> statistic = AndersonDarlingBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}))
     >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
     >>> bool(value >= 0)
     True
@@ -262,19 +249,6 @@ class AndersonDarlingBetaGofStatistic(AbstractBetaGofStatistic, ADStatistic):
     @override
     def short_code():
         return "AD"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier.
-
-        Returns
-        -------
-        code : str
-            Stable identifier for this statistic.
-        """
-        short_code = AndersonDarlingBetaGofStatistic.short_code()
-        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
@@ -316,14 +290,13 @@ class AndersonDarlingBetaGofStatistic(AbstractBetaGofStatistic, ADStatistic):
         return A2
 
 
-class CrammerVonMisesBetaGofStatistic(AbstractBetaGofStatistic, CrammerVonMisesStatistic):
+class CrammerVonMisesBetaGofStatistic(AbstractSpecifiedBetaGofStatistic, CrammerVonMisesStatistic):
     """Cramer-von Mises statistic for a fully specified Beta distribution.
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Finite positive shape parameters fixed by the null hypothesis.
-        Both default to 1. No shape parameters are estimated.
+    parameters : ParameterValues
+        Beta.DEFAULT values with both positive shape parameters fixed.
 
     Methods
     -------
@@ -349,7 +322,7 @@ class CrammerVonMisesBetaGofStatistic(AbstractBetaGofStatistic, CrammerVonMisesS
 
     Examples
     --------
-    >>> statistic = CrammerVonMisesBetaGofStatistic(alpha=2, beta=5)
+    >>> statistic = CrammerVonMisesBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}))
     >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
     >>> bool(value >= 0)
     True
@@ -366,19 +339,6 @@ class CrammerVonMisesBetaGofStatistic(AbstractBetaGofStatistic, CrammerVonMisesS
             Stable identifier for this statistic.
         """
         return "CVM"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier.
-
-        Returns
-        -------
-        code : str
-            Stable identifier for this statistic.
-        """
-        short_code = CrammerVonMisesBetaGofStatistic.short_code()
-        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
@@ -414,6 +374,11 @@ class CrammerVonMisesBetaGofStatistic(AbstractBetaGofStatistic, CrammerVonMisesS
 
 class LillieforsTestBetaGofStatistic(AbstractBetaGofStatistic, LillieforsTest):
     """Lilliefors-type KS statistic with both Beta shapes fitted by MLE.
+
+    Parameters
+    ----------
+    parameters : ParameterValues
+        Beta.DEFAULT.parse({}); both shape parameters remain unknown.
 
     Methods
     -------
@@ -455,19 +420,15 @@ class LillieforsTestBetaGofStatistic(AbstractBetaGofStatistic, LillieforsTest):
 
     Examples
     --------
-    >>> statistic = LillieforsTestBetaGofStatistic()
+    >>> statistic = LillieforsTestBetaGofStatistic(Beta.DEFAULT.parse({}))
     >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
     >>> bool(value >= 0)
     True
     """
 
-    def __init__(self):
-        """Create a fitted-Beta KS statistic with no fixed shape parameters."""
-
-    @override
-    def hypothesis(self) -> GoodnessOfFitHypothesis:
-        """Return the Beta family with both shape parameters unknown."""
-        return GoodnessOfFitHypothesis({})
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (HypothesisSupport(Beta.DEFAULT, frozenset()),)
 
     @classmethod
     def _fit(cls, rvs):
@@ -492,19 +453,6 @@ class LillieforsTestBetaGofStatistic(AbstractBetaGofStatistic, LillieforsTest):
             Stable identifier for this statistic.
         """
         return "LILLIE"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier.
-
-        Returns
-        -------
-        code : str
-            Stable identifier for this statistic.
-        """
-        short_code = LillieforsTestBetaGofStatistic.short_code()
-        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
@@ -539,14 +487,13 @@ class LillieforsTestBetaGofStatistic(AbstractBetaGofStatistic, LillieforsTest):
         return LillieforsTest.do_execute_statistic(self, ordered, cdf_vals)
 
 
-class Chi2PearsonBetaGofStatistic(AbstractBetaGofStatistic, Chi2Statistic):
+class Chi2PearsonBetaGofStatistic(AbstractSpecifiedBetaGofStatistic, Chi2Statistic):
     """Pearson statistic for binned observations under a specified Beta null.
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Finite positive shape parameters fixed by the null hypothesis.
-        Both default to 1. No shape parameters are estimated.
+    parameters : ParameterValues
+        Beta.DEFAULT values with both positive shape parameters fixed.
     lambda_ : float, optional
         Finite power-divergence parameter. Default 1 gives Pearson's test.
 
@@ -585,14 +532,14 @@ class Chi2PearsonBetaGofStatistic(AbstractBetaGofStatistic, Chi2Statistic):
 
     Examples
     --------
-    >>> statistic = Chi2PearsonBetaGofStatistic(alpha=2, beta=5)
+    >>> statistic = Chi2PearsonBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}))
     >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
     >>> bool(value >= 0)
     True
     """
 
-    def __init__(self, alpha=1, beta=1, lambda_=1):
-        AbstractBetaGofStatistic.__init__(self, alpha, beta)
+    def __init__(self, parameters: ParameterValues, *, lambda_=1):
+        AbstractSpecifiedBetaGofStatistic.__init__(self, parameters)
         Chi2Statistic.__init__(self)
         if np.ndim(lambda_) != 0 or np.iscomplexobj(lambda_) or not np.isfinite(lambda_):
             raise ValueError("lambda_ must be a finite real scalar")
@@ -609,19 +556,6 @@ class Chi2PearsonBetaGofStatistic(AbstractBetaGofStatistic, Chi2Statistic):
             Stable identifier for this statistic.
         """
         return "CHI2_PEARSON"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier.
-
-        Returns
-        -------
-        code : str
-            Stable identifier for this statistic.
-        """
-        short_code = Chi2PearsonBetaGofStatistic.short_code()
-        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
@@ -670,14 +604,13 @@ class Chi2PearsonBetaGofStatistic(AbstractBetaGofStatistic, Chi2Statistic):
         return Chi2Statistic.do_execute_statistic(self, observed, expected, self.lambda_)
 
 
-class WatsonBetaGofStatistic(AbstractBetaGofStatistic):
+class WatsonBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
     """Watson U-squared statistic after a specified Beta CDF transform.
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Finite positive shape parameters fixed by the null hypothesis.
-        Both default to 1. No shape parameters are estimated.
+    parameters : ParameterValues
+        Beta.DEFAULT values with both positive shape parameters fixed.
 
     Methods
     -------
@@ -705,7 +638,7 @@ class WatsonBetaGofStatistic(AbstractBetaGofStatistic):
 
     Examples
     --------
-    >>> statistic = WatsonBetaGofStatistic(alpha=2, beta=5)
+    >>> statistic = WatsonBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}))
     >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
     >>> bool(value >= 0)
     True
@@ -726,19 +659,6 @@ class WatsonBetaGofStatistic(AbstractBetaGofStatistic):
             Stable identifier for this statistic.
         """
         return "W"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier.
-
-        Returns
-        -------
-        code : str
-            Stable identifier for this statistic.
-        """
-        short_code = WatsonBetaGofStatistic.short_code()
-        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
@@ -782,14 +702,13 @@ class WatsonBetaGofStatistic(AbstractBetaGofStatistic):
         return watson_statistic
 
 
-class KuiperBetaGofStatistic(AbstractBetaGofStatistic):
+class KuiperBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
     """Kuiper statistic after a specified Beta CDF transform.
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Finite positive shape parameters fixed by the null hypothesis.
-        Both default to 1. No shape parameters are estimated.
+    parameters : ParameterValues
+        Beta.DEFAULT values with both positive shape parameters fixed.
 
     Methods
     -------
@@ -816,7 +735,7 @@ class KuiperBetaGofStatistic(AbstractBetaGofStatistic):
 
     Examples
     --------
-    >>> statistic = KuiperBetaGofStatistic(alpha=2, beta=5)
+    >>> statistic = KuiperBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}))
     >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
     >>> bool(value >= 0)
     True
@@ -837,19 +756,6 @@ class KuiperBetaGofStatistic(AbstractBetaGofStatistic):
             Stable identifier for this statistic.
         """
         return "KUIPER"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier.
-
-        Returns
-        -------
-        code : str
-            Stable identifier for this statistic.
-        """
-        short_code = KuiperBetaGofStatistic.short_code()
-        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
@@ -892,14 +798,13 @@ class KuiperBetaGofStatistic(AbstractBetaGofStatistic):
         return d_plus + d_minus
 
 
-class MomentBasedBetaGofStatistic(AbstractBetaGofStatistic):
+class MomentBasedBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
     """Covariance-standardized mean/variance discrepancy for a specified Beta null.
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Finite positive shape parameters fixed by the null hypothesis.
-        Both default to 1. No shape parameters are estimated.
+    parameters : ParameterValues
+        Beta.DEFAULT values with both positive shape parameters fixed.
 
     Methods
     -------
@@ -924,7 +829,7 @@ class MomentBasedBetaGofStatistic(AbstractBetaGofStatistic):
 
     Examples
     --------
-    >>> statistic = MomentBasedBetaGofStatistic(alpha=2, beta=5)
+    >>> statistic = MomentBasedBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}))
     >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
     >>> bool(value >= 0)
     True
@@ -945,19 +850,6 @@ class MomentBasedBetaGofStatistic(AbstractBetaGofStatistic):
             Stable identifier for this statistic.
         """
         return "MB"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier.
-
-        Returns
-        -------
-        code : str
-            Stable identifier for this statistic.
-        """
-        short_code = MomentBasedBetaGofStatistic.short_code()
-        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
@@ -994,17 +886,16 @@ class MomentBasedBetaGofStatistic(AbstractBetaGofStatistic):
                 np.var(rvs, ddof=1) / variance - 1,
             ]
         )
-        return len(rvs) * difference @ np.linalg.solve(covariance, difference)
+        return float(len(rvs) * difference @ np.linalg.solve(covariance, difference))
 
 
-class SkewnessKurtosisBetaGofStatistic(AbstractBetaGofStatistic):
+class SkewnessKurtosisBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
     """Covariance-standardized skewness/excess discrepancy for a specified Beta null.
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Finite positive shape parameters fixed by the null hypothesis.
-        Both default to 1. No shape parameters are estimated.
+    parameters : ParameterValues
+        Beta.DEFAULT values with both positive shape parameters fixed.
 
     Methods
     -------
@@ -1032,7 +923,7 @@ class SkewnessKurtosisBetaGofStatistic(AbstractBetaGofStatistic):
 
     Examples
     --------
-    >>> statistic = SkewnessKurtosisBetaGofStatistic(alpha=2, beta=5)
+    >>> statistic = SkewnessKurtosisBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}))
     >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
     >>> bool(value >= 0)
     True
@@ -1053,19 +944,6 @@ class SkewnessKurtosisBetaGofStatistic(AbstractBetaGofStatistic):
             Stable identifier for this statistic.
         """
         return "SK"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier.
-
-        Returns
-        -------
-        code : str
-            Stable identifier for this statistic.
-        """
-        short_code = SkewnessKurtosisBetaGofStatistic.short_code()
-        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
@@ -1116,17 +994,16 @@ class SkewnessKurtosisBetaGofStatistic(AbstractBetaGofStatistic):
                 scipy_stats.kurtosis(scaled, bias=False) - (pearson_kurtosis - 3),
             ]
         )
-        return len(rvs) * difference @ np.linalg.solve(covariance, difference)
+        return float(len(rvs) * difference @ np.linalg.solve(covariance, difference))
 
 
-class RatioBetaGofStatistic(AbstractBetaGofStatistic):
+class RatioBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
     """Geometric/arithmetic mean discrepancy for a specified Beta null.
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Finite positive shape parameters fixed by the null hypothesis.
-        Both default to 1. No shape parameters are estimated.
+    parameters : ParameterValues
+        Beta.DEFAULT values with both positive shape parameters fixed.
 
     Methods
     -------
@@ -1152,7 +1029,7 @@ class RatioBetaGofStatistic(AbstractBetaGofStatistic):
 
     Examples
     --------
-    >>> statistic = RatioBetaGofStatistic(alpha=2, beta=5)
+    >>> statistic = RatioBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}))
     >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
     >>> bool(value >= 0)
     True
@@ -1173,19 +1050,6 @@ class RatioBetaGofStatistic(AbstractBetaGofStatistic):
             Stable identifier for this statistic.
         """
         return "RT"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier.
-
-        Returns
-        -------
-        code : str
-            Stable identifier for this statistic.
-        """
-        short_code = RatioBetaGofStatistic.short_code()
-        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
@@ -1242,14 +1106,13 @@ class RatioBetaGofStatistic(AbstractBetaGofStatistic):
         return statistic
 
 
-class EntropyBetaGofStatistic(AbstractBetaGofStatistic):
+class EntropyBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
     """Vasicek-entropy discrepancy for a specified Beta null.
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Finite positive shape parameters fixed by the null hypothesis.
-        Both default to 1. No shape parameters are estimated.
+    parameters : ParameterValues
+        Beta.DEFAULT values with both positive shape parameters fixed.
 
     Methods
     -------
@@ -1276,7 +1139,7 @@ class EntropyBetaGofStatistic(AbstractBetaGofStatistic):
 
     Examples
     --------
-    >>> statistic = EntropyBetaGofStatistic(alpha=2, beta=5)
+    >>> statistic = EntropyBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}))
     >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
     >>> bool(value >= 0)
     True
@@ -1297,19 +1160,6 @@ class EntropyBetaGofStatistic(AbstractBetaGofStatistic):
             Stable identifier for this statistic.
         """
         return "ENT"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier.
-
-        Returns
-        -------
-        code : str
-            Stable identifier for this statistic.
-        """
-        short_code = EntropyBetaGofStatistic.short_code()
-        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
@@ -1370,14 +1220,14 @@ class EntropyBetaGofStatistic(AbstractBetaGofStatistic):
         return statistic
 
 
-class ModeBetaGofStatistic(AbstractBetaGofStatistic):
+class ModeBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
     """KDE-mode discrepancy for a specified unimodal Beta null.
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Finite greater than 1 shape parameters fixed by the null hypothesis.
-        Both default to 2. No shape parameters are estimated.
+    parameters : ParameterValues
+        Beta.DEFAULT values with both positive shape parameters fixed.
+        Both shapes must be greater than 1 for a unique interior mode.
 
     Methods
     -------
@@ -1407,7 +1257,7 @@ class ModeBetaGofStatistic(AbstractBetaGofStatistic):
 
     Examples
     --------
-    >>> statistic = ModeBetaGofStatistic(alpha=2, beta=5)
+    >>> statistic = ModeBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}))
     >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
     >>> bool(value >= 0)
     True
@@ -1417,11 +1267,11 @@ class ModeBetaGofStatistic(AbstractBetaGofStatistic):
     def alternative(self) -> Alternative:
         return RightAlternative()
 
-    def __init__(self, alpha=2, beta=2):
-        super().__init__(alpha, beta)
-        if alpha <= 1:
+    def __init__(self, parameters: ParameterValues):
+        super().__init__(parameters)
+        if self.alpha <= 1:
             raise ValueError("alpha must be greater than 1 for mode to be well-defined")
-        if beta <= 1:
+        if self.beta <= 1:
             raise ValueError("beta must be greater than 1 for mode to be well-defined")
 
     @staticmethod
@@ -1435,19 +1285,6 @@ class ModeBetaGofStatistic(AbstractBetaGofStatistic):
             Stable identifier for this statistic.
         """
         return "MODE"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier.
-
-        Returns
-        -------
-        code : str
-            Stable identifier for this statistic.
-        """
-        short_code = ModeBetaGofStatistic.short_code()
-        return f"{short_code}_{AbstractBetaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs) -> float | np.float64:

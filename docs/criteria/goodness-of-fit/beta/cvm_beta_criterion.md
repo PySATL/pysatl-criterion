@@ -12,12 +12,13 @@ The observations are sorted, transformed by the reference beta cumulative distri
 
 ## Usage
 ```python
+from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit import (
     CrammerVonMisesBetaGofStatistic,
 )
 
 
-test_statistic = CrammerVonMisesBetaGofStatistic(alpha=2, beta=5)
+test_statistic = CrammerVonMisesBetaGofStatistic(BetaDistributionDescriptor.DEFAULT.parse({'a': 2, 'b': 5}))
 statistic_result = test_statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
 print(statistic_result)
 ```
@@ -49,12 +50,13 @@ S. Csorgo and J. J. Faraway (1996), "The Exact and Asymptotic
 
 ## Examples
 ```python
+from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit import (
     CrammerVonMisesBetaGofStatistic,
 )
 
 
-test_statistic = CrammerVonMisesBetaGofStatistic(alpha=2, beta=5)
+test_statistic = CrammerVonMisesBetaGofStatistic(BetaDistributionDescriptor.DEFAULT.parse({'a': 2, 'b': 5}))
 statistic_result = test_statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
 print(statistic_result)
 ```

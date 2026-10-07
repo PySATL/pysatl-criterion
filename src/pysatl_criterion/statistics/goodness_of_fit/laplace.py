@@ -6,7 +6,11 @@ import numpy as np
 from numba import njit
 from typing_extensions import override
 
-from pysatl_criterion import DistributionType
+from pysatl_criterion.distribution.distributions import LaplaceDistributionDescriptor
+from pysatl_criterion.distribution.distributions import (
+    LaplaceDistributionDescriptor as Distribution,
+)
+from pysatl_criterion.distribution.parameters import HypothesisSupport, ParameterValues
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.alternative import Alternative, AlternativeType, RightAlternative
 from pysatl_criterion.statistics.goodness_of_fit.common import (
@@ -14,7 +18,6 @@ from pysatl_criterion.statistics.goodness_of_fit.common import (
     CrammerVonMisesStatistic,
     KSStatistic,
 )
-from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
 @njit
@@ -45,17 +48,15 @@ def _laplace_cdf_values(sorted_rvs: np.ndarray, t: float, s: float) -> np.ndarra
 class AbstractLaplaceGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     """Abstract base class for Laplace distribution goodness-of-fit statistics."""
 
-    def __init__(self, t: float = 0.0, s: float = 1.0):
-        """Initialize a Laplace distribution goodness-of-fit statistic.
+    @property
+    def t(self) -> float:
+        """Read t by its stable parameter identity."""
+        return self._parameters[Distribution.LOCATION]
 
-        :param t: location parameter.
-        :param s: scale parameter greater than zero.
-        :raises ValueError: if a parameter is invalid or scale is not positive.
-        """
-        self.t = self._validate_parameter(t, "Location")
-        self.s = self._validate_parameter(s, "Scale")
-        if self.s <= 0:
-            raise ValueError("Scale must be positive.")
+    @property
+    def s(self) -> float:
+        """Read s by its stable parameter identity."""
+        return self._parameters[Distribution.SCALE]
 
     @staticmethod
     def _validate_parameter(value, name):
@@ -87,31 +88,28 @@ class AbstractLaplaceGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
             raise ValueError("Sample must contain finite real numbers.")
         return np.sort(sample)
 
-    @override
-    def hypothesis(self) -> GoodnessOfFitHypothesis:
-        """Get the goodness-of-fit hypothesis for the Laplace distribution.
-
-        :return: hypothesis containing the location and scale parameters.
-        """
-        return GoodnessOfFitHypothesis({"t": self.t, "s": self.s})
-
-    @staticmethod
-    @override
-    def distribution() -> DistributionType:
-        """Get the distribution type.
-
-        :return: Laplace distribution type.
-        """
-        return DistributionType.LAPLACE
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (
+            HypothesisSupport(
+                Distribution.DEFAULT, frozenset({Distribution.LOCATION, Distribution.SCALE})
+            ),
+        )
 
     @staticmethod
     @override
-    def code():
-        """Get the code identifier for Laplace distribution statistics.
+    def distribution() -> type[LaplaceDistributionDescriptor]:
+        """Return the distribution descriptor class."""
+        return LaplaceDistributionDescriptor
 
-        :return: string code in format ``LAPLACE_{parent_code}``.
-        """
-        return f"LAPLACE_{AbstractGoodnessOfFitStatistic.code()}"
+    @classmethod
+    @override
+    def code(cls) -> str:
+        """Return the family identifier or the concrete statistic's full identifier."""
+        family_code = f"LAPLACE_{AbstractGoodnessOfFitStatistic.code()}"
+        if "short_code" in cls.__abstractmethods__:
+            return family_code
+        return f"{cls.short_code()}_{family_code}"
 
 
 class KolmogorovSmirnovLaplaceGofStatistic(AbstractLaplaceGofStatistic, KSStatistic):
@@ -119,16 +117,14 @@ class KolmogorovSmirnovLaplaceGofStatistic(AbstractLaplaceGofStatistic, KSStatis
 
     Parameters
     ----------
+    parameters : ParameterValues
+        Values with t, s fixed; omitted parameters are unknown.
     alternative_type : AlternativeType, default TWO_TAILED
         CDF deviation direction: TWO_TAILED gives D, RIGHT D+, LEFT D-.
         This setting does not change the right tail used for rejection.
     mode : {'auto', 'exact', 'asymp', 'approx'}, default 'auto'
         Compatibility setting; has no effect on the statistic. No p-value
         is computed. Internally 'auto' is stored as 'exact'.
-    t : float, default 0.0
-        Fixed, finite real location; never estimated from the sample.
-    s : float, default 1.0
-        Fixed, finite real scale, strictly positive; never estimated.
 
     Methods
     -------
@@ -169,7 +165,8 @@ class KolmogorovSmirnovLaplaceGofStatistic(AbstractLaplaceGofStatistic, KSStatis
 
     Examples
     --------
-    >>> statistic = KolmogorovSmirnovLaplaceGofStatistic(t=0.0, s=1.0)
+    >>> parameters = Distribution.DEFAULT.parse({'t': 0.0, 's': 1.0})
+    >>> statistic = KolmogorovSmirnovLaplaceGofStatistic(parameters)
     >>> value = statistic.execute_statistic([-1.0, 0.0, 0.5, 2.0])
     >>> bool(np.isfinite(value))
     True
@@ -177,20 +174,12 @@ class KolmogorovSmirnovLaplaceGofStatistic(AbstractLaplaceGofStatistic, KSStatis
 
     def __init__(
         self,
+        parameters: ParameterValues,
+        *,
         alternative_type: AlternativeType = AlternativeType.TWO_TAILED,
         mode="auto",
-        t: float = 0.0,
-        s: float = 1.0,
     ):
-        """Initialize a Kolmogorov--Smirnov test for a Laplace distribution.
-
-        :param alternative_type: direction of the CDF discrepancy.
-        :param mode: compatibility setting, with no effect on the statistic.
-        :param t: location parameter of the reference Laplace distribution.
-        :param s: positive scale parameter of the reference Laplace distribution.
-        :raises ValueError: if a parameter is invalid or scale is not positive.
-        """
-        AbstractLaplaceGofStatistic.__init__(self, t=t, s=s)
+        AbstractLaplaceGofStatistic.__init__(self, parameters)
         if alternative_type not in tuple(AlternativeType):
             raise ValueError("Invalid CDF deviation direction.")
         if not isinstance(mode, str) or mode not in ("auto", "exact", "asymp", "approx"):
@@ -209,16 +198,6 @@ class KolmogorovSmirnovLaplaceGofStatistic(AbstractLaplaceGofStatistic, KSStatis
         :return: short code string ``KS``.
         """
         return "KS"
-
-    @staticmethod
-    @override
-    def code():
-        """Get the unique code identifier for this test.
-
-        :return: string code in format ``KS_LAPLACE_{parent_code}``.
-        """
-        short_code = KolmogorovSmirnovLaplaceGofStatistic.short_code()
-        return f"{short_code}_{AbstractLaplaceGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -257,10 +236,8 @@ class CramerVonMisesLaplaceGofStatistic(AbstractLaplaceGofStatistic, CrammerVonM
 
     Parameters
     ----------
-    t : float, default 0.0
-        Fixed, finite real location; never estimated from the sample.
-    s : float, default 1.0
-        Fixed, finite real scale, strictly positive; never estimated.
+    parameters : ParameterValues
+        Values with t, s fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -297,7 +274,8 @@ class CramerVonMisesLaplaceGofStatistic(AbstractLaplaceGofStatistic, CrammerVonM
 
     Examples
     --------
-    >>> statistic = CramerVonMisesLaplaceGofStatistic(t=0.0, s=1.0)
+    >>> parameters = Distribution.DEFAULT.parse({'t': 0.0, 's': 1.0})
+    >>> statistic = CramerVonMisesLaplaceGofStatistic(parameters)
     >>> value = statistic.execute_statistic([-1.0, 0.0, 0.5, 2.0])
     >>> bool(np.isfinite(value))
     True
@@ -311,16 +289,6 @@ class CramerVonMisesLaplaceGofStatistic(AbstractLaplaceGofStatistic, CrammerVonM
         :return: short code string ``CVM``.
         """
         return "CVM"
-
-    @staticmethod
-    @override
-    def code():
-        """Get the unique code identifier for this test.
-
-        :return: string code in format ``CVM_LAPLACE_{parent_code}``.
-        """
-        short_code = CramerVonMisesLaplaceGofStatistic.short_code()
-        return f"{short_code}_{AbstractLaplaceGofStatistic.code()}"
 
     @staticmethod
     @njit
@@ -391,10 +359,8 @@ class AndersonDarlingLaplaceGofStatistic(AbstractLaplaceGofStatistic, ADStatisti
 
     Parameters
     ----------
-    t : float, default 0.0
-        Fixed, finite real location; never estimated from the sample.
-    s : float, default 1.0
-        Fixed, finite real scale, strictly positive; never estimated.
+    parameters : ParameterValues
+        Values with t, s fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -436,7 +402,8 @@ class AndersonDarlingLaplaceGofStatistic(AbstractLaplaceGofStatistic, ADStatisti
 
     Examples
     --------
-    >>> statistic = AndersonDarlingLaplaceGofStatistic(t=0.0, s=1.0)
+    >>> parameters = Distribution.DEFAULT.parse({'t': 0.0, 's': 1.0})
+    >>> statistic = AndersonDarlingLaplaceGofStatistic(parameters)
     >>> value = statistic.execute_statistic([-1.0, 0.0, 0.5, 2.0])
     >>> bool(np.isfinite(value))
     True
@@ -450,16 +417,6 @@ class AndersonDarlingLaplaceGofStatistic(AbstractLaplaceGofStatistic, ADStatisti
         :return: short code string ``AD``.
         """
         return "AD"
-
-    @staticmethod
-    @override
-    def code():
-        """Get the unique code identifier for this test.
-
-        :return: string code in format ``AD_LAPLACE_{parent_code}``.
-        """
-        short_code = AndersonDarlingLaplaceGofStatistic.short_code()
-        return f"{short_code}_{AbstractLaplaceGofStatistic.code()}"
 
     @staticmethod
     @njit
@@ -541,10 +498,8 @@ class KuiperLaplaceGofStatistic(AbstractLaplaceGofStatistic):
 
     Parameters
     ----------
-    t : float, default 0.0
-        Fixed, finite real location; never estimated from the sample.
-    s : float, default 1.0
-        Fixed, finite real scale, strictly positive; never estimated.
+    parameters : ParameterValues
+        Values with t, s fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -581,7 +536,8 @@ class KuiperLaplaceGofStatistic(AbstractLaplaceGofStatistic):
 
     Examples
     --------
-    >>> statistic = KuiperLaplaceGofStatistic(t=0.0, s=1.0)
+    >>> parameters = Distribution.DEFAULT.parse({'t': 0.0, 's': 1.0})
+    >>> statistic = KuiperLaplaceGofStatistic(parameters)
     >>> value = statistic.execute_statistic([-1.0, 0.0, 0.5, 2.0])
     >>> bool(np.isfinite(value))
     True
@@ -600,17 +556,6 @@ class KuiperLaplaceGofStatistic(AbstractLaplaceGofStatistic):
         :return: short code string ``KUI``.
         """
         return "KUI"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get the unique code identifier for this test.
-
-        :return: string code in format ``KUI_LAPLACE_{parent_code}``.
-        """
-        short_code = KuiperLaplaceGofStatistic.short_code()
-        return f"{short_code}_{AbstractLaplaceGofStatistic.code()}"
 
     @staticmethod
     @njit
@@ -685,10 +630,8 @@ class WatsonLaplaceGofStatistic(AbstractLaplaceGofStatistic):
 
     Parameters
     ----------
-    t : float, default 0.0
-        Fixed, finite real location; never estimated from the sample.
-    s : float, default 1.0
-        Fixed, finite real scale, strictly positive; never estimated.
+    parameters : ParameterValues
+        Values with t, s fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -729,7 +672,8 @@ class WatsonLaplaceGofStatistic(AbstractLaplaceGofStatistic):
 
     Examples
     --------
-    >>> statistic = WatsonLaplaceGofStatistic(t=0.0, s=1.0)
+    >>> parameters = Distribution.DEFAULT.parse({'t': 0.0, 's': 1.0})
+    >>> statistic = WatsonLaplaceGofStatistic(parameters)
     >>> value = statistic.execute_statistic([-1.0, 0.0, 0.5, 2.0])
     >>> bool(np.isfinite(value))
     True
@@ -748,17 +692,6 @@ class WatsonLaplaceGofStatistic(AbstractLaplaceGofStatistic):
         :return: short code string "WAT".
         """
         return "WAT"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "WAT_LAPLACE_{parent_code}".
-        """
-        short_code = WatsonLaplaceGofStatistic.short_code()
-        return f"{short_code}_{AbstractLaplaceGofStatistic.code()}"
 
     @staticmethod
     @njit
@@ -831,10 +764,8 @@ class GreenwoodLaplaceGofStatistic(AbstractLaplaceGofStatistic):
 
     Parameters
     ----------
-    t : float, default 0.0
-        Fixed, finite real location; never estimated from the sample.
-    s : float, default 1.0
-        Fixed, finite real scale, strictly positive; never estimated.
+    parameters : ParameterValues
+        Values with t, s fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -873,7 +804,8 @@ class GreenwoodLaplaceGofStatistic(AbstractLaplaceGofStatistic):
 
     Examples
     --------
-    >>> statistic = GreenwoodLaplaceGofStatistic(t=0.0, s=1.0)
+    >>> parameters = Distribution.DEFAULT.parse({'t': 0.0, 's': 1.0})
+    >>> statistic = GreenwoodLaplaceGofStatistic(parameters)
     >>> value = statistic.execute_statistic([-1.0, 0.0, 0.5, 2.0])
     >>> bool(np.isfinite(value))
     True
@@ -895,16 +827,6 @@ class GreenwoodLaplaceGofStatistic(AbstractLaplaceGofStatistic):
         :return: short code string ``GRW``.
         """
         return "GRW"
-
-    @staticmethod
-    @override
-    def code():
-        """Get the unique code identifier for this test.
-
-        :return: string code in format ``GRW_LAPLACE_{parent_code}``.
-        """
-        short_code = GreenwoodLaplaceGofStatistic.short_code()
-        return f"{short_code}_{AbstractLaplaceGofStatistic.code()}"
 
     @staticmethod
     @njit

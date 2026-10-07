@@ -13,6 +13,7 @@ from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
 )
 from pysatl_criterion.statistics.alternative import AlternativeType, RightAlternative
 from pysatl_criterion.statistics.goodness_of_fit import hyperbolic
+from tests.parameter_cases import parameters_for
 
 
 CLASSES = [
@@ -28,7 +29,7 @@ CLASSES = [
 @pytest.mark.parametrize("sample", [[], [[1, 2]], [np.nan], [np.inf], [-np.inf], [1j]])
 def test_invalid_samples(cls, sample):
     with pytest.raises(ValueError):
-        cls().execute_statistic(sample)
+        cls(parameters_for(cls)).execute_statistic(sample)
 
 
 @pytest.mark.parametrize("cls", CLASSES)
@@ -36,7 +37,7 @@ def test_invalid_samples(cls, sample):
 @pytest.mark.parametrize("value", [[1], np.array([1, 2]), 1j, "1", None, True])
 def test_parameters_must_be_real_scalars(cls, parameter, value):
     with pytest.raises(ValueError):
-        cls(**{parameter: value})
+        cls(parameters_for(cls, **{parameter: value}))
 
 
 @pytest.mark.parametrize(
@@ -44,12 +45,12 @@ def test_parameters_must_be_real_scalars(cls, parameter, value):
 )
 def test_unrepresentable_scaled_shape(params):
     with pytest.raises(ValueError, match="Scaled parameters"):
-        CLASSES[1](**params)
+        CLASSES[1](parameters_for(CLASSES[1], **params))
 
 
 @pytest.mark.parametrize("cls", CLASSES)
 def test_independent_calls_and_fixed_hypothesis(cls):
-    statistic = cls(alpha=2, beta=0.3, delta=1.5, mu=-0.5)
+    statistic = cls(parameters_for(cls, alpha=2, beta=0.3, delta=1.5, mu=-0.5))
     sample = np.array([2.0, -1.0, 0.0, 0.0])
     original = sample.copy()
     first = statistic.execute_statistic(sample, unused=True)
@@ -92,7 +93,9 @@ def test_against_integrated_classical_density(sample):
         w - n * (np.mean(u) - 0.5) ** 2,
     ]
     for cls, reference in zip(CLASSES, expected, strict=True):
-        result = cls(alpha=alpha, beta=beta, delta=delta, mu=mu).execute_statistic(sample)
+        result = cls(
+            parameters_for(cls, alpha=alpha, beta=beta, delta=delta, mu=mu)
+        ).execute_statistic(sample)
         assert result == pytest.approx(reference, rel=1e-9, abs=1e-11)
 
 
@@ -101,13 +104,13 @@ def test_storage_rejects_ambiguous_ks_calibration(direction):
     store = Mock()
     resolver = StorageLimitDistributionResolver(store)
     with pytest.raises(ValueError, match="CDF direction"):
-        resolver.resolve(CLASSES[0](alternative_type=direction), 10)
+        resolver.resolve(CLASSES[0](parameters_for(CLASSES[0]), alternative_type=direction), 10)
     store.get.assert_not_called()
 
 
 def test_invalid_ks_direction():
     with pytest.raises(ValueError, match="AlternativeType"):
-        CLASSES[0](alternative_type="right")
+        CLASSES[0](parameters_for(CLASSES[0]), alternative_type="right")
 
 
 @pytest.mark.parametrize("cls", [CLASSES[i] for i in [0, 1, 3, 4]])
@@ -115,7 +118,7 @@ def test_invalid_ks_direction():
 def test_cdf_numerical_failures_are_explicit(monkeypatch, cls, values):
     monkeypatch.setattr(hyperbolic.scipy_stats.genhyperbolic, "cdf", lambda *a, **k: values)
     with pytest.raises(FloatingPointError, match="CDF"):
-        cls().execute_statistic([0.0, 1.0])
+        cls(parameters_for(cls)).execute_statistic([0.0, 1.0])
 
 
 def test_ad_tail_underflow_is_not_mathematical_infinity(monkeypatch):
@@ -123,12 +126,12 @@ def test_ad_tail_underflow_is_not_mathematical_infinity(monkeypatch):
         hyperbolic.scipy_stats.genhyperbolic, "logcdf", lambda *a, **k: np.array([-np.inf])
     )
     with pytest.raises(FloatingPointError, match="underflowed"):
-        CLASSES[2]().execute_statistic([-1000.0])
+        CLASSES[2](parameters_for(CLASSES[2])).execute_statistic([-1000.0])
 
 
 def test_ad_does_not_subtract_cdf_from_one():
     # CDF rounds to one here, but direct survival integration is still nonzero.
-    result = CLASSES[2]().execute_statistic([40.0])
+    result = CLASSES[2](parameters_for(CLASSES[2])).execute_statistic([40.0])
     assert np.isfinite(result) and result > 30
 
 
@@ -136,7 +139,7 @@ def test_watson_centering_avoids_cancellation():
     n = 10000
     # Equally spaced probabilities translated within (0, 1): all d_i coincide.
     u = (np.arange(n) + 0.5) / n + 0.00004
-    result = CLASSES[4]().do_execute_statistic(u)
+    result = CLASSES[4](parameters_for(CLASSES[4])).do_execute_statistic(u)
     assert result == pytest.approx(1 / (12 * n), abs=1e-18)
 
 

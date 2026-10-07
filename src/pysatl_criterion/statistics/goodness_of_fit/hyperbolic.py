@@ -7,7 +7,11 @@ import scipy.stats as scipy_stats
 from numba import njit
 from typing_extensions import override
 
-from pysatl_criterion import DistributionType
+from pysatl_criterion.distribution.distributions import HyperbolicDistributionDescriptor
+from pysatl_criterion.distribution.distributions import (
+    HyperbolicDistributionDescriptor as Distribution,
+)
+from pysatl_criterion.distribution.parameters import HypothesisSupport, ParameterValues
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.alternative import Alternative, AlternativeType, RightAlternative
 from pysatl_criterion.statistics.goodness_of_fit.common import (
@@ -15,7 +19,6 @@ from pysatl_criterion.statistics.goodness_of_fit.common import (
     CrammerVonMisesStatistic,
     KSStatistic,
 )
-from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
 class AbstractHyperbolicGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
@@ -27,85 +30,66 @@ class AbstractHyperbolicGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     Hyperbolae*, Scandinavian Journal of Statistics, 5(3), 151--157.
     """
 
-    def __init__(
-        self,
-        alpha: float = 1.0,
-        beta: float = 0.0,
-        delta: float = 1.0,
-        mu: float = 0.0,
-    ) -> None:
-        """Initialize a hyperbolic goodness-of-fit statistic.
+    @property
+    def alpha(self) -> float:
+        """Read alpha by its stable parameter identity."""
+        return self._parameters[Distribution.SHAPE]
 
-        :param alpha: positive shape parameter satisfying ``|beta| < alpha``.
-        :param beta: skewness parameter satisfying ``|beta| < alpha``.
-        :param delta: positive scale parameter.
-        :param mu: location parameter.
-        :raises ValueError: if any parameter is non-finite or violates its constraint.
-        """
-        alpha, beta, delta, mu = (
-            self._real_scalar(name, value)
-            for name, value in zip(
-                ("alpha", "beta", "delta", "mu"), (alpha, beta, delta, mu), strict=True
-            )
-        )
-        if not np.isfinite(alpha) or alpha <= 0:
-            raise ValueError("Alpha must be finite and positive.")
-        if not np.isfinite(beta) or abs(beta) >= alpha:
-            raise ValueError("Beta must be finite and satisfy abs(beta) < alpha.")
-        if not np.isfinite(delta) or delta <= 0:
-            raise ValueError("Delta must be finite and positive.")
-        if not np.isfinite(mu):
-            raise ValueError("Mu must be finite.")
+    @property
+    def beta(self) -> float:
+        """Read beta by its stable parameter identity."""
+        return self._parameters[Distribution.SKEWNESS]
 
-        self.alpha = float(alpha)
-        self.beta = float(beta)
-        self.delta = float(delta)
-        self.mu = float(mu)
-        a, b = self.alpha * self.delta, self.beta * self.delta
+    @property
+    def delta(self) -> float:
+        """Read delta by its stable parameter identity."""
+        return self._parameters[Distribution.SCALE]
+
+    @property
+    def mu(self) -> float:
+        """Read mu by its stable parameter identity."""
+        return self._parameters[Distribution.LOCATION]
+
+    def __init__(self, parameters: ParameterValues) -> None:
+        AbstractGoodnessOfFitStatistic.__init__(self, parameters)
+        if abs(self.beta) >= self.alpha:
+            raise ValueError("Beta must satisfy abs(beta) < alpha.")
+        a, b = (self.alpha * self.delta, self.beta * self.delta)
         if not np.isfinite(a) or not np.isfinite(b) or a <= abs(b):
             raise ValueError(
                 "Scaled parameters must be finite and satisfy alpha*delta > |beta*delta|."
             )
 
-    @staticmethod
-    def _real_scalar(name, value) -> float:
-        array = np.asarray(value)
-        if array.ndim != 0 or array.dtype.kind not in "iuf":
-            raise ValueError(f"{name} must be a real numeric scalar.")
-        return float(array)
-
-    @override
-    def hypothesis(self) -> GoodnessOfFitHypothesis:
-        """Return the parameters of the reference hyperbolic distribution.
-
-        :return: hypothesis containing ``alpha``, ``beta``, ``delta``, and ``mu``.
-        """
-        return GoodnessOfFitHypothesis(
-            {
-                "alpha": self.alpha,
-                "beta": self.beta,
-                "delta": self.delta,
-                "mu": self.mu,
-            }
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (
+            HypothesisSupport(
+                Distribution.DEFAULT,
+                frozenset(
+                    {
+                        Distribution.SHAPE,
+                        Distribution.SKEWNESS,
+                        Distribution.SCALE,
+                        Distribution.LOCATION,
+                    }
+                ),
+            ),
         )
 
     @staticmethod
     @override
-    def distribution() -> DistributionType:
-        """Return the hyperbolic distribution type.
+    def distribution() -> type[HyperbolicDistributionDescriptor]:
+        """Return the distribution descriptor class."""
+        return HyperbolicDistributionDescriptor
 
-        :return: hyperbolic distribution enum member.
-        """
-        return DistributionType.HYPERBOLIC
-
-    @staticmethod
+    @classmethod
     @override
-    def code() -> str:
-        """Return the base identifier for hyperbolic statistics.
-
-        :return: ``HYPERBOLIC_GOODNESS_OF_FIT``.
-        """
-        return f"HYPERBOLIC_{AbstractGoodnessOfFitStatistic.code()}"
+    def code(cls) -> str:
+        """Return the family identifier or the concrete statistic's full identifier."""
+        family_code = f"HYPERBOLIC_{AbstractGoodnessOfFitStatistic.code()}"
+        if "short_code" in cls.__abstractmethods__:
+            return family_code
+        return f"{cls.short_code()}_{family_code}"
 
     @staticmethod
     def _prepare_sample(rvs) -> np.ndarray:
@@ -189,18 +173,12 @@ class KolmogorovSmirnovHyperbolicGofStatistic(AbstractHyperbolicGofStatistic, KS
 
     Parameters
     ----------
+    parameters : ParameterValues
+        Values with alpha, beta, delta, mu fixed; omitted parameters are unknown.
     alternative_type : AlternativeType, default: AlternativeType.TWO_TAILED
         CDF deviation: TWO_TAILED selects D, RIGHT D+, and LEFT D-.
     mode : str, default: "auto"
         Compatibility setting; does not calculate p-values or change the result.
-    alpha : float, default: 1.0
-        Fixed shape parameter, finite and strictly greater than ``abs(beta)``.
-    beta : float, default: 0.0
-        Fixed finite skewness parameter.
-    delta : float, default: 1.0
-        Fixed finite positive scale parameter.
-    mu : float, default: 0.0
-        Fixed finite location parameter.
 
     Methods
     -------
@@ -241,7 +219,8 @@ class KolmogorovSmirnovHyperbolicGofStatistic(AbstractHyperbolicGofStatistic, KS
 
     Examples
     --------
-    >>> statistic = KolmogorovSmirnovHyperbolicGofStatistic(alpha=1.5, beta=0.2)
+    >>> parameters = Distribution.DEFAULT.parse({'alpha': 1.5, 'beta': 0.2, 'delta': 1, 'mu': 0})
+    >>> statistic = KolmogorovSmirnovHyperbolicGofStatistic(parameters)
     >>> result = statistic.execute_statistic([-1.0, 0.0, 0.5, 2.0])
     >>> isinstance(result, float) and result >= 0
     True
@@ -249,23 +228,12 @@ class KolmogorovSmirnovHyperbolicGofStatistic(AbstractHyperbolicGofStatistic, KS
 
     def __init__(
         self,
+        parameters: ParameterValues,
+        *,
         alternative_type: AlternativeType = AlternativeType.TWO_TAILED,
         mode: str = "auto",
-        alpha: float = 1.0,
-        beta: float = 0.0,
-        delta: float = 1.0,
-        mu: float = 0.0,
     ) -> None:
-        """Initialize the Kolmogorov--Smirnov statistic.
-
-        :param alternative_type: left, right, or two-sided alternative.
-        :param mode: calculation mode retained for compatibility with ``KSStatistic``.
-        :param alpha: positive shape parameter satisfying ``|beta| < alpha``.
-        :param beta: skewness parameter satisfying ``|beta| < alpha``.
-        :param delta: positive scale parameter.
-        :param mu: location parameter.
-        """
-        AbstractHyperbolicGofStatistic.__init__(self, alpha, beta, delta, mu)
+        AbstractHyperbolicGofStatistic.__init__(self, parameters)
         if alternative_type not in tuple(AlternativeType):
             raise ValueError("alternative_type must be an AlternativeType member.")
         KSStatistic.__init__(self, alternative_type=alternative_type, mode=mode)
@@ -282,16 +250,6 @@ class KolmogorovSmirnovHyperbolicGofStatistic(AbstractHyperbolicGofStatistic, KS
         :return: ``KS``.
         """
         return "KS"
-
-    @staticmethod
-    @override
-    def code() -> str:
-        """Return the unique statistic identifier.
-
-        :return: ``KS_HYPERBOLIC_GOODNESS_OF_FIT``.
-        """
-        short_code = KolmogorovSmirnovHyperbolicGofStatistic.short_code()
-        return f"{short_code}_{AbstractHyperbolicGofStatistic.code()}"
 
     @staticmethod
     @njit
@@ -374,14 +332,8 @@ class CramerVonMisesHyperbolicGofStatistic(
 
     Parameters
     ----------
-    alpha : float, default: 1.0
-        Fixed shape parameter, finite and strictly greater than ``abs(beta)``.
-    beta : float, default: 0.0
-        Fixed finite skewness parameter.
-    delta : float, default: 1.0
-        Fixed finite positive scale parameter.
-    mu : float, default: 0.0
-        Fixed finite location parameter.
+    parameters : ParameterValues
+        Values with alpha, beta, delta, mu fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -419,7 +371,8 @@ class CramerVonMisesHyperbolicGofStatistic(
 
     Examples
     --------
-    >>> statistic = CramerVonMisesHyperbolicGofStatistic(alpha=1.5, beta=0.2)
+    >>> parameters = Distribution.DEFAULT.parse({'alpha': 1.5, 'beta': 0.2, 'delta': 1, 'mu': 0})
+    >>> statistic = CramerVonMisesHyperbolicGofStatistic(parameters)
     >>> result = statistic.execute_statistic([-1.0, 0.0, 0.5, 2.0])
     >>> isinstance(result, float) and result >= 0
     True
@@ -433,16 +386,6 @@ class CramerVonMisesHyperbolicGofStatistic(
         :return: ``CVM``.
         """
         return "CVM"
-
-    @staticmethod
-    @override
-    def code() -> str:
-        """Return the unique statistic identifier.
-
-        :return: ``CVM_HYPERBOLIC_GOODNESS_OF_FIT``.
-        """
-        short_code = CramerVonMisesHyperbolicGofStatistic.short_code()
-        return f"{short_code}_{AbstractHyperbolicGofStatistic.code()}"
 
     @staticmethod
     @njit
@@ -504,14 +447,8 @@ class AndersonDarlingHyperbolicGofStatistic(AbstractHyperbolicGofStatistic, ADSt
 
     Parameters
     ----------
-    alpha : float, default: 1.0
-        Fixed shape parameter, finite and strictly greater than ``abs(beta)``.
-    beta : float, default: 0.0
-        Fixed finite skewness parameter.
-    delta : float, default: 1.0
-        Fixed finite positive scale parameter.
-    mu : float, default: 0.0
-        Fixed finite location parameter.
+    parameters : ParameterValues
+        Values with alpha, beta, delta, mu fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -552,7 +489,8 @@ class AndersonDarlingHyperbolicGofStatistic(AbstractHyperbolicGofStatistic, ADSt
 
     Examples
     --------
-    >>> statistic = AndersonDarlingHyperbolicGofStatistic(alpha=1.5, beta=0.2)
+    >>> parameters = Distribution.DEFAULT.parse({'alpha': 1.5, 'beta': 0.2, 'delta': 1, 'mu': 0})
+    >>> statistic = AndersonDarlingHyperbolicGofStatistic(parameters)
     >>> result = statistic.execute_statistic([-1.0, 0.0, 0.5, 2.0])
     >>> isinstance(result, float) and result >= 0
     True
@@ -566,16 +504,6 @@ class AndersonDarlingHyperbolicGofStatistic(AbstractHyperbolicGofStatistic, ADSt
         :return: ``AD``.
         """
         return "AD"
-
-    @staticmethod
-    @override
-    def code() -> str:
-        """Return the unique statistic identifier.
-
-        :return: ``AD_HYPERBOLIC_GOODNESS_OF_FIT``.
-        """
-        short_code = AndersonDarlingHyperbolicGofStatistic.short_code()
-        return f"{short_code}_{AbstractHyperbolicGofStatistic.code()}"
 
     @staticmethod
     @njit
@@ -643,14 +571,8 @@ class KuiperHyperbolicGofStatistic(AbstractHyperbolicGofStatistic):
 
     Parameters
     ----------
-    alpha : float, default: 1.0
-        Fixed shape parameter, finite and strictly greater than ``abs(beta)``.
-    beta : float, default: 0.0
-        Fixed finite skewness parameter.
-    delta : float, default: 1.0
-        Fixed finite positive scale parameter.
-    mu : float, default: 0.0
-        Fixed finite location parameter.
+    parameters : ParameterValues
+        Values with alpha, beta, delta, mu fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -689,7 +611,8 @@ class KuiperHyperbolicGofStatistic(AbstractHyperbolicGofStatistic):
 
     Examples
     --------
-    >>> statistic = KuiperHyperbolicGofStatistic(alpha=1.5, beta=0.2)
+    >>> parameters = Distribution.DEFAULT.parse({'alpha': 1.5, 'beta': 0.2, 'delta': 1, 'mu': 0})
+    >>> statistic = KuiperHyperbolicGofStatistic(parameters)
     >>> result = statistic.execute_statistic([-1.0, 0.0, 0.5, 2.0])
     >>> isinstance(result, float) and result >= 0
     True
@@ -711,16 +634,6 @@ class KuiperHyperbolicGofStatistic(AbstractHyperbolicGofStatistic):
         :return: ``KUI``.
         """
         return "KUI"
-
-    @staticmethod
-    @override
-    def code() -> str:
-        """Return the unique statistic identifier.
-
-        :return: ``KUI_HYPERBOLIC_GOODNESS_OF_FIT``.
-        """
-        short_code = KuiperHyperbolicGofStatistic.short_code()
-        return f"{short_code}_{AbstractHyperbolicGofStatistic.code()}"
 
     @staticmethod
     @njit
@@ -784,14 +697,8 @@ class WatsonHyperbolicGofStatistic(AbstractHyperbolicGofStatistic):
 
     Parameters
     ----------
-    alpha : float, default: 1.0
-        Fixed shape parameter, finite and strictly greater than ``abs(beta)``.
-    beta : float, default: 0.0
-        Fixed finite skewness parameter.
-    delta : float, default: 1.0
-        Fixed finite positive scale parameter.
-    mu : float, default: 0.0
-        Fixed finite location parameter.
+    parameters : ParameterValues
+        Values with alpha, beta, delta, mu fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -830,7 +737,8 @@ class WatsonHyperbolicGofStatistic(AbstractHyperbolicGofStatistic):
 
     Examples
     --------
-    >>> statistic = WatsonHyperbolicGofStatistic(alpha=1.5, beta=0.2)
+    >>> parameters = Distribution.DEFAULT.parse({'alpha': 1.5, 'beta': 0.2, 'delta': 1, 'mu': 0})
+    >>> statistic = WatsonHyperbolicGofStatistic(parameters)
     >>> result = statistic.execute_statistic([-1.0, 0.0, 0.5, 2.0])
     >>> isinstance(result, float) and result >= 0
     True
@@ -852,16 +760,6 @@ class WatsonHyperbolicGofStatistic(AbstractHyperbolicGofStatistic):
         :return: ``WAT``.
         """
         return "WAT"
-
-    @staticmethod
-    @override
-    def code() -> str:
-        """Return the unique statistic identifier.
-
-        :return: ``WAT_HYPERBOLIC_GOODNESS_OF_FIT``.
-        """
-        short_code = WatsonHyperbolicGofStatistic.short_code()
-        return f"{short_code}_{AbstractHyperbolicGofStatistic.code()}"
 
     @staticmethod
     @njit

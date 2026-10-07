@@ -13,12 +13,13 @@ The null hypothesis is that the data comes from a beta distribution with positiv
 
 ## Usage
 ```python
+from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit import (
     MomentBasedBetaGofStatistic,
 )
 
 
-test_statistic = MomentBasedBetaGofStatistic(alpha=2, beta=5)
+test_statistic = MomentBasedBetaGofStatistic(BetaDistributionDescriptor.DEFAULT.parse({'a': 2, 'b': 5}))
 statistic_result = test_statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
 print(statistic_result)
 ```
@@ -57,12 +58,13 @@ Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
 
 ## Examples
 ```python
+from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit import (
     MomentBasedBetaGofStatistic,
 )
 
 
-test_statistic = MomentBasedBetaGofStatistic(alpha=2, beta=5)
+test_statistic = MomentBasedBetaGofStatistic(BetaDistributionDescriptor.DEFAULT.parse({'a': 2, 'b': 5}))
 statistic_result = test_statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
 print(statistic_result)
 ```

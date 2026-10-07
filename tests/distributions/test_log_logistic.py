@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pysatl_criterion.distribution.distributions import LogLogisticDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit.log_logistic import (
     AbstractLogLogisticGofStatistic,
     AndersonDarlingLogLogisticGofStatistic,
@@ -35,46 +36,48 @@ def test_loglogistic_base_code():
 
 def test_loglogistic_positive_alpha_required():
     """Stat constructors should reject non-positive alpha parameters."""
-    with pytest.raises(ValueError, match="Alpha parameter must be strictly greater than zero."):
-        KolmogorovSmirnovLogLogisticGofStatistic(alpha=0.0, beta=1.0)
+    with pytest.raises(ValueError, match="Invalid value for alpha"):
+        KolmogorovSmirnovLogLogisticGofStatistic(
+            LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": 0.0, "beta": 1.0})
+        )
 
 
 def test_loglogistic_positive_beta_required():
     """Stat constructors should reject non-positive beta parameters."""
-    with pytest.raises(ValueError, match="Beta parameter must be strictly greater than zero."):
-        KolmogorovSmirnovLogLogisticGofStatistic(alpha=1.0, beta=-1.0)
+    with pytest.raises(ValueError, match="Invalid value for beta"):
+        KolmogorovSmirnovLogLogisticGofStatistic(
+            LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": 1.0, "beta": -1.0})
+        )
 
 
 def test_kolmogorov_smirnov_loglogistic_statistic():
     """KS statistic for LogLogistic(alpha=1.5, beta=2.0)."""
     statistic = KolmogorovSmirnovLogLogisticGofStatistic(
-        alpha=_ALPHA, beta=_BETA
+        LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA})
     ).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(0.18628072957969863, rel=1e-9)
 
 
 def test_anderson_darling_loglogistic_statistic():
     """AD statistic for LogLogistic(alpha=1.5, beta=2.0)."""
-    statistic = AndersonDarlingLogLogisticGofStatistic(alpha=_ALPHA, beta=_BETA).execute_statistic(
-        _SAMPLE
-    )
+    statistic = AndersonDarlingLogLogisticGofStatistic(
+        LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA})
+    ).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(0.42348000198919955, rel=1e-9)
 
 
 def test_cramervonmises_loglogistic_statistic():
     """CVM statistic for LogLogistic(alpha=1.5, beta=2.0)."""
-    statistic = CramerVonMisesLogLogisticGofStatistic(alpha=_ALPHA, beta=_BETA).execute_statistic(
-        _SAMPLE
-    )
+    statistic = CramerVonMisesLogLogisticGofStatistic(
+        LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA})
+    ).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(0.06576214259270306, rel=1e-9)
 
 
 def test_chi2_pearson_loglogistic_statistic():
     """Chi-square statistic for LogLogistic(alpha=1.5, beta=2.0)."""
     statistic = Chi2PearsonLogLogisticGofStatistic(
-        bins=5,
-        alpha=_ALPHA,
-        beta=_BETA,
+        LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA}), bins=5
     ).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(2.0, rel=1e-9)
 
@@ -84,11 +87,15 @@ def test_nikulin_loglogistic_statistic():
     times = np.array(_SAMPLE)
     censored = np.ones_like(times)
 
-    statistic = NikulinLogLogisticGofStatistic(n_intervals=5).execute_statistic((times, censored))
+    statistic = NikulinLogLogisticGofStatistic(
+        LogLogisticDistributionDescriptor.DEFAULT.parse({}), n_intervals=5
+    ).execute_statistic((times, censored))
     # Formula accuracy is checked by independent integration in the correctness suite.
     assert np.isfinite(statistic) and statistic >= 0
     assert statistic == pytest.approx(
-        NikulinLogLogisticGofStatistic(n_intervals=5).execute_statistic(times)
+        NikulinLogLogisticGofStatistic(
+            LogLogisticDistributionDescriptor.DEFAULT.parse({}), n_intervals=5
+        ).execute_statistic(times)
     )
 
 
@@ -105,9 +112,9 @@ def test_nikulin_loglogistic_with_censored_data():
     censored = np.array([1 if t <= censoring_time else 0 for t in times])
     times_cens = np.minimum(times, censoring_time)
 
-    statistic = NikulinLogLogisticGofStatistic(n_intervals=5).execute_statistic(
-        (times_cens, censored)
-    )
+    statistic = NikulinLogLogisticGofStatistic(
+        LogLogisticDistributionDescriptor.DEFAULT.parse({}), n_intervals=5
+    ).execute_statistic((times_cens, censored))
 
     assert isinstance(statistic, float)
     assert statistic >= 0
@@ -120,11 +127,15 @@ def test_mirvaliev_loglogistic_statistic():
     times = np.array(_SAMPLE)
     censored = np.ones_like(times)
 
-    statistic = MirvalievLogLogisticGofStatistic(n_intervals=8).execute_statistic((times, censored))
+    statistic = MirvalievLogLogisticGofStatistic(
+        LogLogisticDistributionDescriptor.DEFAULT.parse({}), n_intervals=8
+    ).execute_statistic((times, censored))
     # Formula accuracy is checked against an independent covariance calculation.
     assert np.isfinite(statistic) and statistic >= 0
     assert statistic == pytest.approx(
-        MirvalievLogLogisticGofStatistic(n_intervals=8).execute_statistic(times)
+        MirvalievLogLogisticGofStatistic(
+            LogLogisticDistributionDescriptor.DEFAULT.parse({}), n_intervals=8
+        ).execute_statistic(times)
     )
 
 
@@ -142,7 +153,9 @@ def test_mirvaliev_with_censored_data():
     times_cens = np.minimum(times, censoring_time)
 
     with pytest.raises(ValueError, match="censoring is unsupported"):
-        MirvalievLogLogisticGofStatistic(n_intervals=8).execute_statistic((times_cens, censored))
+        MirvalievLogLogisticGofStatistic(
+            LogLogisticDistributionDescriptor.DEFAULT.parse({}), n_intervals=8
+        ).execute_statistic((times_cens, censored))
 
 
 @pytest.mark.parametrize(
@@ -172,7 +185,9 @@ def test_loglogistic_statistic_codes(stat_class, expected_code):
 
 def test_loglogistic_statistics_require_observations():
     """Statistics that rely on EDF should reject empty samples."""
-    statistic = KolmogorovSmirnovLogLogisticGofStatistic(alpha=_ALPHA, beta=_BETA)
+    statistic = KolmogorovSmirnovLogLogisticGofStatistic(
+        LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA})
+    )
     with pytest.raises(ValueError):
         statistic.execute_statistic([])
 
@@ -182,7 +197,9 @@ def test_loglogistic_negative_data_handling():
     times = np.array([-1.0, 0.5, 2.0, 3.0, -0.1])
     censored = np.ones_like(times)
 
-    statistic = NikulinLogLogisticGofStatistic(n_intervals=5)
+    statistic = NikulinLogLogisticGofStatistic(
+        LogLogisticDistributionDescriptor.DEFAULT.parse({}), n_intervals=5
+    )
     with pytest.raises(ValueError, match="All times must be positive."):
         statistic.execute_statistic((times, censored))
 
@@ -192,7 +209,9 @@ def test_loglogistic_zero_data_handling():
     times = np.array([0.0, 1.0, 2.0, 3.0, 4.0])
     censored = np.ones_like(times)
 
-    statistic = NikulinLogLogisticGofStatistic(n_intervals=5)
+    statistic = NikulinLogLogisticGofStatistic(
+        LogLogisticDistributionDescriptor.DEFAULT.parse({}), n_intervals=5
+    )
     with pytest.raises(ValueError, match="All times must be positive."):
         statistic.execute_statistic((times, censored))
 
@@ -200,12 +219,17 @@ def test_loglogistic_zero_data_handling():
 def test_loglogistic_binned_statistics_validate_bin_count():
     """Binned statistics require at least two histogram bins."""
     with pytest.raises(ValueError, match="At least two bins"):
-        Chi2PearsonLogLogisticGofStatistic(bins=1, alpha=_ALPHA, beta=_BETA)
+        Chi2PearsonLogLogisticGofStatistic(
+            LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA}),
+            bins=1,
+        )
 
 
 def test_loglogistic_binned_statistics_require_sample():
     """Histogram-based tests must receive observations."""
-    statistic = Chi2PearsonLogLogisticGofStatistic(bins=5, alpha=_ALPHA, beta=_BETA)
+    statistic = Chi2PearsonLogLogisticGofStatistic(
+        LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA}), bins=5
+    )
     with pytest.raises(ValueError, match="At least one observation"):
         statistic.execute_statistic([])
 
@@ -220,7 +244,9 @@ def test_mirvaliev_statistic_non_negative():
     times = alpha_true * (u / (1 - u)) ** (1 / beta_true)
     censored = np.ones_like(times)
 
-    stat = MirvalievLogLogisticGofStatistic(n_intervals=8)
+    stat = MirvalievLogLogisticGofStatistic(
+        LogLogisticDistributionDescriptor.DEFAULT.parse({}), n_intervals=8
+    )
     S_n = stat.execute_statistic((times, censored))
 
     assert S_n >= 0
@@ -237,7 +263,9 @@ def test_nikulin_statistic_non_negative():
     times = alpha_true * (u / (1 - u)) ** (1 / beta_true)
     censored = np.ones_like(times)
 
-    stat = NikulinLogLogisticGofStatistic(n_intervals=5)
+    stat = NikulinLogLogisticGofStatistic(
+        LogLogisticDistributionDescriptor.DEFAULT.parse({}), n_intervals=5
+    )
     Y2 = stat.execute_statistic((times, censored))
 
     assert Y2 >= 0
@@ -249,7 +277,9 @@ def test_nikulin_with_known_data():
     times = np.array([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21])
     censored = np.ones_like(times)
 
-    stat = NikulinLogLogisticGofStatistic(n_intervals=5)
+    stat = NikulinLogLogisticGofStatistic(
+        LogLogisticDistributionDescriptor.DEFAULT.parse({}), n_intervals=5
+    )
     Y2 = stat.execute_statistic((times, censored))
 
     assert Y2 > 0
@@ -260,26 +290,34 @@ def test_nikulin_with_known_data():
 def test_loglogistic_ks_single_observation():
     """KS statistic for single observation."""
     data = [1.0]
-    stat = KolmogorovSmirnovLogLogisticGofStatistic(alpha=1.0, beta=1.0).execute_statistic(data)
+    stat = KolmogorovSmirnovLogLogisticGofStatistic(
+        LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": 1.0, "beta": 1.0})
+    ).execute_statistic(data)
     assert 0 <= stat <= 1
 
 
 def test_loglogistic_ad_single_observation():
     """AD statistic for single observation."""
     data = [1.0]
-    stat = AndersonDarlingLogLogisticGofStatistic(alpha=1.0, beta=1.0).execute_statistic(data)
+    stat = AndersonDarlingLogLogisticGofStatistic(
+        LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": 1.0, "beta": 1.0})
+    ).execute_statistic(data)
     assert stat >= 0
 
 
 def test_loglogistic_cvm_single_observation():
     """CVM statistic for single observation."""
     data = [1.0]
-    stat = CramerVonMisesLogLogisticGofStatistic(alpha=1.0, beta=1.0).execute_statistic(data)
+    stat = CramerVonMisesLogLogisticGofStatistic(
+        LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": 1.0, "beta": 1.0})
+    ).execute_statistic(data)
     assert stat >= 0
 
 
 def test_loglogistic_chi2_single_observation():
     """Chi2 statistic for single observation."""
     data = [1.0]
-    stat = Chi2PearsonLogLogisticGofStatistic(bins=5, alpha=1.0, beta=1.0).execute_statistic(data)
+    stat = Chi2PearsonLogLogisticGofStatistic(
+        LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": 1.0, "beta": 1.0}), bins=5
+    ).execute_statistic(data)
     assert stat >= 0

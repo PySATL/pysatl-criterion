@@ -13,12 +13,13 @@ The statistic is based on the wrapped Cabana-Cabana2 normality statistic applied
 
 ## Usage
 ```python
+from pysatl_criterion.distribution.distributions import LogNormalDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit import (
     CabanaCabana2LogNormalGofStatistic,
 )
 
 
-test_statistic = CabanaCabana2LogNormalGofStatistic(s=1, scale=1)
+test_statistic = CabanaCabana2LogNormalGofStatistic(LogNormalDistributionDescriptor.SHAPE_SCALE.parse({'s': 1, 'scale': 1}))
 statistic_result = test_statistic.execute_statistic(
     [0.42, 0.58, 0.76, 0.93, 1.12, 1.35, 1.61, 1.92, 2.28, 2.71, 3.23, 3.84]
 )
@@ -26,9 +27,10 @@ print(statistic_result)
 ```
 
 ## Arguments
-`s` - positive shape parameter of the log-normal distribution. Default value is `1`.
-
-`scale` - positive scale parameter of the log-normal distribution. Default value is `1`.
+`parameters` - required `ParameterValues` with both parameters fixed.
+Use `LogNormalDistributionDescriptor.SHAPE_SCALE.parse({"s": ..., "scale": ...})`
+or `LogNormalDistributionDescriptor.LOG_LOCATION_SCALE.parse({"mu": ..., "s": ...})`.
+Here `scale = exp(mu)`; omitted values are not filled automatically.
 
 `rvs` - array-like sample data passed to `execute_statistic`.
 
@@ -47,12 +49,13 @@ The statistic follows the implementation in `pysatl_criterion.statistics.goodnes
 
 ## Examples
 ```python
+from pysatl_criterion.distribution.distributions import LogNormalDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit import (
     CabanaCabana2LogNormalGofStatistic,
 )
 
 
-test_statistic = CabanaCabana2LogNormalGofStatistic(s=1, scale=1)
+test_statistic = CabanaCabana2LogNormalGofStatistic(LogNormalDistributionDescriptor.SHAPE_SCALE.parse({'s': 1, 'scale': 1}))
 statistic_result = test_statistic.execute_statistic(
     [0.42, 0.58, 0.76, 0.93, 1.12, 1.35, 1.61, 1.92, 2.28, 2.71, 3.23, 3.84]
 )

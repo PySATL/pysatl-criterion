@@ -8,52 +8,71 @@ import scipy.stats as scipy_stats
 from scipy import integrate
 from typing_extensions import override
 
-from pysatl_criterion import DistributionType
+from pysatl_criterion.distribution.distributions import (
+    LogNormalDistributionDescriptor as Distribution,
+)
+from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor as Normal
+from pysatl_criterion.distribution.parameters import (
+    HypothesisSupport,
+    ParameterizationDescriptor,
+    ParameterValues,
+)
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.alternative import Alternative, AlternativeType, RightAlternative
 from pysatl_criterion.statistics.goodness_of_fit import normal
 from pysatl_criterion.statistics.goodness_of_fit.common import CrammerVonMisesStatistic, KSStatistic
 from pysatl_criterion.statistics.goodness_of_fit.normal import AbstractNormalityGofStatistic
-from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
 class AbstractLogNormalGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     """
-    Base class for Log-Normal distribution Goodness-of-Fit statistics.
+    Base class for Log-Normal statistics using explicit shape/median coordinates.
+
+    Both logarithmic and shape/median coordinates are accepted when both
+    parameters are fixed. Calculations use SHAPE_SCALE; hypothesis() preserves
+    the input coordinates. Missing parameter values are never filled.
     """
 
-    def __init__(self, s=1, scale=1):
-        if s <= 0:
-            raise ValueError("Shape parameter s must be positive")
-        if scale <= 0:
-            raise ValueError("Scale parameter must be positive")
+    @property
+    def s(self) -> float:
+        """Read s by its stable parameter identity."""
+        return self._parameters[Distribution.LOG_SCALE]
 
-        self.s = s
-        self.scale = scale
+    @property
+    def scale(self) -> float:
+        """Read scale by its stable parameter identity."""
+        return self._parameters[Distribution.MEDIAN]
 
-    @override
-    def hypothesis(self) -> GoodnessOfFitHypothesis:
-        return GoodnessOfFitHypothesis({"s": self.s, "scale": self.scale})
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (
+            HypothesisSupport(
+                Distribution.LOG_LOCATION_SCALE,
+                frozenset({Distribution.LOG_LOCATION, Distribution.LOG_SCALE}),
+            ),
+            HypothesisSupport(
+                Distribution.SHAPE_SCALE, frozenset({Distribution.LOG_SCALE, Distribution.MEDIAN})
+            ),
+        )
+
+    @classmethod
+    def calculation_parameterization(cls) -> ParameterizationDescriptor:
+        return Distribution.SHAPE_SCALE
 
     @staticmethod
     @override
-    def distribution() -> DistributionType:
-        """
-        Get distribution type.
+    def distribution() -> type[Distribution]:
+        """Return the distribution descriptor class."""
+        return Distribution
 
-        :return: DistributionType.
-        """
-        return DistributionType.LOG_NORMAL
-
-    @staticmethod
+    @classmethod
     @override
-    def code():
-        """
-        Get unique code identifier for Log-Normal statistics.
-
-        :return: string code in format "LOGNORMAL_{parent_code}".
-        """
-        return f"LOGNORMAL_{AbstractGoodnessOfFitStatistic.code()}"
+    def code(cls) -> str:
+        """Return the family identifier or the concrete statistic's full identifier."""
+        family_code = f"LOGNORMAL_{AbstractGoodnessOfFitStatistic.code()}"
+        if "short_code" in cls.__abstractmethods__:
+            return family_code
+        return f"{cls.short_code()}_{family_code}"
 
 
 # =================================================================================================
@@ -62,19 +81,22 @@ class AbstractLogNormalGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
 
 
 class KolmogorovSmirnovLogNormalGofStatistic(AbstractLogNormalGofStatistic, KSStatistic):
-    """
+    """Parameters
+    ----------
+    parameters : ParameterValues
+        Values with mu, s fixed; omitted parameters are unknown.
+
     Kolmogorov-Smirnov test statistic for Log-Normal distribution.
     """
 
-    @override
     def __init__(
         self,
+        parameters: ParameterValues,
+        *,
         alternative_type: AlternativeType = AlternativeType.TWO_TAILED,
         mode="auto",
-        s=1,
-        scale=1,
     ):
-        AbstractLogNormalGofStatistic.__init__(self, s=s, scale=scale)
+        AbstractLogNormalGofStatistic.__init__(self, parameters)
         KSStatistic.__init__(self, alternative_type, mode)
 
     @staticmethod
@@ -86,17 +108,6 @@ class KolmogorovSmirnovLogNormalGofStatistic(AbstractLogNormalGofStatistic, KSSt
         :return: short code string "KS".
         """
         return "KS"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "KS_LOGNORMAL_{parent_code}".
-        """
-        short_code = KolmogorovSmirnovLogNormalGofStatistic.short_code()
-        return f"{short_code}_{AbstractLogNormalGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -112,7 +123,11 @@ class KolmogorovSmirnovLogNormalGofStatistic(AbstractLogNormalGofStatistic, KSSt
 
 
 class CramerVonMiseLogNormalGofStatistic(AbstractLogNormalGofStatistic, CrammerVonMisesStatistic):
-    """
+    """Parameters
+    ----------
+    parameters : ParameterValues
+        Values with mu, s fixed; omitted parameters are unknown.
+
     Cramér-von Mises test statistic for Log-Normal distribution.
     """
 
@@ -125,17 +140,6 @@ class CramerVonMiseLogNormalGofStatistic(AbstractLogNormalGofStatistic, CrammerV
         :return: short code string "CVM".
         """
         return "CVM"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "CVM_LOGNORMAL_{parent_code}".
-        """
-        short_code = CramerVonMiseLogNormalGofStatistic.short_code()
-        return f"{short_code}_{AbstractLogNormalGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -151,7 +155,11 @@ class CramerVonMiseLogNormalGofStatistic(AbstractLogNormalGofStatistic, CrammerV
 
 
 class QuesenberryMillerLogNormalGofStatistic(AbstractLogNormalGofStatistic):
-    """
+    """Parameters
+    ----------
+    parameters : ParameterValues
+        Values with mu, s fixed; omitted parameters are unknown.
+
     Quesenberry and Miller's Q-test for Log-Normal distribution.
     """
 
@@ -168,17 +176,6 @@ class QuesenberryMillerLogNormalGofStatistic(AbstractLogNormalGofStatistic):
         :return: short code string "QUESENBERRY_MILLER".
         """
         return "QUESENBERRY_MILLER"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "QUESENBERRY_MILLER_LOGNORMAL_{parent_code}".
-        """
-        short_code = QuesenberryMillerLogNormalGofStatistic.short_code()
-        return f"{short_code}_{AbstractLogNormalGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -210,7 +207,11 @@ class QuesenberryMillerLogNormalGofStatistic(AbstractLogNormalGofStatistic):
 
 
 class KLSupremumLogNormalGoFStatistic(AbstractLogNormalGofStatistic):
-    """
+    """Parameters
+    ----------
+    parameters : ParameterValues
+        Values with mu, s fixed; omitted parameters are unknown.
+
     Supremum test for lognormality based on Kullback-Leibler divergences.
     """
 
@@ -227,17 +228,6 @@ class KLSupremumLogNormalGoFStatistic(AbstractLogNormalGofStatistic):
         :return: short code string "KL_SUP".
         """
         return "KL_SUP"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "KL_SUP_LOGNORMAL_{parent_code}".
-        """
-        short_code = KLSupremumLogNormalGoFStatistic.short_code()
-        return f"{short_code}_{AbstractLogNormalGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -338,7 +328,11 @@ class KLSupremumLogNormalGoFStatistic(AbstractLogNormalGofStatistic):
 
 
 class KLIntegralLogNormalGoFStatistic(AbstractLogNormalGofStatistic):
-    """
+    """Parameters
+    ----------
+    parameters : ParameterValues
+        Values with mu, s fixed; omitted parameters are unknown.
+
     Integral test for lognormality based on Kullback-Leibler divergences.
     """
 
@@ -355,17 +349,6 @@ class KLIntegralLogNormalGoFStatistic(AbstractLogNormalGofStatistic):
         :return: short code string "KL_INT".
         """
         return "KL_INT"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get short code identifier for this test.
-
-        :return: short code string "KL_INT".
-        """
-        short_code = KLIntegralLogNormalGoFStatistic.short_code()
-        return f"{short_code}_{AbstractLogNormalGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -477,13 +460,12 @@ class KLIntegralLogNormalGoFStatistic(AbstractLogNormalGofStatistic):
 
 def _create_lognormal_class(normal_cls):
     new_class_name = normal_cls.__name__.replace("Normality", "LogNormal")
-    class_code = normal_cls.code().replace("NORMALITY", "LOGNORMAL")
     class_short_code = normal_cls.short_code()
 
     class LogNormalClass(AbstractLogNormalGofStatistic, ABC):
         @override
         def alternative(self) -> Alternative:
-            return normal_cls().alternative()
+            return normal_cls(Normal.DEFAULT.parse({})).alternative()
 
         @override
         def execute_statistic(self, rvs):
@@ -501,7 +483,7 @@ def _create_lognormal_class(normal_cls):
             log_rvs = np.log(rvs_arr)
             standardized_log_rvs = (log_rvs - np.log(self.scale)) / self.s
 
-            return normal_cls().execute_statistic(standardized_log_rvs)
+            return normal_cls(Normal.DEFAULT.parse({})).execute_statistic(standardized_log_rvs)
 
         @staticmethod
         @override
@@ -512,16 +494,6 @@ def _create_lognormal_class(normal_cls):
             :return: short code inherited from the parent Normality test.
             """
             return class_short_code
-
-        @staticmethod
-        @override
-        def code():
-            """
-            Get unique code identifier for this dynamically generated test.
-
-            :return: string code in format "{short_code}_LOGNORMAL_{parent_code}".
-            """
-            return class_code
 
     LogNormalClass.__name__ = new_class_name
     LogNormalClass.__qualname__ = new_class_name

@@ -4,6 +4,9 @@ One-sample Kolmogorov-Smirnov statistic for a specified normal law.
 
 ## Parameters
 
+```text
+parameters : ParameterValues
+    Values with mean, var fixed; omitted parameters are unknown.
 alternative_type : AlternativeType, optional
     ``TWO_TAILED`` computes ``max(D_plus, D_minus)``; ``RIGHT`` computes
     ``D_plus = sup(F_n - F_0)`` and ``LEFT`` computes
@@ -12,11 +15,7 @@ mode : str, optional
     Setting retained by the shared KS implementation. ``"auto"`` is
     stored as ``"exact"``. It does not affect the statistic and this
     class does not calculate a p-value.
-mean : float, optional
-    Finite mean fixed by the null hypothesis. Default is 0.
-var : float, optional
-    Positive, finite variance fixed by the null hypothesis. Default is 1.
-    The normal CDF uses ``scale=sqrt(var)``.
+```
 
 ## Methods
 
@@ -52,10 +51,11 @@ distances use the upper critical tail; mode does not compute a p-value.
 ## Examples
 
 ```python
+from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
 import numpy as np
 from pysatl_criterion.statistics.goodness_of_fit.normal import KolmogorovSmirnovNormalityGofStatistic
 
-statistic = KolmogorovSmirnovNormalityGofStatistic()
+statistic = KolmogorovSmirnovNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({'mean': 0, 'var': 1}))
 sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
 value = statistic.execute_statistic(sample)
 bool(np.isfinite(value))

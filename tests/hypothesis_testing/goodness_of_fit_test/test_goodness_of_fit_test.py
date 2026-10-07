@@ -1,4 +1,5 @@
 from pysatl_criterion import DistributionType
+from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
 from pysatl_criterion.hypothesis_testing.goodness_of_fit_test import (
     goodness_of_fit_test as gof_module,
 )
@@ -35,8 +36,8 @@ class FakeStatistic:
         return Alternative.get_alternative(self.alternative_type)
 
     @staticmethod
-    def distribution():
-        return DistributionType.NORMAL
+    def distribution() -> type[NormalDistributionDescriptor]:
+        return NormalDistributionDescriptor
 
     def execute_statistic(self, rvs):
         self.executed_with = rvs

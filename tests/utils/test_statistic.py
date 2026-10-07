@@ -104,19 +104,14 @@ from pysatl_criterion.utils.statistic import (
         (
             "weibull",
             [
-                "MT",
                 "ST1",
                 "MSF",
                 "SPP",
                 "AD",
-                "CHI2_PEARSON",
-                "CVM",
                 "RSB",
                 "MD",
                 "LT2",
-                "KS",
                 "LILLIE",
-                "W",
                 "OK",
                 "LT3",
                 "SB",
@@ -130,6 +125,7 @@ from pysatl_criterion.utils.statistic import (
                 "REJG",
             ],
         ),
+        ("exponentiated_weibull", ["MT", "CHI2_PEARSON", "CVM", "KS", "W"]),
         (
             "uniform",
             [
@@ -195,7 +191,9 @@ def test_get_available_criteria_all_criteria_classes(distribution):
     assert criteria
     assert all(issubclass(criterion, AbstractGoodnessOfFitStatistic) for criterion in criteria)
     assert all(not inspect.isabstract(criterion) for criterion in criteria)
-    assert all(criterion.distribution() == DistributionType(distribution) for criterion in criteria)
+    assert all(
+        criterion.distribution().type() == DistributionType(distribution) for criterion in criteria
+    )
 
 
 def test_get_criterion_by_code_returns_criterion_class():

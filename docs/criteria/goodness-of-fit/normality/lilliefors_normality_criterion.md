@@ -37,10 +37,11 @@ Ordinary fixed-CDF KS tables do not apply.
 ## Examples
 
 ```python
+from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
 import numpy as np
 from pysatl_criterion.statistics.goodness_of_fit.normal import LillieforsNormalityGofStatistic
 
-statistic = LillieforsNormalityGofStatistic()
+statistic = LillieforsNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({}))
 sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
 value = statistic.execute_statistic(sample)
 bool(np.isfinite(value))

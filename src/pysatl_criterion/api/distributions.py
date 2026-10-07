@@ -1,6 +1,7 @@
-from pysatl_criterion import DistributionType
+from pysatl_criterion import DistributionKind, DistributionType
 
 
 __all__ = [
+    "DistributionKind",
     "DistributionType",
 ]

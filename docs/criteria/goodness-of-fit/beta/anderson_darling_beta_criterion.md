@@ -12,12 +12,13 @@ The statistic is computed from the log cumulative distribution function and log 
 
 ## Usage
 ```python
+from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit import (
     AndersonDarlingBetaGofStatistic,
 )
 
 
-test_statistic = AndersonDarlingBetaGofStatistic(alpha=2, beta=5)
+test_statistic = AndersonDarlingBetaGofStatistic(BetaDistributionDescriptor.DEFAULT.parse({'a': 2, 'b': 5}))
 statistic_result = test_statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
 print(statistic_result)
 ```
@@ -49,12 +50,13 @@ T. W. Anderson and D. A. Darling (1954), "A Test of Goodness
 
 ## Examples
 ```python
+from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit import (
     AndersonDarlingBetaGofStatistic,
 )
 
 
-test_statistic = AndersonDarlingBetaGofStatistic(alpha=2, beta=5)
+test_statistic = AndersonDarlingBetaGofStatistic(BetaDistributionDescriptor.DEFAULT.parse({'a': 2, 'b': 5}))
 statistic_result = test_statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
 print(statistic_result)
 ```

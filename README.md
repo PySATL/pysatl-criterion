@@ -26,12 +26,13 @@ You're all set! You can now import and use the statistical tests in your Python 
 
 Statistic calculation example:
 ```python
+from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
 # import needed criterion from pysatl_criterion
 from pysatl_criterion.statistics import KolmogorovSmirnovNormalityGofStatistic
 
 
 # make a criterion object
-statistic = KolmogorovSmirnovNormalityGofStatistic(mean=0, var=1)
+statistic = KolmogorovSmirnovNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({'mean': 0, 'var': 1}))
 
 # initialize test data
 x = [0.1, 0.7, 0.5, 0.3]

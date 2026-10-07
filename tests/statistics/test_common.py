@@ -2,6 +2,14 @@ import numpy as np
 import pytest
 from scipy import stats
 
+from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
+from pysatl_criterion.distribution.distributions import (
+    ExponentiatedWeibullDistributionDescriptor as ExponentiatedWeibull,
+)
+from pysatl_criterion.distribution.distributions import (
+    GammaDistributionDescriptor,
+    UniformDistributionDescriptor,
+)
 from pysatl_criterion.hypothesis_testing.alternative_factory.alternative_factories import (
     AbstractAlternativeFactory,
 )
@@ -12,12 +20,14 @@ from pysatl_criterion.statistics.goodness_of_fit.beta import (
     LillieforsTestBetaGofStatistic,
 )
 from pysatl_criterion.statistics.goodness_of_fit.common import Chi2Statistic
+from pysatl_criterion.statistics.goodness_of_fit.exponentiated_weibull import (
+    Chi2PearsonExponentiatedWeibullGofStatistic,
+)
 from pysatl_criterion.statistics.goodness_of_fit.gamma import (
     CressieReadGammaGofStatistic,
     MinToshiyukiGammaGofStatistic,
 )
 from pysatl_criterion.statistics.goodness_of_fit.uniform import Chi2PearsonUniformGofStatistic
-from pysatl_criterion.statistics.goodness_of_fit.weibull import Chi2PearsonWeibullGofStatistic
 
 
 @pytest.mark.parametrize(
@@ -30,7 +40,9 @@ from pysatl_criterion.statistics.goodness_of_fit.weibull import Chi2PearsonWeibu
 )
 def test_ks_direction_selects_deviation_but_always_uses_right_tail(direction, scipy_direction):
     sample = np.array([0.1, 0.15, 0.3, 0.65])
-    statistic = KolmogorovSmirnovBetaGofStatistic(alternative_type=direction)
+    statistic = KolmogorovSmirnovBetaGofStatistic(
+        Beta.DEFAULT.parse({"a": 1, "b": 1}), alternative_type=direction
+    )
     reference = stats.kstest(sample, stats.uniform.cdf, alternative=scipy_direction)
     assert statistic.execute_statistic(sample) == pytest.approx(reference.statistic)
     assert statistic.alternative().type() == AlternativeType.RIGHT
@@ -38,8 +50,18 @@ def test_ks_direction_selects_deviation_but_always_uses_right_tail(direction, sc
 
 @pytest.mark.parametrize(
     "statistic",
-    [KolmogorovSmirnovBetaGofStatistic(alternative_type=direction) for direction in AlternativeType]
-    + [LillieforsTestBetaGofStatistic(), MinToshiyukiGammaGofStatistic()],
+    [
+        KolmogorovSmirnovBetaGofStatistic(
+            Beta.DEFAULT.parse({"a": 1, "b": 1}), alternative_type=direction
+        )
+        for direction in AlternativeType
+    ]
+    + [
+        LillieforsTestBetaGofStatistic(Beta.DEFAULT.parse({})),
+        MinToshiyukiGammaGofStatistic(
+            GammaDistributionDescriptor.DEFAULT.parse({"alfa": 1, "beta": 1})
+        ),
+    ],
 )
 def test_distance_statistics_use_upper_tail_p_values(statistic):
     factory = AbstractAlternativeFactory.get_concrete_factory(statistic.alternative().type())
@@ -112,11 +134,15 @@ def test_frequency_total_tolerance_allows_roundoff():
 @pytest.mark.parametrize("distribution", ["beta", "gamma", "uniform"])
 def test_binned_statistics_inherit_zero_count_limits(distribution, power):
     if distribution == "beta":
-        statistic = Chi2PearsonBetaGofStatistic(lambda_=power)
+        statistic = Chi2PearsonBetaGofStatistic(Beta.DEFAULT.parse({"a": 1, "b": 1}), lambda_=power)
     elif distribution == "gamma":
-        statistic = CressieReadGammaGofStatistic(power=power, bins=2)
+        statistic = CressieReadGammaGofStatistic(
+            GammaDistributionDescriptor.DEFAULT.parse({"alfa": 1, "beta": 1}), power=power, bins=2
+        )
     else:
-        statistic = Chi2PearsonUniformGofStatistic(lambda_=power, bins=2)
+        statistic = Chi2PearsonUniformGofStatistic(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1}), lambda_=power, bins=2
+        )
     # Four equal observations occupy one of two equiprobable bins.
     sample = [0.2] * 4
     expected = 4 * (2 + (2 - np.sqrt(2)) ** 2) if power == -0.5 else np.inf
@@ -129,14 +155,18 @@ def test_weibull_pearson_uses_counts_and_includes_both_tails(a, k):
     # Nine points in three quantile bins: counts [2, 3, 4], expected [3, 3, 3].
     probabilities = [0.001, 0.1, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.999]
     sample = stats.exponweib.ppf(probabilities, a, k)
-    statistic = Chi2PearsonWeibullGofStatistic(a=a, k=k)
+    statistic = Chi2PearsonExponentiatedWeibullGofStatistic(
+        ExponentiatedWeibull.DEFAULT.parse({"exponent": a, "shape": k, "scale": 1})
+    )
     reference = stats.chisquare([2, 3, 4], [3, 3, 3]).statistic
     assert statistic.execute_statistic(sample) == pytest.approx(reference)
     assert statistic.execute_statistic(sample[::-1]) == pytest.approx(reference)
 
 
 def test_weibull_pearson_handles_empty_bins_and_rounded_cdf_endpoints():
-    statistic = Chi2PearsonWeibullGofStatistic()
+    statistic = Chi2PearsonExponentiatedWeibullGofStatistic(
+        ExponentiatedWeibull.DEFAULT.parse({"exponent": 1, "shape": 1, "scale": 1})
+    )
     assert statistic.execute_statistic([0.0] * 4) == pytest.approx(4)
     assert statistic.execute_statistic([1000.0] * 4) == pytest.approx(4)
     assert statistic.execute_statistic([0.0, 0.0, 1000.0, 1000.0]) == pytest.approx(0)
@@ -146,11 +176,22 @@ def test_weibull_pearson_handles_empty_bins_and_rounded_cdf_endpoints():
 @pytest.mark.parametrize("sample", [[], [[1, 2]], 1, [-1, 2], [np.nan], [np.inf]])
 def test_weibull_pearson_rejects_invalid_samples(sample):
     with pytest.raises(ValueError, match="Sample"):
-        Chi2PearsonWeibullGofStatistic().execute_statistic(sample)
+        Chi2PearsonExponentiatedWeibullGofStatistic(
+            ExponentiatedWeibull.DEFAULT.parse({"exponent": 1, "shape": 1, "scale": 1})
+        ).execute_statistic(sample)
 
 
 @pytest.mark.parametrize("parameter", ["a", "k"])
 @pytest.mark.parametrize("value", [0, -1, np.nan, np.inf, [1, 2]])
 def test_weibull_pearson_rejects_invalid_parameters(parameter, value):
-    with pytest.raises(ValueError, match="finite positive scalars"):
-        Chi2PearsonWeibullGofStatistic(**{parameter: value}).execute_statistic([1, 2])
+    with pytest.raises(ValueError, match="Invalid value for"):
+        Chi2PearsonExponentiatedWeibullGofStatistic(
+            ExponentiatedWeibull.DEFAULT.parse(
+                {
+                    "exponent": 1,
+                    "shape": 1,
+                    "scale": 1,
+                    {"a": "exponent", "k": "shape"}[parameter]: value,
+                }
+            )
+        ).execute_statistic([1, 2])

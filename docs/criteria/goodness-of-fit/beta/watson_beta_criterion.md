@@ -9,12 +9,13 @@ The null hypothesis is that the data comes from a beta distribution with positiv
 
 ## Usage
 ```python
+from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit import (
     WatsonBetaGofStatistic,
 )
 
 
-test_statistic = WatsonBetaGofStatistic(alpha=2, beta=5)
+test_statistic = WatsonBetaGofStatistic(BetaDistributionDescriptor.DEFAULT.parse({'a': 2, 'b': 5}))
 statistic_result = test_statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
 print(statistic_result)
 ```
@@ -46,12 +47,13 @@ G. S. Watson (1961), "Goodness-of-fit tests on a circle",
 
 ## Examples
 ```python
+from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit import (
     WatsonBetaGofStatistic,
 )
 
 
-test_statistic = WatsonBetaGofStatistic(alpha=2, beta=5)
+test_statistic = WatsonBetaGofStatistic(BetaDistributionDescriptor.DEFAULT.parse({'a': 2, 'b': 5}))
 statistic_result = test_statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
 print(statistic_result)
 ```

@@ -80,6 +80,9 @@ from pysatl_criterion.core.distributions.continues.beta import generate_beta
 from pysatl_criterion.core.distributions.continues.cauchy import generate_cauchy
 from pysatl_criterion.core.distributions.continues.chi2 import generate_chi2
 from pysatl_criterion.core.distributions.continues.expon import generate_expon
+from pysatl_criterion.core.distributions.continues.exponentiated_weibull import (
+    generate_exponentiated_weibull,
+)
 from pysatl_criterion.core.distributions.continues.gamma import generate_gamma
 from pysatl_criterion.core.distributions.continues.gompertz import generate_gompertz
 from pysatl_criterion.core.distributions.continues.gumbel import generate_gumbel
@@ -97,6 +100,10 @@ from pysatl_criterion.core.distributions.continues.truncnormal import generate_t
 from pysatl_criterion.core.distributions.continues.tukey import generate_tukey
 from pysatl_criterion.core.distributions.continues.uniform import generate_uniform
 from pysatl_criterion.core.distributions.continues.weibull import generate_weibull
+from pysatl_criterion.distribution.distributions import (
+    ExponentiatedWeibullDistributionDescriptor,
+    WeibullDistributionDescriptor,
+)
 from pysatl_criterion.distribution.distributions import StudentDistributionDescriptor as Student
 from pysatl_criterion.distribution.parameters import ParameterValues
 from pysatl_criterion.generator.model import AbstractRVSGenerator
@@ -560,41 +567,68 @@ class GumbelGenerator(AbstractRVSGenerator):
 
 
 class WeibullGenerator(AbstractRVSGenerator):
-    """Weibull distribution random value generator.
+    """Generate weibull observations with zero location."""
 
-    Parameters
-    ----------
-    a : float, default=1
-        Scale parameter.
-    k : float, default=5
-        Shape parameter.
-    """
-
-    def __init__(self, a=1, k=5, **kwargs):
+    def __init__(self, *, shape=5, scale=1, **kwargs):
         super().__init__(**kwargs)
-        self.a = a
-        self.k = k
+        values = WeibullDistributionDescriptor.DEFAULT.parse({"shape": shape, "scale": scale})
+        self.shape = values[WeibullDistributionDescriptor.SHAPE]
+        self.scale = values[WeibullDistributionDescriptor.SCALE]
 
     @override
     def parameters(self) -> dict[str, float]:
-        """Return Weibull distribution parameters."""
-        return {"a": self.a, "k": self.k}
+        return {"shape": self.shape, "scale": self.scale}
 
     @staticmethod
-    @override
     def distribution_type() -> DistributionType:
-        """Return Weibull distribution type."""
         return DistributionType.WEIBULL
 
     @override
     def code(self):
-        """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type().value, self.a, self.k])
+        return self._convert_to_code([self.distribution_type().value, self.shape, self.scale])
 
     @override
     def generate(self, size, random_state=None):
-        """Generate Weibull-distributed random sample."""
-        return generate_weibull(size=size, a=self.a, k=self.k, random_state=random_state)
+        return generate_weibull(
+            size=size, shape=self.shape, scale=self.scale, random_state=random_state
+        )
+
+
+class ExponentiatedWeibullGenerator(AbstractRVSGenerator):
+    """Generate exponentiated weibull observations with zero location."""
+
+    def __init__(self, *, exponent=1, shape=5, scale=1, **kwargs):
+        super().__init__(**kwargs)
+        values = ExponentiatedWeibullDistributionDescriptor.DEFAULT.parse(
+            {"exponent": exponent, "shape": shape, "scale": scale}
+        )
+        self.exponent = values[ExponentiatedWeibullDistributionDescriptor.EXPONENT]
+        self.shape = values[ExponentiatedWeibullDistributionDescriptor.SHAPE]
+        self.scale = values[ExponentiatedWeibullDistributionDescriptor.SCALE]
+
+    @override
+    def parameters(self) -> dict[str, float]:
+        return {"exponent": self.exponent, "shape": self.shape, "scale": self.scale}
+
+    @staticmethod
+    def distribution_type() -> DistributionType:
+        return DistributionType.EXPONENTIATED_WEIBULL
+
+    @override
+    def code(self):
+        return self._convert_to_code(
+            [self.distribution_type().value, self.exponent, self.shape, self.scale]
+        )
+
+    @override
+    def generate(self, size, random_state=None):
+        return generate_exponentiated_weibull(
+            size=size,
+            exponent=self.exponent,
+            shape=self.shape,
+            scale=self.scale,
+            random_state=random_state,
+        )
 
 
 class LoConNormGenerator(AbstractRVSGenerator):

@@ -25,7 +25,7 @@ def get_available_criteria(
     return [
         cls
         for cls in __get_all_subclasses(AbstractGoodnessOfFitStatistic)
-        if not inspect.isabstract(cls) and cls.distribution() == distribution
+        if not inspect.isabstract(cls) and cls.distribution().type() == distribution
     ]
 
 

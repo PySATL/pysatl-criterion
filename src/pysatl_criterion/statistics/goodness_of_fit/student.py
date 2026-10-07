@@ -5,7 +5,9 @@ import numpy as np
 import scipy.stats as scipy_stats
 from typing_extensions import override
 
-from pysatl_criterion import DistributionType
+from pysatl_criterion.distribution.distributions import (
+    StudentDistributionDescriptor as Distribution,
+)
 from pysatl_criterion.distribution.distributions import StudentDistributionDescriptor as Student
 from pysatl_criterion.distribution.parameters import HypothesisSupport, ParameterValues
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
@@ -16,7 +18,6 @@ from pysatl_criterion.statistics.goodness_of_fit.common import (
     KSStatistic,
     LillieforsTest,
 )
-from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
 class AbstractStudentGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
@@ -24,78 +25,39 @@ class AbstractStudentGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     Abstract base class for Student's t-distribution goodness-of-fit statistics.
     """
 
-    def __init__(
-        self,
-        df: float = Student.DF.default_value,
-        loc: float = Student.LOCATION.default_value,
-        scale: float = Student.SCALE.default_value,
-    ):
-        df = self._validate_parameter(df, "Degrees of freedom")
-        loc = self._validate_parameter(loc, "Location")
-        scale = self._validate_parameter(scale, "Scale")
-        if df <= 0:
-            raise ValueError("Degrees of freedom must be positive")
-        if scale <= 0:
-            raise ValueError("Scale must be positive")
-        Student.DEFAULT.parse({Student.DF: df, Student.LOCATION: loc, Student.SCALE: scale})
-        self.df = df
-        self.loc = loc
-        self.scale = scale
+    @property
+    def df(self) -> float:
+        """Read df by its stable parameter identity."""
+        return self._parameters[Distribution.DF]
 
-    @override
-    def hypothesis(self) -> GoodnessOfFitHypothesis:
-        return GoodnessOfFitHypothesis(
-            Student.DEFAULT.parse(
-                {
-                    Student.DF: self.df,
-                    Student.LOCATION: self.loc,
-                    Student.SCALE: self.scale,
-                }
-            )
-        )
+    @property
+    def loc(self) -> float:
+        """Read loc by its stable parameter identity."""
+        return self._parameters[Distribution.LOCATION]
+
+    @property
+    def scale(self) -> float:
+        """Read scale by its stable parameter identity."""
+        return self._parameters[Distribution.SCALE]
 
     @classmethod
     def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
         return (HypothesisSupport(Student.DEFAULT, frozenset(Student.DEFAULT.parameters)),)
 
+    @staticmethod
+    @override
+    def distribution() -> type[Student]:
+        """Return the distribution descriptor class."""
+        return Student
+
     @classmethod
-    def from_parameters(cls, parameters: ParameterValues, **options):
-        """Construct from a complete hypothesis; unknown parameters are never defaulted."""
-        if not cls.supports_hypothesis(GoodnessOfFitHypothesis(parameters)):
-            raise ValueError("Unsupported Student hypothesis or parameterization")
-        return cls(
-            df=parameters[Student.DF],
-            loc=parameters[Student.LOCATION],
-            scale=parameters[Student.SCALE],
-            **options,
-        )
-
-    @staticmethod
     @override
-    def distribution() -> DistributionType:
-        """
-        Get distribution type.
-
-        :return: DistributionType.
-        """
-        return DistributionType.STUDENT
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Return the unique identifier code for Student's t-distribution GoF statistics.
-
-        :return: string code "STUDENT_{parent_code}".
-        """
-        return f"STUDENT_{AbstractGoodnessOfFitStatistic.code()}"
-
-    @staticmethod
-    def _validate_parameter(value, name):
-        array = np.asarray(value)
-        if array.ndim != 0 or array.dtype.kind not in "iuf" or not np.isfinite(array):
-            raise ValueError(f"{name} must be a finite real scalar")
-        return float(array)
+    def code(cls) -> str:
+        """Return the family identifier or the concrete statistic's full identifier."""
+        family_code = f"STUDENT_{AbstractGoodnessOfFitStatistic.code()}"
+        if "short_code" in cls.__abstractmethods__:
+            return family_code
+        return f"{cls.short_code()}_{family_code}"
 
     @staticmethod
     def _validate_sample(rvs):
@@ -131,12 +93,8 @@ class KolmogorovSmirnovStudentGofStatistic(AbstractStudentGofStatistic, KSStatis
 
     Parameters
     ----------
-    df : float, default: 1
-        Fixed finite degrees of freedom, strictly positive.
-    loc : float, default: 0
-        Fixed finite location.
-    scale : float, default: 1
-        Fixed finite scale, strictly positive.
+    parameters : ParameterValues
+        Values with df, loc, scale fixed; omitted parameters are unknown.
     alternative_type : AlternativeType or str, optional
         CDF deviation direction; default TWO_TAILED. Also accepts enum values
         'two_tailed', 'right', 'left' and SciPy names 'two-sided', 'greater',
@@ -170,7 +128,8 @@ class KolmogorovSmirnovStudentGofStatistic(AbstractStudentGofStatistic, KSStatis
 
     Examples
     --------
-    >>> statistic = KolmogorovSmirnovStudentGofStatistic(df=5)
+    >>> parameters = Distribution.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1})
+    >>> statistic = KolmogorovSmirnovStudentGofStatistic(parameters)
     >>> value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
     >>> bool(np.isfinite(value))
     True
@@ -178,12 +137,11 @@ class KolmogorovSmirnovStudentGofStatistic(AbstractStudentGofStatistic, KSStatis
 
     def __init__(
         self,
-        df: float = Student.DF.default_value,
-        loc: float = Student.LOCATION.default_value,
-        scale: float = Student.SCALE.default_value,
+        parameters: ParameterValues,
+        *,
         alternative_type: AlternativeType = AlternativeType.TWO_TAILED,
     ):
-        AbstractStudentGofStatistic.__init__(self, df, loc, scale)
+        AbstractStudentGofStatistic.__init__(self, parameters)
         aliases = {
             "two-sided": AlternativeType.TWO_TAILED,
             "greater": AlternativeType.RIGHT,
@@ -208,17 +166,6 @@ class KolmogorovSmirnovStudentGofStatistic(AbstractStudentGofStatistic, KSStatis
         :return: short code string "KS".
         """
         return "KS"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Return the unique identifier code for this statistic.
-
-        :return: string code "KS_STUDENT_{parent_code}".
-        """
-        short_code = KolmogorovSmirnovStudentGofStatistic.short_code()
-        return f"{short_code}_{AbstractStudentGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -256,12 +203,8 @@ class AndersonDarlingStudentGofStatistic(AbstractStudentGofStatistic, ADStatisti
 
     Parameters
     ----------
-    df : float, default: 1
-        Fixed finite degrees of freedom, strictly positive.
-    loc : float, default: 0
-        Fixed finite location.
-    scale : float, default: 1
-        Fixed finite scale, strictly positive.
+    parameters : ParameterValues
+        Values with df, loc, scale fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -293,7 +236,8 @@ class AndersonDarlingStudentGofStatistic(AbstractStudentGofStatistic, ADStatisti
 
     Examples
     --------
-    >>> statistic = AndersonDarlingStudentGofStatistic(df=5)
+    >>> parameters = Distribution.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1})
+    >>> statistic = AndersonDarlingStudentGofStatistic(parameters)
     >>> value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
     >>> bool(np.isfinite(value))
     True
@@ -308,17 +252,6 @@ class AndersonDarlingStudentGofStatistic(AbstractStudentGofStatistic, ADStatisti
         :return: short code string "AD".
         """
         return "AD"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Return the unique identifier code for this statistic.
-
-        :return: string code "AD_STUDENT_{parent_code}".
-        """
-        short_code = AndersonDarlingStudentGofStatistic.short_code()
-        return f"{short_code}_{AbstractStudentGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -356,12 +289,8 @@ class CramerVonMisesStudentGofStatistic(AbstractStudentGofStatistic, CrammerVonM
 
     Parameters
     ----------
-    df : float, default: 1
-        Fixed finite degrees of freedom, strictly positive.
-    loc : float, default: 0
-        Fixed finite location.
-    scale : float, default: 1
-        Fixed finite scale, strictly positive.
+    parameters : ParameterValues
+        Values with df, loc, scale fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -390,7 +319,8 @@ class CramerVonMisesStudentGofStatistic(AbstractStudentGofStatistic, CrammerVonM
 
     Examples
     --------
-    >>> statistic = CramerVonMisesStudentGofStatistic(df=5)
+    >>> parameters = Distribution.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1})
+    >>> statistic = CramerVonMisesStudentGofStatistic(parameters)
     >>> value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
     >>> bool(np.isfinite(value))
     True
@@ -405,17 +335,6 @@ class CramerVonMisesStudentGofStatistic(AbstractStudentGofStatistic, CrammerVonM
         :return: short code string "CVM".
         """
         return "CVM"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Return the unique identifier code for this statistic.
-
-        :return: string code "CVM_STUDENT_{parent_code}".
-        """
-        short_code = CramerVonMisesStudentGofStatistic.short_code()
-        return f"{short_code}_{AbstractStudentGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -453,12 +372,8 @@ class KuiperStudentGofStatistic(AbstractStudentGofStatistic):
 
     Parameters
     ----------
-    df : float, default: 1
-        Fixed finite degrees of freedom, strictly positive.
-    loc : float, default: 0
-        Fixed finite location.
-    scale : float, default: 1
-        Fixed finite scale, strictly positive.
+    parameters : ParameterValues
+        Values with df, loc, scale fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -487,7 +402,8 @@ class KuiperStudentGofStatistic(AbstractStudentGofStatistic):
 
     Examples
     --------
-    >>> statistic = KuiperStudentGofStatistic(df=5)
+    >>> parameters = Distribution.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1})
+    >>> statistic = KuiperStudentGofStatistic(parameters)
     >>> value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
     >>> bool(np.isfinite(value))
     True
@@ -506,17 +422,6 @@ class KuiperStudentGofStatistic(AbstractStudentGofStatistic):
         :return: short code string "KUIPER".
         """
         return "KUIPER"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Return the unique identifier code for this statistic.
-
-        :return: string code "KUIPER_STUDENT_{parent_code}".
-        """
-        short_code = KuiperStudentGofStatistic.short_code()
-        return f"{short_code}_{AbstractStudentGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -560,12 +465,8 @@ class WatsonStudentGofStatistic(AbstractStudentGofStatistic):
 
     Parameters
     ----------
-    df : float, default: 1
-        Fixed finite degrees of freedom, strictly positive.
-    loc : float, default: 0
-        Fixed finite location.
-    scale : float, default: 1
-        Fixed finite scale, strictly positive.
+    parameters : ParameterValues
+        Values with df, loc, scale fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -595,7 +496,8 @@ class WatsonStudentGofStatistic(AbstractStudentGofStatistic):
 
     Examples
     --------
-    >>> statistic = WatsonStudentGofStatistic(df=5)
+    >>> parameters = Distribution.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1})
+    >>> statistic = WatsonStudentGofStatistic(parameters)
     >>> value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
     >>> bool(np.isfinite(value))
     True
@@ -614,17 +516,6 @@ class WatsonStudentGofStatistic(AbstractStudentGofStatistic):
         :return: short code string "WATSON".
         """
         return "WATSON"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Return the unique identifier code for this statistic.
-
-        :return: string code "WATSON_STUDENT_{parent_code}".
-        """
-        short_code = WatsonStudentGofStatistic.short_code()
-        return f"{short_code}_{AbstractStudentGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -666,12 +557,8 @@ class ZhangZcStudentGofStatistic(AbstractStudentGofStatistic):
 
     Parameters
     ----------
-    df : float, default: 1
-        Fixed finite degrees of freedom, strictly positive.
-    loc : float, default: 0
-        Fixed finite location.
-    scale : float, default: 1
-        Fixed finite scale, strictly positive.
+    parameters : ParameterValues
+        Values with df, loc, scale fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -705,7 +592,8 @@ class ZhangZcStudentGofStatistic(AbstractStudentGofStatistic):
 
     Examples
     --------
-    >>> statistic = ZhangZcStudentGofStatistic(df=5)
+    >>> parameters = Distribution.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1})
+    >>> statistic = ZhangZcStudentGofStatistic(parameters)
     >>> value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
     >>> bool(np.isfinite(value))
     True
@@ -724,17 +612,6 @@ class ZhangZcStudentGofStatistic(AbstractStudentGofStatistic):
         :return: short code string "ZHANG_ZC".
         """
         return "ZHANG_ZC"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Return the unique identifier code for this statistic.
-
-        :return: string code "ZHANG_ZC_STUDENT_{parent_code}".
-        """
-        short_code = ZhangZcStudentGofStatistic.short_code()
-        return f"{short_code}_{AbstractStudentGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -775,12 +652,8 @@ class ZhangZaStudentGofStatistic(AbstractStudentGofStatistic):
 
     Parameters
     ----------
-    df : float, default: 1
-        Fixed finite degrees of freedom, strictly positive.
-    loc : float, default: 0
-        Fixed finite location.
-    scale : float, default: 1
-        Fixed finite scale, strictly positive.
+    parameters : ParameterValues
+        Values with df, loc, scale fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -813,7 +686,8 @@ class ZhangZaStudentGofStatistic(AbstractStudentGofStatistic):
 
     Examples
     --------
-    >>> statistic = ZhangZaStudentGofStatistic(df=5)
+    >>> parameters = Distribution.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1})
+    >>> statistic = ZhangZaStudentGofStatistic(parameters)
     >>> value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
     >>> bool(np.isfinite(value))
     True
@@ -832,17 +706,6 @@ class ZhangZaStudentGofStatistic(AbstractStudentGofStatistic):
         :return: short code string "ZHANG_ZA".
         """
         return "ZHANG_ZA"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Return the unique identifier code for this statistic.
-
-        :return: string code "ZHANG_ZA_STUDENT_{parent_code}".
-        """
-        short_code = ZhangZaStudentGofStatistic.short_code()
-        return f"{short_code}_{AbstractStudentGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -882,8 +745,8 @@ class LillieforsStudentGofStatistic(AbstractStudentGofStatistic, LillieforsTest)
 
     Parameters
     ----------
-    df : float, default: 1
-        Fixed finite degrees of freedom, strictly positive.
+    parameters : ParameterValues
+        Values with df fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -917,29 +780,16 @@ class LillieforsStudentGofStatistic(AbstractStudentGofStatistic, LillieforsTest)
 
     Examples
     --------
-    >>> statistic = LillieforsStudentGofStatistic(df=5)
+    >>> parameters = Distribution.DEFAULT.parse({'df': 5})
+    >>> statistic = LillieforsStudentGofStatistic(parameters)
     >>> value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
     >>> bool(np.isfinite(value))
     True
     """
 
-    def __init__(self, df: float = Student.DF.default_value):
-        AbstractStudentGofStatistic.__init__(self, df, 0, 1)
-
-    @override
-    def hypothesis(self) -> GoodnessOfFitHypothesis:
-        return GoodnessOfFitHypothesis(Student.DEFAULT.parse({Student.DF: self.df}))
-
     @classmethod
     def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
         return (HypothesisSupport(Student.DEFAULT, frozenset({Student.DF})),)
-
-    @classmethod
-    def from_parameters(cls, parameters: ParameterValues, **options):
-        """Construct for fixed df and unknown location and scale."""
-        if not cls.supports_hypothesis(GoodnessOfFitHypothesis(parameters)):
-            raise ValueError("Unsupported Student hypothesis or parameterization")
-        return cls(df=parameters[Student.DF], **options)
 
     @staticmethod
     @override
@@ -950,17 +800,6 @@ class LillieforsStudentGofStatistic(AbstractStudentGofStatistic, LillieforsTest)
         :return: short code string "LILLIE".
         """
         return "LILLIE"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Return the unique identifier code for this statistic.
-
-        :return: string code "LILLIE_STUDENT_{parent_code}".
-        """
-        short_code = LillieforsStudentGofStatistic.short_code()
-        return f"{short_code}_{AbstractStudentGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1013,12 +852,8 @@ class ChiSquareStudentGofStatistic(AbstractStudentGofStatistic):
 
     Parameters
     ----------
-    df : float, default: 1
-        Fixed finite degrees of freedom, strictly positive.
-    loc : float, default: 0
-        Fixed finite location.
-    scale : float, default: 1
-        Fixed finite scale, strictly positive.
+    parameters : ParameterValues
+        Values with df, loc, scale fixed; omitted parameters are unknown.
     n_bins : int, default: 10
         Fixed number of equiprobable bins, at least 2; booleans are rejected.
 
@@ -1053,7 +888,8 @@ class ChiSquareStudentGofStatistic(AbstractStudentGofStatistic):
 
     Examples
     --------
-    >>> statistic = ChiSquareStudentGofStatistic(df=5)
+    >>> parameters = Distribution.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1})
+    >>> statistic = ChiSquareStudentGofStatistic(parameters)
     >>> value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
     >>> bool(np.isfinite(value))
     True
@@ -1063,14 +899,8 @@ class ChiSquareStudentGofStatistic(AbstractStudentGofStatistic):
     def alternative(self) -> Alternative:
         return RightAlternative()
 
-    def __init__(
-        self,
-        df: float = Student.DF.default_value,
-        loc: float = Student.LOCATION.default_value,
-        scale: float = Student.SCALE.default_value,
-        n_bins: int = 10,
-    ):
-        super().__init__(df, loc, scale)
+    def __init__(self, parameters: ParameterValues, *, n_bins: int = 10):
+        super().__init__(parameters)
         if isinstance(n_bins, bool) or not isinstance(n_bins, Integral) or n_bins < 2:
             raise ValueError("n_bins must be an integer of at least 2")
         self.n_bins = int(n_bins)
@@ -1084,17 +914,6 @@ class ChiSquareStudentGofStatistic(AbstractStudentGofStatistic):
         :return: short code string "CHI2".
         """
         return "CHI2"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Return the unique identifier code for this statistic.
-
-        :return: string code "CHI2_STUDENT_{parent_code}".
-        """
-        short_code = ChiSquareStudentGofStatistic.short_code()
-        return f"{short_code}_{AbstractStudentGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):

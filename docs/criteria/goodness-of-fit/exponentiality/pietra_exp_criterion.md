@@ -57,11 +57,12 @@ TypeError
 ## Example
 
 ```python
+from pysatl_criterion.distribution.distributions import ExponentialDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit.exponent import (
     PietraExponentialityGofStatistic,
 )
 
-statistic = PietraExponentialityGofStatistic()
+statistic = PietraExponentialityGofStatistic(ExponentialDistributionDescriptor.DEFAULT.parse({}))
 value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
 print(value)
 ```

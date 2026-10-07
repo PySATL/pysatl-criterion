@@ -10,6 +10,7 @@ from pysatl_criterion.statistics.goodness_of_fit.normal import (
     CramerVonMiseNormalityGofStatistic,
     KolmogorovSmirnovNormalityGofStatistic,
 )
+from tests.parameter_cases import parameters_for
 
 
 STATISTIC_CLASSES = [KolmogorovSmirnovNormalityGofStatistic, CramerVonMiseNormalityGofStatistic]
@@ -43,7 +44,10 @@ def normal_case(request):
 )
 def test_ks_respects_normal_parameters(normal_case, alternative, scipy_alternative):
     kwargs, parameters, data, reference = normal_case
-    statistic = KolmogorovSmirnovNormalityGofStatistic(alternative_type=alternative, **kwargs)
+    statistic = KolmogorovSmirnovNormalityGofStatistic(
+        parameters_for(KolmogorovSmirnovNormalityGofStatistic, **kwargs),
+        alternative_type=alternative,
+    )
     expected = stats.kstest(data, reference.cdf, alternative=scipy_alternative).statistic
 
     assert statistic.execute_statistic(data) == pytest.approx(expected, rel=1e-12)
@@ -52,7 +56,9 @@ def test_ks_respects_normal_parameters(normal_case, alternative, scipy_alternati
 
 def test_cvm_respects_normal_parameters(normal_case):
     kwargs, parameters, data, reference = normal_case
-    statistic = CramerVonMiseNormalityGofStatistic(**kwargs)
+    statistic = CramerVonMiseNormalityGofStatistic(
+        parameters_for(CramerVonMiseNormalityGofStatistic, **kwargs)
+    )
     expected = stats.cramervonmises(data, reference.cdf).statistic
 
     assert statistic.execute_statistic(data) == pytest.approx(expected, rel=1e-12)
@@ -62,15 +68,15 @@ def test_cvm_respects_normal_parameters(normal_case):
 @pytest.mark.parametrize("statistic_class", STATISTIC_CLASSES)
 @pytest.mark.parametrize("mean", [np.nan, np.inf, -np.inf])
 def test_normal_parameters_reject_nonfinite_mean(statistic_class, mean):
-    with pytest.raises(ValueError, match="mean must be finite"):
-        statistic_class(mean=mean)
+    with pytest.raises(ValueError, match="Invalid value for mean"):
+        statistic_class(parameters_for(statistic_class, mean=mean))
 
 
 @pytest.mark.parametrize("statistic_class", STATISTIC_CLASSES)
 @pytest.mark.parametrize("var", [0, -1, np.nan, np.inf, -np.inf])
 def test_normal_parameters_reject_invalid_variance(statistic_class, var):
-    with pytest.raises(ValueError, match="var must be positive and finite"):
-        statistic_class(var=var)
+    with pytest.raises(ValueError, match="Invalid value for var"):
+        statistic_class(parameters_for(statistic_class, var=var))
 
 
 @pytest.mark.parametrize(
@@ -87,7 +93,7 @@ def test_monte_carlo_samples_and_evaluates_the_same_normal_hypothesis(
     sampler = mocker.patch(
         "pysatl_criterion.generator.generators.generate_norm", return_value=samples
     )
-    statistic = statistic_class(mean=3, var=4)
+    statistic = statistic_class(parameters_for(statistic_class, mean=3, var=4))
     expected = reference_test(samples, stats.norm(loc=3, scale=2).cdf).statistic
 
     actual = MonteCarloLimitDistributionResolver(2).resolve(statistic, sample_size=5)

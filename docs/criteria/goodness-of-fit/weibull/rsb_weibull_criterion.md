@@ -5,14 +5,16 @@
 ## Constructor
 
 ```text
-No constructor arguments. Both ordinary-Weibull scale and shape are unknown.
+parameters : ParameterValues
+    An empty distribution schema; all distribution parameters are unknown.
 ```
 
 ## Hypothesis, formula and calibration
 
 ```text
 F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
-and unknown positive scale eta and shape k. No constructor arguments.
+and unknown positive scale eta and shape k.
+Pass Distribution.DEFAULT.parse({}) to declare both parameters unknown.
 Logarithmic location and scale are eliminated within every call.
 
 T=n*(1-r**2), where r=corr(log(x_(i)), log(-log(1-i/(n+1)))).
@@ -58,14 +60,15 @@ The input is never changed and estimated parameters are not retained.
 ## Example
 
 ```python
+from pysatl_criterion.distribution.distributions import WeibullDistributionDescriptor as Distribution
 from pysatl_criterion.statistics.goodness_of_fit.weibull import RSBWeibullGofStatistic
 
-test = RSBWeibullGofStatistic()
+test = RSBWeibullGofStatistic(Distribution.DEFAULT.parse({}))
 value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
 print(value)
 ```
 
 
 See [the Weibull audit](../../../weibull-statistics-audit.md) for migration details,
-source verification limits and calibration changes. Historical class names and codes
-are retained; old critical values must not be reused after a formula change.
+source verification limits and calibration changes. Ordinary and exponentiated Weibull have separate distribution and criterion identities;
+old critical values must not be reused after a formula or family change.

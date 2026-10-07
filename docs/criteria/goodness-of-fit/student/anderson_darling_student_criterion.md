@@ -16,12 +16,10 @@ underflow raises ValueError instead of fabricating a finite statistic.
 
 ## Parameters
 
-df : float, default: 1
-Fixed finite degrees of freedom, strictly positive.
-loc : float, default: 0
-Fixed finite location.
-scale : float, default: 1
-Fixed finite scale, strictly positive.
+```text
+parameters : ParameterValues
+    Values with df, loc, scale fixed; omitted parameters are unknown.
+```
 
 ## Input and result
 
@@ -33,9 +31,10 @@ transformations raise `ValueError`. No preliminary fit or bootstrap is required.
 ## Example
 
 ```python
+from pysatl_criterion.distribution.distributions import StudentDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit.student import AndersonDarlingStudentGofStatistic
 
-statistic = AndersonDarlingStudentGofStatistic(df=5)
+statistic = AndersonDarlingStudentGofStatistic(StudentDistributionDescriptor.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1}))
 value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
 print(value)
 ```

@@ -1,14 +1,22 @@
+import math
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
+from typing import ClassVar
 
-from pysatl_criterion.distribution.distribution_type import (
+from pysatl_criterion.distribution.distribution_kind import DistributionKind
+from pysatl_criterion.distribution.distribution_parameter_descriptor import (
     DistributionParameterDescriptor,
-    DistributionType,
 )
-from pysatl_criterion.distribution.parameters import ParameterizationDescriptor, ParameterSpec
+from pysatl_criterion.distribution.distribution_type import DistributionType
+from pysatl_criterion.distribution.parameters import (
+    ParameterizationDescriptor,
+    ParameterSpec,
+    ParameterValues,
+)
 from pysatl_criterion.distribution.validator import (
     NonNegativeNumberValidator,
     PositiveNumberValidator,
+    PositiveRealNumberValidator,
     ProbabilityValidator,
 )
 
@@ -29,10 +37,38 @@ class DistributionDescriptor(ABC):
     needed to configure it.
     """
 
+    DEFAULT: ClassVar[ParameterizationDescriptor]
+
+    @classmethod
+    def default_parameterization(cls) -> ParameterizationDescriptor:
+        """Return the preferred coordinates, without filling parameter values."""
+        return cls.DEFAULT
+
+    @classmethod
+    def convert_parameters(
+        cls, values: ParameterValues, target: ParameterizationDescriptor
+    ) -> ParameterValues:
+        """Accept identity conversion; other conversions require an implementation."""
+        if not isinstance(values, ParameterValues):
+            raise TypeError("values must be ParameterValues")
+        if (
+            values.parameterization not in cls.parameterizations()
+            or target not in cls.parameterizations()
+        ):
+            raise ValueError("Unsupported distribution parameterization")
+        if values.parameterization != target:
+            raise ValueError("Conversion between these parameterizations is not implemented")
+        return values
+
     @classmethod
     def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
         """Return the explicit parameterizations available for the distribution."""
         return ()
+
+    @staticmethod
+    @abstractmethod
+    def kind() -> DistributionKind:
+        """Return the kind of probability distribution represented by the descriptor."""
 
     @staticmethod
     @abstractmethod
@@ -53,7 +89,25 @@ class DistributionDescriptor(ABC):
         """
 
 
-class NormalDistributionDescriptor(DistributionDescriptor):
+class ContinuousDistributionDescriptor(DistributionDescriptor, ABC):
+    """Base class for continuous distribution descriptors."""
+
+    @staticmethod
+    def kind() -> DistributionKind:
+        """Return the continuous distribution kind."""
+        return DistributionKind.CONTINUOUS
+
+
+class DiscreteDistributionDescriptor(DistributionDescriptor, ABC):
+    """Base class for discrete distribution descriptors."""
+
+    @staticmethod
+    def kind() -> DistributionKind:
+        """Return the discrete distribution kind."""
+        return DistributionKind.DISCRETE
+
+
+class NormalDistributionDescriptor(ContinuousDistributionDescriptor):
     """
     Descriptor for the normal distribution.
     """
@@ -84,7 +138,7 @@ class NormalDistributionDescriptor(DistributionDescriptor):
         return (cls.DEFAULT,)
 
 
-class ExponentialDistributionDescriptor(DistributionDescriptor):
+class ExponentialDistributionDescriptor(ContinuousDistributionDescriptor):
     """
     Descriptor for the exponential distribution.
     """
@@ -117,13 +171,17 @@ class ExponentialDistributionDescriptor(DistributionDescriptor):
         return (cls.DEFAULT,)
 
 
-class WeibullDistributionDescriptor(DistributionDescriptor):
+class WeibullDistributionDescriptor(ContinuousDistributionDescriptor):
     """
     Descriptor for the Weibull distribution.
     """
 
-    SCALE = ParameterSpec("weibull.scale", "a", "λ", "Scale. λ > 0", 1, PositiveNumberValidator())
-    SHAPE = ParameterSpec("weibull.shape", "k", "k", "Shape. k > 0", 5, PositiveNumberValidator())
+    SCALE = ParameterSpec(
+        "weibull.scale", "scale", "λ", "Scale. λ > 0", 1, PositiveRealNumberValidator()
+    )
+    SHAPE = ParameterSpec(
+        "weibull.shape", "shape", "k", "Shape. k > 0", 5, PositiveRealNumberValidator()
+    )
     DEFAULT = ParameterizationDescriptor(
         "weibull.scale_shape", DistributionType.WEIBULL, (SCALE, SHAPE)
     )
@@ -146,7 +204,53 @@ class WeibullDistributionDescriptor(DistributionDescriptor):
         return (cls.DEFAULT,)
 
 
-class UniformDistributionDescriptor(DistributionDescriptor):
+class ExponentiatedWeibullDistributionDescriptor(ContinuousDistributionDescriptor):
+    """Exponentiated Weibull with positive exponent, shape and scale; location zero."""
+
+    EXPONENT = ParameterSpec(
+        "exponentiated_weibull.exponent",
+        "exponent",
+        "a",
+        "Exponent. a > 0",
+        1,
+        PositiveRealNumberValidator(),
+    )
+    SHAPE = ParameterSpec(
+        "exponentiated_weibull.shape",
+        "shape",
+        "k",
+        "Shape. k > 0",
+        5,
+        PositiveRealNumberValidator(),
+    )
+    SCALE = ParameterSpec(
+        "exponentiated_weibull.scale",
+        "scale",
+        "λ",
+        "Scale. λ > 0",
+        1,
+        PositiveRealNumberValidator(),
+    )
+    DEFAULT = ParameterizationDescriptor(
+        "exponentiated_weibull.exponent_shape_scale",
+        DistributionType.EXPONENTIATED_WEIBULL,
+        (EXPONENT, SHAPE, SCALE),
+    )
+
+    @staticmethod
+    def type() -> DistributionType:
+        return DistributionType.EXPONENTIATED_WEIBULL
+
+    @staticmethod
+    def parameters() -> list[ParameterSpec]:
+        return list(ExponentiatedWeibullDistributionDescriptor.DEFAULT.parameters)
+
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
+
+
+class UniformDistributionDescriptor(ContinuousDistributionDescriptor):
     """
     Descriptor for the continuous uniform distribution.
     """
@@ -175,7 +279,7 @@ class UniformDistributionDescriptor(DistributionDescriptor):
         return (cls.DEFAULT,)
 
 
-class StudentDistributionDescriptor(DistributionDescriptor):
+class StudentDistributionDescriptor(ContinuousDistributionDescriptor):
     """Student distribution in degrees-of-freedom/location/scale coordinates."""
 
     DF = ParameterSpec(
@@ -212,7 +316,7 @@ class StudentDistributionDescriptor(DistributionDescriptor):
         return (cls.DEFAULT,)
 
 
-class GammaDistributionDescriptor(DistributionDescriptor):
+class GammaDistributionDescriptor(ContinuousDistributionDescriptor):
     """
     Descriptor for the gamma distribution.
     """
@@ -239,7 +343,7 @@ class GammaDistributionDescriptor(DistributionDescriptor):
         return (cls.DEFAULT,)
 
 
-class BetaDistributionDescriptor(DistributionDescriptor):
+class BetaDistributionDescriptor(ContinuousDistributionDescriptor):
     """
     Descriptor for the beta distribution.
     """
@@ -270,7 +374,7 @@ class BetaDistributionDescriptor(DistributionDescriptor):
         return (cls.DEFAULT,)
 
 
-class LogNormalDistributionDescriptor(DistributionDescriptor):
+class LogNormalDistributionDescriptor(ContinuousDistributionDescriptor):
     """
     Descriptor for the log normal distribution.
     """
@@ -284,8 +388,16 @@ class LogNormalDistributionDescriptor(DistributionDescriptor):
         1,
         PositiveNumberValidator(),
     )
-    DEFAULT = ParameterizationDescriptor(
+    LOG_LOCATION_SCALE = ParameterizationDescriptor(
         "log_normal.log_location_log_scale", DistributionType.LOG_NORMAL, (LOG_LOCATION, LOG_SCALE)
+    )
+    DEFAULT = LOG_LOCATION_SCALE
+
+    MEDIAN = ParameterSpec(
+        "log_normal.median", "scale", "m", "Median. m > 0", 1, PositiveNumberValidator()
+    )
+    SHAPE_SCALE = ParameterizationDescriptor(
+        "log_normal.shape_scale", DistributionType.LOG_NORMAL, (LOG_SCALE, MEDIAN)
     )
 
     @staticmethod
@@ -303,10 +415,46 @@ class LogNormalDistributionDescriptor(DistributionDescriptor):
 
     @classmethod
     def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
-        return (cls.DEFAULT,)
+        return (cls.DEFAULT, cls.SHAPE_SCALE)
+
+    @classmethod
+    def convert_parameters(
+        cls, values: ParameterValues, target: ParameterizationDescriptor
+    ) -> ParameterValues:
+        """Explicitly convert log location and median, preserving unknown parameters.
+
+        The shared log standard deviation is unchanged. Conversion never fills
+        defaults; unrepresentable medians (overflow or underflow to zero) are
+        rejected. Other distributions and parameterizations are not accepted.
+        """
+        if not isinstance(values, ParameterValues):
+            raise TypeError("values must be ParameterValues")
+        if (
+            values.parameterization not in cls.parameterizations()
+            or target not in cls.parameterizations()
+        ):
+            raise ValueError("Unsupported LogNormal parameterization")
+        if values.parameterization == target:
+            return target.parse(dict(values))
+        converted = {}
+        if cls.LOG_SCALE in values:
+            converted[cls.LOG_SCALE] = values[cls.LOG_SCALE]
+        if target == cls.SHAPE_SCALE and cls.LOG_LOCATION in values:
+            try:
+                median = math.exp(values[cls.LOG_LOCATION])
+            except OverflowError as error:
+                raise ValueError(
+                    "LogNormal median is not representable as a finite positive float"
+                ) from error
+            if not math.isfinite(median) or median <= 0:
+                raise ValueError("LogNormal median is not representable as a finite positive float")
+            converted[cls.MEDIAN] = median
+        elif target == cls.LOG_LOCATION_SCALE and cls.MEDIAN in values:
+            converted[cls.LOG_LOCATION] = math.log(values[cls.MEDIAN])
+        return target.parse(converted)
 
 
-class CauchyDistributionDescriptor(DistributionDescriptor):
+class CauchyDistributionDescriptor(ContinuousDistributionDescriptor):
     """
     Descriptor for the Cauchy distribution.
     """
@@ -335,7 +483,7 @@ class CauchyDistributionDescriptor(DistributionDescriptor):
         return (cls.DEFAULT,)
 
 
-class Chi2DistributionDescriptor(DistributionDescriptor):
+class Chi2DistributionDescriptor(ContinuousDistributionDescriptor):
     """
     Descriptor for the chi-squared distribution.
     """
@@ -363,7 +511,7 @@ class Chi2DistributionDescriptor(DistributionDescriptor):
         return (cls.DEFAULT,)
 
 
-class GompertzDistributionDescriptor(DistributionDescriptor):
+class GompertzDistributionDescriptor(ContinuousDistributionDescriptor):
     """
     Descriptor for the Gompertz distribution.
     """
@@ -394,7 +542,7 @@ class GompertzDistributionDescriptor(DistributionDescriptor):
         return (cls.DEFAULT,)
 
 
-class GumbelDistributionDescriptor(DistributionDescriptor):
+class GumbelDistributionDescriptor(ContinuousDistributionDescriptor):
     """
     Descriptor for the Gumbel distribution.
     """
@@ -423,7 +571,7 @@ class GumbelDistributionDescriptor(DistributionDescriptor):
         return (cls.DEFAULT,)
 
 
-class InvGaussDistributionDescriptor(DistributionDescriptor):
+class InvGaussDistributionDescriptor(ContinuousDistributionDescriptor):
     """
     Descriptor for the inverse Gaussian distribution.
     """
@@ -454,7 +602,7 @@ class InvGaussDistributionDescriptor(DistributionDescriptor):
         return (cls.DEFAULT,)
 
 
-class LaplaceDistributionDescriptor(DistributionDescriptor):
+class LaplaceDistributionDescriptor(ContinuousDistributionDescriptor):
     """
     Descriptor for the Laplace distribution.
     """
@@ -483,7 +631,7 @@ class LaplaceDistributionDescriptor(DistributionDescriptor):
         return (cls.DEFAULT,)
 
 
-class HyperbolicDistributionDescriptor(DistributionDescriptor):
+class HyperbolicDistributionDescriptor(ContinuousDistributionDescriptor):
     """Descriptor for the hyperbolic distribution."""
 
     SHAPE = ParameterSpec(
@@ -517,7 +665,7 @@ class HyperbolicDistributionDescriptor(DistributionDescriptor):
         return (cls.DEFAULT,)
 
 
-class LoConNormDistributionDescriptor(DistributionDescriptor):
+class LoConNormDistributionDescriptor(ContinuousDistributionDescriptor):
     """
     Descriptor for the location-contaminated normal distribution.
     """
@@ -557,7 +705,7 @@ class LoConNormDistributionDescriptor(DistributionDescriptor):
         return (cls.DEFAULT,)
 
 
-class MixConNormDistributionDescriptor(DistributionDescriptor):
+class MixConNormDistributionDescriptor(ContinuousDistributionDescriptor):
     """
     Descriptor for the mixed contaminated normal distribution.
     """
@@ -605,7 +753,7 @@ class MixConNormDistributionDescriptor(DistributionDescriptor):
         return (cls.DEFAULT,)
 
 
-class ScaleConNormDistributionDescriptor(DistributionDescriptor):
+class ScaleConNormDistributionDescriptor(ContinuousDistributionDescriptor):
     """
     Descriptor for the scale-contaminated normal distribution.
     """
@@ -650,7 +798,7 @@ class ScaleConNormDistributionDescriptor(DistributionDescriptor):
         return (cls.DEFAULT,)
 
 
-class TruncNormDistributionDescriptor(DistributionDescriptor):
+class TruncNormDistributionDescriptor(ContinuousDistributionDescriptor):
     """
     Descriptor for the truncated normal distribution.
     """
@@ -685,7 +833,7 @@ class TruncNormDistributionDescriptor(DistributionDescriptor):
         return (cls.DEFAULT,)
 
 
-class LogisticDistributionDescriptor(DistributionDescriptor):
+class LogisticDistributionDescriptor(ContinuousDistributionDescriptor):
     """
     Descriptor for the logistic distribution.
     """
@@ -714,7 +862,7 @@ class LogisticDistributionDescriptor(DistributionDescriptor):
         return (cls.DEFAULT,)
 
 
-class RiceDistributionDescriptor(DistributionDescriptor):
+class RiceDistributionDescriptor(ContinuousDistributionDescriptor):
     """
     Descriptor for the Rice distribution.
     """
@@ -752,7 +900,7 @@ class RiceDistributionDescriptor(DistributionDescriptor):
         return (cls.DEFAULT,)
 
 
-class TukeyDistributionDescriptor(DistributionDescriptor):
+class TukeyDistributionDescriptor(ContinuousDistributionDescriptor):
     """
     Descriptor for the Tukey lambda distribution.
     """
@@ -772,6 +920,92 @@ class TukeyDistributionDescriptor(DistributionDescriptor):
     @staticmethod
     def parameters() -> list[ParameterSpec]:
         return list(TukeyDistributionDescriptor.DEFAULT.parameters)
+
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
+
+
+class ParetoDistributionDescriptor(ContinuousDistributionDescriptor):
+    """Descriptor for the pareto distribution with zero location."""
+
+    SHAPE = ParameterSpec(
+        "pareto.shape", "shape", "α", "Shape. α > 0", 1, PositiveNumberValidator()
+    )
+
+    SCALE = ParameterSpec(
+        "pareto.scale",
+        "scale",
+        "xₘ",
+        "Scale (lower endpoint). xₘ > 0",
+        1,
+        PositiveNumberValidator(),
+    )
+    DEFAULT = ParameterizationDescriptor(
+        "pareto.shape_scale", DistributionType.PARETO, (SHAPE, SCALE)
+    )
+
+    @staticmethod
+    def type() -> DistributionType:
+        return DistributionType.PARETO
+
+    @staticmethod
+    def parameters() -> list[ParameterSpec]:
+        return list(ParetoDistributionDescriptor.DEFAULT.parameters)
+
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
+
+
+class InverseGammaDistributionDescriptor(ContinuousDistributionDescriptor):
+    """Descriptor for the inverse gamma distribution with zero location."""
+
+    SHAPE = ParameterSpec(
+        "inverse_gamma.shape", "alpha", "α", "Shape. α > 0", 1, PositiveNumberValidator()
+    )
+
+    SCALE = ParameterSpec(
+        "inverse_gamma.scale", "beta", "β", "Scale. β > 0", 1, PositiveNumberValidator()
+    )
+    DEFAULT = ParameterizationDescriptor(
+        "inverse_gamma.shape_scale", DistributionType.INVERSE_GAMMA, (SHAPE, SCALE)
+    )
+
+    @staticmethod
+    def type() -> DistributionType:
+        return DistributionType.INVERSE_GAMMA
+
+    @staticmethod
+    def parameters() -> list[ParameterSpec]:
+        return list(InverseGammaDistributionDescriptor.DEFAULT.parameters)
+
+    @classmethod
+    def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:
+        return (cls.DEFAULT,)
+
+
+class LogLogisticDistributionDescriptor(ContinuousDistributionDescriptor):
+    """Descriptor for the log logistic distribution with zero location."""
+
+    SCALE = ParameterSpec(
+        "log_logistic.scale", "alpha", "α", "Scale. α > 0", 1, PositiveNumberValidator()
+    )
+
+    SHAPE = ParameterSpec(
+        "log_logistic.shape", "beta", "β", "Shape. β > 0", 1, PositiveNumberValidator()
+    )
+    DEFAULT = ParameterizationDescriptor(
+        "log_logistic.scale_shape", DistributionType.LOG_LOGISTIC, (SCALE, SHAPE)
+    )
+
+    @staticmethod
+    def type() -> DistributionType:
+        return DistributionType.LOG_LOGISTIC
+
+    @staticmethod
+    def parameters() -> list[ParameterSpec]:
+        return list(LogLogisticDistributionDescriptor.DEFAULT.parameters)
 
     @classmethod
     def parameterizations(cls) -> tuple[ParameterizationDescriptor, ...]:

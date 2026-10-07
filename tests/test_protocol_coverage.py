@@ -6,10 +6,16 @@ from unittest.mock import Mock
 
 import numpy as np
 import pytest
+from pysatl_criterion.persistence.sqlalchemy.alchemy_decorator import CompressedFloatArray
 
 import pysatl_criterion
 from pysatl_criterion import DistributionType
-from pysatl_criterion.distribution.distributions import DistributionDescriptor
+from pysatl_criterion.distribution.distributions import (
+    BetaDistributionDescriptor as Beta,
+)
+from pysatl_criterion.distribution.distributions import (
+    DistributionDescriptor,
+)
 from pysatl_criterion.estimation.maximum_likelihood import (
     function_for_maximum_likelihood as likelihoods,
 )
@@ -42,7 +48,6 @@ from pysatl_criterion.hypothesis_testing.multiple_testing.fwer import Holm, Sida
 from pysatl_criterion.hypothesis_testing.p_value.calculator.model import PValueCalculator
 from pysatl_criterion.persistence.models.base import IDataStorage, IStorage
 from pysatl_criterion.persistence.models.limit_distribution import ILimitDistributionStorage
-from pysatl_criterion.persistence.sqlalchemy.alchemy_decorator import CompressedFloatArray
 from pysatl_criterion.statistics.alternative import Alternative, AlternativeType
 from pysatl_criterion.statistics.goodness_of_fit import (
     beta,
@@ -66,6 +71,7 @@ from pysatl_criterion.statistics.statistic import (
     AbstractIndependenceStatistic,
     AbstractStatistic,
 )
+from tests.parameter_cases import parameters_for
 
 
 def test_abstract_protocol_method_bodies():
@@ -177,11 +183,21 @@ def test_all_goodness_of_fit_classes_expose_the_common_contract():
                 and issubclass(statistic_class, AbstractGoodnessOfFitStatistic)
                 and not inspect.isabstract(statistic_class)
             ):
-                statistic = statistic_class()
+                if issubclass(statistic_class, beta.AbstractBetaGofStatistic):
+                    fixed = (
+                        {}
+                        if statistic_class is beta.LillieforsTestBetaGofStatistic
+                        else {"a": 2, "b": 5}
+                    )
+                    statistic = statistic_class(Beta.DEFAULT.parse(fixed))
+                else:
+                    statistic = statistic_class(parameters_for(statistic_class))
                 assert statistic.code()
                 assert statistic.short_code()
                 assert statistic.alternative()
-                assert isinstance(statistic.distribution(), DistributionType)
+                assert issubclass(statistic.distribution(), DistributionDescriptor)
+                assert not inspect.isabstract(statistic.distribution())
+                assert isinstance(statistic.distribution().type(), DistributionType)
                 assert statistic.hypothesis()
                 count += 1
     assert count > 100

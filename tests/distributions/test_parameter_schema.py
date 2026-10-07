@@ -28,7 +28,7 @@ def test_partial_hypotheses_do_not_acquire_defaults():
     assert hypothesis.parameters() == {"df": 5}
     assert not KolmogorovSmirnovStudentGofStatistic.supports_hypothesis(hypothesis)
     with pytest.raises(ValueError, match="Unsupported"):
-        KolmogorovSmirnovStudentGofStatistic.from_parameters(values)
+        KolmogorovSmirnovStudentGofStatistic(values)
     with pytest.raises(ValueError, match="complete"):
         TRVSGenerator.from_parameters(values)
     assert Student.DEFAULT.parse({}, fill_defaults=True).as_dict() == {
@@ -40,7 +40,7 @@ def test_partial_hypotheses_do_not_acquire_defaults():
 
 def test_student_descriptor_statistic_and_sampler_share_parameters():
     values = Student.DEFAULT.parse({"df": 5, "loc": 3, "scale": 2})
-    statistic = KolmogorovSmirnovStudentGofStatistic.from_parameters(values)
+    statistic = KolmogorovSmirnovStudentGofStatistic(values)
     generator = get_hypothesis_generator(statistic)
     assert generator.parameters() == statistic.hypothesis().parameters() == values.as_dict()
     actual = generator.generate(32, random_state=np.random.default_rng(42))
@@ -60,7 +60,7 @@ def test_rename_in_schema_updates_all_consumers(monkeypatch):
     values = schema.parse({"df": 5, "location": 3, "scale": 2})
     assert values.storage_identity() == original.storage_identity()
     assert location == next(p for p in original if p.id == location.id)
-    statistic = KolmogorovSmirnovStudentGofStatistic.from_parameters(values)
+    statistic = KolmogorovSmirnovStudentGofStatistic(values)
     generator = get_hypothesis_generator(statistic)
     factory_generator = get_available_generator(DistributionType.STUDENT, values.as_dict())
     assert statistic.hypothesis().parameters() == generator.parameters() == values.as_dict()
@@ -77,7 +77,7 @@ def test_second_parameterization_is_not_implicitly_converted():
     with pytest.raises(ValueError, match="explicit conversion"):
         Student.DEFAULT.parse(values)
     with pytest.raises(ValueError, match="Unsupported"):
-        KolmogorovSmirnovStudentGofStatistic.from_parameters(values)
+        KolmogorovSmirnovStudentGofStatistic(values)
     with pytest.raises(ValueError, match="parameterization"):
         TRVSGenerator.from_parameters(values)
     assert (
@@ -115,12 +115,12 @@ def test_unknown_names_and_foreign_tokens_are_rejected():
 
 def test_lilliefors_requires_unknown_location_and_scale():
     composite = Student.DEFAULT.parse({"df": 5})
-    statistic = LillieforsStudentGofStatistic.from_parameters(composite)
+    statistic = LillieforsStudentGofStatistic(composite)
     assert statistic.hypothesis().parameters() == {"df": 5}
     for loc in (0, 1):
         fixed = Student.DEFAULT.parse({"df": 5, "loc": loc}, fill_defaults=True)
         with pytest.raises(ValueError, match="Unsupported"):
-            LillieforsStudentGofStatistic.from_parameters(fixed)
+            LillieforsStudentGofStatistic(fixed)
 
 
 def test_parsing_copies_input_and_exports_independent_dictionaries():

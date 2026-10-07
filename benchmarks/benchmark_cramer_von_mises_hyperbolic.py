@@ -11,6 +11,7 @@ from hyperbolic_benchmark_utils import (
     create_sorted_sample,
 )
 
+from pysatl_criterion.distribution.distributions import HyperbolicDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit.hyperbolic import (
     CramerVonMisesHyperbolicGofStatistic,
 )
@@ -28,10 +29,9 @@ def main() -> None:
     sorted_sample = create_sorted_sample()
     cdf = cdf_values(sorted_sample)
     statistic = CramerVonMisesHyperbolicGofStatistic(
-        alpha=ALPHA,
-        beta=BETA,
-        delta=DELTA,
-        mu=MU,
+        HyperbolicDistributionDescriptor.DEFAULT.parse(
+            {"alpha": ALPHA, "beta": BETA, "delta": DELTA, "mu": MU}
+        )
     )
     optimized_result = statistic.do_execute_statistic(sorted_sample, cdf)
     np.testing.assert_allclose(optimized_result, reference(cdf))

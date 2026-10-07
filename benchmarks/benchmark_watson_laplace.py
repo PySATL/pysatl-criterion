@@ -2,6 +2,7 @@ import numpy as np
 import scipy.stats as scipy_stats
 from benchmark_runner import BenchmarkRunner
 
+from pysatl_criterion.distribution.distributions import LaplaceDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit.laplace import WatsonLaplaceGofStatistic
 
 
@@ -37,8 +38,7 @@ def main() -> None:
     )
     sorted_sample = np.sort(sample)
     statistic = WatsonLaplaceGofStatistic(
-        t=location,
-        s=scale,
+        LaplaceDistributionDescriptor.DEFAULT.parse({"t": location, "s": scale})
     )
 
     # Compile the Numba kernel before measuring execution time.

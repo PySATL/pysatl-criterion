@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 from scipy import stats
 
+from pysatl_criterion.distribution.distributions import ParetoDistributionDescriptor
 from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     MonteCarloLimitDistributionResolver,
     StorageLimitDistributionResolver,
@@ -15,6 +16,7 @@ from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.alternative import AlternativeType
 from pysatl_criterion.statistics.goodness_of_fit import pareto
+from tests.parameter_cases import parameters_for
 
 
 CLASSES = [
@@ -38,7 +40,7 @@ FITTED = [
 @pytest.mark.parametrize("cls", CLASSES)
 def test_interface_and_repeated_calls(cls):
     assert not inspect.isabstract(cls)
-    stat: AbstractGoodnessOfFitStatistic = cls()
+    stat: AbstractGoodnessOfFitStatistic = cls(parameters_for(cls))
     x = np.array([3.1, 1.2, 8.3, 2.7, 1.9, 4.6])
     original = x.copy()
     state = vars(stat).copy()
@@ -73,7 +75,7 @@ def test_interface_and_repeated_calls(cls):
 )
 def test_invalid_samples(cls, x):
     with pytest.raises(ValueError):
-        cls().execute_statistic(x)
+        cls(parameters_for(cls)).execute_statistic(x)
 
 
 @pytest.mark.parametrize("cls", FIXED)
@@ -81,14 +83,14 @@ def test_invalid_samples(cls, x):
 @pytest.mark.parametrize("value", [0, -1, np.inf, np.nan, [1], 1j, None])
 def test_invalid_fixed_parameters(cls, param, value):
     with pytest.raises(ValueError):
-        cls(**{param: value})
+        cls(parameters_for(cls, **{param: value}))
 
 
 @pytest.mark.parametrize("cls", FIXED)
 def test_fixed_support_and_constant(cls):
     with pytest.raises(ValueError, match="at least scale"):
-        cls(scale=2).execute_statistic([1.9, 2, 3, 4])
-    assert np.isfinite(cls().execute_statistic([2, 2, 2, 2]))
+        cls(parameters_for(cls, scale=2)).execute_statistic([1.9, 2, 3, 4])
+    assert np.isfinite(cls(parameters_for(cls)).execute_statistic([2, 2, 2, 2]))
 
 
 @pytest.mark.parametrize(
@@ -101,7 +103,10 @@ def test_fixed_support_and_constant(cls):
 )
 def test_ks_scipy_and_tail(direction, scipy_direction):
     x = [2.1, 2.3, 3.7, 4.9, 7.2]
-    stat = pareto.KolmogorovSmirnovParetoGofStatistic(direction, shape=1.7, scale=2)
+    stat = pareto.KolmogorovSmirnovParetoGofStatistic(
+        ParetoDistributionDescriptor.DEFAULT.parse({"shape": 1.7, "scale": 2}),
+        alternative_type=direction,
+    )
     expected = stats.kstest(
         x, stats.pareto(1.7, scale=2).cdf, alternative=scipy_direction
     ).statistic
@@ -120,23 +125,27 @@ def test_ad_cvm_mt_independent_formulas():
         max(j / n - v, v - (j - 1) / n) / np.sqrt(v * (1 - v)) for j, v in enumerate(u, 1)
     ) / np.sqrt(n)
     for cls, expected in zip(FIXED[1:], [ad, cvm, mt], strict=True):
-        assert cls(shape=2.3, scale=2).execute_statistic(x) == pytest.approx(expected)
+        assert cls(parameters_for(cls, shape=2.3, scale=2)).execute_statistic(x) == pytest.approx(
+            expected
+        )
 
 
 @pytest.mark.parametrize(
     "cls", [pareto.AndersonDarlingParetoGofStatistic, pareto.MinToshiyukiParetoGofStatistic]
 )
 def test_true_boundary_infinity_and_large_tail(cls):
-    assert cls().execute_statistic([1, 2]) == np.inf
+    assert cls(parameters_for(cls)).execute_statistic([1, 2]) == np.inf
     # F(1e20) rounds to one, but its survival and this statistic are finite.
-    assert np.isfinite(cls().execute_statistic([2, 1e20]))
+    assert np.isfinite(cls(parameters_for(cls)).execute_statistic([2, 1e20]))
     # A ratio exceeding float64 range still has a representable logarithm.
-    assert np.isfinite(cls(shape=0.01, scale=1e-300).execute_statistic([1e-200, 1e300]))
+    assert np.isfinite(
+        cls(parameters_for(cls, shape=0.01, scale=1e-300)).execute_statistic([1e-200, 1e300])
+    )
 
 
 @pytest.mark.parametrize("cls", FITTED)
 def test_fits_and_scale_invariance(cls):
-    stat = cls()
+    stat = cls(parameters_for(cls))
     x = np.array([1.1, 1.7, 2.3, 5.1, 8.7, 19.2])
     expected = stat.execute_statistic(x)
     for scale in [1e-250, 1e250]:
@@ -149,16 +158,20 @@ def test_fits_and_scale_invariance(cls):
 @pytest.mark.parametrize("cls", FITTED[:2])
 def test_power_invariance(cls):
     x = np.array([1.1, 1.7, 2.3, 5.1, 8.7, 19.2])
-    assert cls().execute_statistic(x**3) == pytest.approx(cls().execute_statistic(x))
+    assert cls(parameters_for(cls)).execute_statistic(x**3) == pytest.approx(
+        cls(parameters_for(cls)).execute_statistic(x)
+    )
 
 
 def test_greenwood_formula():
     # Logarithmic residuals are proportional to (0, 1, 2, 3).
-    assert pareto.GreenwoodParetoGofStatistic().execute_statistic([1, 2, 4, 8]) == pytest.approx(
-        14 / 36
-    )
+    assert pareto.GreenwoodParetoGofStatistic(
+        ParetoDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic([1, 2, 4, 8]) == pytest.approx(14 / 36)
     with pytest.raises(ValueError):
-        pareto.GreenwoodParetoGofStatistic().execute_statistic([1, 2])
+        pareto.GreenwoodParetoGofStatistic(
+            ParetoDistributionDescriptor.DEFAULT.parse({})
+        ).execute_statistic([1, 2])
 
 
 @pytest.mark.parametrize(
@@ -169,7 +182,9 @@ def test_obradovic_inclusive_indicators(x, scale):
     z = np.array(x, dtype=float)
     ratios = [max(a / b, b / a) for a, b in combinations(z, 2)]
     expected = np.mean([np.mean(np.array(ratios) <= t) - np.mean(z <= t) for t in z])
-    stat = pareto.ObradovicParetoGofStatistic(scale=scale)
+    stat = pareto.ObradovicParetoGofStatistic(
+        ParetoDistributionDescriptor.DEFAULT.parse({"scale": scale})
+    )
     assert stat.execute_statistic(z * scale) == pytest.approx(expected)
     assert stat.hypothesis().parameters() == {"scale": scale}
 
@@ -183,19 +198,21 @@ def test_kl_independent_density_entropy(m):
         sum(np.log(n / (2 * m) * (x[min(i + m, n - 1)] - x[max(i - m, 0)])) for i in range(n)) / n
     )
     expected = -entropy - np.mean(stats.pareto.logpdf(x, shape, scale=x[0]))
-    assert pareto.LequesneKlParetoGofStatistic().execute_statistic(x, m=m) == pytest.approx(
-        expected
-    )
+    assert pareto.LequesneKlParetoGofStatistic(
+        ParetoDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(x, m=m) == pytest.approx(expected)
 
 
 @pytest.mark.parametrize("m", [0, -1, 3, 5, 1.2, True, np.nan, [1]])
 def test_invalid_window(m):
     with pytest.raises(ValueError, match="m must"):
-        pareto.LequesneKlParetoGofStatistic().execute_statistic([1, 2, 3, 4, 5, 6], m=m)
+        pareto.LequesneKlParetoGofStatistic(
+            ParetoDistributionDescriptor.DEFAULT.parse({})
+        ).execute_statistic([1, 2, 3, 4, 5, 6], m=m)
 
 
 def test_zero_spacing_and_signed_kl():
-    stat = pareto.LequesneKlParetoGofStatistic()
+    stat = pareto.LequesneKlParetoGofStatistic(ParetoDistributionDescriptor.DEFAULT.parse({}))
     assert stat.execute_statistic([1, 1, 1, 2, 3, 4], m=1) == np.inf
     # Widely separated observations can give a negative fixed-window estimate.
     x = np.exp(np.arange(10, dtype=float))
@@ -210,16 +227,24 @@ def test_zero_spacing_and_signed_kl():
 @pytest.mark.parametrize("cls", CLASSES)
 def test_missing_simulator_is_explicit(cls):
     with pytest.raises(ValueError, match="Pareto requires external calibration"):
-        MonteCarloLimitDistributionResolver(2).resolve(cls(), 10)
+        MonteCarloLimitDistributionResolver(2).resolve(cls(parameters_for(cls)), 10)
 
 
 def test_storage_guards(mocker):
     store = mocker.Mock()
     resolver = StorageLimitDistributionResolver(store)
     with pytest.raises(ValueError, match="shape-specific"):
-        resolver.resolve(pareto.LequesneKlParetoGofStatistic(), 10)
+        resolver.resolve(
+            pareto.LequesneKlParetoGofStatistic(ParetoDistributionDescriptor.DEFAULT.parse({})), 10
+        )
     with pytest.raises(ValueError, match="direction"):
-        resolver.resolve(pareto.KolmogorovSmirnovParetoGofStatistic(AlternativeType.LEFT), 10)
+        resolver.resolve(
+            pareto.KolmogorovSmirnovParetoGofStatistic(
+                ParetoDistributionDescriptor.DEFAULT.parse({"shape": 1, "scale": 1}),
+                alternative_type=AlternativeType.LEFT,
+            ),
+            10,
+        )
     store.get.assert_not_called()
 
 
@@ -238,13 +263,15 @@ def test_obradovic_overflowing_ratios():
     expected = sum(
         sum(r <= t for r in ratios) / len(ratios) - sum(v <= t for v in z) / len(z) for t in z
     ) / len(z)
-    assert pareto.ObradovicParetoGofStatistic(scale).execute_statistic(x) == pytest.approx(expected)
+    assert pareto.ObradovicParetoGofStatistic(
+        ParetoDistributionDescriptor.DEFAULT.parse({"scale": scale})
+    ).execute_statistic(x) == pytest.approx(expected)
 
 
 @pytest.mark.parametrize("cls", FITTED)
 def test_adjacent_large_observations(cls):
     x = 1e300 + np.arange(8) * np.spacing(1e300)
-    assert np.isfinite(cls().execute_statistic(x))
+    assert np.isfinite(cls(parameters_for(cls)).execute_statistic(x))
 
 
 def test_mt_underflowing_probability_has_finite_penalty():
@@ -252,6 +279,8 @@ def test_mt_underflowing_probability_has_finite_penalty():
     x = np.nextafter(1.0, 2.0)
     # n=1: d=1-u, u approximately shape*log(x); compute in log space.
     expected = np.exp(-0.5 * (np.log(shape) + np.log(np.log1p(x - 1))))
-    value = pareto.MinToshiyukiParetoGofStatistic(shape=shape).execute_statistic([x])
+    value = pareto.MinToshiyukiParetoGofStatistic(
+        ParetoDistributionDescriptor.DEFAULT.parse({"shape": shape, "scale": 1})
+    ).execute_statistic([x])
     assert np.isfinite(value)
     assert value == pytest.approx(expected)

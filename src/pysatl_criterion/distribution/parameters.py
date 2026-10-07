@@ -7,6 +7,7 @@ identities. No implicit conversion or default filling is performed for hypothese
 import math
 from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass, field
+from numbers import Real
 from types import MappingProxyType
 from typing import TypeVar
 
@@ -95,9 +96,16 @@ class ParameterValues(Mapping[ParameterSpec, float]):
                 if parameter not in resolved and parameter.default is not None:
                     resolved[parameter] = parameter.default
         for parameter, value in resolved.items():
-            if not math.isfinite(value) or (
-                parameter.validator is not None and not parameter.validator(value)
-            ):
+            try:
+                valid = (
+                    isinstance(value, Real)
+                    and not isinstance(value, bool)
+                    and math.isfinite(value)
+                    and (parameter.validator is None or parameter.validator(value))
+                )
+            except (TypeError, ValueError, OverflowError):
+                valid = False
+            if not valid:
                 raise ValueError(f"Invalid value for {parameter.name}: {value!r}")
         self._parameterization = parameterization
         self._values = MappingProxyType(resolved)

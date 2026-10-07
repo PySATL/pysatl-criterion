@@ -60,11 +60,12 @@ TypeError
 ## Example
 
 ```python
+from pysatl_criterion.distribution.distributions import ExponentialDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit.exponent import (
     GraphMaxDegreeExponentialityGofStatistic,
 )
 
-statistic = GraphMaxDegreeExponentialityGofStatistic()
+statistic = GraphMaxDegreeExponentialityGofStatistic(ExponentialDistributionDescriptor.DEFAULT.parse({}))
 value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
 print(value)
 ```

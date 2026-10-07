@@ -6,7 +6,11 @@ from scipy.optimize import minimize
 from scipy.special import expit, logit
 from typing_extensions import override
 
-from pysatl_criterion import DistributionType
+from pysatl_criterion.distribution.distributions import LogLogisticDistributionDescriptor
+from pysatl_criterion.distribution.distributions import (
+    LogLogisticDistributionDescriptor as Distribution,
+)
+from pysatl_criterion.distribution.parameters import HypothesisSupport, ParameterValues
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.alternative import AlternativeType
 from pysatl_criterion.statistics.goodness_of_fit.common import (
@@ -15,7 +19,6 @@ from pysatl_criterion.statistics.goodness_of_fit.common import (
     CrammerVonMisesStatistic,
     KSStatistic,
 )
-from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
 def _positive_scalar(value, name):
@@ -83,23 +86,38 @@ def _solve_positive(matrix, rhs):
 
 
 class AbstractLogLogisticGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
-    def __init__(self, alpha=1, beta=1):
-        self.alpha = _positive_scalar(alpha, "Alpha")
-        self.beta = _positive_scalar(beta, "Beta")
+    @property
+    def alpha(self) -> float:
+        """Read alpha by its stable parameter identity."""
+        return self._parameters[Distribution.SCALE]
 
-    @override
-    def hypothesis(self) -> GoodnessOfFitHypothesis:
-        return GoodnessOfFitHypothesis({"alpha": self.alpha, "beta": self.beta})
+    @property
+    def beta(self) -> float:
+        """Read beta by its stable parameter identity."""
+        return self._parameters[Distribution.SHAPE]
+
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (
+            HypothesisSupport(
+                Distribution.DEFAULT, frozenset({Distribution.SCALE, Distribution.SHAPE})
+            ),
+        )
 
     @staticmethod
     @override
-    def distribution() -> DistributionType:
-        return DistributionType.LOG_LOGISTIC
+    def distribution() -> type[LogLogisticDistributionDescriptor]:
+        """Return the distribution descriptor class."""
+        return LogLogisticDistributionDescriptor
 
-    @staticmethod
+    @classmethod
     @override
-    def code():
-        return f"LOG_LOGISTIC_{AbstractGoodnessOfFitStatistic.code()}"
+    def code(cls) -> str:
+        """Return the family identifier or the concrete statistic's full identifier."""
+        family_code = f"LOG_LOGISTIC_{AbstractGoodnessOfFitStatistic.code()}"
+        if "short_code" in cls.__abstractmethods__:
+            return family_code
+        return f"{cls.short_code()}_{family_code}"
 
 
 class KolmogorovSmirnovLogLogisticGofStatistic(AbstractLogLogisticGofStatistic, KSStatistic):
@@ -107,13 +125,11 @@ class KolmogorovSmirnovLogLogisticGofStatistic(AbstractLogLogisticGofStatistic, 
 
     Parameters
     ----------
+    parameters : ParameterValues
+        Values with alpha, beta fixed; omitted parameters are unknown.
     alternative_type : AlternativeType, optional
         TWO_TAILED (default), RIGHT for D+, or LEFT for D-. This selects
         the CDF deviation, not the rejection tail (always RIGHT).
-    alpha : float, optional
-        Fixed positive finite scale, default 1.
-    beta : float, optional
-        Fixed positive finite shape, default 1.
 
     Methods
     -------
@@ -142,7 +158,8 @@ class KolmogorovSmirnovLogLogisticGofStatistic(AbstractLogLogisticGofStatistic, 
 
     Examples
     --------
-    >>> statistic = KolmogorovSmirnovLogLogisticGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'alpha': 1, 'beta': 1})
+    >>> statistic = KolmogorovSmirnovLogLogisticGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.5, 1.0, 2.0])
     >>> bool(np.isfinite(value))
     True
@@ -150,11 +167,11 @@ class KolmogorovSmirnovLogLogisticGofStatistic(AbstractLogLogisticGofStatistic, 
 
     def __init__(
         self,
+        parameters: ParameterValues,
+        *,
         alternative_type: AlternativeType = AlternativeType.TWO_TAILED,
-        alpha=1.0,
-        beta=1.0,
     ):
-        AbstractLogLogisticGofStatistic.__init__(self, alpha=alpha, beta=beta)
+        AbstractLogLogisticGofStatistic.__init__(self, parameters)
         if not isinstance(alternative_type, AlternativeType):
             raise TypeError("alternative_type must be an AlternativeType")
         KSStatistic.__init__(self, alternative_type)
@@ -167,12 +184,6 @@ class KolmogorovSmirnovLogLogisticGofStatistic(AbstractLogLogisticGofStatistic, 
     @override
     def short_code() -> str:
         return "KS"
-
-    @staticmethod
-    @override
-    def code() -> str:
-        short_code = KolmogorovSmirnovLogLogisticGofStatistic.short_code()
-        return f"{short_code}_{AbstractLogLogisticGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -207,10 +218,8 @@ class AndersonDarlingLogLogisticGofStatistic(AbstractLogLogisticGofStatistic, AD
 
     Parameters
     ----------
-    alpha : float, optional
-        Fixed positive finite scale, default 1.
-    beta : float, optional
-        Fixed positive finite shape, default 1.
+    parameters : ParameterValues
+        Values with alpha, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -240,7 +249,8 @@ class AndersonDarlingLogLogisticGofStatistic(AbstractLogLogisticGofStatistic, AD
 
     Examples
     --------
-    >>> statistic = AndersonDarlingLogLogisticGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'alpha': 1, 'beta': 1})
+    >>> statistic = AndersonDarlingLogLogisticGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.5, 1.0, 2.0])
     >>> bool(np.isfinite(value))
     True
@@ -250,12 +260,6 @@ class AndersonDarlingLogLogisticGofStatistic(AbstractLogLogisticGofStatistic, AD
     @override
     def short_code() -> str:
         return "AD"
-
-    @staticmethod
-    @override
-    def code() -> str:
-        short_code = AndersonDarlingLogLogisticGofStatistic.short_code()
-        return f"{short_code}_{AbstractLogLogisticGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -295,10 +299,8 @@ class CramerVonMisesLogLogisticGofStatistic(
 
     Parameters
     ----------
-    alpha : float, optional
-        Fixed positive finite scale, default 1.
-    beta : float, optional
-        Fixed positive finite shape, default 1.
+    parameters : ParameterValues
+        Values with alpha, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -326,7 +328,8 @@ class CramerVonMisesLogLogisticGofStatistic(
 
     Examples
     --------
-    >>> statistic = CramerVonMisesLogLogisticGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'alpha': 1, 'beta': 1})
+    >>> statistic = CramerVonMisesLogLogisticGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.5, 1.0, 2.0])
     >>> bool(np.isfinite(value))
     True
@@ -336,12 +339,6 @@ class CramerVonMisesLogLogisticGofStatistic(
     @override
     def short_code() -> str:
         return "CVM"
-
-    @staticmethod
-    @override
-    def code() -> str:
-        short_code = CramerVonMisesLogLogisticGofStatistic.short_code()
-        return f"{short_code}_{AbstractLogLogisticGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -374,9 +371,9 @@ class CramerVonMisesLogLogisticGofStatistic(
 class AbstractBinnedLogLogisticGofStatistic(AbstractLogLogisticGofStatistic, Chi2Statistic, ABC):
     lambda_value: float = 1.0
 
-    def __init__(self, bins: int = 8, alpha: float = 1.0, beta: float = 2.0):
+    def __init__(self, parameters: ParameterValues, *, bins: int = 8):
         self.bins = _interval_count(bins)
-        AbstractLogLogisticGofStatistic.__init__(self, alpha=alpha, beta=beta)
+        AbstractLogLogisticGofStatistic.__init__(self, parameters)
 
     def _validate_storage_calibration(self):
         raise ValueError("Stored calibration does not encode the number of bins")
@@ -401,12 +398,10 @@ class Chi2PearsonLogLogisticGofStatistic(AbstractBinnedLogLogisticGofStatistic):
 
     Parameters
     ----------
+    parameters : ParameterValues
+        Values with alpha, beta fixed; omitted parameters are unknown.
     bins : int, optional
         Number of cells, at least 2; default 8.
-    alpha : float, optional
-        Fixed positive finite scale, default 1.
-    beta : float, optional
-        Fixed positive finite shape, default 2.
 
     Methods
     -------
@@ -437,7 +432,8 @@ class Chi2PearsonLogLogisticGofStatistic(AbstractBinnedLogLogisticGofStatistic):
 
     Examples
     --------
-    >>> statistic = Chi2PearsonLogLogisticGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'alpha': 1, 'beta': 1})
+    >>> statistic = Chi2PearsonLogLogisticGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.5, 1.0, 2.0])
     >>> bool(np.isfinite(value))
     True
@@ -449,12 +445,6 @@ class Chi2PearsonLogLogisticGofStatistic(AbstractBinnedLogLogisticGofStatistic):
     @override
     def short_code() -> str:
         return "CHI2_PEARSON"
-
-    @staticmethod
-    @override
-    def code() -> str:
-        short_code = Chi2PearsonLogLogisticGofStatistic.short_code()
-        return f"{short_code}_{AbstractLogLogisticGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -486,6 +476,8 @@ class NikulinLogLogisticGofStatistic(AbstractLogLogisticGofStatistic, Chi2Statis
 
     Parameters
     ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
     n_intervals : int, optional
         Number of equal-exposure intervals, at least 2; default 5.
 
@@ -526,17 +518,20 @@ class NikulinLogLogisticGofStatistic(AbstractLogLogisticGofStatistic, Chi2Statis
 
     Examples
     --------
-    >>> statistic = NikulinLogLogisticGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = NikulinLogLogisticGofStatistic(parameters)
     >>> value = statistic.execute_statistic(np.exp(np.linspace(-2, 2, 100)))
     >>> bool(np.isfinite(value))
     True
     """
 
-    def __init__(self, n_intervals: int = 5):
+    def __init__(self, parameters: ParameterValues, *, n_intervals: int = 5):
+        AbstractGoodnessOfFitStatistic.__init__(self, parameters)
         self.n_intervals = _interval_count(n_intervals)
 
-    def hypothesis(self) -> GoodnessOfFitHypothesis:
-        return GoodnessOfFitHypothesis({})
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (HypothesisSupport(Distribution.DEFAULT, frozenset()),)
 
     def _validate_storage_calibration(self):
         raise ValueError("Stored calibration omits the censoring plan and interval count")
@@ -544,10 +539,6 @@ class NikulinLogLogisticGofStatistic(AbstractLogLogisticGofStatistic, Chi2Statis
     @staticmethod
     def short_code() -> str:
         return "BN_GOF"
-
-    @staticmethod
-    def code() -> str:
-        return f"BN_GOF_{AbstractLogLogisticGofStatistic.code()}"
 
     @staticmethod
     def _fit_standardized_log_times(times, events):
@@ -657,6 +648,8 @@ class MirvalievLogLogisticGofStatistic(AbstractLogLogisticGofStatistic, Chi2Stat
 
     Parameters
     ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
     n_intervals : int, optional
         Number of equiprobable cells, at least 2; default 8.
 
@@ -696,17 +689,20 @@ class MirvalievLogLogisticGofStatistic(AbstractLogLogisticGofStatistic, Chi2Stat
 
     Examples
     --------
-    >>> statistic = MirvalievLogLogisticGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = MirvalievLogLogisticGofStatistic(parameters)
     >>> value = statistic.execute_statistic(np.exp(np.linspace(-2, 2, 100)))
     >>> bool(np.isfinite(value))
     True
     """
 
-    def __init__(self, n_intervals: int = 8):
+    def __init__(self, parameters: ParameterValues, *, n_intervals: int = 8):
+        AbstractGoodnessOfFitStatistic.__init__(self, parameters)
         self.n_intervals = _interval_count(n_intervals)
 
-    def hypothesis(self) -> GoodnessOfFitHypothesis:
-        return GoodnessOfFitHypothesis({})
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (HypothesisSupport(Distribution.DEFAULT, frozenset()),)
 
     def _validate_storage_calibration(self):
         raise ValueError("Stored calibration does not encode the number of intervals")
@@ -714,10 +710,6 @@ class MirvalievLogLogisticGofStatistic(AbstractLogLogisticGofStatistic, Chi2Stat
     @staticmethod
     def short_code() -> str:
         return "MIRVALIEV"
-
-    @staticmethod
-    def code() -> str:
-        return f"MIRVALIEV_{AbstractLogLogisticGofStatistic.code()}"
 
     def execute_statistic(self, rvs, **kwargs) -> float:
         """Compute the statistic independently for the supplied sample.

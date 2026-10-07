@@ -37,10 +37,11 @@ statistic and simulate its null law at the actual n. L2 must be positive.
 ## Examples
 
 ```python
+from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
 import numpy as np
 from pysatl_criterion.statistics.goodness_of_fit.normal import Hosking2NormalityGofStatistic
 
-statistic = Hosking2NormalityGofStatistic()
+statistic = Hosking2NormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({}))
 sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
 value = statistic.execute_statistic(sample)
 bool(np.isfinite(value))

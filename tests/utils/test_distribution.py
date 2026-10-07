@@ -34,8 +34,8 @@ from pysatl_criterion.utils.distribution import get_available_distribution_descr
             DistributionType.WEIBULL,
             WeibullDistributionDescriptor,
             [
-                ("λ", "a", "Scale. λ > 0", 1),
-                ("k", "k", "Shape. k > 0", 5),
+                ("λ", "scale", "Scale. λ > 0", 1),
+                ("k", "shape", "Shape. k > 0", 5),
             ],
         ),
         (

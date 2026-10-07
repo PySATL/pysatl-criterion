@@ -8,12 +8,14 @@ import numpy as np
 import pytest
 from scipy import stats
 
+from pysatl_criterion.distribution.distributions import InverseGammaDistributionDescriptor
 from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     MonteCarloLimitDistributionResolver,
     StorageLimitDistributionResolver,
 )
 from pysatl_criterion.statistics.alternative import AlternativeType
 from pysatl_criterion.statistics.goodness_of_fit import inverse_gamma as module
+from tests.parameter_cases import parameters_for
 
 
 CLASSES = [
@@ -41,7 +43,7 @@ FIXED = [cls for cls in CLASSES if cls is not module.LillieforsInverseGammaGofSt
 )
 def test_sample_validation(cls, sample):
     with pytest.raises(ValueError):
-        cls().execute_statistic(sample, compatibility=True)
+        cls(parameters_for(cls)).execute_statistic(sample, compatibility=True)
 
 
 @pytest.mark.parametrize("cls", FIXED)
@@ -49,12 +51,12 @@ def test_sample_validation(cls, sample):
 @pytest.mark.parametrize("parameter", ["alpha", "beta"])
 def test_parameter_validation(cls, parameter, value):
     with pytest.raises(ValueError):
-        cls(**{parameter: value})
+        cls(parameters_for(cls, **{parameter: value}))
 
 
 @pytest.mark.parametrize("cls", CLASSES)
 def test_interface_and_independence(cls):
-    statistic = cls()
+    statistic = cls(parameters_for(cls))
     x = np.array([2.0, 0.3, 0.7, 1.1])
     original = x.copy()
     first = statistic.execute_statistic(x, compatibility=True)
@@ -69,10 +71,10 @@ def test_interface_and_independence(cls):
 @pytest.mark.parametrize("cls", FIXED)
 def test_fixed_parameter_scaling_and_hypothesis(cls):
     x = np.array([0.4, 0.8, 1.3, 2.7])
-    statistic = cls(alpha=3, beta=2)
+    statistic = cls(parameters_for(cls, alpha=3, beta=2))
     assert statistic.hypothesis().parameters() == {"alpha": 3, "beta": 2}
     assert statistic.execute_statistic(x) == pytest.approx(
-        cls(alpha=3, beta=14).execute_statistic(x * 7), rel=2e-13
+        cls(parameters_for(cls, alpha=3, beta=14)).execute_statistic(x * 7), rel=2e-13
     )
     assert np.isfinite(statistic.execute_statistic([1.0]))
     assert np.isfinite(statistic.execute_statistic([1.0, 1.0, 1.0]))
@@ -92,14 +94,17 @@ def test_ks_directions(direction, scipy_direction):
         x, stats.invgamma(3, scale=2).cdf, alternative=scipy_direction
     ).statistic
     assert module.KolmogorovSmirnovInverseGammaGofStatistic(
-        alpha=3, beta=2, alternative_type=direction
+        InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": 3, "beta": 2}),
+        alternative_type=direction,
     ).execute_statistic(x) == pytest.approx(expected)
 
 
 @pytest.mark.parametrize("bins", [True, 1, 2.5, np.nan, np.inf, [3]])
 def test_bins_validation(bins):
     with pytest.raises(ValueError):
-        module.Chi2PearsonInverseGammaGofStatistic(bins=bins)
+        module.Chi2PearsonInverseGammaGofStatistic(
+            InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 1}), bins=bins
+        )
 
 
 @pytest.mark.parametrize("beta", [0.25, 2.0, 7.0])
@@ -107,13 +112,17 @@ def test_balanced_quantile_bins(beta):
     # Generate via reciprocal Gamma quantiles, independently of invgamma.ppf.
     x = beta / stats.gamma.ppf((np.arange(40) + 0.5) / 40, a=3)
     assert (
-        module.Chi2PearsonInverseGammaGofStatistic(bins=8, alpha=3, beta=beta).execute_statistic(x)
+        module.Chi2PearsonInverseGammaGofStatistic(
+            InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": 3, "beta": beta}), bins=8
+        ).execute_statistic(x)
         == 0
     )
 
 
 def test_pearson_zero_counts_and_edges():
-    statistic = module.Chi2PearsonInverseGammaGofStatistic(bins=4, alpha=1, beta=2)
+    statistic = module.Chi2PearsonInverseGammaGofStatistic(
+        InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 2}), bins=4
+    )
     # For shape=1, F(x)=exp(-2/x). An interior quantile belongs to the right bin.
     edge = stats.invgamma.ppf(0.5, a=1, scale=2)
     counts, expected = statistic._counts_and_expected([edge, edge, 100.0])
@@ -124,7 +133,9 @@ def test_pearson_zero_counts_and_edges():
 
 
 def test_fitted_ks_moments_and_scale_invariance():
-    statistic = module.LillieforsInverseGammaGofStatistic()
+    statistic = module.LillieforsInverseGammaGofStatistic(
+        InverseGammaDistributionDescriptor.DEFAULT.parse({})
+    )
     assert statistic.hypothesis().parameters() == {}
     for x in [np.array([0.4, 0.7, 1.2, 2.0]), np.array([0.8, 1.0, 3.0, 9.0])]:
         mean = sum(x) / len(x)
@@ -135,8 +146,10 @@ def test_fitted_ks_moments_and_scale_invariance():
         assert statistic.execute_statistic(x) == pytest.approx(expected)
         for scale in [1e-200, 1e200]:
             assert statistic.execute_statistic(x * scale) == pytest.approx(expected)
-    with pytest.raises(TypeError):
-        module.LillieforsInverseGammaGofStatistic(alpha=3)
+    with pytest.raises(ValueError, match="Unsupported"):
+        module.LillieforsInverseGammaGofStatistic(
+            InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": 3})
+        )
     for x in [[1.0], [1.0, 1.0]]:
         with pytest.raises(ValueError):
             statistic.execute_statistic(x)
@@ -154,7 +167,7 @@ def test_fitted_ks_moments_and_scale_invariance():
 )
 def test_numerical_underflow_is_explicit(cls):
     with pytest.raises(FloatingPointError):
-        cls().execute_statistic([1e-300, 1.0])
+        cls(parameters_for(cls)).execute_statistic([1e-300, 1.0])
 
 
 @pytest.mark.parametrize("prefix", ["ZhangA", "ZhangC", "ZhangK"])
@@ -172,7 +185,9 @@ def test_zhang_unclipped_extreme_upper_tail(prefix):
             + (2 - i + 0.5) * (np.log((2 - i + 0.5) / 2) - log_v)
         ),
     }
-    statistic = getattr(module, prefix + "InverseGammaGofStatistic")(alpha=1, beta=2)
+    statistic = getattr(module, prefix + "InverseGammaGofStatistic")(
+        InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 2})
+    )
     assert statistic.execute_statistic(x) == pytest.approx(expected[prefix])
     with pytest.raises(TypeError, match="epsilon"):
         statistic.execute_statistic(x, epsilon=1e-10)
@@ -181,15 +196,22 @@ def test_zhang_unclipped_extreme_upper_tail(prefix):
 @pytest.mark.parametrize("cls", CLASSES)
 def test_monte_carlo_reports_missing_generator(cls):
     with pytest.raises(ValueError, match="external calibration"):
-        MonteCarloLimitDistributionResolver(2).resolve(cls(), 5)
+        MonteCarloLimitDistributionResolver(2).resolve(cls(parameters_for(cls)), 5)
 
 
 @pytest.mark.parametrize(
     "statistic",
     [
-        module.LillieforsInverseGammaGofStatistic(),
-        module.Chi2PearsonInverseGammaGofStatistic(),
-        module.KolmogorovSmirnovInverseGammaGofStatistic(alternative_type=AlternativeType.LEFT),
+        module.LillieforsInverseGammaGofStatistic(
+            InverseGammaDistributionDescriptor.DEFAULT.parse({})
+        ),
+        module.Chi2PearsonInverseGammaGofStatistic(
+            InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 1})
+        ),
+        module.KolmogorovSmirnovInverseGammaGofStatistic(
+            InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 1}),
+            alternative_type=AlternativeType.LEFT,
+        ),
     ],
 )
 def test_unsafe_storage_calibration_is_blocked(statistic):
@@ -202,4 +224,4 @@ def test_unsafe_storage_calibration_is_blocked(statistic):
 def test_documented_examples():
     results = doctest.testmod(module)
     assert results.failed == 0
-    assert results.attempted == 36
+    assert results.attempted == 48

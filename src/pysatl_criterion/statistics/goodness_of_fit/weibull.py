@@ -1,9 +1,4 @@
-"""Specified exponentiated-Weibull and fitted ordinary-Weibull statistics.
-
-Fixed-CDF classes use F(x)=(1-exp(-x**k))**a, with location 0 and scale 1.
-Composite classes use F(x)=1-exp(-(x/eta)**k), location 0, eta and k unknown.
-These are different hypotheses. No class mutates observations or stores fits.
-"""
+"""Ordinary Weibull criteria with zero location and fitted shape and scale."""
 
 from abc import ABC
 from numbers import Integral, Real
@@ -14,24 +9,25 @@ from scipy.special import gamma, gammaln, logsumexp, zeta
 from scipy.stats import gumbel_l
 from typing_extensions import override
 
-from pysatl_criterion import DistributionType
-from pysatl_criterion.core.distributions.continues.weibull import generate_weibull_cdf
+from pysatl_criterion.distribution.distributions import (
+    WeibullDistributionDescriptor as Distribution,
+)
+from pysatl_criterion.distribution.parameters import HypothesisSupport
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.alternative import (
-    AlternativeType,
     LeftAlternative,
     RightAlternative,
     TwoSidedAlternative,
 )
+from pysatl_criterion.statistics.goodness_of_fit._weibull_common import (
+    _log_probabilities,
+    _sample,
+    _weighted_edf,
+)
 from pysatl_criterion.statistics.goodness_of_fit.common import (
     ADStatistic,
-    Chi2Statistic,
-    CrammerVonMisesStatistic,
-    KSStatistic,
     LillieforsTest,
-    MinToshiyukiStatistic,
 )
-from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
 def _scalar(value, name, *, positive=False):
@@ -45,23 +41,6 @@ def _scalar(value, name, *, positive=False):
     if not np.isfinite(result) or (positive and result <= 0):
         raise ValueError(message)
     return result
-
-
-def _sample(rvs, *, min_size=1, positive=False, nonconstant=False):
-    if np.iscomplexobj(rvs):
-        raise ValueError("Sample must be real")
-    x = np.asarray(rvs, dtype=float)
-    if x.ndim != 1 or x.size < min_size:
-        raise ValueError(f"Sample must be one-dimensional with at least {min_size} observations")
-    if not np.all(np.isfinite(x)) or np.any(x < 0) or (positive and np.any(x == 0)):
-        raise ValueError(
-            "Expected a finite positive sample"
-            if positive
-            else "Sample must contain finite nonnegative observations"
-        )
-    if nonconstant and np.ptp(x) == 0:
-        raise ValueError("A nonconstant sample is required")
-    return x
 
 
 def _logs(rvs, min_size=2):
@@ -100,33 +79,6 @@ def _fit_logs(y, counts=None):
 
 def _fitted(rvs):
     return _fit_logs(_logs(rvs))[0]
-
-
-def _log_probabilities(z, a=1):
-    """Log probabilities of (1-exp(-exp(z)))**a, retaining both tails."""
-    z = np.asarray(z)
-    with np.errstate(over="ignore", under="ignore", divide="ignore"):
-        t = np.exp(z)
-        log_cdf = np.empty_like(z)
-        small = z < -36
-        large = t > 36
-        middle = ~(small | large)
-        log_cdf[small] = a * z[small]
-        log_cdf[middle] = a * np.log(-np.expm1(-t[middle]))
-        log_cdf[large] = -np.exp(np.log(a) - t[large])
-        log_sf = np.log(-np.expm1(log_cdf))
-        upper_tail = large & (np.log(a) - t < -36)
-        log_sf[upper_tail] = np.log(a) - t[upper_tail]
-    return log_cdf, log_sf
-
-
-def _weighted_edf(log_cdf, log_sf):
-    u = np.exp(log_cdf)
-    n = len(u)
-    i = np.arange(1, n + 1)
-    d = np.maximum(i / n - u, u - (i - 1) / n)
-    with np.errstate(over="ignore"):
-        return float(np.sum(np.exp(np.log(d) - (log_cdf + log_sf) / 2)) / np.sqrt(n))
 
 
 def _correlation_squared(y, scores):
@@ -170,22 +122,37 @@ def _moment_null():
 
 
 class AbstractWeibullGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
-    """Base for a specified exponentiated Weibull with unit scale and zero location."""
+    """Ordinary Weibull with zero location and unknown shape and scale.
 
-    def __init__(self, a=1, k=1):
-        self.a = _scalar(a, "a", positive=True)
-        self.k = _scalar(k, "k", positive=True)
+    Parameters
+    ----------
+    parameters : ParameterValues
+        Distribution.DEFAULT.parse({}); shape and scale must both be unknown.
+    """
 
-    def hypothesis(self):
-        return GoodnessOfFitHypothesis({"a": self.a, "k": self.k})
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (HypothesisSupport(Distribution.DEFAULT, frozenset()),)
 
     @staticmethod
-    def distribution():
-        return DistributionType.WEIBULL
+    def distribution() -> type[Distribution]:
+        return Distribution
 
-    @staticmethod
-    def code():
-        return f"WEIBULL_{AbstractGoodnessOfFitStatistic.code()}"
+    @classmethod
+    def code(cls) -> str:
+        family_code = f"WEIBULL_{AbstractGoodnessOfFitStatistic.code()}"
+        if "short_code" in cls.__abstractmethods__:
+            return family_code
+        return f"{cls.short_code()}_{family_code}"
+
+    @classmethod
+    def _standard_calibration_parameters(cls):
+        """Standardize this fitted family using log-location-scale invariance.
+
+        Every replicate must refit shape and scale. Record-based criteria still
+        require external sampling schemes via _validate_monte_carlo_calibration.
+        """
+        return Distribution.DEFAULT.parse({Distribution.SHAPE: 1, Distribution.SCALE: 1})
 
     def _validate_storage_calibration(self):
         raise ValueError(
@@ -194,224 +161,14 @@ class AbstractWeibullGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
         )
 
 
-class _CompositeWeibullStatistic(AbstractWeibullGofStatistic, ABC):
-    """Ordinary Weibull with fixed location zero and unknown scale and shape."""
-
-    def __init__(self):
-        pass
-
-    def hypothesis(self):
-        # a=1 selects ordinary Weibull; k and scale are deliberately omitted.
-        return GoodnessOfFitHypothesis({"a": 1, "loc": 0})
-
-
-class MinToshiyukiWeibullGofStatistic(AbstractWeibullGofStatistic, MinToshiyukiStatistic):
-    """Weighted EDF distance for a specified exponentiated Weibull.
-
-    Parameters
-    ----------
-    a, k : float, optional
-        Fixed positive finite shape parameters, both default to 1.
-        The parameter a is an exponent, not a scale.
-
-    Methods
-    -------
-    execute_statistic(rvs, **kwargs)
-        Return a scalar statistic, fitting parameters internally when needed.
-    hypothesis()
-        Return the fixed parameters; omitted parameters are unknown.
-    alternative()
-        Return the critical-region tail.
-
-    Notes
-    -----
-    F(x)=(1-exp(-x**k))**a on x >= 0, with fixed a, k, scale 1
-    and location 0. Put u_i=F(x_(i)), i=1,...,n.
-
-    L = sum(max(i/n-u_i, u_i-(i-1)/n)/sqrt(u_i*(1-u_i)))/sqrt(n).
-
-    Reject for right tail values.
-    Calibrate using the specified null and the same sample size.
-    Previously stored unversioned Weibull calibrations must be regenerated.
-    The historical name uses the given names of Liao and Shimokawa.
-    This fixed-CDF variant is not their fitted-parameter procedure.
-    A zero observation gives positive infinity. Log probabilities preserve
-    finite penalties when a CDF rounds to one; overflow may still give infinity.
-    A primary source establishing this exact implemented formula was not
-    verified in the literature search. Treat it as the specified local
-    discrepancy; no named-test tables or chi-square limit are asserted.
-
-    Examples
-    --------
-    >>> test = MinToshiyukiWeibullGofStatistic()
-    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
-    >>> bool(np.isfinite(value))
-    True
-    """
-
-    @staticmethod
-    @override
-    def short_code():
-        """
-        Get short code identifier for this test.
-
-        :return: short code string "MT".
-        """
-        return "MT"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "MT_WEIBULL_{parent_code}".
-        """
-        short_code = MinToshiyukiWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
-
-    def alternative(self):
-        return RightAlternative()
-
-    def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic described in the class Notes.
-
-        Parameters
-        ----------
-        rvs : array_like
-            One-dimensional finite nonnegative observations, n >= 1.
-            Ties and constant samples are allowed.
-        **kwargs : dict
-            Unused common-interface keywords.
-
-        Returns
-        -------
-        statistic : float
-            Scalar discrepancy. Infinite boundary penalties are preserved.
-
-        Raises
-        ------
-        ValueError
-            Invalid sample, unsupported settings, or unrepresentable fit.
-
-        Notes
-        -----
-        The input is never changed and estimated parameters are not retained.
-        """
-        x = np.sort(_sample(rvs))
-        with np.errstate(divide="ignore", over="ignore"):
-            z = self.k * np.log(x)
-        return _weighted_edf(*_log_probabilities(z, self.a))
-
-
-class Chi2PearsonWeibullGofStatistic(AbstractWeibullGofStatistic, Chi2Statistic):
-    """Pearson counts statistic in equal-probability bins.
-
-    Parameters
-    ----------
-    a, k : float, optional
-        Fixed positive finite shape parameters, both default to 1.
-        The parameter a is an exponent, not a scale.
-
-    Methods
-    -------
-    execute_statistic(rvs, **kwargs)
-        Return a scalar statistic, fitting parameters internally when needed.
-    hypothesis()
-        Return the fixed parameters; omitted parameters are unknown.
-    alternative()
-        Return the critical-region tail.
-
-    Notes
-    -----
-    F(x)=(1-exp(-x**k))**a on x >= 0, with fixed a, k, scale 1
-    and location 0. Put u_i=F(x_(i)), i=1,...,n.
-
-    B=ceil(sqrt(n)); T=sum((O_j-n/B)**2/(n/B)), j=1,...,B.
-    Bins in CDF space cover [0,1], including both tails.
-
-    Reject for right tail values.
-    Calibrate using the specified null and the same sample size.
-    Previously stored unversioned Weibull calibrations must be regenerated.
-    The source gives the general count statistic, applied here to known
-    cell probabilities. For small expected counts use simulation, not
-    chi-square tables; the number of bins depends on sample size.
-    For n=1 there is one bin and the statistic is identically zero.
-
-    References
-    ----------
-    .. [1] K. Pearson (1900), On the criterion that a given system of deviations
-       from the probable in the case of a correlated system of variables is
-       such that it can be reasonably supposed to have arisen from random
-       sampling. https://doi.org/10.1080/14786440009463897
-
-    Examples
-    --------
-    >>> test = Chi2PearsonWeibullGofStatistic()
-    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
-    >>> bool(np.isfinite(value))
-    True
-    """
-
-    @staticmethod
-    @override
-    def short_code():
-        """
-        Get short code identifier for this test.
-
-        :return: short code string "CHI2_PEARSON".
-        """
-        return "CHI2_PEARSON"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "CHI2_PEARSON_WEIBULL_{parent_code}".
-        """
-        short_code = Chi2PearsonWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
-
-    def alternative(self):
-        return RightAlternative()
-
-    def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic described in the class Notes.
-
-        Parameters
-        ----------
-        rvs : array_like
-            One-dimensional finite nonnegative observations, n >= 1.
-            Ties and constant samples are allowed.
-        **kwargs : dict
-            Unused common-interface keywords.
-
-        Returns
-        -------
-        statistic : float
-            Scalar discrepancy. Infinite boundary penalties are preserved.
-
-        Raises
-        ------
-        ValueError
-            Invalid sample, unsupported settings, or unrepresentable fit.
-
-        Notes
-        -----
-        The input is never changed and estimated parameters are not retained.
-        """
-        x = _sample(rvs)
-        n = len(x)
-        bins = int(np.ceil(np.sqrt(n)))
-        u = generate_weibull_cdf(x, a=self.a, k=self.k)
-        observed, _ = np.histogram(u, bins=np.linspace(0, 1, bins + 1))
-        return float(self.do_execute_statistic(observed, np.full(bins, n / bins), 1))
-
-
-class LillieforsWeibullGofStatistic(_CompositeWeibullStatistic, LillieforsTest):
+class LillieforsWeibullGofStatistic(AbstractWeibullGofStatistic, LillieforsTest):
     """KS distance to an ordinary Weibull fitted by maximum likelihood.
+
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
 
     Methods
     -------
@@ -425,7 +182,8 @@ class LillieforsWeibullGofStatistic(_CompositeWeibullStatistic, LillieforsTest):
     Notes
     -----
     F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
-    and unknown positive scale eta and shape k. No constructor arguments.
+    and unknown positive scale eta and shape k.
+    Pass Distribution.DEFAULT.parse({}) to declare both parameters unknown.
     Logarithmic location and scale are eliminated within every call.
 
     D=max(max(i/n-u_i), max(u_i-(i-1)/n)), where u_i=G(z_i),
@@ -449,7 +207,8 @@ class LillieforsWeibullGofStatistic(_CompositeWeibullStatistic, LillieforsTest):
 
     Examples
     --------
-    >>> test = LillieforsWeibullGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> test = LillieforsWeibullGofStatistic(parameters)
     >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
     >>> bool(np.isfinite(value))
     True
@@ -464,17 +223,6 @@ class LillieforsWeibullGofStatistic(_CompositeWeibullStatistic, LillieforsTest):
         :return: short code string "LILLIE".
         """
         return "LILLIE"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "LILLIE_WEIBULL_{parent_code}".
-        """
-        short_code = LillieforsWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def alternative(self):
         return RightAlternative()
@@ -508,106 +256,14 @@ class LillieforsWeibullGofStatistic(_CompositeWeibullStatistic, LillieforsTest):
         return float(self.do_execute_statistic(z, gumbel_l.cdf(z)))
 
 
-class CrammerVonMisesWeibullGofStatistic(AbstractWeibullGofStatistic, CrammerVonMisesStatistic):
-    """Cramer-von Mises distance for a specified exponentiated Weibull.
+class AndersonDarlingWeibullGofStatistic(AbstractWeibullGofStatistic, ADStatistic):
+    """Anderson-Darling distance to a maximum-likelihood fitted ordinary Weibull.
 
     Parameters
     ----------
-    a, k : float, optional
-        Fixed positive finite shape parameters, both default to 1.
-        The parameter a is an exponent, not a scale.
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
 
-    Methods
-    -------
-    execute_statistic(rvs, **kwargs)
-        Return a scalar statistic, fitting parameters internally when needed.
-    hypothesis()
-        Return the fixed parameters; omitted parameters are unknown.
-    alternative()
-        Return the critical-region tail.
-
-    Notes
-    -----
-    F(x)=(1-exp(-x**k))**a on x >= 0, with fixed a, k, scale 1
-    and location 0. Put u_i=F(x_(i)), i=1,...,n.
-
-    W2=1/(12*n)+sum((u_i-(2*i-1)/(2*n))**2).
-
-    Reject for right tail values.
-    Calibrate using the specified null and the same sample size.
-    Previously stored unversioned Weibull calibrations must be regenerated.
-    The reference treats the general EDF functional; here the known CDF
-    transforms the null to uniformity.
-
-    References
-    ----------
-    .. [1] T. W. Anderson and D. A. Darling (1952), Asymptotic theory of certain
-       "goodness of fit" criteria based on stochastic processes.
-       https://doi.org/10.1214/aoms/1177729437
-
-    Examples
-    --------
-    >>> test = CrammerVonMisesWeibullGofStatistic()
-    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
-    >>> bool(np.isfinite(value))
-    True
-    """
-
-    @staticmethod
-    @override
-    def short_code():
-        """
-        Get short code identifier for this test.
-
-        :return: short code string "CVM".
-        """
-        return "CVM"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "CVM_WEIBULL_{parent_code}".
-        """
-        short_code = CrammerVonMisesWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
-
-    def alternative(self):
-        return RightAlternative()
-
-    def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic described in the class Notes.
-
-        Parameters
-        ----------
-        rvs : array_like
-            One-dimensional finite nonnegative observations, n >= 1.
-            Ties and constant samples are allowed.
-        **kwargs : dict
-            Unused common-interface keywords.
-
-        Returns
-        -------
-        statistic : float
-            Scalar discrepancy. Infinite boundary penalties are preserved.
-
-        Raises
-        ------
-        ValueError
-            Invalid sample, unsupported settings, or unrepresentable fit.
-
-        Notes
-        -----
-        The input is never changed and estimated parameters are not retained.
-        """
-        x = np.sort(_sample(rvs))
-        return float(self.do_execute_statistic(x, generate_weibull_cdf(x, a=self.a, k=self.k)))
-
-
-class AndersonDarlingWeibullGofStatistic(_CompositeWeibullStatistic, ADStatistic):
-    """Anderson-Darling distance to a maximum-likelihood fitted ordinary Weibull.
 
     Methods
     -------
@@ -621,7 +277,8 @@ class AndersonDarlingWeibullGofStatistic(_CompositeWeibullStatistic, ADStatistic
     Notes
     -----
     F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
-    and unknown positive scale eta and shape k. No constructor arguments.
+    and unknown positive scale eta and shape k.
+    Pass Distribution.DEFAULT.parse({}) to declare both parameters unknown.
     Logarithmic location and scale are eliminated within every call.
 
     A2=-n-sum((2*i-1)*(log(u_i)+log(1-u_(n+1-i))))/n,
@@ -645,7 +302,8 @@ class AndersonDarlingWeibullGofStatistic(_CompositeWeibullStatistic, ADStatistic
 
     Examples
     --------
-    >>> test = AndersonDarlingWeibullGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> test = AndersonDarlingWeibullGofStatistic(parameters)
     >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
     >>> bool(np.isfinite(value))
     True
@@ -660,17 +318,6 @@ class AndersonDarlingWeibullGofStatistic(_CompositeWeibullStatistic, ADStatistic
         :return: short code string "AD".
         """
         return "AD"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "AD_WEIBULL_{parent_code}".
-        """
-        short_code = AndersonDarlingWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def alternative(self):
         return RightAlternative()
@@ -705,118 +352,6 @@ class AndersonDarlingWeibullGofStatistic(_CompositeWeibullStatistic, ADStatistic
         return float(self.do_execute_statistic(z, log_cdf=log_cdf, log_sf=log_sf))
 
 
-class KolmogorovSmirnovWeibullGofStatistic(AbstractWeibullGofStatistic, KSStatistic):
-    """Kolmogorov-Smirnov distance for a specified exponentiated Weibull.
-
-    Parameters
-    ----------
-    a, k : float, optional
-        Fixed positive finite shape parameters, default to 1 and 5 respectively.
-        The parameter a is an exponent, not a scale.
-
-    alternative_type : AlternativeType, optional
-        TWO_TAILED gives D; RIGHT gives D+; LEFT gives D-.
-    mode : str, optional
-        Compatibility setting, default "auto"; no effect on the statistic.
-
-    Methods
-    -------
-    execute_statistic(rvs, **kwargs)
-        Return a scalar statistic, fitting parameters internally when needed.
-    hypothesis()
-        Return the fixed parameters; omitted parameters are unknown.
-    alternative()
-        Return the critical-region tail.
-
-    Notes
-    -----
-    F(x)=(1-exp(-x**k))**a on x >= 0, with fixed a, k, scale 1
-    and location 0. Put u_i=F(x_(i)), i=1,...,n.
-
-    D+=max(i/n-u_i); D-=max(u_i-(i-1)/n); D=max(D+,D-).
-    Every CDF-deviation direction has a right-tail rejection region.
-
-    Reject for right tail values.
-    Calibrate using the specified null and the same sample size.
-    Previously stored unversioned Weibull calibrations must be regenerated.
-    The reference concerns general continuous CDFs, applied here via F.
-
-    References
-    ----------
-    .. [1] N. Smirnov (1948), Table for estimating the goodness of fit of empirical
-       distributions. https://doi.org/10.1214/aoms/1177730256
-
-    Examples
-    --------
-    >>> test = KolmogorovSmirnovWeibullGofStatistic()
-    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
-    >>> bool(np.isfinite(value))
-    True
-    """
-
-    def __init__(self, alternative_type=AlternativeType.TWO_TAILED, mode="auto", a=1, k=5):
-        AbstractWeibullGofStatistic.__init__(self, a, k)
-        if alternative_type not in (
-            AlternativeType.TWO_TAILED,
-            AlternativeType.RIGHT,
-            AlternativeType.LEFT,
-        ):
-            raise ValueError("Invalid alternative_type")
-        KSStatistic.__init__(self, alternative_type, mode)
-
-    @staticmethod
-    @override
-    def short_code():
-        """
-        Get short code identifier for this test.
-
-        :return: short code string "KS".
-        """
-        return "KS"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "KS_WEIBULL_{parent_code}".
-        """
-        short_code = KolmogorovSmirnovWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
-
-    def alternative(self):
-        return RightAlternative()
-
-    def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic described in the class Notes.
-
-        Parameters
-        ----------
-        rvs : array_like
-            One-dimensional finite nonnegative observations, n >= 1.
-            Ties and constant samples are allowed.
-        **kwargs : dict
-            Unused common-interface keywords.
-
-        Returns
-        -------
-        statistic : float
-            Scalar discrepancy. Infinite boundary penalties are preserved.
-
-        Raises
-        ------
-        ValueError
-            Invalid sample, unsupported settings, or unrepresentable fit.
-
-        Notes
-        -----
-        The input is never changed and estimated parameters are not retained.
-        """
-        x = np.sort(_sample(rvs))
-        return float(self.do_execute_statistic(x, generate_weibull_cdf(x, a=self.a, k=self.k)))
-
-
 def _sb_components(y):
     n = len(y)
     y = y - np.mean(y)
@@ -828,7 +363,7 @@ def _sb_components(y):
     return y, b
 
 
-class WPPWeibullGofStatistic(_CompositeWeibullStatistic, ABC):
+class WPPWeibullGofStatistic(AbstractWeibullGofStatistic, ABC):
     """Abstract probability-plot family; select a concrete statistic to execute."""
 
     def alternative(self):
@@ -865,6 +400,12 @@ class WPPWeibullGofStatistic(_CompositeWeibullStatistic, ABC):
 class SbWeibullGofStatistic(WPPWeibullGofStatistic):
     """Centered log-order linear-estimate ratio (historical SB name).
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -877,7 +418,8 @@ class SbWeibullGofStatistic(WPPWeibullGofStatistic):
     Notes
     -----
     F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
-    and unknown positive scale eta and shape k. No constructor arguments.
+    and unknown positive scale eta and shape k.
+    Pass Distribution.DEFAULT.parse({}) to declare both parameters unknown.
     Logarithmic location and scale are eliminated within every call.
 
     For centered y_i=log(x_(i))-mean(log(x)), let w_i=log((n+1)/(n-i+1)),
@@ -898,7 +440,8 @@ class SbWeibullGofStatistic(WPPWeibullGofStatistic):
 
     Examples
     --------
-    >>> test = SbWeibullGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> test = SbWeibullGofStatistic(parameters)
     >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
     >>> bool(np.isfinite(value))
     True
@@ -913,17 +456,6 @@ class SbWeibullGofStatistic(WPPWeibullGofStatistic):
         :return: short code string "SB".
         """
         return "SB"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "SB_WEIBULL_{parent_code}".
-        """
-        short_code = SbWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def alternative(self):
         return LeftAlternative()
@@ -960,6 +492,12 @@ class SbWeibullGofStatistic(WPPWeibullGofStatistic):
 class SBWeibullGofStatistic(WPPWeibullGofStatistic):
     """Centered log-order linear-estimate ratio (historical SB name).
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -972,7 +510,8 @@ class SBWeibullGofStatistic(WPPWeibullGofStatistic):
     Notes
     -----
     F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
-    and unknown positive scale eta and shape k. No constructor arguments.
+    and unknown positive scale eta and shape k.
+    Pass Distribution.DEFAULT.parse({}) to declare both parameters unknown.
     Logarithmic location and scale are eliminated within every call.
 
     For centered y_i=log(x_(i))-mean(log(x)), let w_i=log((n+1)/(n-i+1)),
@@ -993,7 +532,8 @@ class SBWeibullGofStatistic(WPPWeibullGofStatistic):
 
     Examples
     --------
-    >>> test = SBWeibullGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> test = SBWeibullGofStatistic(parameters)
     >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
     >>> bool(np.isfinite(value))
     True
@@ -1008,17 +548,6 @@ class SBWeibullGofStatistic(WPPWeibullGofStatistic):
         :return: short code string "SB".
         """
         return "SB"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "SB_WEIBULL_{parent_code}".
-        """
-        short_code = SBWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def alternative(self):
         return LeftAlternative()
@@ -1055,6 +584,12 @@ class SBWeibullGofStatistic(WPPWeibullGofStatistic):
 class OKWeibullGofStatistic(WPPWeibullGofStatistic):
     """Standardized log-order scale ratio (historical OK name).
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -1067,7 +602,8 @@ class OKWeibullGofStatistic(WPPWeibullGofStatistic):
     Notes
     -----
     F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
-    and unknown positive scale eta and shape k. No constructor arguments.
+    and unknown positive scale eta and shape k.
+    Pass Distribution.DEFAULT.parse({}) to declare both parameters unknown.
     Logarithmic location and scale are eliminated within every call.
 
     For centered y_i=log(x_(i))-mean(log(x)), let w_i=log((n+1)/(n-i+1)),
@@ -1089,7 +625,8 @@ class OKWeibullGofStatistic(WPPWeibullGofStatistic):
 
     Examples
     --------
-    >>> test = OKWeibullGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> test = OKWeibullGofStatistic(parameters)
     >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
     >>> bool(np.isfinite(value))
     True
@@ -1104,17 +641,6 @@ class OKWeibullGofStatistic(WPPWeibullGofStatistic):
         :return: short code string "OK".
         """
         return "OK"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "OK_WEIBULL_{parent_code}".
-        """
-        short_code = OKWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def alternative(self):
         return TwoSidedAlternative()
@@ -1150,8 +676,14 @@ class OKWeibullGofStatistic(WPPWeibullGofStatistic):
         return float((b / s - 1 - 0.13 / np.sqrt(n) + 1.18 / n) / (0.49 / np.sqrt(n) - 0.36 / n))
 
 
-class RSBWeibullGofStatistic(_CompositeWeibullStatistic):
+class RSBWeibullGofStatistic(AbstractWeibullGofStatistic):
     """Log-probability-plot correlation discrepancy (historical RSB name).
+
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
 
     Methods
     -------
@@ -1165,7 +697,8 @@ class RSBWeibullGofStatistic(_CompositeWeibullStatistic):
     Notes
     -----
     F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
-    and unknown positive scale eta and shape k. No constructor arguments.
+    and unknown positive scale eta and shape k.
+    Pass Distribution.DEFAULT.parse({}) to declare both parameters unknown.
     Logarithmic location and scale are eliminated within every call.
 
     T=n*(1-r**2), where r=corr(log(x_(i)), log(-log(1-i/(n+1)))).
@@ -1181,7 +714,8 @@ class RSBWeibullGofStatistic(_CompositeWeibullStatistic):
 
     Examples
     --------
-    >>> test = RSBWeibullGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> test = RSBWeibullGofStatistic(parameters)
     >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
     >>> bool(np.isfinite(value))
     True
@@ -1196,17 +730,6 @@ class RSBWeibullGofStatistic(_CompositeWeibullStatistic):
         :return: short code string "RSB".
         """
         return "RSB"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "RSB_WEIBULL_{parent_code}".
-        """
-        short_code = RSBWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def alternative(self):
         return RightAlternative()
@@ -1245,6 +768,12 @@ class RSBWeibullGofStatistic(_CompositeWeibullStatistic):
 class REJGWeibullGofStatistic(WPPWeibullGofStatistic):
     """Squared log-probability-plot correlation (historical REJG name).
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -1257,7 +786,8 @@ class REJGWeibullGofStatistic(WPPWeibullGofStatistic):
     Notes
     -----
     F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
-    and unknown positive scale eta and shape k. No constructor arguments.
+    and unknown positive scale eta and shape k.
+    Pass Distribution.DEFAULT.parse({}) to declare both parameters unknown.
     Logarithmic location and scale are eliminated within every call.
 
     R2=corr(log(x_(i)), log(-log(1-p_i)))**2,
@@ -1277,7 +807,8 @@ class REJGWeibullGofStatistic(WPPWeibullGofStatistic):
 
     Examples
     --------
-    >>> test = REJGWeibullGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> test = REJGWeibullGofStatistic(parameters)
     >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
     >>> bool(np.isfinite(value))
     True
@@ -1292,17 +823,6 @@ class REJGWeibullGofStatistic(WPPWeibullGofStatistic):
         :return: short code string "REJG".
         """
         return "REJG"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "REJG_WEIBULL_{parent_code}".
-        """
-        short_code = REJGWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def alternative(self):
         return LeftAlternative()
@@ -1341,6 +861,12 @@ class REJGWeibullGofStatistic(WPPWeibullGofStatistic):
 class SPPWeibullGofStatistic(WPPWeibullGofStatistic):
     """Maximum stabilized probability-plot distance with Weibull MLEs.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -1353,7 +879,8 @@ class SPPWeibullGofStatistic(WPPWeibullGofStatistic):
     Notes
     -----
     F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
-    and unknown positive scale eta and shape k. No constructor arguments.
+    and unknown positive scale eta and shape k.
+    Pass Distribution.DEFAULT.parse({}) to declare both parameters unknown.
     Logarithmic location and scale are eliminated within every call.
 
     T=max(abs(2/pi*asin(sqrt((i-0.5)/n))-2/pi*asin(sqrt(G(z_i))))),
@@ -1370,7 +897,8 @@ class SPPWeibullGofStatistic(WPPWeibullGofStatistic):
 
     Examples
     --------
-    >>> test = SPPWeibullGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> test = SPPWeibullGofStatistic(parameters)
     >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
     >>> bool(np.isfinite(value))
     True
@@ -1385,17 +913,6 @@ class SPPWeibullGofStatistic(WPPWeibullGofStatistic):
         :return: short code string "SPP".
         """
         return "SPP"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "SPP_WEIBULL_{parent_code}".
-        """
-        short_code = SPPWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def alternative(self):
         return RightAlternative()
@@ -1431,8 +948,14 @@ class SPPWeibullGofStatistic(WPPWeibullGofStatistic):
         return float(np.max(np.abs(r - s)))
 
 
-class ST1WeibullGofStatistic(_CompositeWeibullStatistic):
+class ST1WeibullGofStatistic(AbstractWeibullGofStatistic):
     """Delta-method moment discrepancy for negative log Weibull observations.
+
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
 
     Methods
     -------
@@ -1446,7 +969,8 @@ class ST1WeibullGofStatistic(_CompositeWeibullStatistic):
     Notes
     -----
     F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
-    and unknown positive scale eta and shape k. No constructor arguments.
+    and unknown positive scale eta and shape k.
+    Pass Distribution.DEFAULT.parse({}) to declare both parameters unknown.
     Logarithmic location and scale are eliminated within every call.
 
     Let Z be the standardized maximum Gumbel. Set g=E(Z**3), b=E(Z**4).
@@ -1471,7 +995,8 @@ class ST1WeibullGofStatistic(_CompositeWeibullStatistic):
 
     Examples
     --------
-    >>> test = ST1WeibullGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> test = ST1WeibullGofStatistic(parameters)
     >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
     >>> bool(np.isfinite(value))
     True
@@ -1486,17 +1011,6 @@ class ST1WeibullGofStatistic(_CompositeWeibullStatistic):
         :return: short code string "ST1".
         """
         return "ST1"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "ST1_WEIBULL_{parent_code}".
-        """
-        short_code = ST1WeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def alternative(self):
         return RightAlternative()
@@ -1531,8 +1045,14 @@ class ST1WeibullGofStatistic(_CompositeWeibullStatistic):
         return float(n * (skew - g) ** 2 / v33)
 
 
-class ST2WeibullGofStatistic(_CompositeWeibullStatistic):
+class ST2WeibullGofStatistic(AbstractWeibullGofStatistic):
     """Delta-method moment discrepancy for negative log Weibull observations.
+
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
 
     Methods
     -------
@@ -1546,7 +1066,8 @@ class ST2WeibullGofStatistic(_CompositeWeibullStatistic):
     Notes
     -----
     F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
-    and unknown positive scale eta and shape k. No constructor arguments.
+    and unknown positive scale eta and shape k.
+    Pass Distribution.DEFAULT.parse({}) to declare both parameters unknown.
     Logarithmic location and scale are eliminated within every call.
 
     Let Z be the standardized maximum Gumbel. Set g=E(Z**3), b=E(Z**4).
@@ -1571,7 +1092,8 @@ class ST2WeibullGofStatistic(_CompositeWeibullStatistic):
 
     Examples
     --------
-    >>> test = ST2WeibullGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> test = ST2WeibullGofStatistic(parameters)
     >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
     >>> bool(np.isfinite(value))
     True
@@ -1586,17 +1108,6 @@ class ST2WeibullGofStatistic(_CompositeWeibullStatistic):
         :return: short code string "ST2".
         """
         return "ST2"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "ST2_WEIBULL_{parent_code}".
-        """
-        short_code = ST2WeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def alternative(self):
         return RightAlternative()
@@ -1631,7 +1142,7 @@ class ST2WeibullGofStatistic(_CompositeWeibullStatistic):
         return float(n * ((kurt - b) - v34 / v33 * (skew - g)) ** 2 / (v44 - v34**2 / v33))
 
 
-class NormalizeSpaceWeibullGofStatistic(_CompositeWeibullStatistic, ABC):
+class NormalizeSpaceWeibullGofStatistic(AbstractWeibullGofStatistic, ABC):
     """Abstract complete-sample normalized-spacing family (no censoring API)."""
 
     @staticmethod
@@ -1679,6 +1190,12 @@ class NormalizeSpaceWeibullGofStatistic(_CompositeWeibullStatistic, ABC):
 class TikuSinghWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
     """Normalized log-spacing statistic (complete observations).
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -1691,7 +1208,8 @@ class TikuSinghWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
     Notes
     -----
     F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
-    and unknown positive scale eta and shape k. No constructor arguments.
+    and unknown positive scale eta and shape k.
+    Pass Distribution.DEFAULT.parse({}) to declare both parameters unknown.
     Logarithmic location and scale are eliminated within every call.
 
     Let y_i=log(x_(i)), mu_i approximate E(log(E_(i))) for unit exponential
@@ -1714,7 +1232,8 @@ class TikuSinghWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
 
     Examples
     --------
-    >>> test = TikuSinghWeibullGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> test = TikuSinghWeibullGofStatistic(parameters)
     >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
     >>> bool(np.isfinite(value))
     True
@@ -1729,17 +1248,6 @@ class TikuSinghWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
         :return: short code string "TS".
         """
         return "TS"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "TS_WEIBULL_{parent_code}".
-        """
-        short_code = TikuSinghWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def alternative(self):
         return TwoSidedAlternative()
@@ -1777,6 +1285,12 @@ class TikuSinghWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
 class LOSWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
     """Normalized log-spacing statistic (complete observations).
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -1789,7 +1303,8 @@ class LOSWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
     Notes
     -----
     F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
-    and unknown positive scale eta and shape k. No constructor arguments.
+    and unknown positive scale eta and shape k.
+    Pass Distribution.DEFAULT.parse({}) to declare both parameters unknown.
     Logarithmic location and scale are eliminated within every call.
 
     Let y_i=log(x_(i)), mu_i approximate E(log(E_(i))) for unit exponential
@@ -1813,7 +1328,8 @@ class LOSWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
 
     Examples
     --------
-    >>> test = LOSWeibullGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> test = LOSWeibullGofStatistic(parameters)
     >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
     >>> bool(np.isfinite(value))
     True
@@ -1828,17 +1344,6 @@ class LOSWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
         :return: short code string "LOS".
         """
         return "LOS"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "LOS_WEIBULL_{parent_code}".
-        """
-        short_code = LOSWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def alternative(self):
         return RightAlternative()
@@ -1880,6 +1385,12 @@ class LOSWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
 class MSFWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
     """Normalized log-spacing statistic (complete observations).
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -1892,7 +1403,8 @@ class MSFWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
     Notes
     -----
     F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
-    and unknown positive scale eta and shape k. No constructor arguments.
+    and unknown positive scale eta and shape k.
+    Pass Distribution.DEFAULT.parse({}) to declare both parameters unknown.
     Logarithmic location and scale are eliminated within every call.
 
     Let y_i=log(x_(i)), mu_i approximate E(log(E_(i))) for unit exponential
@@ -1915,7 +1427,8 @@ class MSFWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
 
     Examples
     --------
-    >>> test = MSFWeibullGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> test = MSFWeibullGofStatistic(parameters)
     >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
     >>> bool(np.isfinite(value))
     True
@@ -1930,17 +1443,6 @@ class MSFWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
         :return: short code string "MSF".
         """
         return "MSF"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "MSF_WEIBULL_{parent_code}".
-        """
-        short_code = MSFWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def alternative(self):
         return RightAlternative()
@@ -1974,8 +1476,14 @@ class MSFWeibullGofStatistic(NormalizeSpaceWeibullGofStatistic):
         return float(np.sum(g[(len(g) + 1) // 2 :]))
 
 
-class LiaoShimokawaWeibullGofStatistic(_CompositeWeibullStatistic):
+class LiaoShimokawaWeibullGofStatistic(AbstractWeibullGofStatistic):
     """Liao-Shimokawa weighted EDF statistic with Weibull MLEs.
+
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
 
     Methods
     -------
@@ -1989,7 +1497,8 @@ class LiaoShimokawaWeibullGofStatistic(_CompositeWeibullStatistic):
     Notes
     -----
     F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
-    and unknown positive scale eta and shape k. No constructor arguments.
+    and unknown positive scale eta and shape k.
+    Pass Distribution.DEFAULT.parse({}) to declare both parameters unknown.
     Logarithmic location and scale are eliminated within every call.
 
     L=sum(max(i/n-u_i,u_i-(i-1)/n)/sqrt(u_i*(1-u_i)))/sqrt(n),
@@ -2012,7 +1521,8 @@ class LiaoShimokawaWeibullGofStatistic(_CompositeWeibullStatistic):
 
     Examples
     --------
-    >>> test = LiaoShimokawaWeibullGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> test = LiaoShimokawaWeibullGofStatistic(parameters)
     >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
     >>> bool(np.isfinite(value))
     True
@@ -2027,17 +1537,6 @@ class LiaoShimokawaWeibullGofStatistic(_CompositeWeibullStatistic):
         :return: short code string "LS".
         """
         return "LS"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "LS_WEIBULL_{parent_code}".
-        """
-        short_code = LiaoShimokawaWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def alternative(self):
         return RightAlternative()
@@ -2070,108 +1569,14 @@ class LiaoShimokawaWeibullGofStatistic(_CompositeWeibullStatistic):
         return _weighted_edf(*_log_probabilities(_fitted(rvs)))
 
 
-class WatsonWeibullGofStatistic(CrammerVonMisesWeibullGofStatistic):
-    """Watson centered EDF statistic for a specified exponentiated Weibull.
+class KullbackLeiblerWeibullGofStatistic(AbstractWeibullGofStatistic):
+    """Spacing-entropy discrepancy from a fitted log-Weibull density.
 
     Parameters
     ----------
-    a, k : float, optional
-        Fixed positive finite shape parameters, both default to 1.
-        The parameter a is an exponent, not a scale.
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
 
-    Methods
-    -------
-    execute_statistic(rvs, **kwargs)
-        Return a scalar statistic, fitting parameters internally when needed.
-    hypothesis()
-        Return the fixed parameters; omitted parameters are unknown.
-    alternative()
-        Return the critical-region tail.
-
-    Notes
-    -----
-    F(x)=(1-exp(-x**k))**a on x >= 0, with fixed a, k, scale 1
-    and location 0. Put u_i=F(x_(i)), i=1,...,n.
-
-    U2=W2-n*(mean(u_i)-1/2)**2; W2 is the Cramer-von Mises statistic.
-
-    Reject for right tail values.
-    Calibrate using the specified null and the same sample size.
-    Previously stored unversioned Weibull calibrations must be regenerated.
-    The general centered EDF functional is applied to the known CDF.
-    Centering residuals before squaring avoids subtracting two large sums.
-
-    References
-    ----------
-    .. [1] G. S. Watson (1961), Goodness-of-fit tests on a circle.
-       https://doi.org/10.1093/biomet/48.1-2.109
-
-    Examples
-    --------
-    >>> test = WatsonWeibullGofStatistic()
-    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
-    >>> bool(np.isfinite(value))
-    True
-    """
-
-    @staticmethod
-    @override
-    def short_code():
-        """
-        Get short code identifier for this test.
-
-        :return: short code string "W".
-        """
-        return "W"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "W_WEIBULL_{parent_code}".
-        """
-        short_code = WatsonWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
-
-    def alternative(self):
-        return RightAlternative()
-
-    def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic described in the class Notes.
-
-        Parameters
-        ----------
-        rvs : array_like
-            One-dimensional finite nonnegative observations, n >= 1.
-            Ties and constant samples are allowed.
-        **kwargs : dict
-            Unused common-interface keywords.
-
-        Returns
-        -------
-        statistic : float
-            Scalar discrepancy. Infinite boundary penalties are preserved.
-
-        Raises
-        ------
-        ValueError
-            Invalid sample, unsupported settings, or unrepresentable fit.
-
-        Notes
-        -----
-        The input is never changed and estimated parameters are not retained.
-        """
-        x = np.sort(_sample(rvs))
-        u = generate_weibull_cdf(x, a=self.a, k=self.k)
-        target = (np.arange(1, len(x) + 1) - 0.5) / len(x)
-        delta = u - target
-        return float(1 / (12 * len(x)) + np.sum((delta - np.mean(delta)) ** 2))
-
-
-class KullbackLeiblerWeibullGofStatistic(_CompositeWeibullStatistic):
-    """Spacing-entropy discrepancy from a fitted log-Weibull density.
 
     Methods
     -------
@@ -2185,7 +1590,8 @@ class KullbackLeiblerWeibullGofStatistic(_CompositeWeibullStatistic):
     Notes
     -----
     F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
-    and unknown positive scale eta and shape k. No constructor arguments.
+    and unknown positive scale eta and shape k.
+    Pass Distribution.DEFAULT.parse({}) to declare both parameters unknown.
     Logarithmic location and scale are eliminated within every call.
 
     For MLE-standardized ordered logs z_i, define
@@ -2208,7 +1614,8 @@ class KullbackLeiblerWeibullGofStatistic(_CompositeWeibullStatistic):
 
     Examples
     --------
-    >>> test = KullbackLeiblerWeibullGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> test = KullbackLeiblerWeibullGofStatistic(parameters)
     >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
     >>> bool(np.isfinite(value))
     True
@@ -2223,17 +1630,6 @@ class KullbackLeiblerWeibullGofStatistic(_CompositeWeibullStatistic):
         :return: short code string "KL".
         """
         return "KL"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "KL_WEIBULL_{parent_code}".
-        """
-        short_code = KullbackLeiblerWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def alternative(self):
         return RightAlternative()
@@ -2279,7 +1675,7 @@ class KullbackLeiblerWeibullGofStatistic(_CompositeWeibullStatistic):
         return float(-h - np.mean(z) + np.mean(np.exp(z)))
 
 
-class LaplaceTransformWeibullGofStatistic(_CompositeWeibullStatistic, ABC):
+class LaplaceTransformWeibullGofStatistic(AbstractWeibullGofStatistic, ABC):
     """Abstract fitted-Weibull Laplace family; choose LT2 or LT3."""
 
     def alternative(self):
@@ -2314,6 +1710,12 @@ class LaplaceTransformWeibullGofStatistic(_CompositeWeibullStatistic, ABC):
 class LaplaceTransform2WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
     """Krit LT2 discrete Laplace statistic with maximum-likelihood fits.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -2326,7 +1728,8 @@ class LaplaceTransform2WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
     Notes
     -----
     F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
-    and unknown positive scale eta and shape k. No constructor arguments.
+    and unknown positive scale eta and shape k.
+    Pass Distribution.DEFAULT.parse({}) to declare both parameters unknown.
     Logarithmic location and scale are eliminated within every call.
 
     T=n*sum(exp(a*t-exp(a*t))*(mean(exp(-t*z))-Gamma(1-t))**2).
@@ -2351,7 +1754,8 @@ class LaplaceTransform2WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
 
     Examples
     --------
-    >>> test = LaplaceTransform2WeibullGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> test = LaplaceTransform2WeibullGofStatistic(parameters)
     >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
     >>> bool(np.isfinite(value))
     True
@@ -2366,17 +1770,6 @@ class LaplaceTransform2WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
         :return: short code string "LT2".
         """
         return "LT2"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "LT2_WEIBULL_{parent_code}".
-        """
-        short_code = LaplaceTransform2WeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def alternative(self):
         return RightAlternative()
@@ -2416,6 +1809,12 @@ class LaplaceTransform2WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
 class LaplaceTransform3WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
     """Krit LT3 discrete Laplace statistic with maximum-likelihood fits.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -2428,7 +1827,8 @@ class LaplaceTransform3WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
     Notes
     -----
     F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
-    and unknown positive scale eta and shape k. No constructor arguments.
+    and unknown positive scale eta and shape k.
+    Pass Distribution.DEFAULT.parse({}) to declare both parameters unknown.
     Logarithmic location and scale are eliminated within every call.
 
     T=n*sum(exp(a*t-exp(a*t))*(mean(exp(-t*z))-Gamma(1-t))**2).
@@ -2453,7 +1853,8 @@ class LaplaceTransform3WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
 
     Examples
     --------
-    >>> test = LaplaceTransform3WeibullGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> test = LaplaceTransform3WeibullGofStatistic(parameters)
     >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
     >>> bool(np.isfinite(value))
     True
@@ -2468,17 +1869,6 @@ class LaplaceTransform3WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
         :return: short code string "LT3".
         """
         return "LT3"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "LT3_WEIBULL_{parent_code}".
-        """
-        short_code = LaplaceTransform3WeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def alternative(self):
         return RightAlternative()
@@ -2515,8 +1905,14 @@ class LaplaceTransform3WeibullGofStatistic(LaplaceTransformWeibullGofStatistic):
         return self._laplace(rvs, m, a, 3)
 
 
-class CabanaQuirozWeibullGofStatistic(_CompositeWeibullStatistic):
+class CabanaQuirozWeibullGofStatistic(AbstractWeibullGofStatistic):
     """Krit maximum-likelihood Cabana-Quiroz CQ* quadratic statistic.
+
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
 
     Methods
     -------
@@ -2530,7 +1926,8 @@ class CabanaQuirozWeibullGofStatistic(_CompositeWeibullStatistic):
     Notes
     -----
     F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
-    and unknown positive scale eta and shape k. No constructor arguments.
+    and unknown positive scale eta and shape k.
+    Pass Distribution.DEFAULT.parse({}) to declare both parameters unknown.
     Logarithmic location and scale are eliminated within every call.
 
     v=sqrt(n)*(mean(exp(-s*z))-Gamma(1-s)), s=(-0.1,0.02).
@@ -2554,7 +1951,8 @@ class CabanaQuirozWeibullGofStatistic(_CompositeWeibullStatistic):
 
     Examples
     --------
-    >>> test = CabanaQuirozWeibullGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> test = CabanaQuirozWeibullGofStatistic(parameters)
     >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
     >>> bool(np.isfinite(value))
     True
@@ -2569,18 +1967,6 @@ class CabanaQuirozWeibullGofStatistic(_CompositeWeibullStatistic):
         :return: short code string "CQ*".
         """
         return "CQ*"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "CQ*_WEIBULL_{parent_code}".
-        """
-        return (
-            f"{CabanaQuirozWeibullGofStatistic.short_code()}_{AbstractWeibullGofStatistic.code()}"
-        )
 
     def alternative(self):
         return RightAlternative()
@@ -2623,8 +2009,14 @@ class CabanaQuirozWeibullGofStatistic(_CompositeWeibullStatistic):
             return float(np.dot(transformed, transformed))
 
 
-class MahdiDoostparastWeibullGofStatistic(_CompositeWeibullStatistic):
+class MahdiDoostparastWeibullGofStatistic(AbstractWeibullGofStatistic):
     """Doostparast weighted record EDF distance with record-likelihood fitting.
+
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
 
     Methods
     -------
@@ -2638,7 +2030,8 @@ class MahdiDoostparastWeibullGofStatistic(_CompositeWeibullStatistic):
     Notes
     -----
     F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
-    and unknown positive scale eta and shape k. No constructor arguments.
+    and unknown positive scale eta and shape k.
+    Pass Distribution.DEFAULT.parse({}) to declare both parameters unknown.
     Logarithmic location and scale are eliminated within every call.
 
     The input is a complete sequence in acquisition order. Extract lower
@@ -2665,7 +2058,8 @@ class MahdiDoostparastWeibullGofStatistic(_CompositeWeibullStatistic):
 
     Examples
     --------
-    >>> test = MahdiDoostparastWeibullGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> test = MahdiDoostparastWeibullGofStatistic(parameters)
     >>> value = test.execute_statistic([3.0, 1.2, 2.1, 0.4, 0.8, 0.2])
     >>> bool(np.isfinite(value))
     True
@@ -2680,17 +2074,6 @@ class MahdiDoostparastWeibullGofStatistic(_CompositeWeibullStatistic):
         :return: short code string "MD".
         """
         return "MD"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "MD_WEIBULL_{parent_code}".
-        """
-        short_code = MahdiDoostparastWeibullGofStatistic.short_code()
-        return f"{short_code}_{AbstractWeibullGofStatistic.code()}"
 
     def alternative(self):
         return RightAlternative()

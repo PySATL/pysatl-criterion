@@ -45,7 +45,7 @@ from pysatl_criterion.generator.generators import (
         ),
         (Chi2Generator(df=6), DistributionType.CHI_2, {"df": 6}),
         (GumbelGenerator(mu=1, beta=2), DistributionType.GUMBEL, {"mu": 1, "beta": 2}),
-        (WeibullGenerator(a=2, k=5), DistributionType.WEIBULL, {"a": 2, "k": 5}),
+        (WeibullGenerator(scale=2, shape=5), DistributionType.WEIBULL, {"shape": 5, "scale": 2}),
         (LoConNormGenerator(p=0.25, a=2), DistributionType.LO_CON_NORMAL, {"p": 0.25, "a": 2}),
         (ScConNormGenerator(p=0.25, b=2), DistributionType.SCALE_CON_NORMAL, {"p": 0.25, "b": 2}),
         (
@@ -90,7 +90,7 @@ def test_student_generator_code_includes_location_and_scale():
         TruncnormGenerator(mean=1, var=2, a=-3, b=4),
         Chi2Generator(df=6),
         GumbelGenerator(mu=1, beta=2),
-        WeibullGenerator(a=2, k=5),
+        WeibullGenerator(scale=2, shape=5),
         LoConNormGenerator(p=0.25, a=2),
         ScConNormGenerator(p=0.25, b=2),
         MixConNormGenerator(p=0.25, a=2, b=3),

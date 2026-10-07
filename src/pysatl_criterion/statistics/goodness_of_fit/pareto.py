@@ -13,7 +13,9 @@ from fractions import Fraction
 import numpy as np
 from typing_extensions import override
 
-from pysatl_criterion import DistributionType
+from pysatl_criterion.distribution.distributions import ParetoDistributionDescriptor
+from pysatl_criterion.distribution.distributions import ParetoDistributionDescriptor as Distribution
+from pysatl_criterion.distribution.parameters import HypothesisSupport, ParameterValues
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.alternative import (
     AlternativeType,
@@ -27,19 +29,6 @@ from pysatl_criterion.statistics.goodness_of_fit.common import (
     LillieforsTest,
     MinToshiyukiStatistic,
 )
-from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
-
-
-def _positive_parameter(value, name):
-    if np.ndim(value) != 0 or np.iscomplexobj(value):
-        raise ValueError(f"{name} must be positive, finite and scalar")
-    try:
-        value = float(value)
-    except (TypeError, ValueError, OverflowError) as error:
-        raise ValueError(f"{name} must be positive, finite and scalar") from error
-    if not np.isfinite(value) or value <= 0:
-        raise ValueError(f"{name} must be positive, finite and scalar")
-    return value
 
 
 def _sample(rvs, minimum=1, scale=None):
@@ -89,25 +78,38 @@ def _log_probabilities(x, shape, scale):
 
 
 class AbstractParetoGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
-    def __init__(self, shape: float = 1.0, scale: float = 1.0):
-        shape = _positive_parameter(shape, "Shape")
-        scale = _positive_parameter(scale, "Scale")
-        self.shape = shape
-        self.scale = scale
+    @property
+    def shape(self) -> float:
+        """Read shape by its stable parameter identity."""
+        return self._parameters[Distribution.SHAPE]
 
-    @override
-    def hypothesis(self) -> GoodnessOfFitHypothesis:
-        return GoodnessOfFitHypothesis({"shape": self.shape, "scale": self.scale})
+    @property
+    def scale(self) -> float:
+        """Read scale by its stable parameter identity."""
+        return self._parameters[Distribution.SCALE]
+
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (
+            HypothesisSupport(
+                Distribution.DEFAULT, frozenset({Distribution.SHAPE, Distribution.SCALE})
+            ),
+        )
 
     @staticmethod
     @override
-    def distribution() -> DistributionType:
-        return DistributionType.PARETO
+    def distribution() -> type[ParetoDistributionDescriptor]:
+        """Return the distribution descriptor class."""
+        return ParetoDistributionDescriptor
 
-    @staticmethod
+    @classmethod
     @override
-    def code():
-        return f"PARETO_{AbstractGoodnessOfFitStatistic.code()}"
+    def code(cls) -> str:
+        """Return the family identifier or the concrete statistic's full identifier."""
+        family_code = f"PARETO_{AbstractGoodnessOfFitStatistic.code()}"
+        if "short_code" in cls.__abstractmethods__:
+            return family_code
+        return f"{cls.short_code()}_{family_code}"
 
 
 class KolmogorovSmirnovParetoGofStatistic(AbstractParetoGofStatistic, KSStatistic):
@@ -115,10 +117,8 @@ class KolmogorovSmirnovParetoGofStatistic(AbstractParetoGofStatistic, KSStatisti
 
     Parameters
     ----------
-    shape : float, optional
-        Fixed positive finite scalar shape, default 1.
-    scale : float, optional
-        Fixed positive finite scalar lower endpoint, default 1.
+    parameters : ParameterValues
+        Values with shape, scale fixed; omitted parameters are unknown.
     alternative_type : AlternativeType, optional
         CDF deviation direction, default TWO_TAILED.
     mode : {'auto', 'exact', 'approx', 'asymp'}, optional
@@ -152,7 +152,8 @@ class KolmogorovSmirnovParetoGofStatistic(AbstractParetoGofStatistic, KSStatisti
 
     Examples
     --------
-    >>> statistic = KolmogorovSmirnovParetoGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'shape': 1, 'scale': 1})
+    >>> statistic = KolmogorovSmirnovParetoGofStatistic(parameters)
     >>> value = statistic.execute_statistic([1.1, 1.4, 1.9, 2.7, 4.2, 8.0])
     >>> bool(np.isfinite(value))
     True
@@ -160,12 +161,12 @@ class KolmogorovSmirnovParetoGofStatistic(AbstractParetoGofStatistic, KSStatisti
 
     def __init__(
         self,
+        parameters: ParameterValues,
+        *,
         alternative_type: AlternativeType = AlternativeType.TWO_TAILED,
         mode="auto",
-        shape: float = 1.0,
-        scale: float = 1.0,
     ):
-        AbstractParetoGofStatistic.__init__(self, shape=shape, scale=scale)
+        AbstractParetoGofStatistic.__init__(self, parameters)
         if not isinstance(alternative_type, AlternativeType):
             raise TypeError("alternative_type must be an AlternativeType")
         if mode not in ("auto", "exact", "approx", "asymp"):
@@ -180,12 +181,6 @@ class KolmogorovSmirnovParetoGofStatistic(AbstractParetoGofStatistic, KSStatisti
     @override
     def short_code():
         return "KS"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = KolmogorovSmirnovParetoGofStatistic.short_code()
-        return f"{short_code}_{AbstractParetoGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -220,10 +215,8 @@ class AndersonDarlingParetoGofStatistic(AbstractParetoGofStatistic, ADStatistic)
 
     Parameters
     ----------
-    shape : float, optional
-        Fixed positive finite scalar shape, default 1.
-    scale : float, optional
-        Fixed positive finite scalar lower endpoint, default 1.
+    parameters : ParameterValues
+        Values with shape, scale fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -254,7 +247,8 @@ class AndersonDarlingParetoGofStatistic(AbstractParetoGofStatistic, ADStatistic)
 
     Examples
     --------
-    >>> statistic = AndersonDarlingParetoGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'shape': 1, 'scale': 1})
+    >>> statistic = AndersonDarlingParetoGofStatistic(parameters)
     >>> value = statistic.execute_statistic([1.1, 1.4, 1.9, 2.7, 4.2, 8.0])
     >>> bool(np.isfinite(value))
     True
@@ -264,12 +258,6 @@ class AndersonDarlingParetoGofStatistic(AbstractParetoGofStatistic, ADStatistic)
     @override
     def short_code():
         return "AD"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = AndersonDarlingParetoGofStatistic.short_code()
-        return f"{short_code}_{AbstractParetoGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -304,10 +292,8 @@ class CramerVonMisesParetoGofStatistic(AbstractParetoGofStatistic, CrammerVonMis
 
     Parameters
     ----------
-    shape : float, optional
-        Fixed positive finite scalar shape, default 1.
-    scale : float, optional
-        Fixed positive finite scalar lower endpoint, default 1.
+    parameters : ParameterValues
+        Values with shape, scale fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -337,7 +323,8 @@ class CramerVonMisesParetoGofStatistic(AbstractParetoGofStatistic, CrammerVonMis
 
     Examples
     --------
-    >>> statistic = CramerVonMisesParetoGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'shape': 1, 'scale': 1})
+    >>> statistic = CramerVonMisesParetoGofStatistic(parameters)
     >>> value = statistic.execute_statistic([1.1, 1.4, 1.9, 2.7, 4.2, 8.0])
     >>> bool(np.isfinite(value))
     True
@@ -347,12 +334,6 @@ class CramerVonMisesParetoGofStatistic(AbstractParetoGofStatistic, CrammerVonMis
     @override
     def short_code():
         return "CVM"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = CramerVonMisesParetoGofStatistic.short_code()
-        return f"{short_code}_{AbstractParetoGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -385,6 +366,12 @@ class CramerVonMisesParetoGofStatistic(AbstractParetoGofStatistic, CrammerVonMis
 class LillieforsParetoGofStatistic(AbstractParetoGofStatistic, LillieforsTest):
     """Fitted two-sided KS distance for the full Pareto I family.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -411,29 +398,21 @@ class LillieforsParetoGofStatistic(AbstractParetoGofStatistic, LillieforsTest):
 
     Examples
     --------
-    >>> statistic = LillieforsParetoGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = LillieforsParetoGofStatistic(parameters)
     >>> value = statistic.execute_statistic([1.1, 1.4, 1.9, 2.7, 4.2, 8.0])
     >>> bool(np.isfinite(value))
     True
     """
 
-    def __init__(self):
-        pass
-
-    @override
-    def hypothesis(self):
-        return GoodnessOfFitHypothesis({})
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (HypothesisSupport(Distribution.DEFAULT, frozenset()),)
 
     @staticmethod
     @override
     def short_code():
         return "Lilliefors"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = LillieforsParetoGofStatistic.short_code()
-        return f"{short_code}_{AbstractParetoGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -468,10 +447,8 @@ class MinToshiyukiParetoGofStatistic(AbstractParetoGofStatistic, MinToshiyukiSta
 
     Parameters
     ----------
-    shape : float, optional
-        Fixed positive finite scalar shape, default 1.
-    scale : float, optional
-        Fixed positive finite scalar lower endpoint, default 1.
+    parameters : ParameterValues
+        Values with shape, scale fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -499,7 +476,8 @@ class MinToshiyukiParetoGofStatistic(AbstractParetoGofStatistic, MinToshiyukiSta
 
     Examples
     --------
-    >>> statistic = MinToshiyukiParetoGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'shape': 1, 'scale': 1})
+    >>> statistic = MinToshiyukiParetoGofStatistic(parameters)
     >>> value = statistic.execute_statistic([1.1, 1.4, 1.9, 2.7, 4.2, 8.0])
     >>> bool(np.isfinite(value))
     True
@@ -509,12 +487,6 @@ class MinToshiyukiParetoGofStatistic(AbstractParetoGofStatistic, MinToshiyukiSta
     @override
     def short_code():
         return "MT"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = MinToshiyukiParetoGofStatistic.short_code()
-        return f"{short_code}_{AbstractParetoGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -554,8 +526,8 @@ class ObradovicParetoGofStatistic(AbstractParetoGofStatistic):
 
     Parameters
     ----------
-    scale : float, optional
-        Known positive finite scalar lower endpoint, default 1.
+    parameters : ParameterValues
+        Values with scale fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -592,7 +564,8 @@ class ObradovicParetoGofStatistic(AbstractParetoGofStatistic):
 
     Examples
     --------
-    >>> statistic = ObradovicParetoGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'scale': 1})
+    >>> statistic = ObradovicParetoGofStatistic(parameters)
     >>> value = statistic.execute_statistic([1.1, 1.4, 1.9, 2.7, 4.2, 8.0])
     >>> bool(np.isfinite(value))
     True
@@ -603,18 +576,9 @@ class ObradovicParetoGofStatistic(AbstractParetoGofStatistic):
     def short_code():
         return "OJM_Integral"
 
-    @staticmethod
-    @override
-    def code():
-        short_code = ObradovicParetoGofStatistic.short_code()
-        return f"{short_code}_{AbstractParetoGofStatistic.code()}"
-
-    def __init__(self, scale: float = 1.0):
-        self.scale = _positive_parameter(scale, "Scale")
-
-    @override
-    def hypothesis(self):
-        return GoodnessOfFitHypothesis({"scale": self.scale})
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (HypothesisSupport(Distribution.DEFAULT, frozenset({Distribution.SCALE})),)
 
     @override
     def alternative(self):
@@ -677,6 +641,12 @@ class ObradovicParetoGofStatistic(AbstractParetoGofStatistic):
 class GreenwoodParetoGofStatistic(AbstractParetoGofStatistic):
     """Greenwood ratio of logarithmic excesses above the sample minimum.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -704,7 +674,8 @@ class GreenwoodParetoGofStatistic(AbstractParetoGofStatistic):
 
     Examples
     --------
-    >>> statistic = GreenwoodParetoGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = GreenwoodParetoGofStatistic(parameters)
     >>> value = statistic.execute_statistic([1.1, 1.4, 1.9, 2.7, 4.2, 8.0])
     >>> bool(np.isfinite(value))
     True
@@ -715,18 +686,9 @@ class GreenwoodParetoGofStatistic(AbstractParetoGofStatistic):
     def short_code():
         return "Greenwood"
 
-    @staticmethod
-    @override
-    def code():
-        short_code = GreenwoodParetoGofStatistic.short_code()
-        return f"{short_code}_{AbstractParetoGofStatistic.code()}"
-
-    def __init__(self):
-        pass
-
-    @override
-    def hypothesis(self):
-        return GoodnessOfFitHypothesis({})
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (HypothesisSupport(Distribution.DEFAULT, frozenset()),)
 
     @override
     def alternative(self):
@@ -762,6 +724,12 @@ class GreenwoodParetoGofStatistic(AbstractParetoGofStatistic):
 
 class LequesneKlParetoGofStatistic(AbstractParetoGofStatistic):
     """Vasicek-Song KL estimate for the fitted Pareto I family.
+
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
 
     Methods
     -------
@@ -800,7 +768,8 @@ class LequesneKlParetoGofStatistic(AbstractParetoGofStatistic):
 
     Examples
     --------
-    >>> statistic = LequesneKlParetoGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = LequesneKlParetoGofStatistic(parameters)
     >>> value = statistic.execute_statistic([1.1, 1.4, 1.9, 2.7, 4.2, 8.0])
     >>> bool(np.isfinite(value))
     True
@@ -811,17 +780,9 @@ class LequesneKlParetoGofStatistic(AbstractParetoGofStatistic):
     def short_code():
         return "Lequesne_KL"
 
-    @staticmethod
-    @override
-    def code():
-        return f"{LequesneKlParetoGofStatistic.short_code()}_{AbstractParetoGofStatistic.code()}"
-
-    def __init__(self):
-        pass
-
-    @override
-    def hypothesis(self):
-        return GoodnessOfFitHypothesis({})
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (HypothesisSupport(Distribution.DEFAULT, frozenset()),)
 
     @override
     def alternative(self):

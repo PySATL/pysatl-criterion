@@ -13,9 +13,10 @@ Invalid inputs raise `ValueError`. The sample and model are not modified.
 `execute_statistic(rvs, **kwargs)` returns a scalar; extra keywords are ignored.
 
 ```python
+from pysatl_criterion.distribution.distributions import LaplaceDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit.laplace import WatsonLaplaceGofStatistic
 
-statistic = WatsonLaplaceGofStatistic(t=0.0, s=1.0)
+statistic = WatsonLaplaceGofStatistic(LaplaceDistributionDescriptor.DEFAULT.parse({'t': 0.0, 's': 1.0}))
 value = statistic.execute_statistic([-1.0, 0.0, 0.5, 2.0])
 ```
 

@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 from scipy import integrate, special, stats
 
+from pysatl_criterion.distribution.distributions import ExponentialDistributionDescriptor
 from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     MonteCarloLimitDistributionResolver,
     StorageLimitDistributionResolver,
@@ -18,6 +19,7 @@ from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
 from pysatl_criterion.statistics.alternative import AlternativeType
 from pysatl_criterion.statistics.goodness_of_fit import exponent as exp
 from pysatl_criterion.utils.generator import get_hypothesis_generator
+from tests.parameter_cases import parameters_for
 
 
 CLASSES = [
@@ -37,7 +39,7 @@ COMPOSITE = [cls for cls in CLASSES if cls not in FIXED]
 def test_interface_nonmutation_and_statelessness(cls):
     sample = np.array([2.0, 0.25, 0.5, 1.0])
     before = sample.copy()
-    obj = cls()
+    obj = cls(parameters_for(cls))
     state = vars(obj).copy()
     value = obj.execute_statistic(sample)
     obj.execute_statistic([0.0, 0.125, 0.75, 4.0])
@@ -58,26 +60,26 @@ def test_interface_nonmutation_and_statelessness(cls):
 )
 def test_invalid_samples(cls, sample):
     with pytest.raises(ValueError):
-        cls().execute_statistic(sample)
+        cls(parameters_for(cls)).execute_statistic(sample)
 
 
 @pytest.mark.parametrize("cls", COMPOSITE)
 def test_scale_invariance_and_unknown_rate(cls):
     sample = np.array([0.25, 0.5, 1, 2, 4.0])
-    obj = cls()
+    obj = cls(parameters_for(cls))
     expected = obj.execute_statistic(sample)
     for scale in [2.0**-1000, 2.0**1000, 1.0 / 8, 8]:
         assert obj.execute_statistic(sample * scale) == pytest.approx(expected, abs=1e-14)
     assert obj.hypothesis().parameters() == {}
-    with pytest.raises(TypeError):
-        cls(lam=2)
+    with pytest.raises(ValueError):
+        cls(parameters_for(cls, lam=2))
 
 
 @pytest.mark.parametrize("cls", FIXED)
 @pytest.mark.parametrize("lam", [0, -1, np.inf, np.nan, [1], 1j, True, None])
 def test_invalid_fixed_rate(cls, lam):
     with pytest.raises(ValueError):
-        cls(lam=lam)
+        cls(parameters_for(cls, lam=lam))
 
 
 @pytest.mark.parametrize(
@@ -90,13 +92,15 @@ def test_invalid_fixed_rate(cls, lam):
 )
 def test_ks_matches_known_cdf(direction, scipy_direction):
     x = np.array([0, 0.05, 0.1, 0.7, 2])
-    obj = exp.KolmogorovSmirnovExponentialityGofStatistic(direction, lam=3)
+    obj = exp.KolmogorovSmirnovExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({"lam": 3}), alternative_type=direction
+    )
     expected = stats.kstest(x, stats.expon(scale=1 / 3).cdf, alternative=scipy_direction).statistic
     assert obj.execute_statistic(x) == pytest.approx(expected)
     assert obj.hypothesis().parameters() == {"lam": 3}
     assert obj.alternative().type() == AlternativeType.RIGHT
     assert obj.execute_statistic(x) != exp.KolmogorovSmirnovExponentialityGofStatistic(
-        direction, lam=1
+        ExponentialDistributionDescriptor.DEFAULT.parse({"lam": 1}), alternative_type=direction
     ).execute_statistic(x)
 
 
@@ -108,7 +112,9 @@ def test_cvm_by_integrating_empirical_cdf_on_probability_scale():
         integrate.quad(lambda t, k=k: (k / len(x) - t) ** 2, a, b)[0]
         for k, (a, b) in enumerate(itertools.pairwise(cuts))
     )
-    obj = exp.CramerVonMisesExponentialityGofStatistic(lam=2)
+    obj = exp.CramerVonMisesExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({"lam": 2})
+    )
     assert obj.execute_statistic(x) == pytest.approx(len(x) * integral)
     assert obj.hypothesis().parameters() == {"lam": 2}
 
@@ -125,7 +131,7 @@ def test_fitted_quantile_distances(cls, power):
         q = stats.expon(scale=np.mean(x)).ppf(np.arange(1, len(x) + 1) / (len(x) + 1))
         expected = sum(abs(a - b) ** power for a, b in zip(sorted(x), q, strict=True))
         expected /= len(x) * np.mean(x) ** power
-        assert cls().execute_statistic(x) == pytest.approx(expected)
+        assert cls(parameters_for(cls)).execute_statistic(x) == pytest.approx(expected)
 
 
 @pytest.mark.parametrize("cls", GRAPHS)
@@ -150,7 +156,7 @@ def test_graphs_against_explicit_networkx_graph(cls, sample):
         "CLIQUENUMBER": max(map(len, nx.find_cliques(graph))),
         "INDEPENDENCENUMBER": max(map(len, nx.find_cliques(nx.complement(graph)))),
     }
-    assert cls().execute_statistic(sample) == expected[cls.short_code()]
+    assert cls(parameters_for(cls)).execute_statistic(sample) == expected[cls.short_code()]
 
 
 def test_characterizations_by_integer_enumeration():
@@ -165,22 +171,33 @@ def test_characterizations_by_integer_enumeration():
     h = sum(sorted(t)[1] - min(t) < v for t in itertools.combinations(x, 3) for v in x)
     g = sum(min(t) < v for t in itertools.combinations(x, 2) for v in x)
     rossberg = h / (n * math.comb(n, 3)) - g / (n * math.comb(n, 2))
-    assert exp.AhsanullahExponentialityGofStatistic().execute_statistic(x) == ahs
-    assert exp.HollanderProshanExponentialityGofStatistic().execute_statistic(x) == pytest.approx(
-        hp
+    assert (
+        exp.AhsanullahExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).execute_statistic(x)
+        == ahs
     )
-    assert exp.RossbergExponentialityGofStatistic().execute_statistic(x) == pytest.approx(rossberg)
+    assert exp.HollanderProshanExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(x) == pytest.approx(hp)
+    assert exp.RossbergExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(x) == pytest.approx(rossberg)
 
 
 def test_spacing_ratios_from_prescribed_independent_spacings():
     d = np.array([2, 3, 5, 7, 11, 13.0])
     x = np.cumsum(d / np.arange(6, 0, -1))
-    assert exp.GnedenkoExponentialityGofStatistic(r=2).execute_statistic(x) == pytest.approx(
-        2.5 / 9
-    )
-    assert exp.HarrisExponentialityGofStatistic(r=2).execute_statistic(x) == pytest.approx(7.25 / 6)
+    assert exp.GnedenkoExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({}), r=2
+    ).execute_statistic(x) == pytest.approx(2.5 / 9)
+    assert exp.HarrisExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({}), r=2
+    ).execute_statistic(x) == pytest.approx(7.25 / 6)
     expected = 12 * (math.log(sum(d) / 6) - sum(map(math.log, d)) / 6) / (1 + 7 / 36)
-    assert exp.EpsteinExponentialityGofStatistic().execute_statistic(x) == pytest.approx(expected)
+    assert exp.EpsteinExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(x) == pytest.approx(expected)
 
 
 @pytest.mark.parametrize(
@@ -188,25 +205,47 @@ def test_spacing_ratios_from_prescribed_independent_spacings():
 )
 def test_logarithmic_boundary(cls):
     with np.errstate(all="raise"):
-        assert cls().execute_statistic([0, 1, 2]) == -math.inf
+        assert cls(parameters_for(cls)).execute_statistic([0, 1, 2]) == -math.inf
 
 
 def test_ratio_and_spacing_boundaries():
     with np.errstate(all="raise"):
-        assert exp.EpsteinExponentialityGofStatistic().execute_statistic([1, 1, 2]) == math.inf
-        assert exp.WongWongExponentialityGofStatistic().execute_statistic([0, 1]) == math.inf
-        assert exp.GnedenkoExponentialityGofStatistic(r=1).execute_statistic([1, 1]) == math.inf
-        assert exp.HarrisExponentialityGofStatistic(r=1).execute_statistic([1, 1, 2]) == math.inf
+        assert (
+            exp.EpsteinExponentialityGofStatistic(
+                ExponentialDistributionDescriptor.DEFAULT.parse({})
+            ).execute_statistic([1, 1, 2])
+            == math.inf
+        )
+        assert (
+            exp.WongWongExponentialityGofStatistic(
+                ExponentialDistributionDescriptor.DEFAULT.parse({})
+            ).execute_statistic([0, 1])
+            == math.inf
+        )
+        assert (
+            exp.GnedenkoExponentialityGofStatistic(
+                ExponentialDistributionDescriptor.DEFAULT.parse({}), r=1
+            ).execute_statistic([1, 1])
+            == math.inf
+        )
+        assert (
+            exp.HarrisExponentialityGofStatistic(
+                ExponentialDistributionDescriptor.DEFAULT.parse({}), r=1
+            ).execute_statistic([1, 1, 2])
+            == math.inf
+        )
         with pytest.raises(ValueError):
-            exp.ShapiroWilkExponentialityGofStatistic().execute_statistic([1, 1, 1])
+            exp.ShapiroWilkExponentialityGofStatistic(
+                ExponentialDistributionDescriptor.DEFAULT.parse({})
+            ).execute_statistic([1, 1, 1])
 
 
 @pytest.mark.parametrize("cls", [cls for cls in COMPOSITE if cls not in GRAPHS])
 def test_degenerate_sample_rejected(cls):
     with pytest.raises(ValueError):
-        cls().execute_statistic([0, 0, 0, 0])
+        cls(parameters_for(cls)).execute_statistic([0, 0, 0, 0])
     with pytest.raises(ValueError):
-        cls().execute_statistic([1])
+        cls(parameters_for(cls)).execute_statistic([1])
 
 
 @pytest.mark.parametrize(
@@ -215,9 +254,9 @@ def test_degenerate_sample_rejected(cls):
 def test_split_validation(cls):
     for r in [0, -1, 1.5, True, np.inf, [1]]:
         with pytest.raises(ValueError):
-            cls(r=r)
+            cls(parameters_for(cls), r=r)
     with pytest.raises(ValueError):
-        cls(r=4).execute_statistic([1, 2, 3, 4])
+        cls(parameters_for(cls), r=4).execute_statistic([1, 2, 3, 4])
 
 
 @pytest.mark.parametrize(
@@ -231,21 +270,28 @@ def test_split_validation(cls):
 def test_scalar_settings(cls, key, invalid):
     for value in invalid:
         with pytest.raises(ValueError):
-            cls(**{key: value})
+            cls(parameters_for(cls), **{key: value})
     with pytest.raises(TypeError):
-        cls().execute_statistic([1, 2, 3, 4], **{key: 0.5})
+        cls(parameters_for(cls)).execute_statistic([1, 2, 3, 4], **{key: 0.5})
 
 
 def test_moment_and_lorenz_settings():
     x = np.array([0.25, 0.5, 1, 2])
     for p in [-0.5, 0.5, 2]:
         expected = 2 * abs(np.mean(x**p) ** (1 / p) / np.mean(x) - special.gamma(1 + p) ** (1 / p))
-        assert exp.AtkinsonExponentialityGofStatistic(p=p).execute_statistic(x) == pytest.approx(
-            expected
-        )
-    assert exp.LorenzExponentialityGofStatistic(p=0.75).execute_statistic(x) == 1.75 / 3.75
+        assert exp.AtkinsonExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({}), p=p
+        ).execute_statistic(x) == pytest.approx(expected)
+    assert (
+        exp.LorenzExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({}), p=0.75
+        ).execute_statistic(x)
+        == 1.75 / 3.75
+    )
     with pytest.raises(ValueError):
-        exp.LorenzExponentialityGofStatistic(p=0.1).execute_statistic(x)
+        exp.LorenzExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({}), p=0.1
+        ).execute_statistic(x)
 
 
 @pytest.mark.parametrize(
@@ -258,31 +304,48 @@ def test_moment_and_lorenz_settings():
     ],
 )
 def test_discrepancies_reject_large_values(cls):
-    assert cls().alternative().type() == AlternativeType.RIGHT
+    assert cls(parameters_for(cls)).alternative().type() == AlternativeType.RIGHT
 
 
 def test_shapiro_wilk_is_two_tailed():
     assert (
-        exp.ShapiroWilkExponentialityGofStatistic().alternative().type()
+        exp.ShapiroWilkExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        )
+        .alternative()
+        .type()
         == AlternativeType.TWO_TAILED
     )
 
 
 def test_documented_examples():
     failures, count = doctest.testmod(exp)
-    assert count == 3 * len(CLASSES)
+    assert count == 4 * len(CLASSES)
     assert failures == 0
 
 
 @pytest.mark.parametrize(
     "obj",
     [
-        exp.AtkinsonExponentialityGofStatistic(p=0.5),
-        exp.DeshpandeExponentialityGofStatistic(b=0.3),
-        exp.LorenzExponentialityGofStatistic(p=0.75),
-        exp.GnedenkoExponentialityGofStatistic(r=1),
-        exp.HarrisExponentialityGofStatistic(r=1),
-        exp.KolmogorovSmirnovExponentialityGofStatistic(AlternativeType.LEFT),
+        exp.AtkinsonExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({}), p=0.5
+        ),
+        exp.DeshpandeExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({}), b=0.3
+        ),
+        exp.LorenzExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({}), p=0.75
+        ),
+        exp.GnedenkoExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({}), r=1
+        ),
+        exp.HarrisExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({}), r=1
+        ),
+        exp.KolmogorovSmirnovExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({"lam": 1}),
+            alternative_type=AlternativeType.LEFT,
+        ),
     ],
 )
 def test_storage_rejects_unidentified_settings(obj):
@@ -294,7 +357,7 @@ def test_storage_rejects_unidentified_settings(obj):
 
 @pytest.mark.parametrize("cls", CLASSES)
 def test_monte_carlo_calls_statistic_on_each_sample(cls, monkeypatch):
-    obj = cls()
+    obj = cls(parameters_for(cls))
     x, y = [0.25, 0.5, 1, 4], [0.125, 0.25, 2, 3]
     sampler = Mock()
     sampler.generate.side_effect = [x, y]
@@ -310,8 +373,12 @@ def test_monte_carlo_calls_statistic_on_each_sample(cls, monkeypatch):
 @pytest.mark.parametrize(
     "obj",
     [
-        exp.EppsPulleyExponentialityGofStatistic(),
-        exp.KolmogorovSmirnovExponentialityGofStatistic(lam=3),
+        exp.EppsPulleyExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ),
+        exp.KolmogorovSmirnovExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({"lam": 3})
+        ),
     ],
 )
 def test_null_sampler_is_supported(obj):
@@ -324,22 +391,24 @@ def test_null_sampler_is_supported(obj):
 def test_atkinson_near_zero_power(p):
     x = np.array([0.25, 0.5, 1, 2])
     limit = 2 * abs(stats.gmean(x) / np.mean(x) - math.exp(-np.euler_gamma))
-    value = exp.AtkinsonExponentialityGofStatistic(p=p).execute_statistic(x)
+    value = exp.AtkinsonExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({}), p=p
+    ).execute_statistic(x)
     assert value == pytest.approx(limit, abs=1e-11)
 
 
 def test_atkinson_negative_power_zero_uses_limit():
     p = -0.5
     reference = 2 * special.gamma(1 + p) ** (1 / p)
-    assert exp.AtkinsonExponentialityGofStatistic(p=p).execute_statistic(
-        [0, 1, 2, 3]
-    ) == pytest.approx(reference)
+    assert exp.AtkinsonExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({}), p=p
+    ).execute_statistic([0, 1, 2, 3]) == pytest.approx(reference)
 
 
 def test_fixed_cdf_at_extreme_rate_and_boundary():
     for cls in FIXED:
-        obj = cls(lam=1e308)
+        obj = cls(parameters_for(cls, lam=1e308))
         with np.errstate(all="raise"):
             value = obj.execute_statistic([0, 1, 1e308])
         assert math.isfinite(value)
-        assert math.isfinite(cls(lam=1e-308).execute_statistic([0, 0, 0]))
+        assert math.isfinite(cls(parameters_for(cls, lam=1e-308)).execute_statistic([0, 0, 0]))

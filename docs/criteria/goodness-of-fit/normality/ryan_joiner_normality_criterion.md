@@ -4,6 +4,9 @@ Ryan-Joiner probability-plot correlation statistic for normality.
 
 ## Parameters
 
+```text
+parameters : ParameterValues
+    An empty distribution schema; all distribution parameters are unknown.
 weighted : bool, optional
     If True, average the plotting probabilities within each group of
     tied observations before applying the normal quantile function.
@@ -12,6 +15,7 @@ cte_alpha : {'3/8', '1/2', '0'}, optional
     Plotting-position constant ``a`` in ``(i-a)/(n-2*a+1)`` for one-based
     ranks. Default is ``'3/8'``. Unrecognized values currently fall back
     to ``3/8``.
+```
 
 ## Methods
 
@@ -50,10 +54,11 @@ separate calibration; they are not fixed distribution parameters.
 ## Examples
 
 ```python
+from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
 import numpy as np
 from pysatl_criterion.statistics.goodness_of_fit.normal import RyanJoinerNormalityGofStatistic
 
-statistic = RyanJoinerNormalityGofStatistic()
+statistic = RyanJoinerNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({}))
 sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
 value = statistic.execute_statistic(sample)
 bool(np.isfinite(value))

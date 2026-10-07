@@ -4,6 +4,8 @@ import numpy as np
 import pytest
 import scipy.stats as scipy_stats
 
+from pysatl_criterion.distribution.distributions import LogNormalDistributionDescriptor as LogNormal
+from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor as Normal
 from pysatl_criterion.statistics.goodness_of_fit.log_normal import (
     CramerVonMiseLogNormalGofStatistic,
     KLIntegralLogNormalGoFStatistic,
@@ -34,12 +36,19 @@ from pysatl_criterion.statistics.goodness_of_fit.log_normal import (
     ],
 )
 def test_ks_lognormal_criterion(data, result):
-    statistic = KolmogorovSmirnovLogNormalGofStatistic(s=1, scale=1).execute_statistic(data)
+    statistic = KolmogorovSmirnovLogNormalGofStatistic(
+        LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_ks_lognormal_criterion_code():
-    assert "KS_LOGNORMAL_GOODNESS_OF_FIT" == KolmogorovSmirnovLogNormalGofStatistic().code()
+    assert (
+        "KS_LOGNORMAL_GOODNESS_OF_FIT"
+        == KolmogorovSmirnovLogNormalGofStatistic(
+            LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1})
+        ).code()
+    )
 
 
 def test_ks_lognormal_negative_data():
@@ -48,7 +57,9 @@ def test_ks_lognormal_negative_data():
     data = scipy_stats.lognorm.rvs(s=s, scale=scale, size=50)
     data = np.append(data, -1)
 
-    our_stat = KolmogorovSmirnovLogNormalGofStatistic(s=s, scale=scale).execute_statistic(data)
+    our_stat = KolmogorovSmirnovLogNormalGofStatistic(
+        LogNormal.SHAPE_SCALE.parse({"s": s, "scale": scale})
+    ).execute_statistic(data)
 
     scipy_stat, _ = scipy_stats.kstest(data, "lognorm", args=(s, 0, scale))
 
@@ -76,12 +87,19 @@ def test_ks_lognormal_negative_data():
     ],
 )
 def test_cvm_lognormal_criterion(data, result):
-    statistic = CramerVonMiseLogNormalGofStatistic(s=1, scale=1).execute_statistic(data)
+    statistic = CramerVonMiseLogNormalGofStatistic(
+        LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_cvm_lognormal_criterion_code():
-    assert "CVM_LOGNORMAL_GOODNESS_OF_FIT" == CramerVonMiseLogNormalGofStatistic().code()
+    assert (
+        "CVM_LOGNORMAL_GOODNESS_OF_FIT"
+        == CramerVonMiseLogNormalGofStatistic(
+            LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1})
+        ).code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -100,14 +118,18 @@ def test_cvm_lognormal_criterion_code():
     ],
 )
 def test_quesenberry_miller_lognormal_criterion(data, result):
-    statistic = QuesenberryMillerLogNormalGofStatistic(s=1, scale=1).execute_statistic(data)
+    statistic = QuesenberryMillerLogNormalGofStatistic(
+        LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.0001)
 
 
 def test_quesenberry_miller_lognormal_criterion_code():
     assert (
         "QUESENBERRY_MILLER_LOGNORMAL_GOODNESS_OF_FIT"
-        == QuesenberryMillerLogNormalGofStatistic().code()
+        == QuesenberryMillerLogNormalGofStatistic(
+            LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1})
+        ).code()
     )
 
 
@@ -172,13 +194,18 @@ def test_quesenberry_miller_lognormal_criterion_code():
     ],
 )
 def test_kl_supremum_lognormal_criterion(data, result):
-    statistic = KLSupremumLogNormalGoFStatistic().execute_statistic(data)
+    statistic = KLSupremumLogNormalGoFStatistic(
+        LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1})
+    ).execute_statistic(data)
 
     assert result == pytest.approx(statistic, 0.0001)
 
 
 def test_kl_supremum_lognormal_criterion_code():
-    assert "KL_SUP_LOGNORMAL_GOODNESS_OF_FIT" == KLSupremumLogNormalGoFStatistic().code()
+    assert (
+        "KL_SUP_LOGNORMAL_GOODNESS_OF_FIT"
+        == KLSupremumLogNormalGoFStatistic(LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1})).code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -242,13 +269,15 @@ def test_kl_supremum_lognormal_criterion_code():
     ],
 )
 def test_kl_integral_lognormal_criterion(data, result):
-    statistic = KLIntegralLogNormalGoFStatistic().execute_statistic(data)
+    statistic = KLIntegralLogNormalGoFStatistic(
+        LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1})
+    ).execute_statistic(data)
 
     assert result == pytest.approx(statistic, 0.01)
 
 
 def test_kl_supremum_critical_value_n50():
-    statistic = KLSupremumLogNormalGoFStatistic()
+    statistic = KLSupremumLogNormalGoFStatistic(LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1}))
     n = 50
     alpha = 0.05
     expected = 2.1397  # Из статьи: c1,0.05(50) = 2.1397
@@ -259,7 +288,7 @@ def test_kl_supremum_critical_value_n50():
 
 
 def test_kl_integral_critical_value_n50():
-    statistic = KLIntegralLogNormalGoFStatistic()
+    statistic = KLIntegralLogNormalGoFStatistic(LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1}))
     n = 50
     alpha = 0.05
     expected = 5.7369  # Из статьи: c2,0.05(50) = 5.7369
@@ -270,7 +299,7 @@ def test_kl_integral_critical_value_n50():
 
 
 def test_kl_supremum_critical_value_n90():
-    statistic = KLSupremumLogNormalGoFStatistic()
+    statistic = KLSupremumLogNormalGoFStatistic(LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1}))
     n = 90
     alpha = 0.05
     expected = 2.2708  # Из статьи: c1,0.05(90) = 2.2708
@@ -281,7 +310,7 @@ def test_kl_supremum_critical_value_n90():
 
 
 def test_kl_integral_critical_value_n90():
-    statistic = KLIntegralLogNormalGoFStatistic()
+    statistic = KLIntegralLogNormalGoFStatistic(LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1}))
     n = 90
     alpha = 0.05
     expected = 6.6890  # Из статьи: c2,0.05(90) = 6.6890
@@ -293,7 +322,7 @@ def test_kl_integral_critical_value_n90():
 
 @pytest.mark.parametrize("n", [20, 40, 60, 80, 100])
 def test_kl_sup_critical_values(n):
-    stat = KLSupremumLogNormalGoFStatistic()
+    stat = KLSupremumLogNormalGoFStatistic(LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1}))
 
     # Test alpha = 0.05
     cv_05 = stat.calculate_critical_value(n, 0.05)
@@ -306,7 +335,7 @@ def test_kl_sup_critical_values(n):
 
 @pytest.mark.parametrize("n", [20, 40, 60, 80, 100])
 def test_kl_int_critical_values(n):
-    stat = KLIntegralLogNormalGoFStatistic()
+    stat = KLIntegralLogNormalGoFStatistic(LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1}))
 
     # Test alpha = 0.05
     cv_05 = stat.calculate_critical_value(n, 0.05)
@@ -325,7 +354,9 @@ def test_kl_int_critical_values(n):
     ],
 )
 def test_kl_supremum_non_positive_data(data, result):
-    statistic = KLSupremumLogNormalGoFStatistic().execute_statistic(data)
+    statistic = KLSupremumLogNormalGoFStatistic(
+        LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1})
+    ).execute_statistic(data)
     assert statistic == result
 
 
@@ -337,17 +368,19 @@ def test_kl_supremum_non_positive_data(data, result):
     ],
 )
 def test_kl_integral_non_positive_data(data, result):
-    statistic = KLIntegralLogNormalGoFStatistic().execute_statistic(data)
+    statistic = KLIntegralLogNormalGoFStatistic(
+        LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1})
+    ).execute_statistic(data)
     assert statistic == result
 
 
 def test_kl_sup_lognormal_criterion_code():
-    stat = KLSupremumLogNormalGoFStatistic()
+    stat = KLSupremumLogNormalGoFStatistic(LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1}))
     assert stat.code() == "KL_SUP_LOGNORMAL_GOODNESS_OF_FIT"
 
 
 def test_kl_int_lognormal_criterion_code():
-    stat = KLIntegralLogNormalGoFStatistic()
+    stat = KLIntegralLogNormalGoFStatistic(LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1}))
     assert stat.code() == "KL_INT_LOGNORMAL_GOODNESS_OF_FIT"
 
 
@@ -396,10 +429,10 @@ def test_dynamic_lognormal_equivalence(log_normal_cls, normal_cls):
 
     x_data = np.exp(z_data * s + np.log(scale))
 
-    ln_stat_obj = log_normal_cls(s=s, scale=scale)
+    ln_stat_obj = log_normal_cls(LogNormal.SHAPE_SCALE.parse({"s": s, "scale": scale}))
     ln_val = ln_stat_obj.execute_statistic(x_data)
 
-    n_stat_obj = normal_cls()
+    n_stat_obj = normal_cls(Normal.DEFAULT.parse({}))
     n_val = n_stat_obj.execute_statistic(z_data)
 
     assert ln_val == pytest.approx(n_val, rel=1e-5)
@@ -408,11 +441,13 @@ def test_dynamic_lognormal_equivalence(log_normal_cls, normal_cls):
 @pytest.mark.parametrize("log_normal_cls, normal_cls", DYNAMIC_CLASSES)
 def test_dynamic_lognormal_negative_data_handling(log_normal_cls, normal_cls):
     data = [1.0, 2.0, -0.5, 3.0]
-    stat = log_normal_cls(s=1, scale=1).execute_statistic(data)
+    stat = log_normal_cls(LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1})).execute_statistic(data)
     assert stat == float("inf")
 
     data_zero = [1.0, 2.0, 0.0, 3.0]
-    stat_z = log_normal_cls(s=1, scale=1).execute_statistic(data_zero)
+    stat_z = log_normal_cls(LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1})).execute_statistic(
+        data_zero
+    )
     assert stat_z == float("inf")
 
 
@@ -422,5 +457,13 @@ def test_dynamic_lognormal_example_code_method():
         ShapiroWilkLogNormalGofStatistic,
     )
 
-    assert "SW_LOGNORMAL_GOODNESS_OF_FIT" == ShapiroWilkLogNormalGofStatistic().code()
-    assert "LILLIE_LOGNORMAL_GOODNESS_OF_FIT" == LillieforsLogNormalGofStatistic().code()
+    assert (
+        "SW_LOGNORMAL_GOODNESS_OF_FIT"
+        == ShapiroWilkLogNormalGofStatistic(
+            LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1})
+        ).code()
+    )
+    assert (
+        "LILLIE_LOGNORMAL_GOODNESS_OF_FIT"
+        == LillieforsLogNormalGofStatistic(LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1})).code()
+    )

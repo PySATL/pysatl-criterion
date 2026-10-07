@@ -13,7 +13,11 @@ import numpy as np
 import scipy.special as scipy_special
 from typing_extensions import override
 
-from pysatl_criterion import DistributionType
+from pysatl_criterion.distribution.distributions import ExponentialDistributionDescriptor
+from pysatl_criterion.distribution.distributions import (
+    ExponentialDistributionDescriptor as Distribution,
+)
+from pysatl_criterion.distribution.parameters import HypothesisSupport, ParameterValues
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.alternative import (
     Alternative,
@@ -34,7 +38,6 @@ from pysatl_criterion.statistics.goodness_of_fit.graph_goodness_of_fit import (
     GraphIndependenceNumberTestStatistic,
     GraphMaxDegreeTestStatistic,
 )
-from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
 def _sample(rvs, minimum=2, *, rescale=True, positive_total=True):
@@ -107,9 +110,14 @@ def _settings(kwargs):
 class AbstractExponentialityGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     """Base for the zero-origin exponential family with unknown positive rate."""
 
-    @override
-    def hypothesis(self):
-        return GoodnessOfFitHypothesis({})
+    @property
+    def lam(self) -> float:
+        """Read lam by its stable parameter identity."""
+        return self._parameters[Distribution.RATE]
+
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (HypothesisSupport(Distribution.DEFAULT, frozenset()),)
 
     def _validate_storage_calibration(self):
         """Reject settings omitted by the current distribution storage key."""
@@ -126,19 +134,30 @@ class AbstractExponentialityGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
                     "use MonteCarloLimitDistributionResolver with this statistic"
                 )
 
-    @staticmethod
+    @classmethod
     @override
-    def code():
-        return f"EXPONENTIALITY_{AbstractGoodnessOfFitStatistic.code()}"
+    def code(cls) -> str:
+        """Return the family identifier or the concrete statistic's full identifier."""
+        family_code = f"EXPONENTIALITY_{AbstractGoodnessOfFitStatistic.code()}"
+        if "short_code" in cls.__abstractmethods__:
+            return family_code
+        return f"{cls.short_code()}_{family_code}"
 
     @staticmethod
     @override
-    def distribution():
-        return DistributionType.EXPONENTIAL
+    def distribution() -> type[ExponentialDistributionDescriptor]:
+        """Return the distribution descriptor class."""
+        return ExponentialDistributionDescriptor
 
 
 class EppsPulleyExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     """EppsPulley statistic for zero-origin exponential observations.
+
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
 
     Methods
     -------
@@ -178,7 +197,8 @@ class EppsPulleyExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Examples
     --------
-    >>> statistic = EppsPulleyExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = EppsPulleyExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -193,13 +213,6 @@ class EppsPulleyExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     def short_code():
         """Return the short statistic identifier."""
         return "EP"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = EppsPulleyExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -241,11 +254,11 @@ class KolmogorovSmirnovExponentialityGofStatistic(AbstractExponentialityGofStati
 
     Parameters
     ----------
+    parameters : ParameterValues
+        Values with lam fixed; omitted parameters are unknown.
     alternative_type : AlternativeType, optional
         TWO_TAILED (default), RIGHT (D+), or LEFT (D-). All reject
         for large statistic values.
-    lam : float, optional
-        Fixed, finite positive rate; default 1.
 
     Methods
     -------
@@ -285,23 +298,24 @@ class KolmogorovSmirnovExponentialityGofStatistic(AbstractExponentialityGofStati
 
     Examples
     --------
-    >>> statistic = KolmogorovSmirnovExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'lam': 1})
+    >>> statistic = KolmogorovSmirnovExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
     """
 
-    def __init__(self, alternative_type=AlternativeType.TWO_TAILED, lam=1):
-        self.lam = _scalar(lam, "lam")
+    def __init__(self, parameters: ParameterValues, *, alternative_type=AlternativeType.TWO_TAILED):
+        AbstractGoodnessOfFitStatistic.__init__(self, parameters)
         if self.lam <= 0:
             raise ValueError("lam must be positive")
         if not isinstance(alternative_type, AlternativeType):
             raise TypeError("alternative_type must be an AlternativeType")
         KSStatistic.__init__(self, alternative_type)
 
-    @override
-    def hypothesis(self):
-        return GoodnessOfFitHypothesis({"lam": self.lam})
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (HypothesisSupport(Distribution.DEFAULT, frozenset({Distribution.RATE})),)
 
     @override
     def alternative(self) -> Alternative:
@@ -312,13 +326,6 @@ class KolmogorovSmirnovExponentialityGofStatistic(AbstractExponentialityGofStati
     def short_code():
         """Return the short statistic identifier."""
         return "KS"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = KolmogorovSmirnovExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -358,6 +365,12 @@ class KolmogorovSmirnovExponentialityGofStatistic(AbstractExponentialityGofStati
 class AhsanullahExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     """Ahsanullah statistic for zero-origin exponential observations.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -392,7 +405,8 @@ class AhsanullahExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Examples
     --------
-    >>> statistic = AhsanullahExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = AhsanullahExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -407,13 +421,6 @@ class AhsanullahExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     def short_code():
         """Return the short statistic identifier."""
         return "AHS"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = AhsanullahExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -463,6 +470,8 @@ class AtkinsonExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Parameters
     ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
     p : float, optional
         Finite power greater than -1, excluding 0 and 1; default 0.99.
         The reference gamma expression must be representable in float64.
@@ -510,13 +519,15 @@ class AtkinsonExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Examples
     --------
-    >>> statistic = AtkinsonExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = AtkinsonExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
     """
 
-    def __init__(self, p=0.99):
+    def __init__(self, parameters: ParameterValues, *, p=0.99):
+        AbstractGoodnessOfFitStatistic.__init__(self, parameters)
         self.p = _scalar(p, "p")
         if self.p <= -1 or self.p in (0, 1):
             raise ValueError("p must exceed -1 and differ from 0 and 1")
@@ -532,13 +543,6 @@ class AtkinsonExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     def short_code():
         """Return the short statistic identifier."""
         return "ATK"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = AtkinsonExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -606,6 +610,12 @@ class AtkinsonExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 class CoxOakesExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     """CoxOakes statistic for zero-origin exponential observations.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -639,7 +649,8 @@ class CoxOakesExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Examples
     --------
-    >>> statistic = CoxOakesExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = CoxOakesExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -654,13 +665,6 @@ class CoxOakesExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     def short_code():
         """Return the short statistic identifier."""
         return "CO"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = CoxOakesExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -707,8 +711,8 @@ class CramerVonMisesExponentialityGofStatistic(
 
     Parameters
     ----------
-    lam : float, optional
-        Fixed, finite positive rate; default 1.
+    parameters : ParameterValues
+        Values with lam fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -747,20 +751,16 @@ class CramerVonMisesExponentialityGofStatistic(
 
     Examples
     --------
-    >>> statistic = CramerVonMisesExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'lam': 1})
+    >>> statistic = CramerVonMisesExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
     """
 
-    def __init__(self, lam=1):
-        self.lam = _scalar(lam, "lam")
-        if self.lam <= 0:
-            raise ValueError("lam must be positive")
-
-    @override
-    def hypothesis(self):
-        return GoodnessOfFitHypothesis({"lam": self.lam})
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (HypothesisSupport(Distribution.DEFAULT, frozenset({Distribution.RATE})),)
 
     @override
     def alternative(self) -> Alternative:
@@ -771,13 +771,6 @@ class CramerVonMisesExponentialityGofStatistic(
     def short_code():
         """Return the short statistic identifier."""
         return "CVM"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = CramerVonMisesExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -819,6 +812,8 @@ class DeshpandeExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Parameters
     ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
     b : float, optional
         Finite threshold in (0, 1); default 0.44.
 
@@ -859,13 +854,15 @@ class DeshpandeExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Examples
     --------
-    >>> statistic = DeshpandeExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = DeshpandeExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
     """
 
-    def __init__(self, b=0.44):
+    def __init__(self, parameters: ParameterValues, *, b=0.44):
+        AbstractGoodnessOfFitStatistic.__init__(self, parameters)
         self.b = _scalar(b, "b")
         if not 0 < self.b < 1:
             raise ValueError("b must lie in (0, 1)")
@@ -879,13 +876,6 @@ class DeshpandeExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     def short_code():
         """Return the short statistic identifier."""
         return "DSP"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = DeshpandeExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -930,6 +920,12 @@ class DeshpandeExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 class EpsteinExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     """Epstein statistic for zero-origin exponential observations.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -965,7 +961,8 @@ class EpsteinExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Examples
     --------
-    >>> statistic = EpsteinExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = EpsteinExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -980,13 +977,6 @@ class EpsteinExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     def short_code():
         """Return the short statistic identifier."""
         return "EPS"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = EpsteinExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1027,6 +1017,12 @@ class EpsteinExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 class FroziniExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     """Frozini statistic for zero-origin exponential observations.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -1060,7 +1056,8 @@ class FroziniExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Examples
     --------
-    >>> statistic = FroziniExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = FroziniExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -1075,13 +1072,6 @@ class FroziniExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     def short_code():
         """Return the short statistic identifier."""
         return "FZ"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = FroziniExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1125,6 +1115,12 @@ class FroziniExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 class GiniExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     """Gini statistic for zero-origin exponential observations.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -1158,7 +1154,8 @@ class GiniExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Examples
     --------
-    >>> statistic = GiniExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = GiniExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -1173,13 +1170,6 @@ class GiniExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     def short_code():
         """Return the short statistic identifier."""
         return "GINI"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = GiniExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1225,6 +1215,8 @@ class GnedenkoExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Parameters
     ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
     r : int or None, optional
         Split count with 1 <= r < n. Default None uses max(1, round(n/2)).
 
@@ -1267,13 +1259,15 @@ class GnedenkoExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Examples
     --------
-    >>> statistic = GnedenkoExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = GnedenkoExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
     """
 
-    def __init__(self, r=None):
+    def __init__(self, parameters: ParameterValues, *, r=None):
+        AbstractGoodnessOfFitStatistic.__init__(self, parameters)
         if r is not None and (isinstance(r, bool) or not isinstance(r, (int, np.integer)) or r < 1):
             raise ValueError("r must be a positive integer or None")
         self.r = r
@@ -1287,13 +1281,6 @@ class GnedenkoExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     def short_code():
         """Return the short statistic identifier."""
         return "GD"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = GnedenkoExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1334,6 +1321,8 @@ class HarrisExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Parameters
     ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
     r : int or None, optional
         Tail count with 1 <= 2*r < n. Default None uses max(1, round(n/4)).
 
@@ -1376,13 +1365,15 @@ class HarrisExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Examples
     --------
-    >>> statistic = HarrisExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = HarrisExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
     """
 
-    def __init__(self, r=None):
+    def __init__(self, parameters: ParameterValues, *, r=None):
+        AbstractGoodnessOfFitStatistic.__init__(self, parameters)
         if r is not None and (isinstance(r, bool) or not isinstance(r, (int, np.integer)) or r < 1):
             raise ValueError("r must be a positive integer or None")
         self.r = r
@@ -1396,13 +1387,6 @@ class HarrisExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     def short_code():
         """Return the short statistic identifier."""
         return "HM"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = HarrisExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1441,6 +1425,12 @@ class HarrisExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 class HegazyGreen1ExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     """HegazyGreen1 statistic for zero-origin exponential observations.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -1476,7 +1466,8 @@ class HegazyGreen1ExponentialityGofStatistic(AbstractExponentialityGofStatistic)
 
     Examples
     --------
-    >>> statistic = HegazyGreen1ExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = HegazyGreen1ExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -1491,13 +1482,6 @@ class HegazyGreen1ExponentialityGofStatistic(AbstractExponentialityGofStatistic)
     def short_code():
         """Return the short statistic identifier."""
         return "HG1"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = HegazyGreen1ExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1539,6 +1523,12 @@ class HegazyGreen1ExponentialityGofStatistic(AbstractExponentialityGofStatistic)
 class HollanderProshanExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     """HollanderProshan statistic for zero-origin exponential observations.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -1574,7 +1564,8 @@ class HollanderProshanExponentialityGofStatistic(AbstractExponentialityGofStatis
 
     Examples
     --------
-    >>> statistic = HollanderProshanExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = HollanderProshanExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -1589,13 +1580,6 @@ class HollanderProshanExponentialityGofStatistic(AbstractExponentialityGofStatis
     def short_code():
         """Return the short statistic identifier."""
         return "HP"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = HollanderProshanExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1640,6 +1624,12 @@ class HollanderProshanExponentialityGofStatistic(AbstractExponentialityGofStatis
 class KimberMichaelExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     """KimberMichael statistic for zero-origin exponential observations.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -1673,7 +1663,8 @@ class KimberMichaelExponentialityGofStatistic(AbstractExponentialityGofStatistic
 
     Examples
     --------
-    >>> statistic = KimberMichaelExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = KimberMichaelExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -1688,13 +1679,6 @@ class KimberMichaelExponentialityGofStatistic(AbstractExponentialityGofStatistic
     def short_code():
         """Return the short statistic identifier."""
         return "KM"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = KimberMichaelExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1737,6 +1721,12 @@ class KimberMichaelExponentialityGofStatistic(AbstractExponentialityGofStatistic
 class KocharExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     """Kochar statistic for zero-origin exponential observations.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -1771,7 +1761,8 @@ class KocharExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Examples
     --------
-    >>> statistic = KocharExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = KocharExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -1786,13 +1777,6 @@ class KocharExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     def short_code():
         """Return the short statistic identifier."""
         return "KC"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = KocharExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1836,6 +1820,8 @@ class LorenzExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Parameters
     ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
     p : float, optional
         Finite fraction in (0, 1); default 0.5. The sample must satisfy
         1 <= floor(n*p) < n.
@@ -1878,13 +1864,15 @@ class LorenzExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Examples
     --------
-    >>> statistic = LorenzExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = LorenzExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
     """
 
-    def __init__(self, p=0.5):
+    def __init__(self, parameters: ParameterValues, *, p=0.5):
+        AbstractGoodnessOfFitStatistic.__init__(self, parameters)
         self.p = _scalar(p, "p")
         if not 0 < self.p < 1:
             raise ValueError("p must lie in (0, 1)")
@@ -1898,13 +1886,6 @@ class LorenzExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     def short_code():
         """Return the short statistic identifier."""
         return "LZ"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = LorenzExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1944,6 +1925,12 @@ class LorenzExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 class MoranExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     """Moran statistic for zero-origin exponential observations.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -1979,7 +1966,8 @@ class MoranExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Examples
     --------
-    >>> statistic = MoranExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = MoranExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -1994,13 +1982,6 @@ class MoranExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     def short_code():
         """Return the short statistic identifier."""
         return "MN"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = MoranExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2041,6 +2022,12 @@ class MoranExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 class PietraExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     """Pietra statistic for zero-origin exponential observations.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -2073,7 +2060,8 @@ class PietraExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Examples
     --------
-    >>> statistic = PietraExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = PietraExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -2088,13 +2076,6 @@ class PietraExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     def short_code():
         """Return the short statistic identifier."""
         return "PT"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = PietraExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2133,6 +2114,12 @@ class PietraExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
 class ShapiroWilkExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     """ShapiroWilk statistic for zero-origin exponential observations.
+
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
 
     Methods
     -------
@@ -2181,7 +2168,8 @@ class ShapiroWilkExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Examples
     --------
-    >>> statistic = ShapiroWilkExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = ShapiroWilkExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -2196,13 +2184,6 @@ class ShapiroWilkExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     def short_code():
         """Return the short statistic identifier."""
         return "SW"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = ShapiroWilkExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2248,6 +2229,12 @@ class ShapiroWilkExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 class RossbergExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     """Rossberg statistic for zero-origin exponential observations.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -2284,7 +2271,8 @@ class RossbergExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Examples
     --------
-    >>> statistic = RossbergExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = RossbergExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -2299,13 +2287,6 @@ class RossbergExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     def short_code():
         """Return the short statistic identifier."""
         return "RS"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = RossbergExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2351,6 +2332,12 @@ class RossbergExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 class WeExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     """We statistic for zero-origin exponential observations.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -2386,7 +2373,8 @@ class WeExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Examples
     --------
-    >>> statistic = WeExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = WeExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -2401,13 +2389,6 @@ class WeExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     def short_code():
         """Return the short statistic identifier."""
         return "WE"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = WeExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2448,6 +2429,12 @@ class WeExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 class WongWongExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     """WongWong statistic for zero-origin exponential observations.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -2482,7 +2469,8 @@ class WongWongExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     Examples
     --------
-    >>> statistic = WongWongExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = WongWongExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -2497,13 +2485,6 @@ class WongWongExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     def short_code():
         """Return the short statistic identifier."""
         return "WW"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = WongWongExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2540,6 +2521,12 @@ class WongWongExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 class HegazyGreen2ExponentialityGofStatistic(AbstractExponentialityGofStatistic):
     """HegazyGreen2 statistic for zero-origin exponential observations.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -2575,7 +2562,8 @@ class HegazyGreen2ExponentialityGofStatistic(AbstractExponentialityGofStatistic)
 
     Examples
     --------
-    >>> statistic = HegazyGreen2ExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = HegazyGreen2ExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -2590,13 +2578,6 @@ class HegazyGreen2ExponentialityGofStatistic(AbstractExponentialityGofStatistic)
     def short_code():
         """Return the short statistic identifier."""
         return "HG2"
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        short_code = HegazyGreen2ExponentialityGofStatistic.short_code()
-        return f"{short_code}_{AbstractExponentialityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2640,10 +2621,14 @@ class AbstractGraphExponentialityGofStatistic(
 ):
     """Scale-invariant proximity graphs with threshold range/10."""
 
-    @staticmethod
+    @classmethod
     @override
-    def code():
-        return f"GRAPH_{AbstractExponentialityGofStatistic.code()}"
+    def code(cls) -> str:
+        """Return the family identifier or the concrete statistic's full identifier."""
+        family_code = f"GRAPH_EXPONENTIALITY_{AbstractGoodnessOfFitStatistic.code()}"
+        if "short_code" in cls.__abstractmethods__:
+            return family_code
+        return f"{cls.short_code()}_{family_code}"
 
     @staticmethod
     @override
@@ -2660,6 +2645,12 @@ class GraphEdgesNumberExponentialityGofStatistic(
     AbstractGraphExponentialityGofStatistic, GraphEdgesNumberTestStatistic
 ):
     """GraphEdgesNumber statistic for zero-origin exponential observations.
+
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
 
     Methods
     -------
@@ -2696,7 +2687,8 @@ class GraphEdgesNumberExponentialityGofStatistic(
 
     Examples
     --------
-    >>> statistic = GraphEdgesNumberExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = GraphEdgesNumberExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -2705,14 +2697,6 @@ class GraphEdgesNumberExponentialityGofStatistic(
     @override
     def alternative(self) -> Alternative:
         return TwoSidedAlternative()
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        parent_code = AbstractGraphExponentialityGofStatistic.code()
-        short_code = GraphEdgesNumberExponentialityGofStatistic.short_code()
-        return f"{short_code}_{parent_code}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2751,6 +2735,12 @@ class GraphMaxDegreeExponentialityGofStatistic(
 ):
     """GraphMaxDegree statistic for zero-origin exponential observations.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -2786,7 +2776,8 @@ class GraphMaxDegreeExponentialityGofStatistic(
 
     Examples
     --------
-    >>> statistic = GraphMaxDegreeExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = GraphMaxDegreeExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -2795,14 +2786,6 @@ class GraphMaxDegreeExponentialityGofStatistic(
     @override
     def alternative(self) -> Alternative:
         return TwoSidedAlternative()
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        parent_code = AbstractGraphExponentialityGofStatistic.code()
-        short_code = GraphMaxDegreeExponentialityGofStatistic.short_code()
-        return f"{short_code}_{parent_code}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2841,6 +2824,12 @@ class GraphAverageDegreeExponentialityGofStatistic(
 ):
     """GraphAverageDegree statistic for zero-origin exponential observations.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -2876,7 +2865,8 @@ class GraphAverageDegreeExponentialityGofStatistic(
 
     Examples
     --------
-    >>> statistic = GraphAverageDegreeExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = GraphAverageDegreeExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -2885,14 +2875,6 @@ class GraphAverageDegreeExponentialityGofStatistic(
     @override
     def alternative(self) -> Alternative:
         return TwoSidedAlternative()
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        parent_code = AbstractGraphExponentialityGofStatistic.code()
-        short_code = GraphAverageDegreeExponentialityGofStatistic.short_code()
-        return f"{short_code}_{parent_code}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2931,6 +2913,12 @@ class GraphConnectedComponentsExponentialityGofStatistic(
 ):
     """GraphConnectedComponents statistic for zero-origin exponential observations.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -2966,7 +2954,8 @@ class GraphConnectedComponentsExponentialityGofStatistic(
 
     Examples
     --------
-    >>> statistic = GraphConnectedComponentsExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = GraphConnectedComponentsExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -2975,14 +2964,6 @@ class GraphConnectedComponentsExponentialityGofStatistic(
     @override
     def alternative(self) -> Alternative:
         return TwoSidedAlternative()
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        parent_code = AbstractGraphExponentialityGofStatistic.code()
-        short_code = GraphConnectedComponentsExponentialityGofStatistic.short_code()
-        return f"{short_code}_{parent_code}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -3021,6 +3002,12 @@ class GraphCliqueNumberExponentialityGofStatistic(
 ):
     """GraphCliqueNumber statistic for zero-origin exponential observations.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -3056,7 +3043,8 @@ class GraphCliqueNumberExponentialityGofStatistic(
 
     Examples
     --------
-    >>> statistic = GraphCliqueNumberExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = GraphCliqueNumberExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -3065,14 +3053,6 @@ class GraphCliqueNumberExponentialityGofStatistic(
     @override
     def alternative(self) -> Alternative:
         return TwoSidedAlternative()
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        parent_code = AbstractGraphExponentialityGofStatistic.code()
-        short_code = GraphCliqueNumberExponentialityGofStatistic.short_code()
-        return f"{short_code}_{parent_code}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -3121,6 +3101,12 @@ class GraphIndependenceNumberExponentialityGofStatistic(
 ):
     """GraphIndependenceNumber statistic for zero-origin exponential observations.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -3156,7 +3142,8 @@ class GraphIndependenceNumberExponentialityGofStatistic(
 
     Examples
     --------
-    >>> statistic = GraphIndependenceNumberExponentialityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = GraphIndependenceNumberExponentialityGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
     >>> isinstance(value, float)
     True
@@ -3165,14 +3152,6 @@ class GraphIndependenceNumberExponentialityGofStatistic(
     @override
     def alternative(self) -> Alternative:
         return TwoSidedAlternative()
-
-    @staticmethod
-    @override
-    def code():
-        """Return the full statistic identifier."""
-        parent_code = AbstractGraphExponentialityGofStatistic.code()
-        short_code = GraphIndependenceNumberExponentialityGofStatistic.short_code()
-        return f"{short_code}_{parent_code}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):

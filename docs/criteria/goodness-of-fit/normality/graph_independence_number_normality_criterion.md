@@ -4,8 +4,10 @@ Independence-number statistic for a normal sample with known variance.
 
 ## Parameters
 
-var : float, optional
-    Positive finite scalar variance fixed under H0; default 1.
+```text
+parameters : ParameterValues
+    Values with var fixed; omitted parameters are unknown.
+```
 
 ## Methods
 
@@ -38,10 +40,11 @@ make the radius or variance unrepresentable raise ValueError.
 ## Examples
 
 ```python
+from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
 import numpy as np
 from pysatl_criterion.statistics.goodness_of_fit.normal import GraphIndependenceNumberNormalityGofStatistic
 
-statistic = GraphIndependenceNumberNormalityGofStatistic()
+statistic = GraphIndependenceNumberNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({'var': 1}))
 sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
 value = statistic.execute_statistic(sample)
 bool(np.isfinite(value))

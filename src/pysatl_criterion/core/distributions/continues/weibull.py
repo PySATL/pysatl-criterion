@@ -1,122 +1,23 @@
-from scipy.stats import exponweib
+"""Weibull distribution with zero location."""
+
+from scipy.stats import weibull_min
 
 
-def generate_weibull(size, a=1, k=5, random_state=None):
-    """
-    Generate random samples from the exponentiated Weibull distribution.
-
-    This function uses ``scipy.stats.exponweib.rvs`` to draw random values
-    from an exponentiated Weibull distribution with parameters ``a`` and ``k``.
-
-    Parameters
-    ----------
-    size : int or tuple of int
-        Output shape of generated samples. If an integer is provided,
-        returns a 1D array of length ``size``. If a tuple is provided,
-        returns an array with the specified shape.
-    a : float, optional
-        Shape parameter of the distribution. Default is 1.
-    k : float, optional
-        Shape parameter controlling tail behavior. Default is 5.
-    random_state : object, optional
-        Random state forwarded to ``scipy.stats.exponweib.rvs``.
-
-    Returns
-    -------
-    numpy.ndarray
-        Random samples drawn from the exponentiated Weibull distribution.
-
-    Notes
-    -----
-    The exponentiated Weibull distribution generalizes the Weibull
-    distribution and can model a wider range of hazard rate behaviors.
-
-    Examples
-    --------
-    >>> generate_weibull(5, a=1, k=2)
-    array([...])
-    """
-    return exponweib.rvs(a=a, c=k, size=size, random_state=random_state)
+def generate_weibull(size, *, shape=5, scale=1, random_state=None):
+    """Generate samples with an explicit scale and optional random state."""
+    return weibull_min.rvs(c=shape, scale=scale, size=size, random_state=random_state)
 
 
-def generate_weibull_cdf(rvs, a=1, k=5):
-    """
-    Compute the cumulative distribution function (CDF) of the exponentiated Weibull distribution.
-
-    Parameters
-    ----------
-    rvs : array-like
-        Input values at which to evaluate the CDF.
-    a : float, optional
-        Shape parameter. Default is 1.
-    k : float, optional
-        Shape parameter. Default is 5.
-
-    Returns
-    -------
-    numpy.ndarray
-        CDF values corresponding to the input data.
-
-    Examples
-    --------
-    >>> generate_weibull_cdf([0.5, 1.0], a=1, k=2)
-    array([...])
-    """
-    return exponweib.cdf(rvs, a=a, c=k)
+def generate_weibull_cdf(rvs, *, shape=5, scale=1):
+    """Evaluate cdf for the specified distribution."""
+    return weibull_min.cdf(rvs, c=shape, scale=scale)
 
 
-def generate_weibull_logcdf(rvs, a=1, k=5):
-    """
-    Compute the log cumulative distribution function (log-CDF)
-    of the exponentiated Weibull distribution.
-
-    Parameters
-    ----------
-    rvs : array-like
-        Input values at which to evaluate the log-CDF.
-    a : float, optional
-        Shape parameter. Default is 1.
-    k : float, optional
-        Shape parameter. Default is 5.
-
-    Returns
-    -------
-    numpy.ndarray
-        Log-CDF values.
-
-    Examples
-    --------
-    >>> generate_weibull_logcdf([0.5, 1.0], a=1, k=2)
-    array([...])
-    """
-    return exponweib.logcdf(rvs, a=a, c=k)
+def generate_weibull_logcdf(rvs, *, shape=5, scale=1):
+    """Evaluate logcdf for the specified distribution."""
+    return weibull_min.logcdf(rvs, c=shape, scale=scale)
 
 
-def generate_weibull_logsf(rvs, a=1, k=5):
-    """
-    Compute the log survival function (log-SF) of the exponentiated Weibull distribution.
-
-    Parameters
-    ----------
-    rvs : array-like
-        Input values at which to evaluate the log-SF.
-    a : float, optional
-        Shape parameter. Default is 1.
-    k : float, optional
-        Shape parameter. Default is 5.
-
-    Returns
-    -------
-    numpy.ndarray
-        Log-survival function values.
-
-    Notes
-    -----
-    The survival function is defined as S(x) = 1 - F(x).
-
-    Examples
-    --------
-    >>> generate_weibull_logsf([0.5, 1.0], a=1, k=2)
-    array([...])
-    """
-    return exponweib.logsf(rvs, a=a, c=k)
+def generate_weibull_logsf(rvs, *, shape=5, scale=1):
+    """Evaluate logsf for the specified distribution."""
+    return weibull_min.logsf(rvs, c=shape, scale=scale)

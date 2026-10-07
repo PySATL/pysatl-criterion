@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from scipy.stats import expon
 
+from pysatl_criterion.distribution.distributions import ExponentialDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit.exponent import (
     AbstractExponentialityGofStatistic,
     AhsanullahExponentialityGofStatistic,
@@ -54,14 +55,23 @@ def test_abstract_exponentiality_criterion_code():
 def test_ahs_exponentiality_criterion(data, result):
     if min(data) < 0:
         with pytest.raises(ValueError, match="nonnegative"):
-            AhsanullahExponentialityGofStatistic().execute_statistic(data)
+            AhsanullahExponentialityGofStatistic(
+                ExponentialDistributionDescriptor.DEFAULT.parse({})
+            ).execute_statistic(data)
         return
-    statistic = AhsanullahExponentialityGofStatistic().execute_statistic(data)
+    statistic = AhsanullahExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_ahs_exponentiality_criterion_code():
-    assert "AHS_EXPONENTIALITY_GOODNESS_OF_FIT" == AhsanullahExponentialityGofStatistic().code()
+    assert (
+        "AHS_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == AhsanullahExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -72,12 +82,19 @@ def test_ahs_exponentiality_criterion_code():
     ],
 )
 def test_atk_exponentiality_criterion(data, result):
-    statistic = AtkinsonExponentialityGofStatistic().execute_statistic(data)
+    statistic = AtkinsonExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_atk_exponentiality_criterion_code():
-    assert "ATK_EXPONENTIALITY_GOODNESS_OF_FIT" == AtkinsonExponentialityGofStatistic().code()
+    assert (
+        "ATK_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == AtkinsonExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -88,12 +105,19 @@ def test_atk_exponentiality_criterion_code():
     ],
 )
 def test_co_exponentiality_criterion(data, result):
-    statistic = CoxOakesExponentialityGofStatistic().execute_statistic(data)
+    statistic = CoxOakesExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_co_exponentiality_criterion_code():
-    assert "CO_EXPONENTIALITY_GOODNESS_OF_FIT" == CoxOakesExponentialityGofStatistic().code()
+    assert (
+        "CO_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == CoxOakesExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -104,12 +128,19 @@ def test_co_exponentiality_criterion_code():
     ],
 )
 def test_cvm_exponentiality_criterion(data, lam, result):
-    statistic = CramerVonMisesExponentialityGofStatistic(lam=lam).execute_statistic(data)
+    statistic = CramerVonMisesExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({"lam": lam})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_cvm_exponentiality_criterion_code():
-    assert "CVM_EXPONENTIALITY_GOODNESS_OF_FIT" == CramerVonMisesExponentialityGofStatistic().code()
+    assert (
+        "CVM_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == CramerVonMisesExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({"lam": 1})
+        ).code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -120,12 +151,19 @@ def test_cvm_exponentiality_criterion_code():
     ],
 )
 def test_dsp_exponentiality_criterion(data, result):
-    statistic = DeshpandeExponentialityGofStatistic().execute_statistic(data)
+    statistic = DeshpandeExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_dsp_exponentiality_criterion_code():
-    assert "DSP_EXPONENTIALITY_GOODNESS_OF_FIT" == DeshpandeExponentialityGofStatistic().code()
+    assert (
+        "DSP_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == DeshpandeExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -138,14 +176,23 @@ def test_dsp_exponentiality_criterion_code():
 def test_ep_exponentiality_criterion(data, result):
     if min(data) < 0:
         with pytest.raises(ValueError, match="nonnegative"):
-            EppsPulleyExponentialityGofStatistic().execute_statistic(data)
+            EppsPulleyExponentialityGofStatistic(
+                ExponentialDistributionDescriptor.DEFAULT.parse({})
+            ).execute_statistic(data)
         return
-    statistic = EppsPulleyExponentialityGofStatistic().execute_statistic(data)
+    statistic = EppsPulleyExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_ep_exponentiality_criterion_code():
-    assert "EP_EXPONENTIALITY_GOODNESS_OF_FIT" == EppsPulleyExponentialityGofStatistic().code()
+    assert (
+        "EP_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == EppsPulleyExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -156,12 +203,19 @@ def test_ep_exponentiality_criterion_code():
     ],
 )
 def test_eps_exponentiality_criterion(data, result):
-    statistic = EpsteinExponentialityGofStatistic().execute_statistic(data)
+    statistic = EpsteinExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_eps_exponentiality_criterion_code():
-    assert "EPS_EXPONENTIALITY_GOODNESS_OF_FIT" == EpsteinExponentialityGofStatistic().code()
+    assert (
+        "EPS_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == EpsteinExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -172,12 +226,19 @@ def test_eps_exponentiality_criterion_code():
     ],
 )
 def test_fz_exponentiality_criterion(data, result):
-    statistic = FroziniExponentialityGofStatistic().execute_statistic(data)
+    statistic = FroziniExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_fz_exponentiality_criterion_code():
-    assert "FZ_EXPONENTIALITY_GOODNESS_OF_FIT" == FroziniExponentialityGofStatistic().code()
+    assert (
+        "FZ_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == FroziniExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -188,12 +249,19 @@ def test_fz_exponentiality_criterion_code():
     ],
 )
 def test_gdt_exponentiality_criterion(data, result):
-    statistic = GnedenkoExponentialityGofStatistic().execute_statistic(data)
+    statistic = GnedenkoExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_gdt_exponentiality_criterion_code():
-    assert "GD_EXPONENTIALITY_GOODNESS_OF_FIT" == GnedenkoExponentialityGofStatistic().code()
+    assert (
+        "GD_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == GnedenkoExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -204,12 +272,19 @@ def test_gdt_exponentiality_criterion_code():
     ],
 )
 def test_gini_exponentiality_criterion(data, result):
-    statistic = GiniExponentialityGofStatistic().execute_statistic(data)
+    statistic = GiniExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_gini_exponentiality_criterion_code():
-    assert "GINI_EXPONENTIALITY_GOODNESS_OF_FIT" == GiniExponentialityGofStatistic().code()
+    assert (
+        "GINI_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == GiniExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -224,14 +299,18 @@ def test_mean_vertex_degree_criterion(data, result):
         abs(a - b) < (max(data) - min(data)) / 10 for a, b in itertools.combinations(data, 2)
     )
     result = 2 * edges / len(data)
-    statistic = GraphAverageDegreeExponentialityGofStatistic().execute_statistic(data)
+    statistic = GraphAverageDegreeExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_mean_vertex_degree_criterion_code():
     assert (
         "AVGDEGREE_GRAPH_EXPONENTIALITY_GOODNESS_OF_FIT"
-        == GraphAverageDegreeExponentialityGofStatistic().code()
+        == GraphAverageDegreeExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
     )
 
 
@@ -243,14 +322,18 @@ def test_mean_vertex_degree_criterion_code():
     ],
 )
 def test_number_of_components_criterion(data, result):
-    statistic = GraphConnectedComponentsExponentialityGofStatistic().execute_statistic(data)
+    statistic = GraphConnectedComponentsExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_number_of_components_criterion_code():
     assert (
         "CONNECTEDCOMPONENTS_GRAPH_EXPONENTIALITY_GOODNESS_OF_FIT"
-        == GraphConnectedComponentsExponentialityGofStatistic().code()
+        == GraphConnectedComponentsExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
     )
 
 
@@ -266,14 +349,18 @@ def test_graph_edges_number_exponentiality_criterion(data, result):
         abs(a - b) < (max(data) - min(data)) / 10 for a, b in itertools.combinations(data, 2)
     )
     result = edges
-    statistic = GraphEdgesNumberExponentialityGofStatistic().execute_statistic(data)
+    statistic = GraphEdgesNumberExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_graph_edges_number_exponentiality_criterion_code():
     assert (
         "EDGESNUMBER_GRAPH_EXPONENTIALITY_GOODNESS_OF_FIT"
-        == GraphEdgesNumberExponentialityGofStatistic().code()
+        == GraphEdgesNumberExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
     )
 
 
@@ -285,14 +372,18 @@ def test_graph_edges_number_exponentiality_criterion_code():
     ],
 )
 def test_graph_max_degree_exponentiality_criterion(data, result):
-    statistic = GraphMaxDegreeExponentialityGofStatistic().execute_statistic(data)
+    statistic = GraphMaxDegreeExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_graph_max_degree_exponentiality_criterion_code():
     assert (
         "MAXDEGREE_GRAPH_EXPONENTIALITY_GOODNESS_OF_FIT"
-        == GraphMaxDegreeExponentialityGofStatistic().code()
+        == GraphMaxDegreeExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
     )
 
 
@@ -304,7 +395,9 @@ def test_graph_max_degree_exponentiality_criterion_code():
     ],
 )
 def test_clique_number_exponentiality_criterion(data, expected_result):
-    statistic = GraphCliqueNumberExponentialityGofStatistic().execute_statistic(data)
+    statistic = GraphCliqueNumberExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert expected_result == pytest.approx(statistic, 0.00001)
 
 
@@ -323,7 +416,9 @@ def test_clique_number_exponentiality_criterion_code():
     ],
 )
 def test_independence_number_exponentiality_criterion(data, expected_result):
-    statistic = GraphIndependenceNumberExponentialityGofStatistic().execute_statistic(data)
+    statistic = GraphIndependenceNumberExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert expected_result == pytest.approx(statistic, 0.00001)
 
 
@@ -339,12 +434,19 @@ def test_hg1_exponentiality_criterion(data):
     # Independent exponential quantiles, with scale fitted to this sample.
     q = expon.ppf(np.arange(1, len(data) + 1) / (len(data) + 1), scale=np.mean(data))
     result = np.mean((np.abs(np.sort(data) - q) / np.mean(data)) ** 1)
-    statistic = HegazyGreen1ExponentialityGofStatistic().execute_statistic(data)
+    statistic = HegazyGreen1ExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_hg1_exponentiality_criterion_code():
-    assert "HG1_EXPONENTIALITY_GOODNESS_OF_FIT" == HegazyGreen1ExponentialityGofStatistic().code()
+    assert (
+        "HG1_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == HegazyGreen1ExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
+    )
 
 
 @pytest.mark.parametrize("data", [list(range(1, 8)), list(range(1, 11))])
@@ -352,12 +454,19 @@ def test_hg2_exponentiality_criterion(data):
     # Independent exponential quantiles, with scale fitted to this sample.
     q = expon.ppf(np.arange(1, len(data) + 1) / (len(data) + 1), scale=np.mean(data))
     result = np.mean((np.abs(np.sort(data) - q) / np.mean(data)) ** 2)
-    statistic = HegazyGreen2ExponentialityGofStatistic().execute_statistic(data)
+    statistic = HegazyGreen2ExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_hg2_exponentiality_criterion_code():
-    assert "HG2_EXPONENTIALITY_GOODNESS_OF_FIT" == HegazyGreen2ExponentialityGofStatistic().code()
+    assert (
+        "HG2_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == HegazyGreen2ExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -368,12 +477,19 @@ def test_hg2_exponentiality_criterion_code():
     ],
 )
 def test_hm_exponentiality_criterion(data, result):
-    statistic = HarrisExponentialityGofStatistic().execute_statistic(data)
+    statistic = HarrisExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_hm_exponentiality_criterion_code():
-    assert "HM_EXPONENTIALITY_GOODNESS_OF_FIT" == HarrisExponentialityGofStatistic().code()
+    assert (
+        "HM_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == HarrisExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -384,13 +500,18 @@ def test_hm_exponentiality_criterion_code():
     ],
 )
 def test_hp_exponentiality_criterion(data, result):
-    statistic = HollanderProshanExponentialityGofStatistic().execute_statistic(data)
+    statistic = HollanderProshanExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_hp_exponentiality_criterion_code():
     assert (
-        "HP_EXPONENTIALITY_GOODNESS_OF_FIT" == HollanderProshanExponentialityGofStatistic().code()
+        "HP_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == HollanderProshanExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
     )
 
 
@@ -402,12 +523,19 @@ def test_hp_exponentiality_criterion_code():
     ],
 )
 def test_kc_exponentiality_criterion(data, result):
-    statistic = KocharExponentialityGofStatistic().execute_statistic(data)
+    statistic = KocharExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_kc_exponentiality_criterion_code():
-    assert "KC_EXPONENTIALITY_GOODNESS_OF_FIT" == KocharExponentialityGofStatistic().code()
+    assert (
+        "KC_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == KocharExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -418,12 +546,19 @@ def test_kc_exponentiality_criterion_code():
     ],
 )
 def test_km_exponentiality_criterion(data, result):
-    statistic = KimberMichaelExponentialityGofStatistic().execute_statistic(data)
+    statistic = KimberMichaelExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_km_exponentiality_criterion_code():
-    assert "KM_EXPONENTIALITY_GOODNESS_OF_FIT" == KimberMichaelExponentialityGofStatistic().code()
+    assert (
+        "KM_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == KimberMichaelExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -434,13 +569,18 @@ def test_km_exponentiality_criterion_code():
     ],
 )
 def test_ks_exponentiality_criterion(data, result):
-    statistic = KolmogorovSmirnovExponentialityGofStatistic().execute_statistic(data)
+    statistic = KolmogorovSmirnovExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({"lam": 1})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_ks_exponentiality_criterion_code():
     assert (
-        "KS_EXPONENTIALITY_GOODNESS_OF_FIT" == KolmogorovSmirnovExponentialityGofStatistic().code()
+        "KS_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == KolmogorovSmirnovExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({"lam": 1})
+        ).code()
     )
 
 
@@ -452,12 +592,19 @@ def test_ks_exponentiality_criterion_code():
     ],
 )
 def test_lz_exponentiality_criterion(data, result):
-    statistic = LorenzExponentialityGofStatistic().execute_statistic(data)
+    statistic = LorenzExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_lz_exponentiality_criterion_code():
-    assert "LZ_EXPONENTIALITY_GOODNESS_OF_FIT" == LorenzExponentialityGofStatistic().code()
+    assert (
+        "LZ_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == LorenzExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -468,12 +615,19 @@ def test_lz_exponentiality_criterion_code():
     ],
 )
 def test_mn_exponentiality_criterion(data, result):
-    statistic = MoranExponentialityGofStatistic().execute_statistic(data)
+    statistic = MoranExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_mn_exponentiality_criterion_code():
-    assert "MN_EXPONENTIALITY_GOODNESS_OF_FIT" == MoranExponentialityGofStatistic().code()
+    assert (
+        "MN_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == MoranExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -484,12 +638,19 @@ def test_mn_exponentiality_criterion_code():
     ],
 )
 def test_pt_exponentiality_criterion(data, result):
-    statistic = PietraExponentialityGofStatistic().execute_statistic(data)
+    statistic = PietraExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.001)
 
 
 def test_pt_exponentiality_criterion_code():
-    assert "PT_EXPONENTIALITY_GOODNESS_OF_FIT" == PietraExponentialityGofStatistic().code()
+    assert (
+        "PT_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == PietraExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -500,12 +661,19 @@ def test_pt_exponentiality_criterion_code():
     ],
 )
 def test_rs_exponentiality_criterion(data, result):
-    statistic = RossbergExponentialityGofStatistic().execute_statistic(data)
+    statistic = RossbergExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_rs_exponentiality_criterion_code():
-    assert "RS_EXPONENTIALITY_GOODNESS_OF_FIT" == RossbergExponentialityGofStatistic().code()
+    assert (
+        "RS_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == RossbergExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -516,12 +684,19 @@ def test_rs_exponentiality_criterion_code():
     ],
 )
 def test_sw_exponentiality_criterion(data, result):
-    statistic = ShapiroWilkExponentialityGofStatistic().execute_statistic(data)
+    statistic = ShapiroWilkExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_sw_exponentiality_criterion_code():
-    assert "SW_EXPONENTIALITY_GOODNESS_OF_FIT" == ShapiroWilkExponentialityGofStatistic().code()
+    assert (
+        "SW_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == ShapiroWilkExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -532,12 +707,17 @@ def test_sw_exponentiality_criterion_code():
     ],
 )
 def test_we_exponentiality_criterion(data, result):
-    statistic = WeExponentialityGofStatistic().execute_statistic(data)
+    statistic = WeExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, abs=0.01)
 
 
 def test_we_exponentiality_criterion_code():
-    assert "WE_EXPONENTIALITY_GOODNESS_OF_FIT" == WeExponentialityGofStatistic().code()
+    assert (
+        "WE_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == WeExponentialityGofStatistic(ExponentialDistributionDescriptor.DEFAULT.parse({})).code()
+    )
 
 
 @pytest.mark.parametrize(
@@ -548,9 +728,16 @@ def test_we_exponentiality_criterion_code():
     ],
 )
 def test_ww_exponentiality_criterion(data, result):
-    statistic = WongWongExponentialityGofStatistic().execute_statistic(data)
+    statistic = WongWongExponentialityGofStatistic(
+        ExponentialDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
 
 
 def test_ww_exponentiality_criterion_code():
-    assert "WW_EXPONENTIALITY_GOODNESS_OF_FIT" == WongWongExponentialityGofStatistic().code()
+    assert (
+        "WW_EXPONENTIALITY_GOODNESS_OF_FIT"
+        == WongWongExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).code()
+    )

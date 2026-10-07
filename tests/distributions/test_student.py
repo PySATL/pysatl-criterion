@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 import scipy.stats as scipy_stats
 
+from pysatl_criterion.distribution.distributions import StudentDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit.student import (
     AbstractStudentGofStatistic,
     AndersonDarlingStudentGofStatistic,
@@ -53,18 +54,26 @@ def test_abstract_student_criterion_code():
 
 def test_abstract_student_invalid_df():
     """Test that invalid df raises ValueError."""
-    with pytest.raises(ValueError, match="Degrees of freedom must be positive"):
-        KolmogorovSmirnovStudentGofStatistic(df=0)
-    with pytest.raises(ValueError, match="Degrees of freedom must be positive"):
-        KolmogorovSmirnovStudentGofStatistic(df=-1)
+    with pytest.raises(ValueError, match="Invalid value for df"):
+        KolmogorovSmirnovStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": 0, "loc": 0, "scale": 1})
+        )
+    with pytest.raises(ValueError, match="Invalid value for df"):
+        KolmogorovSmirnovStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": -1, "loc": 0, "scale": 1})
+        )
 
 
 def test_abstract_student_invalid_scale():
     """Test that invalid scale raises ValueError."""
-    with pytest.raises(ValueError, match="Scale must be positive"):
-        KolmogorovSmirnovStudentGofStatistic(df=5, scale=0)
-    with pytest.raises(ValueError, match="Scale must be positive"):
-        KolmogorovSmirnovStudentGofStatistic(df=5, scale=-1)
+    with pytest.raises(ValueError, match="Invalid value for s"):
+        KolmogorovSmirnovStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 0})
+        )
+    with pytest.raises(ValueError, match="Invalid value for s"):
+        KolmogorovSmirnovStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": -1})
+        )
 
 
 # Tests for KolmogorovSmirnovStudentGofStatistic
@@ -82,7 +91,9 @@ class TestKolmogorovSmirnovStudent:
     )
     def test_ks_statistic_values(self, data, df, expected):
         """Test KS statistic against pre-calculated values."""
-        stat = KolmogorovSmirnovStudentGofStatistic(df=df)
+        stat = KolmogorovSmirnovStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": df, "loc": 0, "scale": 1})
+        )
         result = stat.execute_statistic(data)
         assert result == pytest.approx(expected, rel=0.01)
 
@@ -92,7 +103,9 @@ class TestKolmogorovSmirnovStudent:
 
     def test_ks_with_scipy(self, t_sample_df5):
         """Verify KS statistic matches scipy calculation."""
-        stat = KolmogorovSmirnovStudentGofStatistic(df=5)
+        stat = KolmogorovSmirnovStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1})
+        )
         our_result = stat.execute_statistic(t_sample_df5)
 
         # Compare with scipy kstest
@@ -103,9 +116,18 @@ class TestKolmogorovSmirnovStudent:
         """Test KS statistic with different alternatives."""
         data = [0.5, 1.0, -0.5, 0.0, 2.0]
 
-        stat_two = KolmogorovSmirnovStudentGofStatistic(df=5, alternative_type="two-sided")
-        stat_less = KolmogorovSmirnovStudentGofStatistic(df=5, alternative_type="less")
-        stat_greater = KolmogorovSmirnovStudentGofStatistic(df=5, alternative_type="greater")
+        stat_two = KolmogorovSmirnovStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1}),
+            alternative_type="two-sided",
+        )
+        stat_less = KolmogorovSmirnovStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1}),
+            alternative_type="less",
+        )
+        stat_greater = KolmogorovSmirnovStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1}),
+            alternative_type="greater",
+        )
 
         result_two = stat_two.execute_statistic(data)
         result_less = stat_less.execute_statistic(data)
@@ -130,7 +152,9 @@ class TestAndersonDarlingStudent:
     )
     def test_ad_statistic_values(self, data, df, expected):
         """Test AD statistic against pre-calculated values."""
-        stat = AndersonDarlingStudentGofStatistic(df=df)
+        stat = AndersonDarlingStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": df, "loc": 0, "scale": 1})
+        )
         result = stat.execute_statistic(data)
         assert result == pytest.approx(expected, rel=0.05)
 
@@ -140,7 +164,9 @@ class TestAndersonDarlingStudent:
 
     def test_ad_positive(self, t_sample_df5):
         """Test that AD statistic is always positive."""
-        stat = AndersonDarlingStudentGofStatistic(df=5)
+        stat = AndersonDarlingStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1})
+        )
         result = stat.execute_statistic(t_sample_df5)
         assert result > 0
 
@@ -160,7 +186,9 @@ class TestCramerVonMisesStudent:
     )
     def test_cvm_statistic_values(self, data, df, expected):
         """Test CVM statistic against pre-calculated values."""
-        stat = CramerVonMisesStudentGofStatistic(df=df)
+        stat = CramerVonMisesStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": df, "loc": 0, "scale": 1})
+        )
         result = stat.execute_statistic(data)
         assert result == pytest.approx(expected, rel=0.05)
 
@@ -170,7 +198,9 @@ class TestCramerVonMisesStudent:
 
     def test_cvm_with_scipy(self, t_sample_df5):
         """Verify CVM statistic matches scipy calculation."""
-        stat = CramerVonMisesStudentGofStatistic(df=5)
+        stat = CramerVonMisesStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1})
+        )
         our_result = stat.execute_statistic(t_sample_df5)
 
         # Compare with scipy cramervonmises
@@ -193,7 +223,9 @@ class TestKuiperStudent:
     )
     def test_kuiper_statistic_values(self, data, df, expected):
         """Test Kuiper statistic against pre-calculated values."""
-        stat = KuiperStudentGofStatistic(df=df)
+        stat = KuiperStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": df, "loc": 0, "scale": 1})
+        )
         result = stat.execute_statistic(data)
         assert result == pytest.approx(expected, rel=0.05)
 
@@ -203,7 +235,9 @@ class TestKuiperStudent:
 
     def test_kuiper_positive(self, t_sample_df5):
         """Test that Kuiper statistic is always positive."""
-        stat = KuiperStudentGofStatistic(df=5)
+        stat = KuiperStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1})
+        )
         result = stat.execute_statistic(t_sample_df5)
         assert result > 0
 
@@ -223,7 +257,9 @@ class TestWatsonStudent:
     )
     def test_watson_statistic_values(self, data, df, expected):
         """Test Watson statistic against pre-calculated values."""
-        stat = WatsonStudentGofStatistic(df=df)
+        stat = WatsonStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": df, "loc": 0, "scale": 1})
+        )
         result = stat.execute_statistic(data)
         assert result == pytest.approx(expected, rel=0.1)
 
@@ -242,7 +278,9 @@ class TestZhangZcStudent:
 
     def test_zhang_zc_positive(self, t_sample_df5):
         """Test that Zhang Zc statistic is always positive."""
-        stat = ZhangZcStudentGofStatistic(df=5)
+        stat = ZhangZcStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1})
+        )
         result = stat.execute_statistic(t_sample_df5)
         assert result > 0
 
@@ -256,7 +294,9 @@ class TestZhangZcStudent:
     )
     def test_zhang_zc_finite(self, data, df):
         """Test that Zhang Zc statistic returns finite values."""
-        stat = ZhangZcStudentGofStatistic(df=df)
+        stat = ZhangZcStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": df, "loc": 0, "scale": 1})
+        )
         result = stat.execute_statistic(data)
         assert np.isfinite(result)
 
@@ -271,7 +311,9 @@ class TestZhangZaStudent:
 
     def test_zhang_za_positive(self, t_sample_df5):
         """Test that Zhang Za statistic returns a finite value."""
-        stat = ZhangZaStudentGofStatistic(df=5)
+        stat = ZhangZaStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1})
+        )
         result = stat.execute_statistic(t_sample_df5)
         assert np.isfinite(result)
 
@@ -285,7 +327,9 @@ class TestZhangZaStudent:
     )
     def test_zhang_za_finite(self, data, df):
         """Test that Zhang Za statistic returns finite values."""
-        stat = ZhangZaStudentGofStatistic(df=df)
+        stat = ZhangZaStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": df, "loc": 0, "scale": 1})
+        )
         result = stat.execute_statistic(data)
         assert np.isfinite(result)
 
@@ -300,7 +344,7 @@ class TestLillieforsStudent:
 
     def test_lilliefors_positive(self, t_sample_df5):
         """Test that Lilliefors statistic is always positive."""
-        stat = LillieforsStudentGofStatistic(df=5)
+        stat = LillieforsStudentGofStatistic(StudentDistributionDescriptor.DEFAULT.parse({"df": 5}))
         result = stat.execute_statistic(t_sample_df5)
         assert result > 0
 
@@ -314,7 +358,9 @@ class TestLillieforsStudent:
     )
     def test_lilliefors_less_than_one(self, data, df):
         """Test that Lilliefors statistic is less than 1."""
-        stat = LillieforsStudentGofStatistic(df=df)
+        stat = LillieforsStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": df})
+        )
         result = stat.execute_statistic(data)
         assert 0 < result < 1
 
@@ -329,14 +375,19 @@ class TestChiSquareStudent:
 
     def test_chi2_positive(self, t_sample_df5):
         """Test that Chi-Square statistic is always non-negative."""
-        stat = ChiSquareStudentGofStatistic(df=5, n_bins=5)
+        stat = ChiSquareStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1}), n_bins=5
+        )
         result = stat.execute_statistic(t_sample_df5)
         assert result >= 0
 
     @pytest.mark.parametrize("n_bins", [5, 10, 20])
     def test_chi2_different_bins(self, t_sample_df5, n_bins):
         """Test Chi-Square with different number of bins."""
-        stat = ChiSquareStudentGofStatistic(df=5, n_bins=n_bins)
+        stat = ChiSquareStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1}),
+            n_bins=n_bins,
+        )
         result = stat.execute_statistic(t_sample_df5)
         assert result >= 0
         assert np.isfinite(result)
@@ -349,15 +400,32 @@ class TestStudentStatisticsIntegration:
     def test_all_statistics_run(self, t_sample_df5):
         """Test that all statistics can be computed without errors."""
         statistics = [
-            KolmogorovSmirnovStudentGofStatistic(df=5),
-            AndersonDarlingStudentGofStatistic(df=5),
-            CramerVonMisesStudentGofStatistic(df=5),
-            KuiperStudentGofStatistic(df=5),
-            WatsonStudentGofStatistic(df=5),
-            ZhangZcStudentGofStatistic(df=5),
-            ZhangZaStudentGofStatistic(df=5),
-            LillieforsStudentGofStatistic(df=5),
-            ChiSquareStudentGofStatistic(df=5, n_bins=5),
+            KolmogorovSmirnovStudentGofStatistic(
+                StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1})
+            ),
+            AndersonDarlingStudentGofStatistic(
+                StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1})
+            ),
+            CramerVonMisesStudentGofStatistic(
+                StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1})
+            ),
+            KuiperStudentGofStatistic(
+                StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1})
+            ),
+            WatsonStudentGofStatistic(
+                StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1})
+            ),
+            ZhangZcStudentGofStatistic(
+                StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1})
+            ),
+            ZhangZaStudentGofStatistic(
+                StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1})
+            ),
+            LillieforsStudentGofStatistic(StudentDistributionDescriptor.DEFAULT.parse({"df": 5})),
+            ChiSquareStudentGofStatistic(
+                StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1}),
+                n_bins=5,
+            ),
         ]
 
         for stat in statistics:
@@ -369,11 +437,15 @@ class TestStudentStatisticsIntegration:
         loc, scale = 5.0, 2.0
         transformed_sample = t_sample_df5 * scale + loc
 
-        stat = KolmogorovSmirnovStudentGofStatistic(df=5, loc=loc, scale=scale)
+        stat = KolmogorovSmirnovStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": loc, "scale": scale})
+        )
         result = stat.execute_statistic(transformed_sample)
 
         # Should be similar to the standard case
-        stat_standard = KolmogorovSmirnovStudentGofStatistic(df=5)
+        stat_standard = KolmogorovSmirnovStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1})
+        )
         result_standard = stat_standard.execute_statistic(t_sample_df5)
 
         assert result == pytest.approx(result_standard, rel=0.01)
@@ -384,7 +456,9 @@ class TestStudentStatisticsIntegration:
         normal_data = rng.normal(0, 1, size=1000)
         t_data = rng.standard_t(df=3, size=1000)
 
-        stat = KolmogorovSmirnovStudentGofStatistic(df=3)
+        stat = KolmogorovSmirnovStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": 3, "loc": 0, "scale": 1})
+        )
 
         # Statistic for t-data should be smaller (better fit)
         result_t = stat.execute_statistic(t_data)
@@ -405,7 +479,9 @@ class TestStudentStatisticsEdgeCases:
     def test_small_sample(self):
         """Test statistics with small sample size."""
         data = [0.1, 0.2, 0.3]
-        stat = KolmogorovSmirnovStudentGofStatistic(df=5)
+        stat = KolmogorovSmirnovStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1})
+        )
         result = stat.execute_statistic(data)
         assert np.isfinite(result)
 
@@ -413,7 +489,9 @@ class TestStudentStatisticsEdgeCases:
         """Test statistics with large degrees of freedom (approaches normal)."""
         rng = np.random.default_rng(42)
         data = rng.standard_t(df=100, size=50)
-        stat = KolmogorovSmirnovStudentGofStatistic(df=100)
+        stat = KolmogorovSmirnovStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": 100, "loc": 0, "scale": 1})
+        )
         result = stat.execute_statistic(data)
         assert np.isfinite(result)
         assert result < 0.5  # Should be a good fit
@@ -422,13 +500,17 @@ class TestStudentStatisticsEdgeCases:
         """Test statistics with df=1 (Cauchy distribution)."""
         rng = np.random.default_rng(42)
         data = rng.standard_cauchy(size=50)
-        stat = KolmogorovSmirnovStudentGofStatistic(df=1)
+        stat = KolmogorovSmirnovStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": 1, "loc": 0, "scale": 1})
+        )
         result = stat.execute_statistic(data)
         assert np.isfinite(result)
 
     def test_extreme_values(self):
         """Test statistics with extreme values in data."""
         data = [-100, -10, -1, 0, 1, 10, 100]
-        stat = KolmogorovSmirnovStudentGofStatistic(df=3)
+        stat = KolmogorovSmirnovStudentGofStatistic(
+            StudentDistributionDescriptor.DEFAULT.parse({"df": 3, "loc": 0, "scale": 1})
+        )
         result = stat.execute_statistic(data)
         assert np.isfinite(result)

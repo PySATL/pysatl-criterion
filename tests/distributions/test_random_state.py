@@ -20,7 +20,7 @@ from pysatl_criterion.core.distributions.continues.weibull import generate_weibu
     [
         (generate_norm, {"mean": 1.0, "var": 2.0}),
         (generate_expon, {"lam": 2.0}),
-        (generate_weibull, {"a": 1.0, "k": 2.0}),
+        (generate_weibull, {"scale": 1.0, "shape": 2.0}),
         (generate_gamma, {"alfa": 2.0, "beta": 1.0}),
         (generate_beta, {"a": 2.0, "b": 3.0}),
         (generate_lognorm, {"s": 0.5, "mu": 1.0}),

@@ -5,7 +5,9 @@ from fractions import Fraction
 import numpy as np
 import pytest
 
+from pysatl_criterion.distribution.distributions import ExponentialDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit import exponent as exp
+from tests.parameter_cases import parameters_for
 
 
 @pytest.mark.parametrize("offsets", [[0, 0, 1], [0, 1, 1], [0, 1, 2, 4]])
@@ -17,7 +19,9 @@ def test_shapiro_wilk_nearly_constant_against_exact_arithmetic(offsets, scale):
     mean = sum(exact) / n
     expected = n * (mean - min(exact)) ** 2 / ((n - 1) * sum((v - mean) ** 2 for v in exact))
     with np.errstate(all="raise"):
-        actual = exp.ShapiroWilkExponentialityGofStatistic().execute_statistic(x)
+        actual = exp.ShapiroWilkExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({})
+        ).execute_statistic(x)
     assert actual == pytest.approx(float(expected), rel=1e-14)
 
 
@@ -27,7 +31,9 @@ def test_atkinson_subnormal_power_matches_geometric_mean_limit(p):
     x = [0.25, 0.5, 2.0, 4.0]
     expected = 2 * abs(1 / (6.75 / 4) - np.exp(-np.euler_gamma))
     with np.errstate(all="raise"):
-        actual = exp.AtkinsonExponentialityGofStatistic(p=p).execute_statistic(x)
+        actual = exp.AtkinsonExponentialityGofStatistic(
+            ExponentialDistributionDescriptor.DEFAULT.parse({}), p=p
+        ).execute_statistic(x)
     assert actual == pytest.approx(expected, abs=1e-14)
 
 
@@ -42,5 +48,9 @@ def test_atkinson_subnormal_power_matches_geometric_mean_limit(p):
     ],
 )
 def test_unrepresentable_integer_setting_raises_value_error(cls, parameter):
-    with pytest.raises(ValueError, match="finite real scalar"):
-        cls(**{parameter: 10**400})
+    if parameter == "lam":
+        with pytest.raises(ValueError, match="Invalid value for lam"):
+            cls(parameters_for(cls, lam=10**400))
+    else:
+        with pytest.raises(ValueError, match="finite real scalar"):
+            cls(parameters_for(cls), **{parameter: 10**400})

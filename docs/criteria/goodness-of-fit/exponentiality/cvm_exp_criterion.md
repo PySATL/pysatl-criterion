@@ -61,11 +61,12 @@ TypeError
 ## Example
 
 ```python
+from pysatl_criterion.distribution.distributions import ExponentialDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit.exponent import (
     CramerVonMisesExponentialityGofStatistic,
 )
 
-statistic = CramerVonMisesExponentialityGofStatistic()
+statistic = CramerVonMisesExponentialityGofStatistic(ExponentialDistributionDescriptor.DEFAULT.parse({'lam': 1}))
 value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
 print(value)
 ```

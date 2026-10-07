@@ -22,16 +22,17 @@ require calibration of the observation process.
 ## Parameters
 
 ```text
-alpha, beta : float, optional
-    Fixed finite positive shape and rate, respectively. Both default to 1.
+parameters : ParameterValues
+    Values with alfa, beta fixed; omitted parameters are unknown.
 ```
 
 ## Usage
 
 ```python
+from pysatl_criterion.distribution.distributions import GammaDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit.gamma import GraphAverageDegreeGammaGofStatistic
 
-statistic = GraphAverageDegreeGammaGofStatistic()
+statistic = GraphAverageDegreeGammaGofStatistic(GammaDistributionDescriptor.DEFAULT.parse({'alfa': 1, 'beta': 1}))
 value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
 ```
 

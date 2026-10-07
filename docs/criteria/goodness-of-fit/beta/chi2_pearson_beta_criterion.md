@@ -9,12 +9,13 @@ The null hypothesis is that the data comes from a beta distribution with positiv
 
 ## Usage
 ```python
+from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit import (
     Chi2PearsonBetaGofStatistic,
 )
 
 
-test_statistic = Chi2PearsonBetaGofStatistic(alpha=2, beta=5, lambda_=1)
+test_statistic = Chi2PearsonBetaGofStatistic(BetaDistributionDescriptor.DEFAULT.parse({'a': 2, 'b': 5}), lambda_=1)
 statistic_result = test_statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
 print(statistic_result)
 ```
@@ -56,12 +57,13 @@ N. Cressie and T. R. C. Read (1984), "Multinomial Goodness-of-Fit
 
 ## Examples
 ```python
+from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit import (
     Chi2PearsonBetaGofStatistic,
 )
 
 
-test_statistic = Chi2PearsonBetaGofStatistic(alpha=2, beta=5, lambda_=1)
+test_statistic = Chi2PearsonBetaGofStatistic(BetaDistributionDescriptor.DEFAULT.parse({'a': 2, 'b': 5}), lambda_=1)
 statistic_result = test_statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
 print(statistic_result)
 ```

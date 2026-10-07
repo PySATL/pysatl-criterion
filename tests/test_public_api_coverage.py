@@ -31,7 +31,10 @@ from pysatl_criterion.core.distributions.continues import (
     weibull,
 )
 from pysatl_criterion.distribution import distributions
-from pysatl_criterion.distribution.distribution_type import DistributionParameterDescriptor
+from pysatl_criterion.distribution.distribution_parameter_descriptor import (
+    DistributionParameterDescriptor,
+)
+from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
 from pysatl_criterion.distribution.validator import (
     NonNegativeNumberValidator,
     PositiveNumberValidator,
@@ -40,8 +43,12 @@ from pysatl_criterion.distribution.validator import (
 )
 from pysatl_criterion.generator import generators
 from pysatl_criterion.generator.model import AbstractRVSGenerator
+from pysatl_criterion.statistics.goodness_of_fit import (
+    exponentiated_weibull as exponentiated_weibull_statistics,
+)
 from pysatl_criterion.statistics.goodness_of_fit import normal as normal_statistics
 from pysatl_criterion.statistics.goodness_of_fit import weibull as weibull_statistics
+from tests.parameter_cases import parameters_for
 
 
 def test_convenience_api_exports():
@@ -60,11 +67,10 @@ def test_all_distribution_descriptors_expose_complete_metadata():
     descriptor_classes = [
         cls
         for _, cls in inspect.getmembers(distributions, inspect.isclass)
-        if issubclass(cls, distributions.DistributionDescriptor)
-        and cls is not distributions.DistributionDescriptor
+        if issubclass(cls, distributions.DistributionDescriptor) and not inspect.isabstract(cls)
     ]
 
-    assert len(descriptor_classes) == 22
+    assert len(descriptor_classes) == 26
     assert {cls.type() for cls in descriptor_classes} <= set(DistributionType)
     for descriptor_class in descriptor_classes:
         for parameter in descriptor_class.parameters():
@@ -118,10 +124,10 @@ def test_core_distribution_helpers_and_contaminated_generators():
     assert norm.generate_norm(3, mean=1, var=2).shape == (3,)
     assert norm.cdf_norm(values, mean=1, var=2).shape == (3,)
     assert norm.pdf_norm(values, mean=1, var=2).shape == (3,)
-    assert len(weibull.generate_weibull(3, a=2, k=3)) == 3
-    assert weibull.generate_weibull_cdf(values, a=2, k=3).shape == (3,)
-    assert weibull.generate_weibull_logcdf(values, a=2, k=3).shape == (3,)
-    assert weibull.generate_weibull_logsf(values, a=2, k=3).shape == (3,)
+    assert len(weibull.generate_weibull(3, scale=2, shape=3)) == 3
+    assert weibull.generate_weibull_cdf(values, scale=2, shape=3).shape == (3,)
+    assert weibull.generate_weibull_logcdf(values, scale=2, shape=3).shape == (3,)
+    assert weibull.generate_weibull_logsf(values, scale=2, shape=3).shape == (3,)
 
     for function, kwargs in (
         (lo_con_norm.generate_lo_con_norm, {"a": 2}),
@@ -148,7 +154,7 @@ def test_every_generator_can_generate_a_sample():
         generators.TruncnormGenerator(mean=0, var=1, a=-2, b=2),
         generators.Chi2Generator(df=3),
         generators.GumbelGenerator(mu=0, beta=1),
-        generators.WeibullGenerator(a=2, k=3),
+        generators.WeibullGenerator(scale=2, shape=3),
         generators.LoConNormGenerator(p=1, a=2),
         generators.ScConNormGenerator(p=1, b=2),
         generators.MixConNormGenerator(p=1, a=2, b=3),
@@ -186,11 +192,11 @@ def test_all_normality_statistics_expose_metadata():
 
     assert len(classes) > 40
     for statistic_class in classes:
-        statistic = statistic_class()
+        statistic = statistic_class(parameters_for(statistic_class))
         assert statistic.code()
         assert statistic.short_code()
         assert statistic.alternative()
-        assert statistic.distribution() is DistributionType.NORMAL
+        assert statistic.distribution().type() is DistributionType.NORMAL
 
 
 def test_all_normality_statistics_execute_on_a_representative_sample():
@@ -205,12 +211,16 @@ def test_all_normality_statistics_execute_on_a_representative_sample():
     ]
 
     for statistic_class in classes:
-        assert np.isscalar(statistic_class().execute_statistic(sample_values))
+        assert np.isscalar(
+            statistic_class(parameters_for(statistic_class)).execute_statistic(sample_values)
+        )
 
     # Four observations exercise the BHS implementation without its expensive
     # large-sample weighted-median search.
     assert np.isscalar(
-        normal_statistics.BHSNormalityGofStatistic().execute_statistic([1.0, 2.0, 3.0, 4.0])
+        normal_statistics.BHSNormalityGofStatistic(
+            NormalDistributionDescriptor.DEFAULT.parse({})
+        ).execute_statistic([1.0, 2.0, 3.0, 4.0])
     )
 
 
@@ -218,9 +228,9 @@ def test_all_normality_statistics_execute_on_a_representative_sample():
     "statistic_class",
     [
         weibull_statistics.AndersonDarlingWeibullGofStatistic,
-        weibull_statistics.Chi2PearsonWeibullGofStatistic,
+        exponentiated_weibull_statistics.Chi2PearsonExponentiatedWeibullGofStatistic,
         weibull_statistics.MahdiDoostparastWeibullGofStatistic,
-        weibull_statistics.WatsonWeibullGofStatistic,
+        exponentiated_weibull_statistics.WatsonExponentiatedWeibullGofStatistic,
         weibull_statistics.LiaoShimokawaWeibullGofStatistic,
         weibull_statistics.KullbackLeiblerWeibullGofStatistic,
         weibull_statistics.LaplaceTransform2WeibullGofStatistic,
@@ -229,8 +239,8 @@ def test_all_normality_statistics_execute_on_a_representative_sample():
     ],
 )
 def test_previously_uncovered_weibull_statistics(statistic_class):
-    sample_values = np.linspace(0.4, 3.0, 20)
-    result = statistic_class().execute_statistic(sample_values)
+    sample_values = np.linspace(3.0, 0.4, 20)
+    result = statistic_class(parameters_for(statistic_class)).execute_statistic(sample_values)
     assert np.isscalar(result)
 
 
@@ -243,17 +253,17 @@ def test_all_weibull_statistics_expose_metadata():
         and not inspect.isabstract(cls)
     ]
 
-    assert len(classes) > 20
+    assert len(classes) == 19
     for statistic_class in classes:
-        statistic = statistic_class()
+        statistic = statistic_class(parameters_for(statistic_class))
         assert statistic.code()
         assert statistic.short_code()
         assert statistic.alternative()
-        assert statistic.distribution() is DistributionType.WEIBULL
+        assert statistic.distribution().type() is DistributionType.WEIBULL
 
 
 def test_all_concrete_weibull_statistics_execute():
-    sample_values = np.linspace(0.4, 3.0, 20)
+    sample_values = np.linspace(3.0, 0.4, 20)
     classes = [
         cls
         for _, cls in inspect.getmembers(weibull_statistics, inspect.isclass)
@@ -263,7 +273,7 @@ def test_all_concrete_weibull_statistics_execute():
     ]
 
     for statistic_class in classes:
-        statistic = statistic_class()
+        statistic = statistic_class(parameters_for(statistic_class))
         parameters = inspect.signature(statistic.execute_statistic).parameters
         result = (
             statistic.execute_statistic(sample_values, 1)

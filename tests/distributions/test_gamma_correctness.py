@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 from scipy import stats
 
+from pysatl_criterion.distribution.distributions import GammaDistributionDescriptor
 from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     MonteCarloLimitDistributionResolver,
     StorageLimitDistributionResolver,
@@ -16,6 +17,7 @@ from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
 from pysatl_criterion.statistics.alternative import AlternativeType, RightAlternative
 from pysatl_criterion.statistics.goodness_of_fit import gamma as g
 from pysatl_criterion.utils.generator import get_hypothesis_generator
+from tests.parameter_cases import parameters_for
 
 
 CLASSES = [
@@ -28,7 +30,7 @@ SAMPLE = np.array([0.2, 0.7, 1.3, 2.1, 3.4])
 
 @pytest.mark.parametrize("cls", CLASSES)
 def test_common_interface_and_independent_calls(cls):
-    statistic = cls()
+    statistic = cls(parameters_for(cls))
     x = SAMPLE.copy()
     state = vars(statistic).copy()
     first = statistic.execute_statistic(x, unused=True)
@@ -39,7 +41,7 @@ def test_common_interface_and_independent_calls(cls):
     assert vars(statistic) == state
     assert "kwargs" in inspect.signature(statistic.execute_statistic).parameters
     assert statistic.hypothesis().parameters() == (
-        {} if cls is g.LillieforsGammaGofStatistic else {"alpha": 1.0, "beta": 1.0}
+        {} if cls is g.LillieforsGammaGofStatistic else {"alfa": 1.0, "beta": 1.0}
     )
 
 
@@ -59,15 +61,15 @@ def test_common_interface_and_independent_calls(cls):
 )
 def test_invalid_samples(cls, sample):
     with pytest.raises(ValueError):
-        cls().execute_statistic(sample)
+        cls(parameters_for(cls)).execute_statistic(sample)
 
 
 @pytest.mark.parametrize("cls", [c for c in CLASSES if c is not g.LillieforsGammaGofStatistic])
 @pytest.mark.parametrize("value", [0, -1, np.nan, np.inf, [1.0], 1j, True, "1"])
-@pytest.mark.parametrize("parameter", ["alpha", "beta"])
+@pytest.mark.parametrize("parameter", ["alfa", "beta"])
 def test_invalid_parameters(cls, parameter, value):
     with pytest.raises(ValueError):
-        cls(**{parameter: value})
+        cls(parameters_for(cls, **{parameter: value}))
 
 
 @pytest.mark.parametrize(
@@ -79,7 +81,10 @@ def test_invalid_parameters(cls, parameter, value):
     ],
 )
 def test_ks_reference_and_tail(direction, scipy_direction):
-    statistic = g.KolmogorovSmirnovGammaGofStatistic(direction, alpha=2.5, beta=3)
+    statistic = g.KolmogorovSmirnovGammaGofStatistic(
+        GammaDistributionDescriptor.DEFAULT.parse({"alfa": 2.5, "beta": 3}),
+        alternative_type=direction,
+    )
     expected = stats.ks_1samp(
         SAMPLE, stats.gamma(2.5, scale=1 / 3).cdf, alternative=scipy_direction
     ).statistic
@@ -88,7 +93,7 @@ def test_ks_reference_and_tail(direction, scipy_direction):
 
 
 def test_fitted_ks_moments_rescaling_and_calibration():
-    statistic = g.LillieforsGammaGofStatistic()
+    statistic = g.LillieforsGammaGofStatistic(GammaDistributionDescriptor.DEFAULT.parse({}))
     for x in (SAMPLE, np.array([0, 1.0, 2.0, 4.0, 8.0])):
         mean, var = np.mean(x), np.var(x, ddof=1)
         expected = stats.ks_1samp(x, stats.gamma(mean**2 / var, scale=var / mean).cdf).statistic
@@ -98,8 +103,8 @@ def test_fitted_ks_moments_rescaling_and_calibration():
     for x in ([1], [1, 1], [0, 0]):
         with pytest.raises(ValueError):
             statistic.execute_statistic(x)
-    with pytest.raises(TypeError):
-        g.LillieforsGammaGofStatistic(alpha=2)
+    with pytest.raises(ValueError):
+        g.LillieforsGammaGofStatistic(GammaDistributionDescriptor.DEFAULT.parse({"alfa": 2}))
     with pytest.raises(ValueError, match="shape-specific"):
         get_hypothesis_generator(statistic)
     with pytest.raises(ValueError, match="shape-specific"):
@@ -125,7 +130,9 @@ def test_edf_independent_uniform_formulas():
         / np.sqrt(n),
     }
     for cls, expected in values.items():
-        assert cls(alpha=2.5, beta=3).execute_statistic(x) == pytest.approx(expected)
+        assert cls(parameters_for(cls, alfa=2.5, beta=3)).execute_statistic(x) == pytest.approx(
+            expected
+        )
 
 
 def test_exponential_tail_log_spacings():
@@ -135,21 +142,34 @@ def test_exponential_tail_log_spacings():
         [np.log1p(-np.exp(-40)), -40 + np.log1p(-np.exp(-1)), -41 + np.log1p(-np.exp(-1)), -42]
     )
     expected = -logs.sum() - 4 * np.log(3)
-    assert g.MoranGammaGofStatistic().execute_statistic(x) == pytest.approx(expected)
-    assert np.isfinite(g.MinToshiyukiGammaGofStatistic().execute_statistic(x))
+    assert g.MoranGammaGofStatistic(
+        GammaDistributionDescriptor.DEFAULT.parse({"alfa": 1, "beta": 1})
+    ).execute_statistic(x) == pytest.approx(expected)
+    assert np.isfinite(
+        g.MinToshiyukiGammaGofStatistic(
+            GammaDistributionDescriptor.DEFAULT.parse({"alfa": 1, "beta": 1})
+        ).execute_statistic(x)
+    )
     for cls in (
         g.AndersonDarlingGammaGofStatistic,
         g.MoranGammaGofStatistic,
         g.MinToshiyukiGammaGofStatistic,
     ):
-        assert cls().execute_statistic([0, 1]) == np.inf
-    assert g.MoranGammaGofStatistic().execute_statistic([2, 2]) == np.inf
+        assert cls(parameters_for(cls)).execute_statistic([0, 1]) == np.inf
+    assert (
+        g.MoranGammaGofStatistic(
+            GammaDistributionDescriptor.DEFAULT.parse({"alfa": 1, "beta": 1})
+        ).execute_statistic([2, 2])
+        == np.inf
+    )
 
 
 @pytest.mark.parametrize("bins", [True, 1, 2.5, np.nan, np.inf, [3]])
 def test_bin_validation(bins):
     with pytest.raises(ValueError):
-        g.Chi2PearsonGammaGofStatistic(bins=bins)
+        g.Chi2PearsonGammaGofStatistic(
+            GammaDistributionDescriptor.DEFAULT.parse({"alfa": 1, "beta": 1}), bins=bins
+        )
 
 
 @pytest.mark.parametrize("power", [-2.0, -1.0, -0.5, 0.0, 2 / 3, 1.0, 2.0])
@@ -165,7 +185,9 @@ def test_histogram_divergence_zero_bins(power):
     else:
         # Algebraically distinct continuous-limit expression, including O=0.
         expected = 2 * (np.sum(o ** (power + 1) / e**power) - np.sum(o)) / (power * (power + 1))
-    value = g.CressieReadGammaGofStatistic(power, bins=4, alpha=2.5, beta=2).execute_statistic(x)
+    value = g.CressieReadGammaGofStatistic(
+        GammaDistributionDescriptor.DEFAULT.parse({"alfa": 2.5, "beta": 2}), power=power, bins=4
+    ).execute_statistic(x)
     assert value == pytest.approx(expected)
 
 
@@ -173,22 +195,36 @@ def test_calibration_storage_settings(mocker):
     store = mocker.Mock()
     resolver = StorageLimitDistributionResolver(store)
     for stat in (
-        g.LillieforsGammaGofStatistic(),
-        g.Chi2PearsonGammaGofStatistic(),
-        g.CressieReadGammaGofStatistic(),
-        g.KolmogorovSmirnovGammaGofStatistic(AlternativeType.LEFT),
+        g.LillieforsGammaGofStatistic(GammaDistributionDescriptor.DEFAULT.parse({})),
+        g.Chi2PearsonGammaGofStatistic(
+            GammaDistributionDescriptor.DEFAULT.parse({"alfa": 1, "beta": 1})
+        ),
+        g.CressieReadGammaGofStatistic(
+            GammaDistributionDescriptor.DEFAULT.parse({"alfa": 1, "beta": 1})
+        ),
+        g.KolmogorovSmirnovGammaGofStatistic(
+            GammaDistributionDescriptor.DEFAULT.parse({"alfa": 1, "beta": 1}),
+            alternative_type=AlternativeType.LEFT,
+        ),
     ):
         with pytest.raises(ValueError):
             resolver.resolve(stat, 10)
     store.get.assert_not_called()
-    values = MonteCarloLimitDistributionResolver(3).resolve(g.Chi2PearsonGammaGofStatistic(), 10)
+    values = MonteCarloLimitDistributionResolver(3).resolve(
+        g.Chi2PearsonGammaGofStatistic(
+            GammaDistributionDescriptor.DEFAULT.parse({"alfa": 1, "beta": 1})
+        ),
+        10,
+    )
     assert len(values) == 3
 
 
 def test_ppcc_reference_and_scale_extremes():
     q = stats.gamma.ppf((np.arange(1, 6) - 0.375) / 5.25, a=2.5)
     expected = 1 - stats.pearsonr(SAMPLE, q).statistic
-    statistic = g.ProbabilityPlotCorrelationGammaGofStatistic(alpha=2.5, beta=1e-300)
+    statistic = g.ProbabilityPlotCorrelationGammaGofStatistic(
+        GammaDistributionDescriptor.DEFAULT.parse({"alfa": 2.5, "beta": 1e-300})
+    )
     for scale in (1.0, 1e300, 1e-300):
         assert statistic.execute_statistic(SAMPLE * scale) == pytest.approx(expected, abs=1e-14)
     assert isinstance(statistic.alternative(), RightAlternative)
@@ -220,7 +256,7 @@ def test_graphs_against_enumeration(u):
         ),
     }
     for cls, value in expected.items():
-        assert cls(alpha=2).execute_statistic(x) == float(value)
+        assert cls(parameters_for(cls, alfa=2)).execute_statistic(x) == float(value)
 
 
 def test_doc_examples():

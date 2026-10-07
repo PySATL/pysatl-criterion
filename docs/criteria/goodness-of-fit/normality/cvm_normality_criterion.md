@@ -4,11 +4,10 @@ Cramer-von Mises statistic for a specified normal distribution.
 
 ## Parameters
 
-mean : float, optional
-    Finite mean fixed by the null hypothesis. Default is 0.
-var : float, optional
-    Positive, finite variance fixed by the null hypothesis. Default is 1.
-    This is a variance, not the standard deviation.
+```text
+parameters : ParameterValues
+    Values with mean, var fixed; omitted parameters are unknown.
+```
 
 ## Methods
 
@@ -43,10 +42,11 @@ F0 is the normal CDF with the fixed mean and variance.
 ## Examples
 
 ```python
+from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
 import numpy as np
 from pysatl_criterion.statistics.goodness_of_fit.normal import CramerVonMiseNormalityGofStatistic
 
-statistic = CramerVonMiseNormalityGofStatistic()
+statistic = CramerVonMiseNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({'mean': 0, 'var': 1}))
 sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
 value = statistic.execute_statistic(sample)
 bool(np.isfinite(value))

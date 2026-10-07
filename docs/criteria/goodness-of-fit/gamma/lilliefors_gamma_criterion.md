@@ -17,9 +17,10 @@ The constructor no longer accepts alpha or beta.
 ## Usage
 
 ```python
+from pysatl_criterion.distribution.distributions import GammaDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit.gamma import LillieforsGammaGofStatistic
 
-statistic = LillieforsGammaGofStatistic()
+statistic = LillieforsGammaGofStatistic(GammaDistributionDescriptor.DEFAULT.parse({}))
 value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
 ```
 

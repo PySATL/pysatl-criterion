@@ -9,12 +9,14 @@ import pytest
 from scipy.integrate import quad
 from scipy.stats import laplace
 
+from pysatl_criterion.distribution.distributions import LaplaceDistributionDescriptor
 from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     MonteCarloLimitDistributionResolver,
     StorageLimitDistributionResolver,
 )
 from pysatl_criterion.statistics.alternative import AlternativeType
 from pysatl_criterion.statistics.goodness_of_fit import laplace as module
+from tests.parameter_cases import parameters_for
 
 
 CLASSES = [
@@ -33,7 +35,7 @@ CLASSES = [
 )
 def test_invalid_sample(cls, sample):
     with pytest.raises(ValueError):
-        cls().execute_statistic(sample)
+        cls(parameters_for(cls)).execute_statistic(sample)
 
 
 @pytest.mark.parametrize("cls", CLASSES)
@@ -41,7 +43,7 @@ def test_invalid_sample(cls, sample):
 @pytest.mark.parametrize("value", [np.nan, np.inf, -np.inf, [1], 1j, "1", None])
 def test_invalid_parameters(cls, name, value):
     with pytest.raises(ValueError):
-        cls(**{name: value})
+        cls(parameters_for(cls, **{name: value}))
 
 
 @pytest.mark.parametrize("cls", CLASSES)
@@ -49,8 +51,8 @@ def test_invalid_parameters(cls, name, value):
 def test_contract_invariance_and_call_independence(cls, sample):
     x = np.asarray(sample)
     original = x.copy()
-    statistic = cls(t=3, s=2)
-    expected = cls().execute_statistic(x)
+    statistic = cls(parameters_for(cls, t=3, s=2))
+    expected = cls(parameters_for(cls)).execute_statistic(x)
     y = 3 + 2 * x
     result = statistic.execute_statistic(y, compatibility_keyword=True)
     assert isinstance(result, (float, np.float64))
@@ -65,8 +67,8 @@ def test_contract_invariance_and_call_independence(cls, sample):
 
 @pytest.mark.parametrize("cls", CLASSES)
 def test_standardization_avoids_intermediate_overflow(cls):
-    assert cls(t=-1e308, s=1e308).execute_statistic([1e308]) == pytest.approx(
-        cls().execute_statistic([2.0])
+    assert cls(parameters_for(cls, t=-1e308, s=1e308)).execute_statistic([1e308]) == pytest.approx(
+        cls(parameters_for(cls)).execute_statistic([2.0])
     )
 
 
@@ -81,7 +83,9 @@ def test_ks_directions(direction):
         AlternativeType.LEFT: minus,
         AlternativeType.TWO_TAILED: max(plus, minus),
     }[direction]
-    statistic = module.KolmogorovSmirnovLaplaceGofStatistic(alternative_type=direction)
+    statistic = module.KolmogorovSmirnovLaplaceGofStatistic(
+        LaplaceDistributionDescriptor.DEFAULT.parse({"t": 0, "s": 1}), alternative_type=direction
+    )
     assert statistic.execute_statistic(sample) == pytest.approx(expected)
     assert statistic.alternative().type() == AlternativeType.RIGHT
 
@@ -89,18 +93,24 @@ def test_ks_directions(direction):
 @pytest.mark.parametrize("setting", [{"alternative_type": "right"}, {"mode": "bad"}])
 def test_invalid_ks_settings(setting):
     with pytest.raises(ValueError):
-        module.KolmogorovSmirnovLaplaceGofStatistic(**setting)
+        module.KolmogorovSmirnovLaplaceGofStatistic(
+            parameters_for(module.KolmogorovSmirnovLaplaceGofStatistic), **setting
+        )
 
 
 @pytest.mark.parametrize("mode", ["auto", "exact", "approx", "asymp"])
 def test_ks_mode_is_compatibility_only(mode):
-    statistic = module.KolmogorovSmirnovLaplaceGofStatistic(mode=mode)
+    statistic = module.KolmogorovSmirnovLaplaceGofStatistic(
+        LaplaceDistributionDescriptor.DEFAULT.parse({"t": 0, "s": 1}), mode=mode
+    )
     assert statistic.execute_statistic([0.0]) == 0.5
 
 
 @pytest.mark.parametrize("direction", [AlternativeType.LEFT, AlternativeType.RIGHT])
 def test_one_sided_ks_rejects_ambiguous_storage_but_allows_monte_carlo(direction):
-    statistic = module.KolmogorovSmirnovLaplaceGofStatistic(direction, t=3, s=2)
+    statistic = module.KolmogorovSmirnovLaplaceGofStatistic(
+        LaplaceDistributionDescriptor.DEFAULT.parse({"t": 3, "s": 2}), alternative_type=direction
+    )
     store = Mock()
     with pytest.raises(ValueError, match="CDF direction"):
         StorageLimitDistributionResolver(store).resolve(statistic, 5)
@@ -113,7 +123,9 @@ def test_one_sided_ks_rejects_ambiguous_storage_but_allows_monte_carlo(direction
 def test_two_sided_ks_storage_retains_fixed_parameters():
     store = Mock()
     store.get.return_value = None
-    statistic = module.KolmogorovSmirnovLaplaceGofStatistic(t=3, s=2)
+    statistic = module.KolmogorovSmirnovLaplaceGofStatistic(
+        LaplaceDistributionDescriptor.DEFAULT.parse({"t": 3, "s": 2})
+    )
     assert StorageLimitDistributionResolver(store).resolve(statistic, 5) is None
     store.get.assert_called_once()
 
@@ -121,20 +133,26 @@ def test_two_sided_ks_storage_retains_fixed_parameters():
 def test_ad_far_tails_analytic_reference():
     # At (-1000, 0, 1000), tail logs have limits -1000-log(2), -log(2), 0.
     expected = -3 + 2 * (1000 + np.log(2)) / 3 + 2 * np.log(2)
-    result = module.AndersonDarlingLaplaceGofStatistic().execute_statistic([-1000, 0, 1000])
+    result = module.AndersonDarlingLaplaceGofStatistic(
+        LaplaceDistributionDescriptor.DEFAULT.parse({"t": 0, "s": 1})
+    ).execute_statistic([-1000, 0, 1000])
     assert np.isfinite(result)
     assert result == pytest.approx(expected, rel=1e-14)
 
 
 def test_ad_does_not_overflow_log_pair_before_weighting():
-    result = module.AndersonDarlingLaplaceGofStatistic().execute_statistic([-1e308, 0, 1e308])
+    result = module.AndersonDarlingLaplaceGofStatistic(
+        LaplaceDistributionDescriptor.DEFAULT.parse({"t": 0, "s": 1})
+    ).execute_statistic([-1e308, 0, 1e308])
     assert np.isfinite(result)
     assert result == pytest.approx((1e308 / 3) * 2)
 
 
 def test_ad_float64_range_limit_is_not_clipped():
     assert np.isposinf(
-        module.AndersonDarlingLaplaceGofStatistic(s=1e-308).execute_statistic([1e308])
+        module.AndersonDarlingLaplaceGofStatistic(
+            LaplaceDistributionDescriptor.DEFAULT.parse({"t": 0, "s": 1e-308})
+        ).execute_statistic([1e308])
     )
 
 
@@ -164,17 +182,21 @@ def test_quadratic_edf_statistics_against_integral(cls, weight, center):
             return difference**2 / (v * (1 - v)) if weight else difference**2
 
         expected += n * quad(integrand, left, right)[0]
-    assert cls().execute_statistic(x) == pytest.approx(expected, abs=1e-12)
+    assert cls(parameters_for(cls)).execute_statistic(x) == pytest.approx(expected, abs=1e-12)
 
 
 def test_greenwood_endpoint_spacings_and_ties():
     # u = [1/4, 1/2, 1/2, 3/4], spacings = [1/4, 1/4, 0, 1/4, 1/4].
     x = [-np.log(2), 0, 0, np.log(2)]
-    assert module.GreenwoodLaplaceGofStatistic().execute_statistic(x) == pytest.approx(0.25)
+    assert module.GreenwoodLaplaceGofStatistic(
+        LaplaceDistributionDescriptor.DEFAULT.parse({"t": 0, "s": 1})
+    ).execute_statistic(x) == pytest.approx(0.25)
 
 
 def test_watson_centering_and_singleton_degeneracy():
-    statistic = module.WatsonLaplaceGofStatistic()
+    statistic = module.WatsonLaplaceGofStatistic(
+        LaplaceDistributionDescriptor.DEFAULT.parse({"t": 0, "s": 1})
+    )
     for x in [-1000, 0, 1000]:
         assert statistic.execute_statistic([x]) == pytest.approx(1 / 12)
     # Equally spaced midpoint PIT values give the exact lower bound 1/(12n).

@@ -23,7 +23,9 @@ from numpy.polynomial.hermite_e import HermiteE
 from scipy.special import gammaln, logsumexp, xlogy
 from typing_extensions import override
 
-from pysatl_criterion import DistributionType
+from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
+from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor as Distribution
+from pysatl_criterion.distribution.parameters import HypothesisSupport, ParameterValues
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.alternative import (
     Alternative,
@@ -47,24 +49,6 @@ from pysatl_criterion.statistics.goodness_of_fit.graph_goodness_of_fit import (
     GraphIndependenceNumberTestStatistic,
     GraphMaxDegreeTestStatistic,
 )
-from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
-
-
-def _validate_normal_parameters(mean: float, var: float) -> None:
-    for name, value in (("mean", mean), ("var", var)):
-        message = f"{name} must be " + ("finite" if name == "mean" else "positive and finite")
-        if (
-            isinstance(value, (bool, np.bool_, str, bytes))
-            or np.ndim(value) != 0
-            or np.iscomplexobj(value)
-        ):
-            raise ValueError(message + " (real scalar)")
-        try:
-            valid = math.isfinite(value) and (name == "mean" or value > 0)
-        except (TypeError, ValueError, OverflowError):
-            valid = False
-        if not valid:
-            raise ValueError(message)
 
 
 def _normal_sample(rvs, minimum=4, *, standardize=True):
@@ -135,9 +119,15 @@ class AbstractNormalityGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     variance override ``hypothesis`` to declare those fixed parameters.
     """
 
-    @override
-    def __init__(self):
-        """Initialize a statistic with no fixed distribution parameters."""
+    @property
+    def mean(self) -> float:
+        """Read mean by its stable parameter identity."""
+        return self._parameters[Distribution.MEAN]
+
+    @property
+    def var(self) -> float:
+        """Read var by its stable parameter identity."""
+        return self._parameters[Distribution.VARIANCE]
 
     def _validate_storage_calibration(self):
         """Reject algorithm settings absent from the current storage key."""
@@ -152,35 +142,24 @@ class AbstractNormalityGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
                 "use MonteCarloLimitDistributionResolver"
             )
 
-    @override
-    def hypothesis(self) -> GoodnessOfFitHypothesis:
-        """Return the composite null hypothesis of normality.
-
-        Returns
-        -------
-        GoodnessOfFitHypothesis
-            Normal family with unknown mean and variance; ``parameters()`` is
-            an empty dictionary.
-        """
-        return GoodnessOfFitHypothesis({})
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (HypothesisSupport(Distribution.DEFAULT, frozenset()),)
 
     @staticmethod
     @override
-    def distribution() -> DistributionType:
-        """
-        Return the distribution family of the null hypothesis.
+    def distribution() -> type[NormalDistributionDescriptor]:
+        """Return the distribution descriptor class."""
+        return NormalDistributionDescriptor
 
-        Returns
-        -------
-        DistributionType
-            ``DistributionType.NORMAL``.
-        """
-        return DistributionType.NORMAL
-
-    @staticmethod
+    @classmethod
     @override
-    def code():
-        return f"NORMALITY_{AbstractGoodnessOfFitStatistic.code()}"
+    def code(cls) -> str:
+        """Return the family identifier or the concrete statistic's full identifier."""
+        family_code = f"NORMALITY_{AbstractGoodnessOfFitStatistic.code()}"
+        if "short_code" in cls.__abstractmethods__:
+            return family_code
+        return f"{cls.short_code()}_{family_code}"
 
 
 class KolmogorovSmirnovNormalityGofStatistic(AbstractNormalityGofStatistic, KSStatistic):
@@ -188,6 +167,8 @@ class KolmogorovSmirnovNormalityGofStatistic(AbstractNormalityGofStatistic, KSSt
 
     Parameters
     ----------
+    parameters : ParameterValues
+        Values with mean, var fixed; omitted parameters are unknown.
     alternative_type : AlternativeType, optional
         ``TWO_TAILED`` computes ``max(D_plus, D_minus)``; ``RIGHT`` computes
         ``D_plus = sup(F_n - F_0)`` and ``LEFT`` computes
@@ -196,11 +177,6 @@ class KolmogorovSmirnovNormalityGofStatistic(AbstractNormalityGofStatistic, KSSt
         Setting retained by the shared KS implementation. ``"auto"`` is
         stored as ``"exact"``. It does not affect the statistic and this
         class does not calculate a p-value.
-    mean : float, optional
-        Finite mean fixed by the null hypothesis. Default is 0.
-    var : float, optional
-        Positive, finite variance fixed by the null hypothesis. Default is 1.
-        The normal CDF uses ``scale=sqrt(var)``.
 
     Methods
     -------
@@ -235,51 +211,40 @@ class KolmogorovSmirnovNormalityGofStatistic(AbstractNormalityGofStatistic, KSSt
 
     Examples
     --------
-    >>> statistic = KolmogorovSmirnovNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'mean': 0, 'var': 1})
+    >>> statistic = KolmogorovSmirnovNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
     True
     """
 
-    @override
     def __init__(
         self,
+        parameters: ParameterValues,
+        *,
         alternative_type: AlternativeType = AlternativeType.TWO_TAILED,
         mode="auto",
-        mean: float = 0,
-        var: float = 1,
     ):
-        _validate_normal_parameters(mean, var)
-        self.mean = mean
-        self.var = var
+        AbstractGoodnessOfFitStatistic.__init__(self, parameters)
         if not isinstance(alternative_type, AlternativeType):
             raise TypeError("alternative_type must be an AlternativeType")
         if mode not in ("auto", "exact", "approx", "asymp"):
             raise ValueError("Unsupported KS mode")
         KSStatistic.__init__(self, alternative_type, mode)
 
-    @override
-    def hypothesis(self) -> GoodnessOfFitHypothesis:
-        """Return the normal null hypothesis with specified parameters.
-
-        Returns
-        -------
-        GoodnessOfFitHypothesis
-            Fixed ``mean`` and ``var``; neither is estimated from the sample.
-        """
-        return GoodnessOfFitHypothesis({"mean": self.mean, "var": self.var})
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (
+            HypothesisSupport(
+                Distribution.DEFAULT, frozenset({Distribution.MEAN, Distribution.VARIANCE})
+            ),
+        )
 
     @staticmethod
     @override
     def short_code():
         return "KS"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = KolmogorovSmirnovNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -313,6 +278,12 @@ class KolmogorovSmirnovNormalityGofStatistic(AbstractNormalityGofStatistic, KSSt
 
 class AndersonDarlingNormalityGofStatistic(AbstractNormalityGofStatistic, ADStatistic):
     """Anderson-Darling statistic for the normal location-scale family.
+
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
 
     Methods
     -------
@@ -351,7 +322,8 @@ class AndersonDarlingNormalityGofStatistic(AbstractNormalityGofStatistic, ADStat
 
     Examples
     --------
-    >>> statistic = AndersonDarlingNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = AndersonDarlingNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -362,12 +334,6 @@ class AndersonDarlingNormalityGofStatistic(AbstractNormalityGofStatistic, ADStat
     @override
     def short_code():
         return "AD"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = AndersonDarlingNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -406,6 +372,12 @@ class AndersonDarlingNormalityGofStatistic(AbstractNormalityGofStatistic, ADStat
 class ShapiroWilkNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Shapiro-Wilk ``W`` statistic for the normal location-scale family.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -443,7 +415,8 @@ class ShapiroWilkNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = ShapiroWilkNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = ShapiroWilkNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -458,12 +431,6 @@ class ShapiroWilkNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "SW"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = ShapiroWilkNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -544,11 +511,8 @@ class CramerVonMiseNormalityGofStatistic(AbstractNormalityGofStatistic, CrammerV
 
     Parameters
     ----------
-    mean : float, optional
-        Finite mean fixed by the null hypothesis. Default is 0.
-    var : float, optional
-        Positive, finite variance fixed by the null hypothesis. Default is 1.
-        This is a variance, not the standard deviation.
+    parameters : ParameterValues
+        Values with mean, var fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -582,41 +546,32 @@ class CramerVonMiseNormalityGofStatistic(AbstractNormalityGofStatistic, CrammerV
 
     Examples
     --------
-    >>> statistic = CramerVonMiseNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'mean': 0, 'var': 1})
+    >>> statistic = CramerVonMiseNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
     True
     """
 
-    @override
-    def __init__(self, mean: float = 0, var: float = 1):
-        _validate_normal_parameters(mean, var)
-        self.mean = mean
-        self.var = var
-
-    @override
-    def hypothesis(self) -> GoodnessOfFitHypothesis:
-        """Return the normal null hypothesis with specified parameters.
-
-        Returns
-        -------
-        GoodnessOfFitHypothesis
-            Fixed ``mean`` and ``var``; neither is estimated from the sample.
-        """
-        return GoodnessOfFitHypothesis({"mean": self.mean, "var": self.var})
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (
+            HypothesisSupport(
+                Distribution.DEFAULT, frozenset({Distribution.MEAN, Distribution.VARIANCE})
+            ),
+        )
 
     @staticmethod
     @override
     def short_code():
         return "CVM"
 
-    @staticmethod
+    @classmethod
     @override
-    def code():
-        short_code = CramerVonMiseNormalityGofStatistic.short_code()
-        base_code = super(AbstractNormalityGofStatistic, AbstractNormalityGofStatistic).code()
-        return f"{short_code}_{base_code}"
+    def code(cls) -> str:
+        """Preserve the legacy identifier suffix while using the subclass short code."""
+        return f"{cls.short_code()}_GOODNESS_OF_FIT"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -652,6 +607,12 @@ class CramerVonMiseNormalityGofStatistic(AbstractNormalityGofStatistic, CrammerV
 class LillieforsNormalityGofStatistic(AbstractNormalityGofStatistic, LillieforsTest):
     """Lilliefors statistic for normality with unknown mean and variance.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -686,7 +647,8 @@ class LillieforsNormalityGofStatistic(AbstractNormalityGofStatistic, LillieforsT
 
     Examples
     --------
-    >>> statistic = LillieforsNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = LillieforsNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -697,12 +659,6 @@ class LillieforsNormalityGofStatistic(AbstractNormalityGofStatistic, LillieforsT
     @override
     def short_code():
         return "LILLIE"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = LillieforsNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -738,6 +694,12 @@ class LillieforsNormalityGofStatistic(AbstractNormalityGofStatistic, LillieforsT
 class JBNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Jarque-Bera statistic based on sample skewness and excess kurtosis.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -770,7 +732,8 @@ class JBNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = JBNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = JBNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -785,12 +748,6 @@ class JBNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "JB"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = JBNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -836,6 +793,12 @@ class JBNormalityGofStatistic(AbstractNormalityGofStatistic):
 class SkewNormalityGofStatistic(AbstractNormalityGofStatistic):
     """D'Agostino transformed-skewness statistic for the normal family.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -870,7 +833,8 @@ class SkewNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = SkewNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = SkewNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -885,12 +849,6 @@ class SkewNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "SKEW"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = SkewNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -949,6 +907,12 @@ class SkewNormalityGofStatistic(AbstractNormalityGofStatistic):
 class KurtosisNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Anscombe-Glynn transformed-kurtosis statistic for the normal family.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -984,7 +948,8 @@ class KurtosisNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = KurtosisNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = KurtosisNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -999,12 +964,6 @@ class KurtosisNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "KURTOSIS"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = KurtosisNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1081,6 +1040,12 @@ class KurtosisNormalityGofStatistic(AbstractNormalityGofStatistic):
 class DAPNormalityGofStatistic(SkewNormalityGofStatistic, KurtosisNormalityGofStatistic):
     """D'Agostino-Pearson omnibus ``K_squared`` statistic for normality.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -1115,7 +1080,8 @@ class DAPNormalityGofStatistic(SkewNormalityGofStatistic, KurtosisNormalityGofSt
 
     Examples
     --------
-    >>> statistic = DAPNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = DAPNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -1130,12 +1096,6 @@ class DAPNormalityGofStatistic(SkewNormalityGofStatistic, KurtosisNormalityGofSt
     @override
     def short_code():
         return "DAP"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = DAPNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1175,6 +1135,12 @@ class DAPNormalityGofStatistic(SkewNormalityGofStatistic, KurtosisNormalityGofSt
 class FilliNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Filliben probability-plot correlation statistic for normality.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -1207,7 +1173,8 @@ class FilliNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = FilliNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = FilliNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -1222,12 +1189,6 @@ class FilliNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "FILLI"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = FilliNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1284,6 +1245,12 @@ class FilliNormalityGofStatistic(AbstractNormalityGofStatistic):
 class LooneyGulledgeNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Looney-Gulledge probability-plot correlation statistic for normality.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -1317,7 +1284,8 @@ class LooneyGulledgeNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = LooneyGulledgeNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = LooneyGulledgeNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -1332,12 +1300,6 @@ class LooneyGulledgeNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "LG"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = LooneyGulledgeNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1416,6 +1378,8 @@ class RyanJoinerNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Parameters
     ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
     weighted : bool, optional
         If True, average the plotting probabilities within each group of
         tied observations before applying the normal quantile function.
@@ -1461,16 +1425,16 @@ class RyanJoinerNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = RyanJoinerNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = RyanJoinerNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
     True
     """
 
-    @override
-    def __init__(self, weighted=False, cte_alpha="3/8"):
-        super().__init__()
+    def __init__(self, parameters: ParameterValues, *, weighted=False, cte_alpha="3/8"):
+        super().__init__(parameters)
         if not isinstance(weighted, (bool, np.bool_)):
             raise TypeError("weighted must be boolean")
         if cte_alpha not in ("0", "3/8", "1/2"):
@@ -1486,12 +1450,6 @@ class RyanJoinerNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "RJ"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = RyanJoinerNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1574,6 +1532,12 @@ class RyanJoinerNormalityGofStatistic(AbstractNormalityGofStatistic):
 class SFNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Shapiro-Francia ``W_prime`` statistic for the normal family.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -1612,7 +1576,8 @@ class SFNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = SFNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = SFNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -1627,12 +1592,6 @@ class SFNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "SF"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = SFNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1675,6 +1634,12 @@ class SFNormalityGofStatistic(AbstractNormalityGofStatistic):
 class EppsPulleyNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Epps-Pulley empirical-characteristic-function statistic for normality.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -1710,7 +1675,8 @@ class EppsPulleyNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = EppsPulleyNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = EppsPulleyNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -1725,12 +1691,6 @@ class EppsPulleyNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "EP"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = EppsPulleyNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1774,6 +1734,12 @@ class EppsPulleyNormalityGofStatistic(AbstractNormalityGofStatistic):
 class Hosking2NormalityGofStatistic(AbstractNormalityGofStatistic):
     """Hosking normality statistic with symmetric trimming level 1.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -1808,7 +1774,8 @@ class Hosking2NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = Hosking2NormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = Hosking2NormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -1823,12 +1790,6 @@ class Hosking2NormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "HOSKING2"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = Hosking2NormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1903,6 +1864,12 @@ class Hosking2NormalityGofStatistic(AbstractNormalityGofStatistic):
 class Hosking1NormalityGofStatistic(AbstractNormalityGofStatistic):
     """Hosking L-moment normality statistic without trimming.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -1937,7 +1904,8 @@ class Hosking1NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = Hosking1NormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = Hosking1NormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -1952,12 +1920,6 @@ class Hosking1NormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "HOSKING1"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = Hosking1NormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2030,6 +1992,12 @@ class Hosking1NormalityGofStatistic(AbstractNormalityGofStatistic):
 class Hosking3NormalityGofStatistic(AbstractNormalityGofStatistic):
     """Hosking normality statistic with symmetric trimming level 2.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -2064,7 +2032,8 @@ class Hosking3NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = Hosking3NormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = Hosking3NormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -2079,12 +2048,6 @@ class Hosking3NormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "HOSKING3"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = Hosking3NormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2164,6 +2127,12 @@ class Hosking3NormalityGofStatistic(AbstractNormalityGofStatistic):
 class Hosking4NormalityGofStatistic(AbstractNormalityGofStatistic):
     """Hosking normality statistic with symmetric trimming level 3.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -2198,7 +2167,8 @@ class Hosking4NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = Hosking4NormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = Hosking4NormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -2213,12 +2183,6 @@ class Hosking4NormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "HOSKING4"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = Hosking4NormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2298,6 +2262,12 @@ class Hosking4NormalityGofStatistic(AbstractNormalityGofStatistic):
 class ZhangWuCNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Zhang-Wu likelihood-ratio normality statistic ``Z_C``.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -2332,7 +2302,8 @@ class ZhangWuCNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = ZhangWuCNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = ZhangWuCNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -2347,12 +2318,6 @@ class ZhangWuCNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "ZWC"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = ZhangWuCNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2389,6 +2354,12 @@ class ZhangWuCNormalityGofStatistic(AbstractNormalityGofStatistic):
 class ZhangWuANormalityGofStatistic(AbstractNormalityGofStatistic):
     """Zhang-Wu likelihood-ratio normality statistic ``Z_A``.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -2424,7 +2395,8 @@ class ZhangWuANormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = ZhangWuANormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = ZhangWuANormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -2439,12 +2411,6 @@ class ZhangWuANormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "ZWA"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = ZhangWuANormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2482,6 +2448,12 @@ class ZhangWuANormalityGofStatistic(AbstractNormalityGofStatistic):
 class GlenLeemisBarrNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Glen-Leemis-Barr order-statistic goodness-of-fit statistic.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -2515,7 +2487,8 @@ class GlenLeemisBarrNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = GlenLeemisBarrNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = GlenLeemisBarrNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -2530,12 +2503,6 @@ class GlenLeemisBarrNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "GLB"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = GlenLeemisBarrNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2593,6 +2560,12 @@ class GlenLeemisBarrNormalityGofStatistic(AbstractNormalityGofStatistic):
 class DoornikHansenNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Univariate Doornik-Hansen normality statistic.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -2628,7 +2601,8 @@ class DoornikHansenNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = DoornikHansenNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = DoornikHansenNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -2643,12 +2617,6 @@ class DoornikHansenNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "DH"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = DoornikHansenNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2724,6 +2692,12 @@ class DoornikHansenNormalityGofStatistic(AbstractNormalityGofStatistic):
 class RobustJarqueBeraNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Gel-Gastwirth robust Jarque-Bera normality statistic.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -2760,7 +2734,8 @@ class RobustJarqueBeraNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = RobustJarqueBeraNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = RobustJarqueBeraNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -2775,12 +2750,6 @@ class RobustJarqueBeraNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "RJB"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = RobustJarqueBeraNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2821,6 +2790,12 @@ class RobustJarqueBeraNormalityGofStatistic(AbstractNormalityGofStatistic):
 class BontempsMeddahi1NormalityGofStatistic(AbstractNormalityGofStatistic):
     """Bontemps-Meddahi normality statistic using Hermite orders 3 and 4.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -2856,7 +2831,8 @@ class BontempsMeddahi1NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = BontempsMeddahi1NormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = BontempsMeddahi1NormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -2871,12 +2847,6 @@ class BontempsMeddahi1NormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "BM1"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = BontempsMeddahi1NormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -2935,6 +2905,12 @@ class BontempsMeddahi1NormalityGofStatistic(AbstractNormalityGofStatistic):
 class BontempsMeddahi2NormalityGofStatistic(AbstractNormalityGofStatistic):
     """Bontemps-Meddahi normality statistic using Hermite orders 3 through 6.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -2970,7 +2946,8 @@ class BontempsMeddahi2NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = BontempsMeddahi2NormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = BontempsMeddahi2NormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -2985,12 +2962,6 @@ class BontempsMeddahi2NormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "BM2"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = BontempsMeddahi2NormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -3041,6 +3012,12 @@ class BontempsMeddahi2NormalityGofStatistic(AbstractNormalityGofStatistic):
 class BonettSeierNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Bonett-Seier statistic based on a modified Geary kurtosis measure.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -3078,7 +3055,8 @@ class BonettSeierNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = BonettSeierNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = BonettSeierNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -3093,12 +3071,6 @@ class BonettSeierNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "BS"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = BonettSeierNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -3155,6 +3127,12 @@ class BonettSeierNormalityGofStatistic(AbstractNormalityGofStatistic):
 class MartinezIglewiczNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Martinez-Iglewicz statistic comparing two estimates of dispersion.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -3192,7 +3170,8 @@ class MartinezIglewiczNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = MartinezIglewiczNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = MartinezIglewiczNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -3207,12 +3186,6 @@ class MartinezIglewiczNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "MI"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = MartinezIglewiczNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -3280,6 +3253,12 @@ class MartinezIglewiczNormalityGofStatistic(AbstractNormalityGofStatistic):
 class CabanaCabana1NormalityGofStatistic(AbstractNormalityGofStatistic):
     """Cabaña-Cabaña normality statistic focused on skewness departures.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -3318,7 +3297,8 @@ class CabanaCabana1NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = CabanaCabana1NormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = CabanaCabana1NormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -3333,12 +3313,6 @@ class CabanaCabana1NormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "CC1"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = CabanaCabana1NormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -3374,6 +3348,12 @@ class CabanaCabana1NormalityGofStatistic(AbstractNormalityGofStatistic):
 
 class CabanaCabana2NormalityGofStatistic(AbstractNormalityGofStatistic):
     """Cabaña-Cabaña-style normality statistic focused on kurtosis departures.
+
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
 
     Methods
     -------
@@ -3414,7 +3394,8 @@ class CabanaCabana2NormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = CabanaCabana2NormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = CabanaCabana2NormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -3429,12 +3410,6 @@ class CabanaCabana2NormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "CC2"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = CabanaCabana2NormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -3471,6 +3446,12 @@ class CabanaCabana2NormalityGofStatistic(AbstractNormalityGofStatistic):
 class ChenShapiroNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Chen-Shapiro normality statistic based on normalized spacings.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -3505,7 +3486,8 @@ class ChenShapiroNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = ChenShapiroNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = ChenShapiroNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -3520,12 +3502,6 @@ class ChenShapiroNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "CS"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = ChenShapiroNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -3571,6 +3547,12 @@ class ChenShapiroNormalityGofStatistic(AbstractNormalityGofStatistic):
 class ZhangQNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Zhang normality statistic based on a ratio of ordered-sample contrasts.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -3612,7 +3594,8 @@ class ZhangQNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = ZhangQNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = ZhangQNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -3627,12 +3610,6 @@ class ZhangQNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "ZQ"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = ZhangQNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -3696,6 +3673,12 @@ class ZhangQNormalityGofStatistic(AbstractNormalityGofStatistic):
 class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Coin normality statistic based on polynomial regression.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -3736,7 +3719,8 @@ class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = CoinNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = CoinNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -3751,12 +3735,6 @@ class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "COIN"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = CoinNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -3908,6 +3886,12 @@ class CoinNormalityGofStatistic(AbstractNormalityGofStatistic):
 class DagostinoNormalityGofStatistic(AbstractNormalityGofStatistic):
     """D'Agostino's normality statistic based on ordered observations.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -3942,7 +3926,8 @@ class DagostinoNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = DagostinoNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = DagostinoNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -3957,12 +3942,6 @@ class DagostinoNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "D"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = DagostinoNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -4003,6 +3982,12 @@ class DagostinoNormalityGofStatistic(AbstractNormalityGofStatistic):
 class ZhangQStarNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Reflected Zhang ``Q*`` normality statistic.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -4042,7 +4027,8 @@ class ZhangQStarNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = ZhangQStarNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = ZhangQStarNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -4057,12 +4043,6 @@ class ZhangQStarNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "ZQS"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = ZhangQStarNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -4124,6 +4104,12 @@ class ZhangQStarNormalityGofStatistic(AbstractNormalityGofStatistic):
 class SWRGNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Rahman-Govindarajulu modification of the Shapiro-Wilk statistic.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -4160,7 +4146,8 @@ class SWRGNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = SWRGNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = SWRGNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -4175,12 +4162,6 @@ class SWRGNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "SWRG"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = SWRGNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -4232,6 +4213,12 @@ class SWRGNormalityGofStatistic(AbstractNormalityGofStatistic):
 class GMGNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Gel-Miao-Gastwirth normality statistic directed at heavy tails.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -4267,7 +4254,8 @@ class GMGNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = GMGNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = GMGNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -4282,12 +4270,6 @@ class GMGNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "GMG"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = GMGNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -4364,6 +4346,12 @@ class GMGNormalityGofStatistic(AbstractNormalityGofStatistic):
 class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Brys-Hubert-Struyf MC-LR statistic for the normal family.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -4404,7 +4392,8 @@ class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = BHSNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = BHSNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -4419,12 +4408,6 @@ class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "BHS"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = BHSNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -4530,6 +4513,12 @@ class BHSNormalityGofStatistic(AbstractNormalityGofStatistic):
 class SpiegelhalterNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Spiegelhalter statistic for the normal family.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -4569,7 +4558,8 @@ class SpiegelhalterNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = SpiegelhalterNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = SpiegelhalterNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -4584,12 +4574,6 @@ class SpiegelhalterNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "SH"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = SpiegelhalterNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -4650,6 +4634,12 @@ class SpiegelhalterNormalityGofStatistic(AbstractNormalityGofStatistic):
 class DesgagneLafayeNormalityGofStatistic(AbstractNormalityGofStatistic):
     """Desgagne-Lafaye de Micheaux-Leblanc R_n normality statistic.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -4689,7 +4679,8 @@ class DesgagneLafayeNormalityGofStatistic(AbstractNormalityGofStatistic):
 
     Examples
     --------
-    >>> statistic = DesgagneLafayeNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = DesgagneLafayeNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
@@ -4704,12 +4695,6 @@ class DesgagneLafayeNormalityGofStatistic(AbstractNormalityGofStatistic):
     @override
     def short_code():
         return "DLDMZEPD"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = DesgagneLafayeNormalityGofStatistic.short_code()
-        return f"{short_code}_{AbstractNormalityGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -4786,32 +4771,22 @@ class AbstractGraphNormalityGofStatistic(
     The graph eliminates location only; its null law depends on variance.
     """
 
-    @override
-    def __init__(self, *, var: float = 1):
-        _validate_normal_parameters(0, var)
-        self.var = var
-
-    @override
-    def hypothesis(self) -> GoodnessOfFitHypothesis:
-        """Return normality with specified variance and unknown mean.
-
-        Returns
-        -------
-        GoodnessOfFitHypothesis
-            Only ``var`` is fixed. Calibration may use zero mean because the
-            graph construction is invariant under a common shift.
-        """
-        return GoodnessOfFitHypothesis({"var": self.var})
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (HypothesisSupport(Distribution.DEFAULT, frozenset({Distribution.VARIANCE})),)
 
     @override
     def alternative(self) -> Alternative:
         return TwoSidedAlternative()
 
-    @staticmethod
+    @classmethod
     @override
-    def code():
-        parent_code = AbstractNormalityGofStatistic.code()
-        return f"GRAPH_{parent_code}"
+    def code(cls) -> str:
+        """Return the family identifier or the concrete statistic's full identifier."""
+        family_code = f"GRAPH_NORMALITY_{AbstractGoodnessOfFitStatistic.code()}"
+        if "short_code" in cls.__abstractmethods__:
+            return family_code
+        return f"{cls.short_code()}_{family_code}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -4873,8 +4848,8 @@ class GraphEdgesNumberNormalityGofStatistic(
 
     Parameters
     ----------
-    var : float, optional
-        Positive finite scalar variance fixed under H0; default 1.
+    parameters : ParameterValues
+        Values with var fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -4906,19 +4881,13 @@ class GraphEdgesNumberNormalityGofStatistic(
 
     Examples
     --------
-    >>> statistic = GraphEdgesNumberNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'var': 1})
+    >>> statistic = GraphEdgesNumberNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
     True
     """
-
-    @staticmethod
-    @override
-    def code():
-        parent_code = AbstractGraphNormalityGofStatistic.code()
-        short_code = GraphEdgesNumberNormalityGofStatistic.short_code()
-        return f"{short_code}_{parent_code}"
 
 
 class GraphMaxDegreeNormalityGofStatistic(
@@ -4928,8 +4897,8 @@ class GraphMaxDegreeNormalityGofStatistic(
 
     Parameters
     ----------
-    var : float, optional
-        Positive finite scalar variance fixed under H0; default 1.
+    parameters : ParameterValues
+        Values with var fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -4961,19 +4930,13 @@ class GraphMaxDegreeNormalityGofStatistic(
 
     Examples
     --------
-    >>> statistic = GraphMaxDegreeNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'var': 1})
+    >>> statistic = GraphMaxDegreeNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
     True
     """
-
-    @staticmethod
-    @override
-    def code():
-        parent_code = AbstractGraphNormalityGofStatistic.code()
-        short_code = GraphMaxDegreeNormalityGofStatistic.short_code()
-        return f"{short_code}_{parent_code}"
 
 
 class GraphAverageDegreeNormalityGofStatistic(
@@ -4983,8 +4946,8 @@ class GraphAverageDegreeNormalityGofStatistic(
 
     Parameters
     ----------
-    var : float, optional
-        Positive finite scalar variance fixed under H0; default 1.
+    parameters : ParameterValues
+        Values with var fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -5016,19 +4979,13 @@ class GraphAverageDegreeNormalityGofStatistic(
 
     Examples
     --------
-    >>> statistic = GraphAverageDegreeNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'var': 1})
+    >>> statistic = GraphAverageDegreeNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
     True
     """
-
-    @staticmethod
-    @override
-    def code():
-        parent_code = AbstractGraphNormalityGofStatistic.code()
-        short_code = GraphAverageDegreeNormalityGofStatistic.short_code()
-        return f"{short_code}_{parent_code}"
 
 
 class GraphConnectedComponentsNormalityGofStatistic(
@@ -5038,8 +4995,8 @@ class GraphConnectedComponentsNormalityGofStatistic(
 
     Parameters
     ----------
-    var : float, optional
-        Positive finite scalar variance fixed under H0; default 1.
+    parameters : ParameterValues
+        Values with var fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -5071,19 +5028,13 @@ class GraphConnectedComponentsNormalityGofStatistic(
 
     Examples
     --------
-    >>> statistic = GraphConnectedComponentsNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'var': 1})
+    >>> statistic = GraphConnectedComponentsNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
     True
     """
-
-    @staticmethod
-    @override
-    def code():
-        parent_code = AbstractGraphNormalityGofStatistic.code()
-        short_code = GraphConnectedComponentsNormalityGofStatistic.short_code()
-        return f"{short_code}_{parent_code}"
 
 
 class GraphCliqueNumberNormalityGofStatistic(
@@ -5093,8 +5044,8 @@ class GraphCliqueNumberNormalityGofStatistic(
 
     Parameters
     ----------
-    var : float, optional
-        Positive finite scalar variance fixed under H0; default 1.
+    parameters : ParameterValues
+        Values with var fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -5127,19 +5078,13 @@ class GraphCliqueNumberNormalityGofStatistic(
 
     Examples
     --------
-    >>> statistic = GraphCliqueNumberNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'var': 1})
+    >>> statistic = GraphCliqueNumberNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
     True
     """
-
-    @staticmethod
-    @override
-    def code():
-        parent_code = AbstractGraphNormalityGofStatistic.code()
-        short_code = GraphCliqueNumberNormalityGofStatistic.short_code()
-        return f"{short_code}_{parent_code}"
 
 
 class GraphIndependenceNumberNormalityGofStatistic(
@@ -5149,8 +5094,8 @@ class GraphIndependenceNumberNormalityGofStatistic(
 
     Parameters
     ----------
-    var : float, optional
-        Positive finite scalar variance fixed under H0; default 1.
+    parameters : ParameterValues
+        Values with var fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -5183,16 +5128,10 @@ class GraphIndependenceNumberNormalityGofStatistic(
 
     Examples
     --------
-    >>> statistic = GraphIndependenceNumberNormalityGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'var': 1})
+    >>> statistic = GraphIndependenceNumberNormalityGofStatistic(parameters)
     >>> sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
     >>> value = statistic.execute_statistic(sample)
     >>> bool(np.isfinite(value))
     True
     """
-
-    @staticmethod
-    @override
-    def code():
-        parent_code = AbstractGraphNormalityGofStatistic.code()
-        short_code = GraphIndependenceNumberNormalityGofStatistic.short_code()
-        return f"{short_code}_{parent_code}"

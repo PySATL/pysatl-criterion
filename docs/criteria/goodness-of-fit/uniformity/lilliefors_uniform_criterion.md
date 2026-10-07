@@ -11,12 +11,13 @@ The null hypothesis is that the sample comes from some uniform distribution with
 
 ## Usage
 ```python
+from pysatl_criterion.distribution.distributions import UniformDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit import (
     LillieforsTestUniformGofStatistic,
 )
 
 
-test_statistic = LillieforsTestUniformGofStatistic()
+test_statistic = LillieforsTestUniformGofStatistic(UniformDistributionDescriptor.DEFAULT.parse({}))
 statistic_result = test_statistic.execute_statistic([0.12, 0.25, 0.41, 0.53, 0.77, 0.91])
 print(statistic_result)
 ```
@@ -41,9 +42,9 @@ Lilliefors, H.W. (1967): On the Kolmogorov-Smirnov test for normality with mean 
 
 ## Examples
 
-### Constructing with `from_parameters`
+### Constructing with `ParameterValues`
 
-`from_parameters` accepts an empty `ParameterValues` object for this class.
+The constructor accepts an empty `ParameterValues` object for this class.
 `parse({})` leaves both boundaries unknown; it does not insert `a=0, b=1`.
 The bounds are fitted only when `execute_statistic` receives the sample.
 
@@ -55,7 +56,7 @@ from pysatl_criterion.statistics.goodness_of_fit import (
 
 
 parameters = Uniform.DEFAULT.parse({})
-test_statistic = LillieforsTestUniformGofStatistic.from_parameters(parameters)
+test_statistic = LillieforsTestUniformGofStatistic(parameters)
 assert test_statistic.hypothesis().parameters() == {}
 statistic_result = test_statistic.execute_statistic([0.12, 0.25, 0.41, 0.53, 0.77, 0.91])
 print(statistic_result)
@@ -72,12 +73,12 @@ from pysatl_criterion.statistics.goodness_of_fit import LillieforsTestUniformGof
 
 parameters = Uniform.DEFAULT.parse({"a": 0, "b": 1})
 try:
-    LillieforsTestUniformGofStatistic.from_parameters(parameters)
+    LillieforsTestUniformGofStatistic(parameters)
 except ValueError as error:
     print(error)  # Unsupported Uniform hypothesis or parameterization
 ```
 
 For a specified interval, use
-[`KolmogorovSmirnovUniformGofStatistic.from_parameters`](kolmogorov_smirnov_uniform_criterion.md#examples).
+[`KolmogorovSmirnovUniformGofStatistic`](kolmogorov_smirnov_uniform_criterion.md#examples).
 Do not use `fill_defaults=True` for the fitted-bound hypothesis: it would fix both
 bounds and the resulting hypothesis would be rejected.

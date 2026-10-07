@@ -6,7 +6,9 @@ import numpy as np
 import scipy.stats as scipy_stats
 from typing_extensions import override
 
-from pysatl_criterion import DistributionType
+from pysatl_criterion.distribution.distributions import GammaDistributionDescriptor
+from pysatl_criterion.distribution.distributions import GammaDistributionDescriptor as Distribution
+from pysatl_criterion.distribution.parameters import HypothesisSupport, ParameterValues
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.alternative import (
     Alternative,
@@ -31,7 +33,6 @@ from pysatl_criterion.statistics.goodness_of_fit.graph_goodness_of_fit import (
     GraphIndependenceNumberTestStatistic,
     GraphMaxDegreeTestStatistic,
 )
-from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
 def _scalar(value, name):
@@ -75,22 +76,15 @@ class AbstractGammaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     Abstract base class for Gamma distribution goodness-of-fit statistics.
     """
 
-    def __init__(self, alpha: float = 1.0, beta: float = 1.0):
-        """
-        Initialize Gamma distribution goodness-of-fit statistic.
+    @property
+    def alpha(self) -> float:
+        """Read alpha by its stable parameter identity."""
+        return self._parameters[Distribution.SHAPE]
 
-        :param alpha: shape parameter (alpha) > 0.
-        :param beta: rate parameter (beta) > 0.
-        :raises ValueError: if shape or rate is not positive.
-        """
-        alpha = _scalar(alpha, "Shape")
-        beta = _scalar(beta, "Rate")
-        if alpha <= 0:
-            raise ValueError("Shape must be positive.")
-        if beta <= 0:
-            raise ValueError("Rate must be positive.")
-        self.alpha = alpha
-        self.beta = beta
+    @property
+    def beta(self) -> float:
+        """Read beta by its stable parameter identity."""
+        return self._parameters[Distribution.RATE]
 
     def _scaled(self, sample):
         with np.errstate(over="ignore", under="ignore"):
@@ -106,29 +100,28 @@ class AbstractGammaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
             scipy_stats.gamma.logsf(scaled, a=self.alpha),
         )
 
-    @override
-    def hypothesis(self) -> GoodnessOfFitHypothesis:
-        return GoodnessOfFitHypothesis({"alpha": self.alpha, "beta": self.beta})
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (
+            HypothesisSupport(
+                Distribution.DEFAULT, frozenset({Distribution.SHAPE, Distribution.RATE})
+            ),
+        )
 
     @staticmethod
     @override
-    def distribution() -> DistributionType:
-        """
-        Get distribution type.
+    def distribution() -> type[GammaDistributionDescriptor]:
+        """Return the distribution descriptor class."""
+        return GammaDistributionDescriptor
 
-        :return: DistributionType.
-        """
-        return DistributionType.GAMMA
-
-    @staticmethod
+    @classmethod
     @override
-    def code():
-        """
-        Get unique code identifier for Gamma distribution statistics.
-
-        :return: string code in format "GAMMA_{parent_code}".
-        """
-        return f"GAMMA_{AbstractGoodnessOfFitStatistic.code()}"
+    def code(cls) -> str:
+        """Return the family identifier or the concrete statistic's full identifier."""
+        family_code = f"GAMMA_{AbstractGoodnessOfFitStatistic.code()}"
+        if "short_code" in cls.__abstractmethods__:
+            return family_code
+        return f"{cls.short_code()}_{family_code}"
 
 
 class KolmogorovSmirnovGammaGofStatistic(AbstractGammaGofStatistic, KSStatistic):
@@ -136,8 +129,8 @@ class KolmogorovSmirnovGammaGofStatistic(AbstractGammaGofStatistic, KSStatistic)
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Fixed finite positive shape and rate, respectively. Both default to 1.
+    parameters : ParameterValues
+        Values with alfa, beta fixed; omitted parameters are unknown.
     alternative_type : AlternativeType, optional
         TWO_TAILED (default), RIGHT or LEFT selects D, D+ or D-.
     mode : {"auto", "exact", "asymp", "approx"}, optional
@@ -178,21 +171,21 @@ class KolmogorovSmirnovGammaGofStatistic(AbstractGammaGofStatistic, KSStatistic)
 
     Examples
     --------
-    >>> statistic = KolmogorovSmirnovGammaGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'alfa': 1, 'beta': 1})
+    >>> statistic = KolmogorovSmirnovGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
     >>> bool(np.isfinite(value))
     True
     """
 
-    @override
     def __init__(
         self,
+        parameters: ParameterValues,
+        *,
         alternative_type: AlternativeType = AlternativeType.TWO_TAILED,
         mode="auto",
-        alpha: float = 1.0,
-        beta: float = 1.0,
     ):
-        AbstractGammaGofStatistic.__init__(self, alpha=alpha, beta=beta)
+        AbstractGammaGofStatistic.__init__(self, parameters)
         if alternative_type not in tuple(AlternativeType):
             raise ValueError("Invalid CDF deviation direction")
         if mode not in ("auto", "exact", "asymp", "approx"):
@@ -212,17 +205,6 @@ class KolmogorovSmirnovGammaGofStatistic(AbstractGammaGofStatistic, KSStatistic)
         :return: short code string "KS".
         """
         return "KS"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "KS_GAMMA_{parent_code}".
-        """
-        short_code = KolmogorovSmirnovGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -261,6 +243,12 @@ class KolmogorovSmirnovGammaGofStatistic(AbstractGammaGofStatistic, KSStatistic)
 class LillieforsGammaGofStatistic(AbstractGammaGofStatistic, LillieforsTest):
     """KS distance to a Gamma CDF fitted by sample moments.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -288,17 +276,16 @@ class LillieforsGammaGofStatistic(AbstractGammaGofStatistic, LillieforsTest):
 
     Examples
     --------
-    >>> statistic = LillieforsGammaGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = LillieforsGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
     >>> bool(np.isfinite(value))
     True
     """
 
-    def __init__(self):
-        """Create a moment-fitted Gamma KS statistic with no fixed parameters."""
-
-    def hypothesis(self) -> GoodnessOfFitHypothesis:
-        return GoodnessOfFitHypothesis({})
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (HypothesisSupport(Distribution.DEFAULT, frozenset()),)
 
     def _validate_storage_calibration(self):
         raise ValueError("Fitted Gamma KS requires external shape-specific calibration")
@@ -312,17 +299,6 @@ class LillieforsGammaGofStatistic(AbstractGammaGofStatistic, LillieforsTest):
         :return: short code string "LILLIE".
         """
         return "LILLIE"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "LILLIE_GAMMA_{parent_code}".
-        """
-        short_code = LillieforsGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -377,8 +353,8 @@ class AndersonDarlingGammaGofStatistic(AbstractGammaGofStatistic, ADStatistic):
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Fixed finite positive shape and rate, respectively. Both default to 1.
+    parameters : ParameterValues
+        Values with alfa, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -415,7 +391,8 @@ class AndersonDarlingGammaGofStatistic(AbstractGammaGofStatistic, ADStatistic):
 
     Examples
     --------
-    >>> statistic = AndersonDarlingGammaGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'alfa': 1, 'beta': 1})
+    >>> statistic = AndersonDarlingGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
     >>> bool(np.isfinite(value))
     True
@@ -430,17 +407,6 @@ class AndersonDarlingGammaGofStatistic(AbstractGammaGofStatistic, ADStatistic):
         :return: short code string "AD".
         """
         return "AD"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "AD_GAMMA_{parent_code}".
-        """
-        short_code = AndersonDarlingGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -481,8 +447,8 @@ class CramerVonMisesGammaGofStatistic(AbstractGammaGofStatistic, CrammerVonMises
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Fixed finite positive shape and rate, respectively. Both default to 1.
+    parameters : ParameterValues
+        Values with alfa, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -517,7 +483,8 @@ class CramerVonMisesGammaGofStatistic(AbstractGammaGofStatistic, CrammerVonMises
 
     Examples
     --------
-    >>> statistic = CramerVonMisesGammaGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'alfa': 1, 'beta': 1})
+    >>> statistic = CramerVonMisesGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
     >>> bool(np.isfinite(value))
     True
@@ -532,17 +499,6 @@ class CramerVonMisesGammaGofStatistic(AbstractGammaGofStatistic, CrammerVonMises
         :return: short code string "CVM".
         """
         return "CVM"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "CVM_GAMMA_{parent_code}".
-        """
-        short_code = CramerVonMisesGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -583,8 +539,8 @@ class WatsonGammaGofStatistic(AbstractGammaGofStatistic):
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Fixed finite positive shape and rate, respectively. Both default to 1.
+    parameters : ParameterValues
+        Values with alfa, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -620,7 +576,8 @@ class WatsonGammaGofStatistic(AbstractGammaGofStatistic):
 
     Examples
     --------
-    >>> statistic = WatsonGammaGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'alfa': 1, 'beta': 1})
+    >>> statistic = WatsonGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
     >>> bool(np.isfinite(value))
     True
@@ -639,17 +596,6 @@ class WatsonGammaGofStatistic(AbstractGammaGofStatistic):
         :return: short code string "WAT".
         """
         return "WAT"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "WAT_GAMMA_{parent_code}".
-        """
-        short_code = WatsonGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -696,8 +642,8 @@ class KuiperGammaGofStatistic(AbstractGammaGofStatistic):
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Fixed finite positive shape and rate, respectively. Both default to 1.
+    parameters : ParameterValues
+        Values with alfa, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -732,7 +678,8 @@ class KuiperGammaGofStatistic(AbstractGammaGofStatistic):
 
     Examples
     --------
-    >>> statistic = KuiperGammaGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'alfa': 1, 'beta': 1})
+    >>> statistic = KuiperGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
     >>> bool(np.isfinite(value))
     True
@@ -751,17 +698,6 @@ class KuiperGammaGofStatistic(AbstractGammaGofStatistic):
         :return: short code string "KUI".
         """
         return "KUI"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "KUI_GAMMA_{parent_code}".
-        """
-        short_code = KuiperGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -808,8 +744,8 @@ class GreenwoodGammaGofStatistic(AbstractGammaGofStatistic):
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Fixed finite positive shape and rate, respectively. Both default to 1.
+    parameters : ParameterValues
+        Values with alfa, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -847,7 +783,8 @@ class GreenwoodGammaGofStatistic(AbstractGammaGofStatistic):
 
     Examples
     --------
-    >>> statistic = GreenwoodGammaGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'alfa': 1, 'beta': 1})
+    >>> statistic = GreenwoodGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
     >>> bool(np.isfinite(value))
     True
@@ -866,17 +803,6 @@ class GreenwoodGammaGofStatistic(AbstractGammaGofStatistic):
         :return: short code string "GRW".
         """
         return "GRW"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "GRW_GAMMA_{parent_code}".
-        """
-        short_code = GreenwoodGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -920,8 +846,8 @@ class MoranGammaGofStatistic(AbstractGammaGofStatistic):
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Fixed finite positive shape and rate, respectively. Both default to 1.
+    parameters : ParameterValues
+        Values with alfa, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -955,7 +881,8 @@ class MoranGammaGofStatistic(AbstractGammaGofStatistic):
 
     Examples
     --------
-    >>> statistic = MoranGammaGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'alfa': 1, 'beta': 1})
+    >>> statistic = MoranGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
     >>> bool(np.isfinite(value))
     True
@@ -974,17 +901,6 @@ class MoranGammaGofStatistic(AbstractGammaGofStatistic):
         :return: short code string "MOR".
         """
         return "MOR"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "MOR_GAMMA_{parent_code}".
-        """
-        short_code = MoranGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1034,8 +950,8 @@ class MinToshiyukiGammaGofStatistic(AbstractGammaGofStatistic, MinToshiyukiStati
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Fixed finite positive shape and rate, respectively. Both default to 1.
+    parameters : ParameterValues
+        Values with alfa, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -1067,7 +983,8 @@ class MinToshiyukiGammaGofStatistic(AbstractGammaGofStatistic, MinToshiyukiStati
 
     Examples
     --------
-    >>> statistic = MinToshiyukiGammaGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'alfa': 1, 'beta': 1})
+    >>> statistic = MinToshiyukiGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
     >>> bool(np.isfinite(value))
     True
@@ -1082,17 +999,6 @@ class MinToshiyukiGammaGofStatistic(AbstractGammaGofStatistic, MinToshiyukiStati
         :return: short code string "MT".
         """
         return "MT"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "MT_GAMMA_{parent_code}".
-        """
-        short_code = MinToshiyukiGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1142,7 +1048,7 @@ class AbstractBinnedGammaGofStatistic(AbstractGammaGofStatistic, Chi2Statistic, 
 
     lambda_value: float = 1.0
 
-    def __init__(self, bins: int = 8, alpha: float = 1.0, beta: float = 1.0):
+    def __init__(self, parameters: ParameterValues, *, bins: int = 8):
         if (
             isinstance(bins, (bool, np.bool_))
             or not isinstance(bins, (int, np.integer))
@@ -1150,7 +1056,7 @@ class AbstractBinnedGammaGofStatistic(AbstractGammaGofStatistic, Chi2Statistic, 
         ):
             raise ValueError("At least two bins are required for binned Gamma statistics.")
         self.bins = bins
-        AbstractGammaGofStatistic.__init__(self, alpha=alpha, beta=beta)
+        AbstractGammaGofStatistic.__init__(self, parameters)
         self.lambda_value = getattr(self, "lambda_value", 1.0)
 
     def _validate_storage_calibration(self):
@@ -1212,8 +1118,8 @@ class Chi2PearsonGammaGofStatistic(AbstractBinnedGammaGofStatistic):
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Fixed finite positive shape and rate, respectively. Both default to 1.
+    parameters : ParameterValues
+        Values with alfa, beta fixed; omitted parameters are unknown.
     bins : int, optional
         Number of equal-probability bins, at least 2. Default is 8.
 
@@ -1254,7 +1160,8 @@ class Chi2PearsonGammaGofStatistic(AbstractBinnedGammaGofStatistic):
 
     Examples
     --------
-    >>> statistic = Chi2PearsonGammaGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'alfa': 1, 'beta': 1})
+    >>> statistic = Chi2PearsonGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
     >>> bool(np.isfinite(value))
     True
@@ -1271,17 +1178,6 @@ class Chi2PearsonGammaGofStatistic(AbstractBinnedGammaGofStatistic):
         :return: short code string "CHI2_PEARSON".
         """
         return "CHI2_PEARSON"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "CHI2_PEARSON_GAMMA_{parent_code}".
-        """
-        short_code = Chi2PearsonGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1320,8 +1216,8 @@ class LikelihoodRatioGammaGofStatistic(AbstractBinnedGammaGofStatistic):
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Fixed finite positive shape and rate, respectively. Both default to 1.
+    parameters : ParameterValues
+        Values with alfa, beta fixed; omitted parameters are unknown.
     bins : int, optional
         Number of equal-probability bins, at least 2. Default is 8.
 
@@ -1362,7 +1258,8 @@ class LikelihoodRatioGammaGofStatistic(AbstractBinnedGammaGofStatistic):
 
     Examples
     --------
-    >>> statistic = LikelihoodRatioGammaGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'alfa': 1, 'beta': 1})
+    >>> statistic = LikelihoodRatioGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
     >>> bool(np.isfinite(value))
     True
@@ -1379,17 +1276,6 @@ class LikelihoodRatioGammaGofStatistic(AbstractBinnedGammaGofStatistic):
         :return: short code string "G_TEST".
         """
         return "G_TEST"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "G_TEST_GAMMA_{parent_code}".
-        """
-        short_code = LikelihoodRatioGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1428,8 +1314,8 @@ class CressieReadGammaGofStatistic(AbstractBinnedGammaGofStatistic):
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Fixed finite positive shape and rate, respectively. Both default to 1.
+    parameters : ParameterValues
+        Values with alfa, beta fixed; omitted parameters are unknown.
     bins : int, optional
         Number of equal-probability bins, at least 2. Default is 8.
     power : float, optional
@@ -1474,21 +1360,16 @@ class CressieReadGammaGofStatistic(AbstractBinnedGammaGofStatistic):
 
     Examples
     --------
-    >>> statistic = CressieReadGammaGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'alfa': 1, 'beta': 1})
+    >>> statistic = CressieReadGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
     >>> bool(np.isfinite(value))
     True
     """
 
-    def __init__(
-        self,
-        power: float = 2 / 3,
-        bins: int = 8,
-        alpha: float = 1.0,
-        beta: float = 1.0,
-    ):
+    def __init__(self, parameters: ParameterValues, *, power: float = 2 / 3, bins: int = 8):
         self.lambda_value = _scalar(power, "power")
-        super().__init__(bins=bins, alpha=alpha, beta=beta)
+        super().__init__(parameters, bins=bins)
 
     @staticmethod
     @override
@@ -1499,17 +1380,6 @@ class CressieReadGammaGofStatistic(AbstractBinnedGammaGofStatistic):
         :return: short code string "CRESSIE_READ".
         """
         return "CRESSIE_READ"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "CRESSIE_READ_GAMMA_{parent_code}".
-        """
-        short_code = CressieReadGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1548,8 +1418,8 @@ class ProbabilityPlotCorrelationGammaGofStatistic(AbstractGammaGofStatistic):
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Fixed finite positive shape and rate, respectively. Both default to 1.
+    parameters : ParameterValues
+        Values with alfa, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -1583,7 +1453,8 @@ class ProbabilityPlotCorrelationGammaGofStatistic(AbstractGammaGofStatistic):
 
     Examples
     --------
-    >>> statistic = ProbabilityPlotCorrelationGammaGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'alfa': 1, 'beta': 1})
+    >>> statistic = ProbabilityPlotCorrelationGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
     >>> bool(np.isfinite(value))
     True
@@ -1602,17 +1473,6 @@ class ProbabilityPlotCorrelationGammaGofStatistic(AbstractGammaGofStatistic):
         :return: short code string "PPCC".
         """
         return "PPCC"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "PPCC_GAMMA_{parent_code}".
-        """
-        short_code = ProbabilityPlotCorrelationGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1676,16 +1536,14 @@ class AbstractGraphGammaGofStatistic(AbstractGammaGofStatistic, AbstractGraphTes
     def alternative(self) -> Alternative:
         return TwoSidedAlternative()
 
-    @staticmethod
+    @classmethod
     @override
-    def code():
-        """
-        Get unique code identifier for graph-based Gamma statistics.
-
-        :return: string code in format "GRAPH_GAMMA_{parent_code}".
-        """
-        parent_code = AbstractGammaGofStatistic.code()
-        return f"GRAPH_{parent_code}"
+    def code(cls) -> str:
+        """Return the family identifier or the concrete statistic's full identifier."""
+        family_code = f"GRAPH_GAMMA_{AbstractGoodnessOfFitStatistic.code()}"
+        if "short_code" in cls.__abstractmethods__:
+            return family_code
+        return f"{cls.short_code()}_{family_code}"
 
     def _transform_sample(self, rvs):
         sample = _sample(rvs)
@@ -1738,8 +1596,8 @@ class GraphEdgesNumberGammaGofStatistic(
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Fixed finite positive shape and rate, respectively. Both default to 1.
+    parameters : ParameterValues
+        Values with alfa, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -1771,23 +1629,12 @@ class GraphEdgesNumberGammaGofStatistic(
 
     Examples
     --------
-    >>> statistic = GraphEdgesNumberGammaGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'alfa': 1, 'beta': 1})
+    >>> statistic = GraphEdgesNumberGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
     >>> bool(np.isfinite(value))
     True
     """
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "{short_code}_GRAPH_GAMMA_{parent_code}".
-        """
-        parent_code = AbstractGraphGammaGofStatistic.code()
-        short_code = GraphEdgesNumberGammaGofStatistic.short_code()
-        return f"{short_code}_{parent_code}"
 
 
 class GraphMaxDegreeGammaGofStatistic(AbstractGraphGammaGofStatistic, GraphMaxDegreeTestStatistic):
@@ -1795,8 +1642,8 @@ class GraphMaxDegreeGammaGofStatistic(AbstractGraphGammaGofStatistic, GraphMaxDe
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Fixed finite positive shape and rate, respectively. Both default to 1.
+    parameters : ParameterValues
+        Values with alfa, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -1828,23 +1675,12 @@ class GraphMaxDegreeGammaGofStatistic(AbstractGraphGammaGofStatistic, GraphMaxDe
 
     Examples
     --------
-    >>> statistic = GraphMaxDegreeGammaGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'alfa': 1, 'beta': 1})
+    >>> statistic = GraphMaxDegreeGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
     >>> bool(np.isfinite(value))
     True
     """
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "{short_code}_GRAPH_GAMMA_{parent_code}".
-        """
-        parent_code = AbstractGraphGammaGofStatistic.code()
-        short_code = GraphMaxDegreeGammaGofStatistic.short_code()
-        return f"{short_code}_{parent_code}"
 
 
 class GraphAverageDegreeGammaGofStatistic(
@@ -1854,8 +1690,8 @@ class GraphAverageDegreeGammaGofStatistic(
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Fixed finite positive shape and rate, respectively. Both default to 1.
+    parameters : ParameterValues
+        Values with alfa, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -1887,23 +1723,12 @@ class GraphAverageDegreeGammaGofStatistic(
 
     Examples
     --------
-    >>> statistic = GraphAverageDegreeGammaGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'alfa': 1, 'beta': 1})
+    >>> statistic = GraphAverageDegreeGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
     >>> bool(np.isfinite(value))
     True
     """
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "{short_code}_GRAPH_GAMMA_{parent_code}".
-        """
-        parent_code = AbstractGraphGammaGofStatistic.code()
-        short_code = GraphAverageDegreeGammaGofStatistic.short_code()
-        return f"{short_code}_{parent_code}"
 
 
 class GraphConnectedComponentsGammaGofStatistic(
@@ -1913,8 +1738,8 @@ class GraphConnectedComponentsGammaGofStatistic(
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Fixed finite positive shape and rate, respectively. Both default to 1.
+    parameters : ParameterValues
+        Values with alfa, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -1946,23 +1771,12 @@ class GraphConnectedComponentsGammaGofStatistic(
 
     Examples
     --------
-    >>> statistic = GraphConnectedComponentsGammaGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'alfa': 1, 'beta': 1})
+    >>> statistic = GraphConnectedComponentsGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
     >>> bool(np.isfinite(value))
     True
     """
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "{short_code}_GRAPH_GAMMA_{parent_code}".
-        """
-        parent_code = AbstractGraphGammaGofStatistic.code()
-        short_code = GraphConnectedComponentsGammaGofStatistic.short_code()
-        return f"{short_code}_{parent_code}"
 
 
 class GraphCliqueNumberGammaGofStatistic(
@@ -1972,8 +1786,8 @@ class GraphCliqueNumberGammaGofStatistic(
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Fixed finite positive shape and rate, respectively. Both default to 1.
+    parameters : ParameterValues
+        Values with alfa, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -2005,23 +1819,12 @@ class GraphCliqueNumberGammaGofStatistic(
 
     Examples
     --------
-    >>> statistic = GraphCliqueNumberGammaGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'alfa': 1, 'beta': 1})
+    >>> statistic = GraphCliqueNumberGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
     >>> bool(np.isfinite(value))
     True
     """
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "{short_code}_GRAPH_GAMMA_{parent_code}".
-        """
-        parent_code = AbstractGraphGammaGofStatistic.code()
-        short_code = GraphCliqueNumberGammaGofStatistic.short_code()
-        return f"{short_code}_{parent_code}"
 
     def _evaluate_graph_statistic(self, transformed_sample, **kwargs):
         distance = self._compute_dist(transformed_sample)
@@ -2043,8 +1846,8 @@ class GraphIndependenceNumberGammaGofStatistic(
 
     Parameters
     ----------
-    alpha, beta : float, optional
-        Fixed finite positive shape and rate, respectively. Both default to 1.
+    parameters : ParameterValues
+        Values with alfa, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -2076,23 +1879,12 @@ class GraphIndependenceNumberGammaGofStatistic(
 
     Examples
     --------
-    >>> statistic = GraphIndependenceNumberGammaGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({'alfa': 1, 'beta': 1})
+    >>> statistic = GraphIndependenceNumberGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
     >>> bool(np.isfinite(value))
     True
     """
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "{short_code}_GRAPH_GAMMA_{parent_code}".
-        """
-        parent_code = AbstractGraphGammaGofStatistic.code()
-        short_code = GraphIndependenceNumberGammaGofStatistic.short_code()
-        return f"{short_code}_{parent_code}"
 
     def _evaluate_graph_statistic(self, transformed_sample, **kwargs):
         distance = self._compute_dist(transformed_sample)

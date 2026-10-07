@@ -1,6 +1,7 @@
 import numpy as np
 from benchmark_runner import BenchmarkRunner
 
+from pysatl_criterion.distribution.distributions import UniformDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit.uniform import SteinUniformGofStatistic
 
 
@@ -27,7 +28,9 @@ def main() -> None:
     sample_size = 100
     calls = 1_000
     sample = np.random.default_rng(42).uniform(0.0, 1.0, sample_size)
-    statistic = SteinUniformGofStatistic()
+    statistic = SteinUniformGofStatistic(
+        UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+    )
 
     # Compile the Numba kernel before measuring execution time.
     statistic.do_execute_statistic(sample)

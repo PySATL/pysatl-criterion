@@ -9,6 +9,10 @@ import pytest
 from scipy import integrate, optimize, stats
 from scipy.special import gamma
 
+from pysatl_criterion.distribution.distributions import (
+    ExponentiatedWeibullDistributionDescriptor as ExponentiatedWeibull,
+)
+from pysatl_criterion.distribution.distributions import WeibullDistributionDescriptor as Weibull
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.alternative import (
     AlternativeType,
@@ -16,6 +20,7 @@ from pysatl_criterion.statistics.alternative import (
     RightAlternative,
     TwoSidedAlternative,
 )
+from pysatl_criterion.statistics.goodness_of_fit import exponentiated_weibull as ew
 from pysatl_criterion.statistics.goodness_of_fit import weibull as w
 from pysatl_criterion.utils.generator import get_hypothesis_generator
 
@@ -36,18 +41,19 @@ SAMPLE = np.array(
 )
 CLASSES = [
     cls
-    for cls in vars(w).values()
+    for module in (w, ew)
+    for cls in vars(module).values()
     if inspect.isclass(cls)
-    and cls.__module__ == w.__name__
+    and cls.__module__ == module.__name__
     and not inspect.isabstract(cls)
     and issubclass(cls, AbstractGoodnessOfFitStatistic)
 ]
 FIXED = [
-    w.KolmogorovSmirnovWeibullGofStatistic,
-    w.CrammerVonMisesWeibullGofStatistic,
-    w.WatsonWeibullGofStatistic,
-    w.MinToshiyukiWeibullGofStatistic,
-    w.Chi2PearsonWeibullGofStatistic,
+    ew.KolmogorovSmirnovExponentiatedWeibullGofStatistic,
+    ew.CrammerVonMisesExponentiatedWeibullGofStatistic,
+    ew.WatsonExponentiatedWeibullGofStatistic,
+    ew.MinToshiyukiExponentiatedWeibullGofStatistic,
+    ew.Chi2PearsonExponentiatedWeibullGofStatistic,
 ]
 COMPOSITE = [cls for cls in CLASSES if cls not in FIXED]
 RECORD = w.MahdiDoostparastWeibullGofStatistic
@@ -66,7 +72,11 @@ def ks_reference(u):
 
 @pytest.mark.parametrize("cls", CLASSES)
 def test_interface_and_statelessness(cls):
-    statistic: AbstractGoodnessOfFitStatistic = cls()
+    statistic: AbstractGoodnessOfFitStatistic = cls(
+        ExponentiatedWeibull.DEFAULT.parse({"exponent": 1, "shape": 1, "scale": 1})
+        if cls in FIXED
+        else Weibull.DEFAULT.parse({})
+    )
     before = SAMPLE.copy()
     result = statistic.execute_statistic(SAMPLE, common_keyword=True)
     assert isinstance(result, (float, np.float64))
@@ -83,14 +93,22 @@ def test_interface_and_statelessness(cls):
 @pytest.mark.parametrize("sample", [[], 1, [[1, 2]], [1, np.nan], [1, np.inf], [-1, 2], [1j, 2]])
 def test_invalid_samples(cls, sample):
     with pytest.raises(ValueError):
-        cls().execute_statistic(sample)
+        cls(
+            ExponentiatedWeibull.DEFAULT.parse({"exponent": 1, "shape": 1, "scale": 1})
+            if cls in FIXED
+            else Weibull.DEFAULT.parse({})
+        ).execute_statistic(sample)
 
 
 @pytest.mark.parametrize("cls", COMPOSITE)
 @pytest.mark.parametrize("sample", [[1], [1, 1, 1], [0, 1, 2]])
 def test_fitted_degenerate_samples(cls, sample):
     with pytest.raises(ValueError):
-        cls().execute_statistic(sample)
+        cls(
+            ExponentiatedWeibull.DEFAULT.parse({"exponent": 1, "shape": 1, "scale": 1})
+            if cls in FIXED
+            else Weibull.DEFAULT.parse({})
+        ).execute_statistic(sample)
 
 
 @pytest.mark.parametrize("cls", FIXED)
@@ -98,15 +116,28 @@ def test_fitted_degenerate_samples(cls, sample):
 def test_fixed_parameter_validation(cls, value):
     for parameter in ("a", "k"):
         with pytest.raises(ValueError):
-            cls(**{parameter: value})
+            cls(
+                ExponentiatedWeibull.DEFAULT.parse(
+                    {
+                        "exponent": 1,
+                        "shape": 1,
+                        "scale": 1,
+                        {"a": "exponent", "k": "shape"}[parameter]: value,
+                    }
+                )
+            )
 
 
 @pytest.mark.parametrize("cls", COMPOSITE)
 def test_composite_hypothesis_and_log_affine_invariance(cls):
-    statistic = cls()
-    assert statistic.hypothesis().parameters() == {"a": 1, "loc": 0}
-    with pytest.raises(TypeError):
-        cls(a=2, k=3)
+    statistic = cls(
+        ExponentiatedWeibull.DEFAULT.parse({"exponent": 1, "shape": 1, "scale": 1})
+        if cls in FIXED
+        else Weibull.DEFAULT.parse({})
+    )
+    assert statistic.hypothesis().parameters() == {}
+    with pytest.raises(ValueError, match="Unsupported"):
+        cls(Weibull.DEFAULT.parse({"shape": 3, "scale": 2}))
     original = statistic.execute_statistic(SAMPLE)
     for power, scale in [(0.02, 1e100), (2, 1e-100), (10, 3)]:
         assert statistic.execute_statistic(scale * SAMPLE**power) == pytest.approx(
@@ -123,20 +154,23 @@ def test_fixed_edf_references(a, k):
         (AlternativeType.LEFT, "less"),
         (AlternativeType.RIGHT, "greater"),
     ]:
-        statistic = w.KolmogorovSmirnovWeibullGofStatistic(alternative, a=a, k=k)
+        statistic = ew.KolmogorovSmirnovExponentiatedWeibullGofStatistic(
+            ExponentiatedWeibull.DEFAULT.parse({"exponent": a, "shape": k, "scale": 1}),
+            alternative_type=alternative,
+        )
         expected = stats.kstest(
             sample, stats.exponweib(a, k).cdf, alternative=scipy_alternative
         ).statistic
         assert statistic.execute_statistic(sample) == pytest.approx(expected)
         assert isinstance(statistic.alternative(), RightAlternative)
-        assert statistic.hypothesis().parameters() == {"a": a, "k": k}
+        assert statistic.hypothesis().parameters() == {"exponent": a, "shape": k, "scale": 1}
     cvm = stats.cramervonmises(sample, stats.exponweib(a, k).cdf).statistic
-    assert w.CrammerVonMisesWeibullGofStatistic(a, k).execute_statistic(sample) == pytest.approx(
-        cvm
-    )
-    assert w.WatsonWeibullGofStatistic(a, k).execute_statistic(sample) == pytest.approx(
-        cvm - len(u) * (u.mean() - 0.5) ** 2
-    )
+    assert ew.CrammerVonMisesExponentiatedWeibullGofStatistic(
+        ExponentiatedWeibull.DEFAULT.parse({"exponent": a, "shape": k, "scale": 1}),
+    ).execute_statistic(sample) == pytest.approx(cvm)
+    assert ew.WatsonExponentiatedWeibullGofStatistic(
+        ExponentiatedWeibull.DEFAULT.parse({"exponent": a, "shape": k, "scale": 1}),
+    ).execute_statistic(sample) == pytest.approx(cvm - len(u) * (u.mean() - 0.5) ** 2)
 
 
 @pytest.mark.parametrize("sample", [SAMPLE, [0.01, 0.2, 0.3, 3, 5, 10], SAMPLE**0.005])
@@ -155,24 +189,28 @@ def test_mle_and_fitted_edf(sample):
     power = (sample / mle["eta"]) ** mle["beta"]
     assert np.dot(power, log_x) / power.sum() - log_x.mean() == pytest.approx(1 / mle["beta"])
     u = stats.gumbel_l.cdf(z)
-    assert w.LillieforsWeibullGofStatistic().execute_statistic(sample) == pytest.approx(
-        ks_reference(u)
-    )
+    assert w.LillieforsWeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(
+        sample
+    ) == pytest.approx(ks_reference(u))
     expected_ad = stats.anderson(np.log(sample), dist="gumbel_l").statistic
-    assert w.AndersonDarlingWeibullGofStatistic().execute_statistic(sample) == pytest.approx(
-        expected_ad
-    )
+    assert w.AndersonDarlingWeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(
+        sample
+    ) == pytest.approx(expected_ad)
     empirical = (np.arange(1, len(sample) + 1) - 0.5) / len(sample)
     expected_spp = np.max(
         np.abs(2 / np.pi * (np.arcsin(np.sqrt(empirical)) - np.arcsin(np.sqrt(u))))
     )
-    assert w.SPPWeibullGofStatistic().execute_statistic(sample) == pytest.approx(expected_spp)
+    assert w.SPPWeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(
+        sample
+    ) == pytest.approx(expected_spp)
 
 
 def test_refitting_changes_cdf_not_just_state():
-    statistic = w.LillieforsWeibullGofStatistic()
+    statistic = w.LillieforsWeibullGofStatistic(Weibull.DEFAULT.parse({}))
     assert statistic.execute_statistic(SAMPLE) != pytest.approx(
-        w.KolmogorovSmirnovWeibullGofStatistic(a=1, k=1).execute_statistic(SAMPLE)
+        ew.KolmogorovSmirnovExponentiatedWeibullGofStatistic(
+            ExponentiatedWeibull.DEFAULT.parse({"exponent": 1, "shape": 1, "scale": 1})
+        ).execute_statistic(SAMPLE)
     )
     for sample in [SAMPLE, np.array([0.01, 0.2, 0.4, 0.8, 10])]:
         assert statistic.execute_statistic(sample) == pytest.approx(
@@ -181,7 +219,7 @@ def test_refitting_changes_cdf_not_just_state():
 
 
 @pytest.mark.parametrize(
-    "cls", [w.MinToshiyukiWeibullGofStatistic, w.LiaoShimokawaWeibullGofStatistic]
+    "cls", [ew.MinToshiyukiExponentiatedWeibullGofStatistic, w.LiaoShimokawaWeibullGofStatistic]
 )
 def test_weighted_edf(cls):
     u = (
@@ -193,16 +231,30 @@ def test_weighted_edf(cls):
     expected = sum(
         max((i + 1) / n - x, x - i / n) / np.sqrt(x * (1 - x)) for i, x in enumerate(u)
     ) / np.sqrt(n)
-    assert cls().execute_statistic(SAMPLE) == pytest.approx(expected)
+    assert cls(
+        ExponentiatedWeibull.DEFAULT.parse({"exponent": 1, "shape": 1, "scale": 1})
+        if cls in FIXED
+        else Weibull.DEFAULT.parse({})
+    ).execute_statistic(SAMPLE) == pytest.approx(expected)
 
 
 def test_boundary_penalties_and_positive_ad_tail():
-    assert np.isinf(w.MinToshiyukiWeibullGofStatistic().execute_statistic([0, 1]))
-    assert w.MinToshiyukiWeibullGofStatistic().execute_statistic([1000]) == pytest.approx(
-        np.exp(500)
+    assert np.isinf(
+        ew.MinToshiyukiExponentiatedWeibullGofStatistic(
+            ExponentiatedWeibull.DEFAULT.parse({"exponent": 1, "shape": 1, "scale": 1})
+        ).execute_statistic([0, 1])
     )
-    assert np.isfinite(w.AndersonDarlingWeibullGofStatistic().execute_statistic([1e-300, 1, 1e300]))
-    assert np.isinf(w.LOSWeibullGofStatistic().execute_statistic([1, 1, 2]))
+    assert ew.MinToshiyukiExponentiatedWeibullGofStatistic(
+        ExponentiatedWeibull.DEFAULT.parse({"exponent": 1, "shape": 1, "scale": 1})
+    ).execute_statistic([1000]) == pytest.approx(np.exp(500))
+    assert np.isfinite(
+        w.AndersonDarlingWeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(
+            [1e-300, 1, 1e300]
+        )
+    )
+    assert np.isinf(
+        w.LOSWeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic([1, 1, 2])
+    )
 
 
 def test_probability_plot_correlations():
@@ -213,7 +265,11 @@ def test_probability_plot_correlations():
         (w.REJGWeibullGofStatistic, (np.arange(1, n + 1) - 0.3175) / (n + 0.365), lambda r: r),
     ]:
         r2 = stats.pearsonr(y, stats.gumbel_l.ppf(positions)).statistic ** 2
-        assert cls().execute_statistic(SAMPLE) == pytest.approx(transform(r2))
+        assert cls(
+            ExponentiatedWeibull.DEFAULT.parse({"exponent": 1, "shape": 1, "scale": 1})
+            if cls in FIXED
+            else Weibull.DEFAULT.parse({})
+        ).execute_statistic(SAMPLE) == pytest.approx(transform(r2))
 
 
 def test_spacing_functionals_by_quadrature():
@@ -228,14 +284,18 @@ def test_spacing_functionals_by_quadrature():
         integrate.quad(lambda u, j=j: len(z) * (j / len(z) - u) ** 2 / (u * (1 - u)), lo, hi)[0]
         for j, (lo, hi) in enumerate(pairwise(boundaries))
     )
-    assert w.LOSWeibullGofStatistic().execute_statistic(SAMPLE) == pytest.approx(expected)
+    assert w.LOSWeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(
+        SAMPLE
+    ) == pytest.approx(expected)
     n = len(y)
-    assert w.TikuSinghWeibullGofStatistic().execute_statistic(SAMPLE) == pytest.approx(
+    assert w.TikuSinghWeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(
+        SAMPLE
+    ) == pytest.approx(
         2 * sum((n - 1 - i) * g[i - 1] for i in range(1, n - 1)) / ((n - 2) * sum(g))
     )
-    assert w.MSFWeibullGofStatistic().execute_statistic(SAMPLE) == pytest.approx(
-        sum(g[n // 2 :]) / sum(g)
-    )
+    assert w.MSFWeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(
+        SAMPLE
+    ) == pytest.approx(sum(g[n // 2 :]) / sum(g))
 
 
 def test_moment_normalization_by_integration():
@@ -265,12 +325,12 @@ def test_moment_normalization_by_integration():
     y = -np.log(SAMPLE)
     g = stats.skew(y, bias=True)
     b = stats.kurtosis(y, fisher=False, bias=True)
-    assert w.ST1WeibullGofStatistic().execute_statistic(SAMPLE) == pytest.approx(
-        len(y) * (g - skew) ** 2 / v33
-    )
-    assert w.ST2WeibullGofStatistic().execute_statistic(SAMPLE) == pytest.approx(
-        len(y) * ((b - kurt) - v34 / v33 * (g - skew)) ** 2 / (v44 - v34**2 / v33)
-    )
+    assert w.ST1WeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(
+        SAMPLE
+    ) == pytest.approx(len(y) * (g - skew) ** 2 / v33)
+    assert w.ST2WeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(
+        SAMPLE
+    ) == pytest.approx(len(y) * ((b - kurt) - v34 / v33 * (g - skew)) ** 2 / (v44 - v34**2 / v33))
 
 
 @pytest.mark.parametrize(
@@ -290,7 +350,11 @@ def test_laplace_reference_grid_and_fit(cls, kind, m):
         * (sum(np.exp(-t * y) for y in z) / len(z) - gamma(1 - t)) ** 2
         for t in grid
     )
-    assert cls().execute_statistic(SAMPLE, m=m) == pytest.approx(expected, abs=1e-10)
+    assert cls(
+        ExponentiatedWeibull.DEFAULT.parse({"exponent": 1, "shape": 1, "scale": 1})
+        if cls in FIXED
+        else Weibull.DEFAULT.parse({})
+    ).execute_statistic(SAMPLE, m=m) == pytest.approx(expected, abs=1e-10)
 
 
 def test_cq_reference():
@@ -299,7 +363,9 @@ def test_cq_reference():
     expected = (0.53 * v[0] ** 2 - 2 * 0.91 * v[0] * v[1] + 1.59 * v[1] ** 2) / (
         1.59 * 0.53 - 0.91**2
     )
-    assert w.CabanaQuirozWeibullGofStatistic().execute_statistic(SAMPLE) == pytest.approx(expected)
+    assert w.CabanaQuirozWeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(
+        SAMPLE
+    ) == pytest.approx(expected)
 
 
 def test_kl_entropy_reference_and_ties():
@@ -310,18 +376,26 @@ def test_kl_entropy_reference_and_ties():
         np.log(len(z) / (2 * m) * (extended[i + 2 * m] - extended[i])) for i in range(len(z))
     ) / len(z)
     expected = -entropy - np.mean(stats.gumbel_l.logpdf(z))
-    assert w.KullbackLeiblerWeibullGofStatistic().execute_statistic(SAMPLE, m=m) == pytest.approx(
-        expected
+    assert w.KullbackLeiblerWeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(
+        SAMPLE, m=m
+    ) == pytest.approx(expected)
+    assert np.isinf(
+        w.KullbackLeiblerWeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(
+            [1, 1, 1, 2, 3], m=1
+        )
     )
-    assert np.isinf(w.KullbackLeiblerWeibullGofStatistic().execute_statistic([1, 1, 1, 2, 3], m=1))
 
 
 @pytest.mark.parametrize("m", [0, -1, True, 1.5, np.inf])
 def test_invalid_settings(m):
     with pytest.raises(ValueError):
-        w.KullbackLeiblerWeibullGofStatistic().execute_statistic(SAMPLE, m=m)
+        w.KullbackLeiblerWeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(
+            SAMPLE, m=m
+        )
     with pytest.raises(ValueError):
-        w.LaplaceTransform2WeibullGofStatistic().execute_statistic(SAMPLE, m=m)
+        w.LaplaceTransform2WeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(
+            SAMPLE, m=m
+        )
 
 
 def test_record_likelihood_and_integral():
@@ -349,7 +423,7 @@ def test_record_likelihood_and_integral():
         integrate.quad(lambda t, s=s: (s - (1 - t)) ** 2 / t, lo, hi)[0]
         for s, lo, hi in zip(survival, boundaries[:-1], boundaries[1:], strict=True)
     )
-    statistic = RECORD()
+    statistic = RECORD(Weibull.DEFAULT.parse({}))
     assert statistic.execute_statistic(sequence) == pytest.approx(expected, rel=1e-7)
     assert statistic.execute_statistic(records, record_counts=counts) == pytest.approx(
         expected, rel=1e-7
@@ -369,23 +443,51 @@ def test_critical_tails_and_calibration():
             if cls in [w.TikuSinghWeibullGofStatistic, w.OKWeibullGofStatistic]
             else RightAlternative
         )
-        assert isinstance(cls().alternative(), expected)
+        assert isinstance(
+            cls(
+                ExponentiatedWeibull.DEFAULT.parse({"exponent": 1, "shape": 1, "scale": 1})
+                if cls in FIXED
+                else Weibull.DEFAULT.parse({})
+            ).alternative(),
+            expected,
+        )
         with pytest.raises(ValueError, match="regenerate"):
-            cls()._validate_storage_calibration()
+            cls(
+                ExponentiatedWeibull.DEFAULT.parse({"exponent": 1, "shape": 1, "scale": 1})
+                if cls in FIXED
+                else Weibull.DEFAULT.parse({})
+            )._validate_storage_calibration()
     for cls in COMPOSITE:
         if cls is RECORD:
             with pytest.raises(ValueError, match="Record calibration"):
-                get_hypothesis_generator(cls())
+                get_hypothesis_generator(
+                    cls(
+                        ExponentiatedWeibull.DEFAULT.parse({"exponent": 1, "shape": 1, "scale": 1})
+                        if cls in FIXED
+                        else Weibull.DEFAULT.parse({})
+                    )
+                )
         else:
-            generator = get_hypothesis_generator(cls())
-            assert generator.a == 1 and generator.k == 1
-    generator = get_hypothesis_generator(w.KolmogorovSmirnovWeibullGofStatistic(a=3, k=2))
-    assert generator.a == 3 and generator.k == 2
+            generator = get_hypothesis_generator(
+                cls(
+                    ExponentiatedWeibull.DEFAULT.parse({"exponent": 1, "shape": 1, "scale": 1})
+                    if cls in FIXED
+                    else Weibull.DEFAULT.parse({})
+                )
+            )
+            assert generator.parameters() == {"shape": 1, "scale": 1}
+    generator = get_hypothesis_generator(
+        ew.KolmogorovSmirnovExponentiatedWeibullGofStatistic(
+            ExponentiatedWeibull.DEFAULT.parse({"exponent": 3, "shape": 2, "scale": 1})
+        )
+    )
+    assert generator.parameters() == {"exponent": 3, "shape": 2, "scale": 1}
 
 
 def test_documentation_examples_and_class_count():
     assert len(CLASSES) == 24
     assert doctest.testmod(w).failed == 0
+    assert doctest.testmod(ew).failed == 0
 
 
 def test_monte_carlo_refits_every_replicate(mocker):
@@ -398,32 +500,40 @@ def test_monte_carlo_refits_every_replicate(mocker):
         "pysatl_criterion.generator.generators.generate_weibull", side_effect=samples
     )
     result = MonteCarloLimitDistributionResolver(2).resolve(
-        w.LillieforsWeibullGofStatistic(), sample_size=len(SAMPLE)
+        w.LillieforsWeibullGofStatistic(Weibull.DEFAULT.parse({})), sample_size=len(SAMPLE)
     )
     expected = [ks_reference(stats.gumbel_l.cdf(fitted_logs(sample))) for sample in samples]
     np.testing.assert_allclose(result, expected)
     assert sampler.call_count == 2
-    assert all(call.kwargs["a"] == call.kwargs["k"] == 1 for call in sampler.call_args_list)
+    assert all(call.kwargs["shape"] == call.kwargs["scale"] == 1 for call in sampler.call_args_list)
 
 
 def test_transform_extremes_preserve_infinity_without_nan():
     # Fitted extreme negative logs make the unweighted positive-t LT overflow;
     # zero weights must not turn the final result into NaN.
     sample = np.r_[1e-300, np.ones(2000)]
-    assert np.isinf(w.LaplaceTransform3WeibullGofStatistic().execute_statistic(sample))
+    assert np.isinf(
+        w.LaplaceTransform3WeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(sample)
+    )
     for a in [-1e308, 1e308]:
-        value = w.LaplaceTransform3WeibullGofStatistic().execute_statistic(sample, a=a)
+        value = w.LaplaceTransform3WeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(
+            sample, a=a
+        )
         assert np.isfinite(value)
-    assert np.isfinite(w.LaplaceTransform2WeibullGofStatistic().execute_statistic(sample))
-    assert np.isfinite(w.AndersonDarlingWeibullGofStatistic().execute_statistic(sample))
+    assert np.isfinite(
+        w.LaplaceTransform2WeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(sample)
+    )
+    assert np.isfinite(
+        w.AndersonDarlingWeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(sample)
+    )
 
 
-def test_unsupported_weibull_calibration_is_not_filled_with_defaults():
+def test_unsupported_weibull_calibration_is_not_filled_with_defaults(monkeypatch):
     from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
-    class Incomplete(w.KolmogorovSmirnovWeibullGofStatistic):
-        def hypothesis(self):
-            return GoodnessOfFitHypothesis({"k": 2})
-
-    with pytest.raises(ValueError, match="external calibration"):
-        get_hypothesis_generator(Incomplete())
+    statistic = ew.KolmogorovSmirnovExponentiatedWeibullGofStatistic(
+        ExponentiatedWeibull.DEFAULT.parse({"exponent": 1, "shape": 1, "scale": 1})
+    )
+    monkeypatch.setattr(statistic, "hypothesis", lambda: GoodnessOfFitHypothesis({"k": 2}))
+    with pytest.raises(ValueError, match="supported ParameterValues"):
+        get_hypothesis_generator(statistic)

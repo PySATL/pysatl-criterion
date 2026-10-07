@@ -8,6 +8,7 @@ from scipy.optimize import brentq
 from scipy.special import expit, logit
 from scipy.stats import CensoredData, fisk, logistic
 
+from pysatl_criterion.distribution.distributions import LogLogisticDistributionDescriptor
 from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     MonteCarloLimitDistributionResolver,
     StorageLimitDistributionResolver,
@@ -32,13 +33,14 @@ from pysatl_criterion.statistics.goodness_of_fit.log_logistic import (
 from pysatl_criterion.statistics.goodness_of_fit.log_logistic import (
     NikulinLogLogisticGofStatistic as Nikulin,
 )
+from tests.parameter_cases import parameters_for
 
 
 @pytest.mark.parametrize("cls", [KS, AD, CVM, Pearson, Mirvaliev, Nikulin])
 @pytest.mark.parametrize("sample", [[], [[1, 2]], [0, 1], [-1, 2], [np.inf], [np.nan], [1j]])
 def test_invalid_sample(cls, sample):
     with pytest.raises(ValueError):
-        cls().execute_statistic(sample, unused=True)
+        cls(parameters_for(cls)).execute_statistic(sample, unused=True)
 
 
 @pytest.mark.parametrize("cls", [KS, AD, CVM, Pearson])
@@ -46,7 +48,7 @@ def test_invalid_sample(cls, sample):
 @pytest.mark.parametrize("name", ["alpha", "beta"])
 def test_invalid_parameters(cls, value, name):
     with pytest.raises(ValueError):
-        cls(**{name: value})
+        cls(parameters_for(cls, **{name: value}))
 
 
 @pytest.mark.parametrize(
@@ -55,7 +57,7 @@ def test_invalid_parameters(cls, value, name):
 @pytest.mark.parametrize("value", [1, 2.5, True, np.nan, np.inf])
 def test_interval_validation(cls, key, value):
     with pytest.raises(ValueError):
-        cls(**{key: value})
+        cls(parameters_for(cls), **{key: value})
 
 
 @pytest.mark.parametrize("direction", list(AlternativeType))
@@ -69,7 +71,10 @@ def test_ks_formula_and_tail(direction):
         AlternativeType.LEFT: minus,
         AlternativeType.TWO_TAILED: max(plus, minus),
     }[direction]
-    stat = KS(direction, alpha=3, beta=2)
+    stat = KS(
+        LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": 3, "beta": 2}),
+        alternative_type=direction,
+    )
     assert stat.execute_statistic(x) == pytest.approx(expected)
     assert stat.alternative().type() == AlternativeType.RIGHT
 
@@ -78,12 +83,24 @@ def test_extreme_ad_retains_finite_logs():
     x = [1e-250, 1e250]
     z = np.log(x) * 2
     expected = -2 - np.dot([0.5, 1.5], -np.logaddexp(0, -z) - np.logaddexp(0, z[::-1]))
-    assert AD(beta=2).execute_statistic(x) == pytest.approx(expected)
-    assert np.isfinite(AD(alpha=1e-250, beta=0.1).execute_statistic([1e250]))
+    assert AD(
+        LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 2})
+    ).execute_statistic(x) == pytest.approx(expected)
+    assert np.isfinite(
+        AD(
+            LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": 1e-250, "beta": 0.1})
+        ).execute_statistic([1e250])
+    )
 
 
 def test_pearson_extreme_parameters_and_empty_bins():
-    assert Pearson(bins=4, alpha=1e-250, beta=0.001).execute_statistic([1e250]) == 3
+    assert (
+        Pearson(
+            LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": 1e-250, "beta": 0.001}),
+            bins=4,
+        ).execute_statistic([1e250])
+        == 3
+    )
 
 
 def test_mirvaliev_independent_covariance_formula():
@@ -120,7 +137,9 @@ def test_mirvaliev_independent_covariance_formula():
     counts = np.histogram(y, edges)[0]
     residual = (counts - len(y) / r) / np.sqrt(len(y) / r)
     expected = residual @ np.linalg.pinv(covariance) @ residual
-    assert Mirvaliev(r).execute_statistic(x) == pytest.approx(expected, rel=1e-8)
+    assert Mirvaliev(
+        LogLogisticDistributionDescriptor.DEFAULT.parse({}), n_intervals=r
+    ).execute_statistic(x) == pytest.approx(expected, rel=1e-8)
     assert abs(expected - residual @ residual) > 0.01
 
 
@@ -170,14 +189,16 @@ def test_nikulin_independent_likelihood_and_risk_integral():
     covariance = a - c.T @ np.linalg.solve(information, c)
     residual = (np.array(observed) - expected) / np.sqrt(n)
     reference = residual @ np.linalg.solve(covariance, residual)
-    assert Nikulin(r).execute_statistic((times, events)) == pytest.approx(reference, rel=2e-3)
+    assert Nikulin(
+        LogLogisticDistributionDescriptor.DEFAULT.parse({}), n_intervals=r
+    ).execute_statistic((times, events)) == pytest.approx(reference, rel=2e-3)
 
 
 @pytest.mark.parametrize("cls", [Mirvaliev, Nikulin])
 def test_independence_invariance_and_no_mutation(cls):
     x = np.exp(np.random.default_rng(41).logistic(size=250))
     saved = x.copy()
-    stat = cls(n_intervals=3)
+    stat = cls(parameters_for(cls), n_intervals=3)
     first = stat.execute_statistic(x, unused=True)
     assert isinstance(first, float)
     assert stat.hypothesis().parameters() == {}
@@ -201,21 +222,41 @@ def test_independence_invariance_and_no_mutation(cls):
 )
 def test_fitted_invalid_data(cls, data):
     with pytest.raises(ValueError):
-        cls().execute_statistic(data)
+        cls(parameters_for(cls)).execute_statistic(data)
 
 
 def test_empty_event_cells_are_infinite():
-    assert np.isinf(Nikulin(10).execute_statistic([1, 2, 3]))
+    assert np.isinf(
+        Nikulin(
+            LogLogisticDistributionDescriptor.DEFAULT.parse({}), n_intervals=10
+        ).execute_statistic([1, 2, 3])
+    )
 
 
 def test_calibration_guards(mocker):
     storage = StorageLimitDistributionResolver(mocker.Mock())
-    for stat in [Nikulin(), Mirvaliev(), Pearson(), KS(AlternativeType.LEFT)]:
+    for stat in [
+        Nikulin(LogLogisticDistributionDescriptor.DEFAULT.parse({})),
+        Mirvaliev(LogLogisticDistributionDescriptor.DEFAULT.parse({})),
+        Pearson(LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 1})),
+        KS(
+            LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 1}),
+            alternative_type=AlternativeType.LEFT,
+        ),
+    ]:
         with pytest.raises(ValueError):
             storage.resolve(stat, 100)
     with pytest.raises(ValueError, match="censoring plan"):
-        MonteCarloLimitDistributionResolver(2).resolve(Nikulin(), 100)
-    for stat in [Mirvaliev(3), KS(), AD(), CVM(), Pearson()]:
+        MonteCarloLimitDistributionResolver(2).resolve(
+            Nikulin(LogLogisticDistributionDescriptor.DEFAULT.parse({})), 100
+        )
+    for stat in [
+        Mirvaliev(LogLogisticDistributionDescriptor.DEFAULT.parse({}), n_intervals=3),
+        KS(LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 1})),
+        AD(LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 1})),
+        CVM(LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 1})),
+        Pearson(LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 1})),
+    ]:
         with pytest.raises(ValueError, match="external calibration"):
             MonteCarloLimitDistributionResolver(2).resolve(stat, 100)
 

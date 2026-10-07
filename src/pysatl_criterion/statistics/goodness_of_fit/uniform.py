@@ -15,7 +15,9 @@ from numba import njit
 from scipy.special import eval_legendre, ndtr
 from typing_extensions import override
 
-from pysatl_criterion import DistributionType
+from pysatl_criterion.distribution.distributions import (
+    UniformDistributionDescriptor as Distribution,
+)
 from pysatl_criterion.distribution.distributions import UniformDistributionDescriptor as Uniform
 from pysatl_criterion.distribution.parameters import HypothesisSupport, ParameterValues
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
@@ -32,7 +34,6 @@ from pysatl_criterion.statistics.goodness_of_fit.common import (
     KSStatistic,
     LillieforsTest,
 )
-from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
 def _validate_sample(rvs, *, min_size=1):
@@ -49,58 +50,42 @@ class AbstractUniformGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     Abstract base class for Uniform distribution goodness-of-fit statistics.
     """
 
-    def __init__(self, a=0, b=1):
-        if not np.isfinite(a) or not np.isfinite(b):
-            raise ValueError("a and b must be finite")
+    @property
+    def a(self) -> float:
+        """Read a by its stable parameter identity."""
+        return self._parameters[Distribution.LOWER]
+
+    @property
+    def b(self) -> float:
+        """Read b by its stable parameter identity."""
+        return self._parameters[Distribution.UPPER]
+
+    def __init__(self, parameters: ParameterValues):
+        AbstractGoodnessOfFitStatistic.__init__(self, parameters)
+        a, b = self.a, self.b
         if b <= a:
             raise ValueError("b must be greater than a")
         if not np.isfinite(b - a):
             raise ValueError("b - a must be finite")
-        self.a = a
-        self.b = b
-
-    @override
-    def hypothesis(self) -> GoodnessOfFitHypothesis:
-        return GoodnessOfFitHypothesis(Uniform.DEFAULT.parse({"a": self.a, "b": self.b}))
 
     @classmethod
     def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
         return (HypothesisSupport(Uniform.DEFAULT, frozenset(Uniform.DEFAULT.parameters)),)
 
+    @staticmethod
+    @override
+    def distribution() -> type[Uniform]:
+        """Return the distribution descriptor class."""
+        return Uniform
+
     @classmethod
-    def from_parameters(cls, parameters: ParameterValues, **options):
-        """Construct from a supported uniform parameterization without filling defaults.
-
-        ``parameters`` is produced by ``Uniform.DEFAULT.parse``. Fixed-bound
-        statistics require both ``a`` and ``b``; the fitted-bound Lilliefors-type
-        statistic requires an empty parameter set. Algorithm settings, such as
-        ``bins`` or ``test_type``, are forwarded separately through ``options``.
-        Unsupported schemas or fixed-parameter sets raise ``ValueError``.
-        Construction does not estimate bounds or evaluate a sample.
-        """
-        if not cls.supports_hypothesis(GoodnessOfFitHypothesis(parameters)):
-            raise ValueError("Unsupported Uniform hypothesis or parameterization")
-        return cls(**parameters.as_dict(), **options)
-
-    @staticmethod
     @override
-    def distribution() -> DistributionType:
-        """
-        Get distribution type.
-
-        :return: DistributionType.
-        """
-        return DistributionType.UNIFORM
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for Uniform statistics.
-
-        :return: string code in format "UNIFORM_{parent_code}".
-        """
-        return f"UNIFORM_{AbstractGoodnessOfFitStatistic.code()}"
+    def code(cls) -> str:
+        """Return the family identifier or the concrete statistic's full identifier."""
+        family_code = f"UNIFORM_{AbstractGoodnessOfFitStatistic.code()}"
+        if "short_code" in cls.__abstractmethods__:
+            return family_code
+        return f"{cls.short_code()}_{family_code}"
 
     def _validate_input(self, rvs, *, require_bounds=True, min_size=1):
         """Validate a finite sample; spacing and moment tests require support membership."""
@@ -113,14 +98,22 @@ class AbstractUniformGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
 
 
 class KolmogorovSmirnovUniformGofStatistic(AbstractUniformGofStatistic, KSStatistic):
-    """
+    """Parameters
+    ----------
+    parameters : ParameterValues
+        Values with a, b fixed; omitted parameters are unknown.
+
     Kolmogorov-Smirnov test statistic for Uniform distribution.
     """
 
     def __init__(
-        self, a=0, b=1, alternative_type: AlternativeType = AlternativeType.TWO_TAILED, mode="auto"
+        self,
+        parameters: ParameterValues,
+        *,
+        alternative_type: AlternativeType = AlternativeType.TWO_TAILED,
+        mode="auto",
     ):
-        AbstractUniformGofStatistic.__init__(self, a, b)
+        AbstractUniformGofStatistic.__init__(self, parameters)
         KSStatistic.__init__(self, alternative_type, mode)
 
     @staticmethod
@@ -132,17 +125,6 @@ class KolmogorovSmirnovUniformGofStatistic(AbstractUniformGofStatistic, KSStatis
         :return: short code string "KS".
         """
         return "KS"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "KS_UNIFORM_{parent_code}".
-        """
-        short_code = KolmogorovSmirnovUniformGofStatistic.short_code()
-        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -160,7 +142,11 @@ class KolmogorovSmirnovUniformGofStatistic(AbstractUniformGofStatistic, KSStatis
 
 
 class AndersonDarlingUniformGofStatistic(AbstractUniformGofStatistic, ADStatistic):
-    """
+    """Parameters
+    ----------
+    parameters : ParameterValues
+        Values with a, b fixed; omitted parameters are unknown.
+
     Anderson-Darling test statistic for Uniform distribution.
     """
 
@@ -173,17 +159,6 @@ class AndersonDarlingUniformGofStatistic(AbstractUniformGofStatistic, ADStatisti
         :return: short code string "AD".
         """
         return "AD"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "AD_UNIFORM_{parent_code}".
-        """
-        short_code = AndersonDarlingUniformGofStatistic.short_code()
-        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -202,7 +177,11 @@ class AndersonDarlingUniformGofStatistic(AbstractUniformGofStatistic, ADStatisti
 
 
 class CrammerVonMisesUniformGofStatistic(AbstractUniformGofStatistic, CrammerVonMisesStatistic):
-    """
+    """Parameters
+    ----------
+    parameters : ParameterValues
+        Values with a, b fixed; omitted parameters are unknown.
+
     Cramér-von Mises test statistic for Uniform distribution.
     """
 
@@ -215,17 +194,6 @@ class CrammerVonMisesUniformGofStatistic(AbstractUniformGofStatistic, CrammerVon
         :return: short code string "CVM".
         """
         return "CVM"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "CVM_UNIFORM_{parent_code}".
-        """
-        short_code = CrammerVonMisesUniformGofStatistic.short_code()
-        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -243,7 +211,11 @@ class CrammerVonMisesUniformGofStatistic(AbstractUniformGofStatistic, CrammerVon
 
 
 class LillieforsTestUniformGofStatistic(AbstractUniformGofStatistic, LillieforsTest):
-    """
+    """Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
     Lilliefors-type KS statistic with both bounds estimated by maximum likelihood.
 
     The fitted bounds are the sample minimum and maximum. No distribution
@@ -252,12 +224,8 @@ class LillieforsTestUniformGofStatistic(AbstractUniformGofStatistic, LillieforsT
     apply). At least two distinct finite observations are required.
     """
 
-    def __init__(self):
-        """Initialize a statistic with no fixed distribution parameters."""
-
-    @override
-    def hypothesis(self) -> GoodnessOfFitHypothesis:
-        return GoodnessOfFitHypothesis(Uniform.DEFAULT.parse({}))
+    def __init__(self, parameters: ParameterValues):
+        AbstractGoodnessOfFitStatistic.__init__(self, parameters)
 
     @classmethod
     def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
@@ -272,17 +240,6 @@ class LillieforsTestUniformGofStatistic(AbstractUniformGofStatistic, LillieforsT
         :return: short code string "LILLIE".
         """
         return "LILLIE"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "LILLIE_UNIFORM_{parent_code}".
-        """
-        short_code = LillieforsTestUniformGofStatistic.short_code()
-        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -301,12 +258,16 @@ class LillieforsTestUniformGofStatistic(AbstractUniformGofStatistic, LillieforsT
 
 
 class Chi2PearsonUniformGofStatistic(AbstractUniformGofStatistic, Chi2Statistic):
-    """
+    """Parameters
+    ----------
+    parameters : ParameterValues
+        Values with a, b fixed; omitted parameters are unknown.
+
     Pearson's Chi-squared test statistic for Uniform distribution.
     """
 
-    def __init__(self, a=0, b=1, lambda_=1, bins="sturges"):
-        AbstractUniformGofStatistic.__init__(self, a, b)
+    def __init__(self, parameters: ParameterValues, *, lambda_=1, bins="sturges"):
+        AbstractUniformGofStatistic.__init__(self, parameters)
         Chi2Statistic.__init__(self)
         if not np.isfinite(lambda_):
             raise ValueError("lambda_ must be finite")
@@ -327,17 +288,6 @@ class Chi2PearsonUniformGofStatistic(AbstractUniformGofStatistic, Chi2Statistic)
         :return: short code string "CHI2_PEARSON".
         """
         return "CHI2_PEARSON"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "CHI2_PEARSON_UNIFORM_{parent_code}".
-        """
-        short_code = Chi2PearsonUniformGofStatistic.short_code()
-        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -373,12 +323,13 @@ class Chi2PearsonUniformGofStatistic(AbstractUniformGofStatistic, Chi2Statistic)
 
 
 class WatsonUniformGofStatistic(AbstractUniformGofStatistic):
-    """
+    """Parameters
+    ----------
+    parameters : ParameterValues
+        Values with a, b fixed; omitted parameters are unknown.
+
     Watson's U² test statistic for Uniform distribution.
     """
-
-    def __init__(self, a=0, b=1):
-        AbstractUniformGofStatistic.__init__(self, a, b)
 
     @override
     def alternative(self) -> Alternative:
@@ -393,17 +344,6 @@ class WatsonUniformGofStatistic(AbstractUniformGofStatistic):
         :return: short code string "WATSON".
         """
         return "WATSON"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "WATSON_UNIFORM_{parent_code}".
-        """
-        short_code = WatsonUniformGofStatistic.short_code()
-        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -427,12 +367,13 @@ class WatsonUniformGofStatistic(AbstractUniformGofStatistic):
 
 
 class KuiperUniformGofStatistic(AbstractUniformGofStatistic):
-    """
+    """Parameters
+    ----------
+    parameters : ParameterValues
+        Values with a, b fixed; omitted parameters are unknown.
+
     Kuiper test statistic for Uniform distribution.
     """
-
-    def __init__(self, a=0, b=1):
-        AbstractUniformGofStatistic.__init__(self, a, b)
 
     @override
     def alternative(self) -> Alternative:
@@ -447,17 +388,6 @@ class KuiperUniformGofStatistic(AbstractUniformGofStatistic):
         :return: short code string "KUIPER".
         """
         return "KUIPER"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "KUIPER_UNIFORM_{parent_code}".
-        """
-        short_code = KuiperUniformGofStatistic.short_code()
-        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -484,7 +414,11 @@ class KuiperUniformGofStatistic(AbstractUniformGofStatistic):
 
 
 class GreenwoodTestUniformGofStatistic(AbstractUniformGofStatistic):
-    """
+    """Parameters
+    ----------
+    parameters : ParameterValues
+        Values with a, b fixed; omitted parameters are unknown.
+
     Greenwood's test for Uniform distribution.
     """
 
@@ -501,17 +435,6 @@ class GreenwoodTestUniformGofStatistic(AbstractUniformGofStatistic):
         :return: short code string "GREENWOOD".
         """
         return "GREENWOOD"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "GREENWOOD_UNIFORM_{parent_code}".
-        """
-        short_code = GreenwoodTestUniformGofStatistic.short_code()
-        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -534,7 +457,11 @@ class GreenwoodTestUniformGofStatistic(AbstractUniformGofStatistic):
 
 
 class BickelRosenblattUniformGofStatistic(AbstractUniformGofStatistic):
-    """
+    """Parameters
+    ----------
+    parameters : ParameterValues
+        Values with a, b fixed; omitted parameters are unknown.
+
     Bickel-Rosenblatt-type integrated squared density error on the unit interval.
 
     Returns integral_0^1 (f_hat_h(u) - 1)^2 du for a Gaussian KDE of
@@ -548,8 +475,8 @@ class BickelRosenblattUniformGofStatistic(AbstractUniformGofStatistic):
     def alternative(self) -> Alternative:
         return RightAlternative()
 
-    def __init__(self, a=0, b=1, bandwidth="auto"):
-        AbstractUniformGofStatistic.__init__(self, a, b)
+    def __init__(self, parameters: ParameterValues, *, bandwidth="auto"):
+        AbstractUniformGofStatistic.__init__(self, parameters)
         if isinstance(bandwidth, str):
             if bandwidth != "auto":
                 raise ValueError("bandwidth must be 'auto' or a positive finite number")
@@ -566,17 +493,6 @@ class BickelRosenblattUniformGofStatistic(AbstractUniformGofStatistic):
         :return: short code string "BICKEL_ROSENBLATT".
         """
         return "BICKEL_ROSENBLATT"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "BICKEL_ROSENBLATT_UNIFORM_{parent_code}".
-        """
-        short_code = BickelRosenblattUniformGofStatistic.short_code()
-        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -611,7 +527,11 @@ class BickelRosenblattUniformGofStatistic(AbstractUniformGofStatistic):
 
 
 class ZhangTestsUniformGofStatistic(AbstractUniformGofStatistic):
-    """
+    """Parameters
+    ----------
+    parameters : ParameterValues
+        Values with a, b fixed; omitted parameters are unknown.
+
     Zhang's tests (Z_A, Z_C, Z_K) for Uniform distribution.
     """
 
@@ -619,8 +539,8 @@ class ZhangTestsUniformGofStatistic(AbstractUniformGofStatistic):
     def alternative(self) -> Alternative:
         return RightAlternative()
 
-    def __init__(self, a=0, b=1, test_type="A"):
-        AbstractUniformGofStatistic.__init__(self, a, b)
+    def __init__(self, parameters: ParameterValues, *, test_type="A"):
+        AbstractUniformGofStatistic.__init__(self, parameters)
         self.test_type = test_type.upper()
         if self.test_type not in ["A", "C", "K"]:
             raise ValueError("test_type must be 'A', 'C', or 'K'")
@@ -634,17 +554,6 @@ class ZhangTestsUniformGofStatistic(AbstractUniformGofStatistic):
         :return: short code string "ZHANG".
         """
         return "ZHANG"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "ZHANG_UNIFORM_{parent_code}".
-        """
-        short_code = ZhangTestsUniformGofStatistic.short_code()
-        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -701,16 +610,17 @@ def _stein_uniform_statistic(rvs_std):  # pragma: no cover
 
 
 class SteinUniformGofStatistic(AbstractUniformGofStatistic):
-    """
+    """Parameters
+    ----------
+    parameters : ParameterValues
+        Values with a, b fixed; omitted parameters are unknown.
+
     Signed Stein U-statistic for a specified uniform distribution, n >= 2.
 
     Both tails are significant. The symmetric kernel is
     (x*x + y*y)/2 - min(x,y) on standardized observations.
     See Sreedevi and Kattumannil (2023), DOI: 10.1007/s42952-023-00205-8.
     """
-
-    def __init__(self, a=0, b=1):
-        AbstractUniformGofStatistic.__init__(self, a, b)
 
     @override
     def alternative(self) -> Alternative:
@@ -725,17 +635,6 @@ class SteinUniformGofStatistic(AbstractUniformGofStatistic):
         :return: short code string "STEIN_U".
         """
         return "STEIN_U"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "STEIN_U_UNIFORM_{parent_code}".
-        """
-        short_code = SteinUniformGofStatistic.short_code()
-        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -767,7 +666,11 @@ class SteinUniformGofStatistic(AbstractUniformGofStatistic):
 
 
 class CensoredSteinUniformGofStatistic(AbstractUniformGofStatistic):
-    """
+    """Parameters
+    ----------
+    parameters : ParameterValues
+        Values with a, b fixed; omitted parameters are unknown.
+
     Signed IPCW Stein U-statistic under independent right censoring, n >= 2.
 
     The indicator convention is 1=censored, 0=observed. Weights use the left
@@ -779,9 +682,6 @@ class CensoredSteinUniformGofStatistic(AbstractUniformGofStatistic):
 
     See Sreedevi and Kattumannil (2023), DOI: 10.1007/s42952-023-00205-8.
     """
-
-    def __init__(self, a=0, b=1):
-        AbstractUniformGofStatistic.__init__(self, a, b)
 
     @override
     def alternative(self) -> Alternative:
@@ -796,17 +696,6 @@ class CensoredSteinUniformGofStatistic(AbstractUniformGofStatistic):
         :return: short code string "CENSORED_STEIN_U".
         """
         return "CENSORED_STEIN_U"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "CENSORED_STEIN_U_UNIFORM_{parent_code}".
-        """
-        short_code = CensoredSteinUniformGofStatistic.short_code()
-        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, censoring_indices=None, **kwargs):
@@ -826,12 +715,12 @@ class CensoredSteinUniformGofStatistic(AbstractUniformGofStatistic):
             rvs_std = rvs.copy()
 
         if censoring_indices is None:
-            return SteinUniformGofStatistic(self.a, self.b).execute_statistic(rvs)
+            return SteinUniformGofStatistic(self._parameters).execute_statistic(rvs)
         censoring_indices = np.asarray(censoring_indices)
         if censoring_indices.shape != rvs.shape or not np.all(np.isin(censoring_indices, [0, 1])):
             raise ValueError("censoring_indices must match the sample and contain only 0 or 1")
         if not np.any(censoring_indices):
-            return SteinUniformGofStatistic(self.a, self.b).execute_statistic(rvs)
+            return SteinUniformGofStatistic(self._parameters).execute_statistic(rvs)
 
         km_estimator = self._kaplan_meier(rvs_std, censoring_indices)
 
@@ -884,7 +773,11 @@ class CensoredSteinUniformGofStatistic(AbstractUniformGofStatistic):
 
 
 class NeymanSmoothTestUniformGofStatistic(AbstractUniformGofStatistic):
-    """
+    """Parameters
+    ----------
+    parameters : ParameterValues
+        Values with a, b fixed; omitted parameters are unknown.
+
     Neyman's smooth test for Uniform distribution.
     """
 
@@ -892,8 +785,8 @@ class NeymanSmoothTestUniformGofStatistic(AbstractUniformGofStatistic):
     def alternative(self) -> Alternative:
         return RightAlternative()
 
-    def __init__(self, a=0, b=1, k=4):
-        AbstractUniformGofStatistic.__init__(self, a, b)
+    def __init__(self, parameters: ParameterValues, *, k=4):
+        AbstractUniformGofStatistic.__init__(self, parameters)
         if isinstance(k, bool) or not isinstance(k, Integral) or k < 1:
             raise ValueError("k must be a positive integer")
         self.k = k
@@ -907,17 +800,6 @@ class NeymanSmoothTestUniformGofStatistic(AbstractUniformGofStatistic):
         :return: short code string "NEYMAN".
         """
         return "NEYMAN"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "NEYMAN_UNIFORM_{parent_code}".
-        """
-        short_code = NeymanSmoothTestUniformGofStatistic.short_code()
-        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -942,7 +824,11 @@ class NeymanSmoothTestUniformGofStatistic(AbstractUniformGofStatistic):
 
 
 class ShermanUniformGofStatistic(AbstractUniformGofStatistic):
-    """
+    """Parameters
+    ----------
+    parameters : ParameterValues
+        Values with a, b fixed; omitted parameters are unknown.
+
     Sherman's test for Uniform distribution.
     """
 
@@ -959,17 +845,6 @@ class ShermanUniformGofStatistic(AbstractUniformGofStatistic):
         :return: short code string "SHERMAN".
         """
         return "SHERMAN"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "SHERMAN_UNIFORM_{parent_code}".
-        """
-        short_code = ShermanUniformGofStatistic.short_code()
-        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -995,7 +870,11 @@ class ShermanUniformGofStatistic(AbstractUniformGofStatistic):
 
 
 class QuesenberryMillerUniformGofStatistic(AbstractUniformGofStatistic):
-    """
+    """Parameters
+    ----------
+    parameters : ParameterValues
+        Values with a, b fixed; omitted parameters are unknown.
+
     Quesenberry and Miller's Q-test for Uniform distribution.
     """
 
@@ -1012,17 +891,6 @@ class QuesenberryMillerUniformGofStatistic(AbstractUniformGofStatistic):
         :return: short code string "QUESENBERRY_MILLER".
         """
         return "QUESENBERRY_MILLER"
-
-    @staticmethod
-    @override
-    def code():
-        """
-        Get unique code identifier for this test.
-
-        :return: string code in format "QUESENBERRY_MILLER_UNIFORM_{parent_code}".
-        """
-        short_code = QuesenberryMillerUniformGofStatistic.short_code()
-        return f"{short_code}_{AbstractUniformGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):

@@ -6,7 +6,11 @@ import numpy as np
 import scipy.stats as scipy_stats
 from typing_extensions import override
 
-from pysatl_criterion import DistributionType
+from pysatl_criterion.distribution.distributions import InverseGammaDistributionDescriptor
+from pysatl_criterion.distribution.distributions import (
+    InverseGammaDistributionDescriptor as Distribution,
+)
+from pysatl_criterion.distribution.parameters import HypothesisSupport, ParameterValues
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.alternative import (
     Alternative,
@@ -21,28 +25,20 @@ from pysatl_criterion.statistics.goodness_of_fit.common import (
     LillieforsTest,
     MinToshiyukiStatistic,
 )
-from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
 
 class AbstractInverseGammaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     """Shared shape/scale hypothesis and validation for Inverse Gamma statistics."""
 
-    def __init__(self, alpha: float = 1.0, beta: float = 1.0):
+    @property
+    def alpha(self) -> float:
+        """Read alpha by its stable parameter identity."""
+        return self._parameters[Distribution.SHAPE]
 
-        alpha = self._positive_parameter(alpha, "Shape")
-        beta = self._positive_parameter(beta, "Scale")
-        self.alpha = alpha
-        self.beta = beta
-
-    @staticmethod
-    def _positive_parameter(value, name):
-        array = np.asarray(value)
-        if array.ndim != 0 or array.dtype.kind not in "iuf":
-            raise ValueError(f"{name} must be positive, finite and scalar.")
-        value = float(array)
-        if not np.isfinite(value) or value <= 0:
-            raise ValueError(f"{name} must be positive, finite and scalar.")
-        return value
+    @property
+    def beta(self) -> float:
+        """Read beta by its stable parameter identity."""
+        return self._parameters[Distribution.SCALE]
 
     @staticmethod
     def _prepare_sample(rvs, minimum=1):
@@ -79,19 +75,28 @@ class AbstractInverseGammaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
             raise FloatingPointError("Inverse Gamma log tails exceed numerical precision")
         return log_cdf, log_sf
 
-    @override
-    def hypothesis(self) -> GoodnessOfFitHypothesis:
-        return GoodnessOfFitHypothesis({"alpha": self.alpha, "beta": self.beta})
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (
+            HypothesisSupport(
+                Distribution.DEFAULT, frozenset({Distribution.SHAPE, Distribution.SCALE})
+            ),
+        )
 
     @staticmethod
     @override
-    def distribution() -> DistributionType:
-        return DistributionType.INVERSE_GAMMA
+    def distribution() -> type[InverseGammaDistributionDescriptor]:
+        """Return the distribution descriptor class."""
+        return InverseGammaDistributionDescriptor
 
-    @staticmethod
+    @classmethod
     @override
-    def code() -> str:
-        return f"INV_GAMMA_{AbstractGoodnessOfFitStatistic.code()}"
+    def code(cls) -> str:
+        """Return the family identifier or the concrete statistic's full identifier."""
+        family_code = f"INV_GAMMA_{AbstractGoodnessOfFitStatistic.code()}"
+        if "short_code" in cls.__abstractmethods__:
+            return family_code
+        return f"{cls.short_code()}_{family_code}"
 
 
 class KolmogorovSmirnovInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, KSStatistic):
@@ -99,14 +104,12 @@ class KolmogorovSmirnovInverseGammaGofStatistic(AbstractInverseGammaGofStatistic
 
     Parameters
     ----------
+    parameters : ParameterValues
+        Values with alpha, beta fixed; omitted parameters are unknown.
     alternative_type : AlternativeType, default: TWO_TAILED
         Direction of CDF deviation; use an enum member.
     mode : {"auto", "exact", "approx", "asymp"}, default: "auto"
         Compatibility option; no p-value is calculated.
-    alpha : float, default: 1.0
-        Fixed finite positive shape.
-    beta : float, default: 1.0
-        Fixed finite positive scale (not reciprocal scale).
 
     Methods
     -------
@@ -147,7 +150,8 @@ class KolmogorovSmirnovInverseGammaGofStatistic(AbstractInverseGammaGofStatistic
 
     Examples
     --------
-    >>> statistic = KolmogorovSmirnovInverseGammaGofStatistic(alpha=3.0, beta=2.0)
+    >>> parameters = Distribution.DEFAULT.parse({'alpha': 3.0, 'beta': 2.0})
+    >>> statistic = KolmogorovSmirnovInverseGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
     >>> bool(np.isfinite(value))
     True
@@ -157,15 +161,14 @@ class KolmogorovSmirnovInverseGammaGofStatistic(AbstractInverseGammaGofStatistic
         if self.alternative_type != AlternativeType.TWO_TAILED:
             raise ValueError("Stored KS calibration does not encode the CDF direction")
 
-    @override
     def __init__(
         self,
+        parameters: ParameterValues,
+        *,
         alternative_type: AlternativeType = AlternativeType.TWO_TAILED,
         mode="auto",
-        alpha: float = 1.0,
-        beta: float = 1.0,
     ):
-        AbstractInverseGammaGofStatistic.__init__(self, alpha=alpha, beta=beta)
+        AbstractInverseGammaGofStatistic.__init__(self, parameters)
         if alternative_type not in tuple(AlternativeType):
             raise ValueError("alternative_type must be an AlternativeType member")
         if mode not in ("auto", "exact", "approx", "asymp"):
@@ -176,12 +179,6 @@ class KolmogorovSmirnovInverseGammaGofStatistic(AbstractInverseGammaGofStatistic
     @override
     def short_code() -> str:
         return "KS"
-
-    @staticmethod
-    @override
-    def code() -> str:
-        short_code = KolmogorovSmirnovInverseGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractInverseGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -221,6 +218,12 @@ class KolmogorovSmirnovInverseGammaGofStatistic(AbstractInverseGammaGofStatistic
 class LillieforsInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, LillieforsTest):
     """KS distance to an Inverse Gamma CDF fitted by sample moments.
 
+    Parameters
+    ----------
+    parameters : ParameterValues
+        An empty distribution schema; all distribution parameters are unknown.
+
+
     Methods
     -------
     execute_statistic(rvs, **kwargs)
@@ -255,17 +258,16 @@ class LillieforsInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, Lilli
 
     Examples
     --------
-    >>> statistic = LillieforsInverseGammaGofStatistic()
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = LillieforsInverseGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
     >>> bool(np.isfinite(value))
     True
     """
 
-    def __init__(self):
-        """Create a moment-fitted statistic with both parameters unknown."""
-
-    def hypothesis(self) -> GoodnessOfFitHypothesis:
-        return GoodnessOfFitHypothesis({})
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (HypothesisSupport(Distribution.DEFAULT, frozenset()),)
 
     def _validate_storage_calibration(self):
         raise ValueError("Fitted Inverse Gamma KS requires external shape-specific calibration")
@@ -274,12 +276,6 @@ class LillieforsInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, Lilli
     @override
     def short_code() -> str:
         return "LILLIE"
-
-    @staticmethod
-    @override
-    def code() -> str:
-        short_code = LillieforsInverseGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractInverseGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -336,10 +332,8 @@ class AndersonDarlingInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, 
 
     Parameters
     ----------
-    alpha : float, default: 1.0
-        Fixed finite positive shape.
-    beta : float, default: 1.0
-        Fixed finite positive scale (not reciprocal scale).
+    parameters : ParameterValues
+        Values with alpha, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -378,7 +372,8 @@ class AndersonDarlingInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, 
 
     Examples
     --------
-    >>> statistic = AndersonDarlingInverseGammaGofStatistic(alpha=3.0, beta=2.0)
+    >>> parameters = Distribution.DEFAULT.parse({'alpha': 3.0, 'beta': 2.0})
+    >>> statistic = AndersonDarlingInverseGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
     >>> bool(np.isfinite(value))
     True
@@ -388,12 +383,6 @@ class AndersonDarlingInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, 
     @override
     def short_code() -> str:
         return "AD"
-
-    @staticmethod
-    @override
-    def code() -> str:
-        short_code = AndersonDarlingInverseGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractInverseGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -439,10 +428,8 @@ class CramerVonMisesInverseGammaGofStatistic(
 
     Parameters
     ----------
-    alpha : float, default: 1.0
-        Fixed finite positive shape.
-    beta : float, default: 1.0
-        Fixed finite positive scale (not reciprocal scale).
+    parameters : ParameterValues
+        Values with alpha, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -481,7 +468,8 @@ class CramerVonMisesInverseGammaGofStatistic(
 
     Examples
     --------
-    >>> statistic = CramerVonMisesInverseGammaGofStatistic(alpha=3.0, beta=2.0)
+    >>> parameters = Distribution.DEFAULT.parse({'alpha': 3.0, 'beta': 2.0})
+    >>> statistic = CramerVonMisesInverseGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
     >>> bool(np.isfinite(value))
     True
@@ -491,12 +479,6 @@ class CramerVonMisesInverseGammaGofStatistic(
     @override
     def short_code() -> str:
         return "CVM"
-
-    @staticmethod
-    @override
-    def code() -> str:
-        short_code = CramerVonMisesInverseGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractInverseGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -538,7 +520,7 @@ class CramerVonMisesInverseGammaGofStatistic(
 class AbstractBinnedInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, Chi2Statistic, ABC):
     lambda_value: float = 1.0
 
-    def __init__(self, bins: int = 8, alpha: float = 1.0, beta: float = 1.0):
+    def __init__(self, parameters: ParameterValues, *, bins: int = 8):
         if (
             isinstance(bins, (bool, np.bool_))
             or not isinstance(bins, (int, np.integer))
@@ -546,7 +528,7 @@ class AbstractBinnedInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, C
         ):
             raise ValueError("At least two bins are required for binned Inverse Gamma statistics.")
         self.bins = bins
-        AbstractInverseGammaGofStatistic.__init__(self, alpha=alpha, beta=beta)
+        AbstractInverseGammaGofStatistic.__init__(self, parameters)
         self.lambda_value = getattr(self, "lambda_value", 1.0)
 
     def _counts_and_expected(self, rvs):
@@ -577,12 +559,10 @@ class Chi2PearsonInverseGammaGofStatistic(AbstractBinnedInverseGammaGofStatistic
 
     Parameters
     ----------
+    parameters : ParameterValues
+        Values with alpha, beta fixed; omitted parameters are unknown.
     bins : int, default: 8
         Number of fixed equiprobable cells, at least two; booleans rejected.
-    alpha : float, default: 1.0
-        Fixed finite positive shape.
-    beta : float, default: 1.0
-        Fixed finite positive scale (not reciprocal scale).
 
     Methods
     -------
@@ -627,7 +607,8 @@ class Chi2PearsonInverseGammaGofStatistic(AbstractBinnedInverseGammaGofStatistic
 
     Examples
     --------
-    >>> statistic = Chi2PearsonInverseGammaGofStatistic(alpha=3.0, beta=2.0)
+    >>> parameters = Distribution.DEFAULT.parse({'alpha': 3.0, 'beta': 2.0})
+    >>> statistic = Chi2PearsonInverseGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
     >>> bool(np.isfinite(value))
     True
@@ -643,12 +624,6 @@ class Chi2PearsonInverseGammaGofStatistic(AbstractBinnedInverseGammaGofStatistic
     def short_code() -> str:
 
         return "CHI2_PEARSON"
-
-    @staticmethod
-    @override
-    def code() -> str:
-        short_code = Chi2PearsonInverseGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractInverseGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -688,10 +663,8 @@ class WatsonInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
 
     Parameters
     ----------
-    alpha : float, default: 1.0
-        Fixed finite positive shape.
-    beta : float, default: 1.0
-        Fixed finite positive scale (not reciprocal scale).
+    parameters : ParameterValues
+        Values with alpha, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -730,7 +703,8 @@ class WatsonInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
 
     Examples
     --------
-    >>> statistic = WatsonInverseGammaGofStatistic(alpha=3.0, beta=2.0)
+    >>> parameters = Distribution.DEFAULT.parse({'alpha': 3.0, 'beta': 2.0})
+    >>> statistic = WatsonInverseGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
     >>> bool(np.isfinite(value))
     True
@@ -744,12 +718,6 @@ class WatsonInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
     @override
     def short_code():
         return "WAT"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = WatsonInverseGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractInverseGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -796,10 +764,8 @@ class KuiperInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
 
     Parameters
     ----------
-    alpha : float, default: 1.0
-        Fixed finite positive shape.
-    beta : float, default: 1.0
-        Fixed finite positive scale (not reciprocal scale).
+    parameters : ParameterValues
+        Values with alpha, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -839,7 +805,8 @@ class KuiperInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
 
     Examples
     --------
-    >>> statistic = KuiperInverseGammaGofStatistic(alpha=3.0, beta=2.0)
+    >>> parameters = Distribution.DEFAULT.parse({'alpha': 3.0, 'beta': 2.0})
+    >>> statistic = KuiperInverseGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
     >>> bool(np.isfinite(value))
     True
@@ -854,11 +821,11 @@ class KuiperInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
     def short_code():
         return "KUI"
 
-    @staticmethod
+    @classmethod
     @override
-    def code():
-        short_code = KuiperInverseGammaGofStatistic.short_code()
-        return f"{short_code}_INVGAMMA_{AbstractInverseGammaGofStatistic.code()}"
+    def code(cls) -> str:
+        """Preserve the legacy identifier suffix while using the subclass short code."""
+        return f"{cls.short_code()}_INVGAMMA_INV_GAMMA_GOODNESS_OF_FIT"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -906,10 +873,8 @@ class MinToshiyukiInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, Min
 
     Parameters
     ----------
-    alpha : float, default: 1.0
-        Fixed finite positive shape.
-    beta : float, default: 1.0
-        Fixed finite positive scale (not reciprocal scale).
+    parameters : ParameterValues
+        Values with alpha, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -944,7 +909,8 @@ class MinToshiyukiInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, Min
 
     Examples
     --------
-    >>> statistic = MinToshiyukiInverseGammaGofStatistic(alpha=3.0, beta=2.0)
+    >>> parameters = Distribution.DEFAULT.parse({'alpha': 3.0, 'beta': 2.0})
+    >>> statistic = MinToshiyukiInverseGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
     >>> bool(np.isfinite(value))
     True
@@ -955,11 +921,11 @@ class MinToshiyukiInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, Min
     def short_code():
         return "MT"
 
-    @staticmethod
+    @classmethod
     @override
-    def code():
-        short_code = MinToshiyukiInverseGammaGofStatistic.short_code()
-        return f"{short_code}_INVGAMMA_{AbstractInverseGammaGofStatistic.code()}"
+    def code(cls) -> str:
+        """Preserve the legacy identifier suffix while using the subclass short code."""
+        return f"{cls.short_code()}_INVGAMMA_INV_GAMMA_GOODNESS_OF_FIT"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1009,10 +975,8 @@ class GreenwoodInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
 
     Parameters
     ----------
-    alpha : float, default: 1.0
-        Fixed finite positive shape.
-    beta : float, default: 1.0
-        Fixed finite positive scale (not reciprocal scale).
+    parameters : ParameterValues
+        Values with alpha, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -1052,7 +1016,8 @@ class GreenwoodInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
 
     Examples
     --------
-    >>> statistic = GreenwoodInverseGammaGofStatistic(alpha=3.0, beta=2.0)
+    >>> parameters = Distribution.DEFAULT.parse({'alpha': 3.0, 'beta': 2.0})
+    >>> statistic = GreenwoodInverseGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
     >>> bool(np.isfinite(value))
     True
@@ -1066,12 +1031,6 @@ class GreenwoodInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
     @override
     def short_code():
         return "GRW"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = GreenwoodInverseGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractInverseGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1123,10 +1082,8 @@ class ZhangAInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
 
     Parameters
     ----------
-    alpha : float, default: 1.0
-        Fixed finite positive shape.
-    beta : float, default: 1.0
-        Fixed finite positive scale (not reciprocal scale).
+    parameters : ParameterValues
+        Values with alpha, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -1166,7 +1123,8 @@ class ZhangAInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
 
     Examples
     --------
-    >>> statistic = ZhangAInverseGammaGofStatistic(alpha=3.0, beta=2.0)
+    >>> parameters = Distribution.DEFAULT.parse({'alpha': 3.0, 'beta': 2.0})
+    >>> statistic = ZhangAInverseGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
     >>> bool(np.isfinite(value))
     True
@@ -1180,12 +1138,6 @@ class ZhangAInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
     @override
     def short_code():
         return "ZAA"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = ZhangAInverseGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractInverseGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1233,10 +1185,8 @@ class ZhangCInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
 
     Parameters
     ----------
-    alpha : float, default: 1.0
-        Fixed finite positive shape.
-    beta : float, default: 1.0
-        Fixed finite positive scale (not reciprocal scale).
+    parameters : ParameterValues
+        Values with alpha, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -1276,7 +1226,8 @@ class ZhangCInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
 
     Examples
     --------
-    >>> statistic = ZhangCInverseGammaGofStatistic(alpha=3.0, beta=2.0)
+    >>> parameters = Distribution.DEFAULT.parse({'alpha': 3.0, 'beta': 2.0})
+    >>> statistic = ZhangCInverseGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
     >>> bool(np.isfinite(value))
     True
@@ -1290,12 +1241,6 @@ class ZhangCInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
     @override
     def short_code():
         return "ZAC"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = ZhangCInverseGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractInverseGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):
@@ -1348,10 +1293,8 @@ class ZhangKInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
 
     Parameters
     ----------
-    alpha : float, default: 1.0
-        Fixed finite positive shape.
-    beta : float, default: 1.0
-        Fixed finite positive scale (not reciprocal scale).
+    parameters : ParameterValues
+        Values with alpha, beta fixed; omitted parameters are unknown.
 
     Methods
     -------
@@ -1391,7 +1334,8 @@ class ZhangKInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
 
     Examples
     --------
-    >>> statistic = ZhangKInverseGammaGofStatistic(alpha=3.0, beta=2.0)
+    >>> parameters = Distribution.DEFAULT.parse({'alpha': 3.0, 'beta': 2.0})
+    >>> statistic = ZhangKInverseGammaGofStatistic(parameters)
     >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
     >>> bool(np.isfinite(value))
     True
@@ -1405,12 +1349,6 @@ class ZhangKInverseGammaGofStatistic(AbstractInverseGammaGofStatistic):
     @override
     def short_code():
         return "ZAK"
-
-    @staticmethod
-    @override
-    def code():
-        short_code = ZhangKInverseGammaGofStatistic.short_code()
-        return f"{short_code}_{AbstractInverseGammaGofStatistic.code()}"
 
     @override
     def execute_statistic(self, rvs, **kwargs):

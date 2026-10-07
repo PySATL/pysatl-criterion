@@ -10,12 +10,14 @@ import numpy as np
 import pytest
 from scipy import integrate, optimize, special, stats
 
+from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
 from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     MonteCarloLimitDistributionResolver,
     StorageLimitDistributionResolver,
 )
 from pysatl_criterion.statistics.alternative import AlternativeType
 from pysatl_criterion.statistics.goodness_of_fit import normal
+from tests.parameter_cases import parameters_for
 
 
 CLASSES = [
@@ -29,14 +31,16 @@ SAMPLE = np.random.default_rng(2307).normal(size=24)
 
 @pytest.mark.parametrize("cls", CLASSES)
 def test_scalar_interface_independent_calls_and_input_ownership(cls):
-    statistic = cls()
+    statistic = cls(parameters_for(cls))
     original = SAMPLE.copy()
     first = statistic.execute_statistic(original, compatibility=True)
     assert isinstance(first, (float, np.float64))
     assert np.isfinite(first)
     np.testing.assert_array_equal(original, SAMPLE)
     second = np.random.default_rng(991).normal(size=32)
-    assert statistic.execute_statistic(second) == pytest.approx(cls().execute_statistic(second))
+    assert statistic.execute_statistic(second) == pytest.approx(
+        cls(parameters_for(cls)).execute_statistic(second)
+    )
     assert statistic.execute_statistic(original.tolist()) == pytest.approx(first)
     assert statistic.execute_statistic(original) == pytest.approx(first)
 
@@ -45,19 +49,19 @@ def test_scalar_interface_independent_calls_and_input_ownership(cls):
 @pytest.mark.parametrize("bad", [[], [[1, 2], [3, 4]], [0, np.nan], [1, np.inf], [1 + 2j]])
 def test_invalid_samples_raise_value_error(cls, bad):
     with pytest.raises(ValueError):
-        cls().execute_statistic(bad)
+        cls(parameters_for(cls)).execute_statistic(bad)
 
 
 @pytest.mark.parametrize("cls", [c for c in CLASSES if c not in FIXED])
 def test_constant_samples_are_undefined(cls):
     with pytest.raises(ValueError):
-        cls().execute_statistic(np.ones(32))
+        cls(parameters_for(cls)).execute_statistic(np.ones(32))
 
 
 @pytest.mark.parametrize("cls", FIXED)
 def test_fixed_cdf_accepts_singleton_and_constant(cls):
-    assert np.isfinite(cls().execute_statistic([1]))
-    assert np.isfinite(cls().execute_statistic([2] * 10))
+    assert np.isfinite(cls(parameters_for(cls)).execute_statistic([1]))
+    assert np.isfinite(cls(parameters_for(cls)).execute_statistic([2] * 10))
 
 
 @pytest.mark.parametrize(
@@ -70,7 +74,7 @@ def test_fixed_cdf_accepts_singleton_and_constant(cls):
 )
 @pytest.mark.parametrize("scale", [1e-250, 1e250])
 def test_family_statistics_have_no_overflow_or_underflow_at_extreme_scales(cls, scale):
-    statistic = cls()
+    statistic = cls(parameters_for(cls))
     expected = statistic.execute_statistic(SAMPLE)
     assert statistic.execute_statistic(scale * SAMPLE) == pytest.approx(
         expected, rel=2e-8, abs=2e-9
@@ -94,8 +98,8 @@ def test_family_statistics_have_no_overflow_or_underflow_at_extreme_scales(cls, 
 )
 def test_minimum_sample_sizes(cls, n):
     with pytest.raises(ValueError):
-        cls().execute_statistic(np.arange(n - 1))
-    assert np.isfinite(cls().execute_statistic(np.arange(n)))
+        cls(parameters_for(cls)).execute_statistic(np.arange(n - 1))
+    assert np.isfinite(cls(parameters_for(cls)).execute_statistic(np.arange(n)))
 
 
 @pytest.mark.parametrize("cls", FIXED)
@@ -103,15 +107,19 @@ def test_minimum_sample_sizes(cls, n):
 def test_fixed_parameters_must_be_real_scalars(cls, bad):
     for name in ("mean", "var"):
         with pytest.raises(ValueError):
-            cls(**{name: bad})
+            cls(parameters_for(cls, **{name: bad}))
 
 
 def test_symmetric_skew_is_zero_and_dap_does_not_add_a_spurious_component():
     x = np.arange(-12.0, 13)
     assert normal.SkewNormalityGofStatistic.skew_test(x) == 0
-    assert normal.SkewNormalityGofStatistic().execute_statistic(x) == pytest.approx(0, abs=1e-14)
+    assert normal.SkewNormalityGofStatistic(
+        NormalDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(x) == pytest.approx(0, abs=1e-14)
     kurt = stats.kurtosistest(x).statistic
-    assert normal.DAPNormalityGofStatistic().execute_statistic(x) == pytest.approx(kurt**2)
+    assert normal.DAPNormalityGofStatistic(
+        NormalDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(x) == pytest.approx(kurt**2)
 
 
 @pytest.mark.parametrize(
@@ -125,11 +133,15 @@ def test_symmetric_skew_is_zero_and_dap_does_not_add_a_spurious_component():
     ],
 )
 def test_reference_implementations(cls, reference):
-    assert cls().execute_statistic(SAMPLE) == pytest.approx(reference(SAMPLE).statistic, abs=1e-8)
+    assert cls(parameters_for(cls)).execute_statistic(SAMPLE) == pytest.approx(
+        reference(SAMPLE).statistic, abs=1e-8
+    )
 
 
 def test_lilliefors_refits_each_sample():
-    statistic = normal.LillieforsNormalityGofStatistic()
+    statistic = normal.LillieforsNormalityGofStatistic(
+        NormalDistributionDescriptor.DEFAULT.parse({})
+    )
     for x in (SAMPLE, np.exp(SAMPLE), SAMPLE[::-1]):
         z = (x - np.mean(x)) / np.std(x, ddof=1)
         assert statistic.execute_statistic(x) == pytest.approx(stats.kstest(z, "norm").statistic)
@@ -143,9 +155,9 @@ def test_epps_pulley_matches_characteristic_function_integral():
         return len(z) * abs(delta) ** 2 * stats.norm.pdf(t)
 
     expected = integrate.quad(integrand, -12, 12, epsabs=1e-10)[0]
-    assert normal.EppsPulleyNormalityGofStatistic().execute_statistic(SAMPLE) == pytest.approx(
-        expected
-    )
+    assert normal.EppsPulleyNormalityGofStatistic(
+        NormalDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(SAMPLE) == pytest.approx(expected)
 
 
 def cabana_reference(x, kurtosis):
@@ -191,7 +203,9 @@ def cabana_reference(x, kurtosis):
 )
 @pytest.mark.parametrize("x", [SAMPLE, np.arange(-5.0, 6), np.exp(SAMPLE)])
 def test_cabana_continuous_supremum(cls, kurtosis, x):
-    assert cls().execute_statistic(x) == pytest.approx(cabana_reference(x, kurtosis), abs=1e-9)
+    assert cls(parameters_for(cls)).execute_statistic(x) == pytest.approx(
+        cabana_reference(x, kurtosis), abs=1e-9
+    )
 
 
 def medcouple_reference(x):
@@ -234,7 +248,7 @@ def bhs_reference(x):
     "x", [SAMPLE[:7], SAMPLE[:10], [-3, -2, -1, 0, 0, 0, 1, 2, 3], [-2, -2, -1, 0, 1, 2, 2]]
 )
 def test_bhs_exact_kernel_and_strict_halves(x):
-    statistic = normal.BHSNormalityGofStatistic()
+    statistic = normal.BHSNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({}))
     assert statistic.execute_statistic(x) == pytest.approx(bhs_reference(x), rel=1e-12)
     assert statistic.execute_statistic(x) == pytest.approx(
         statistic.execute_statistic(-np.array(x))
@@ -253,11 +267,13 @@ def test_martinez_iglewicz_truncates_outliers():
     numerator = sum((x[included] - median) ** 2 * (1 - u[included] ** 2) ** 4)
     denominator = sum((1 - u[included] ** 2) * (1 - 5 * u[included] ** 2))
     expected = sum((x - median) ** 2) * denominator**2 / ((len(x) - 1) * len(x) * numerator)
-    assert normal.MartinezIglewiczNormalityGofStatistic().execute_statistic(x) == pytest.approx(
-        expected
-    )
+    assert normal.MartinezIglewiczNormalityGofStatistic(
+        NormalDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(x) == pytest.approx(expected)
     with pytest.raises(ValueError, match="median absolute"):
-        normal.MartinezIglewiczNormalityGofStatistic().execute_statistic([0] * 8 + [1, 2])
+        normal.MartinezIglewiczNormalityGofStatistic(
+            NormalDistributionDescriptor.DEFAULT.parse({})
+        ).execute_statistic([0] * 8 + [1, 2])
 
 
 @pytest.mark.parametrize(
@@ -269,7 +285,9 @@ def test_zhang_contrasts_match_direct_spacings(cls, reflect):
     u = stats.norm.ppf((np.arange(1, len(x) + 1) - 0.375) / (len(x) + 0.25))
     q1 = np.mean((x[1:] - x[0]) / (u[1:] - u[0]))
     q2 = np.mean((x[4:] - x[:-4]) / (u[4:] - u[:-4]))
-    assert cls().execute_statistic(x if not reflect else -x) == pytest.approx(np.log(q1 / q2))
+    assert cls(parameters_for(cls)).execute_statistic(x if not reflect else -x) == pytest.approx(
+        np.log(q1 / q2)
+    )
 
 
 @pytest.mark.parametrize(
@@ -282,7 +300,7 @@ def test_zhang_contrasts_match_direct_spacings(cls, reflect):
 )
 def test_probability_tail_rounding_does_not_produce_infinity(cls):
     x = np.r_[np.linspace(-1, 1, 200), 1e6]
-    assert np.isfinite(cls().execute_statistic(x))
+    assert np.isfinite(cls(parameters_for(cls)).execute_statistic(x))
 
 
 def test_desgagne_zero_observation_and_independent_covariance_integration():
@@ -322,9 +340,9 @@ def test_desgagne_zero_observation_and_independent_covariance_integration():
     z = (x - x.mean()) / x.std()
     r = np.mean([centered(v) for v in z], axis=0)
     expected = len(x) * r @ np.linalg.solve(fitted_covariance, r)
-    assert normal.DesgagneLafayeNormalityGofStatistic().execute_statistic(x) == pytest.approx(
-        expected, rel=2e-4
-    )
+    assert normal.DesgagneLafayeNormalityGofStatistic(
+        NormalDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(x) == pytest.approx(expected, rel=2e-4)
 
 
 @pytest.mark.parametrize(
@@ -350,11 +368,16 @@ def test_graph_summaries_against_exhaustive_small_graph(cls):
         "AVGDEGREE": adjacent.sum(axis=1).mean(),
         "CONNECTEDCOMPONENTS": connected_components(adjacent)[0],
     }
-    assert cls().execute_statistic(x) == expected[cls.short_code()]
+    assert cls(parameters_for(cls)).execute_statistic(x) == expected[cls.short_code()]
 
 
 def test_clique_at_last_observation_has_no_extra_vertex():
-    assert normal.GraphCliqueNumberNormalityGofStatistic().execute_statistic([0, 0.01, 0.02]) == 3.0
+    assert (
+        normal.GraphCliqueNumberNormalityGofStatistic(
+            NormalDistributionDescriptor.DEFAULT.parse({"var": 1})
+        ).execute_statistic([0, 0.01, 0.02])
+        == 3.0
+    )
 
 
 @pytest.mark.parametrize(
@@ -371,15 +394,22 @@ def test_clique_at_last_observation_has_no_extra_vertex():
     ],
 )
 def test_critical_tails(cls, tail):
-    assert cls().alternative().type() == tail
+    assert cls(parameters_for(cls)).alternative().type() == tail
 
 
 @pytest.mark.parametrize(
     "statistic",
     [
-        normal.KolmogorovSmirnovNormalityGofStatistic(alternative_type=AlternativeType.LEFT),
-        normal.RyanJoinerNormalityGofStatistic(weighted=True),
-        normal.RyanJoinerNormalityGofStatistic(cte_alpha="1/2"),
+        normal.KolmogorovSmirnovNormalityGofStatistic(
+            NormalDistributionDescriptor.DEFAULT.parse({"mean": 0, "var": 1}),
+            alternative_type=AlternativeType.LEFT,
+        ),
+        normal.RyanJoinerNormalityGofStatistic(
+            NormalDistributionDescriptor.DEFAULT.parse({}), weighted=True
+        ),
+        normal.RyanJoinerNormalityGofStatistic(
+            NormalDistributionDescriptor.DEFAULT.parse({}), cte_alpha="1/2"
+        ),
     ],
 )
 def test_unkeyed_options_cannot_use_stored_calibration(statistic, mocker):
@@ -421,10 +451,10 @@ def test_hosking_trimmed_l_moments_by_subsample_enumeration(trim):
     mu, v3, v4 = constants[trim]
     expected = (moments[3] / moments[2]) ** 2 / v3 + (moments[4] / moments[2] - mu) ** 2 / v4
     cls = getattr(normal, f"Hosking{trim + 1}NormalityGofStatistic")
-    assert cls().execute_statistic(x) == pytest.approx(expected, rel=1e-10)
+    assert cls(parameters_for(cls)).execute_statistic(x) == pytest.approx(expected, rel=1e-10)
     if trim:
         with pytest.raises(ValueError, match="L-scale"):
-            cls().execute_statistic([-1] + [0] * 10 + [1])
+            cls(parameters_for(cls)).execute_statistic([-1] + [0] * 10 + [1])
 
 
 def test_spiegelhalter_large_n_matches_log_domain_formula():
@@ -435,14 +465,16 @@ def test_spiegelhalter_large_n_matches_log_domain_formula():
     a = np.log(2 * n) - special.gammaln(n + 1) / (n - 1) - np.log(u)
     b = -np.log(g)
     expected = np.exp(max(a, b) + np.log1p(np.exp(-(n - 1) * abs(a - b))) / (n - 1))
-    assert normal.SpiegelhalterNormalityGofStatistic().execute_statistic(x) == pytest.approx(
-        expected
-    )
+    assert normal.SpiegelhalterNormalityGofStatistic(
+        NormalDistributionDescriptor.DEFAULT.parse({})
+    ).execute_statistic(x) == pytest.approx(expected)
 
 
 def test_coin_rejects_unsupported_normal_score_approximation():
     with pytest.raises(ValueError, match="2000"):
-        normal.CoinNormalityGofStatistic().execute_statistic(np.arange(2001))
+        normal.CoinNormalityGofStatistic(
+            NormalDistributionDescriptor.DEFAULT.parse({})
+        ).execute_statistic(np.arange(2001))
 
 
 @pytest.mark.parametrize("kwargs", [{"weighted": 1}, {"cte_alpha": "wrong"}])
