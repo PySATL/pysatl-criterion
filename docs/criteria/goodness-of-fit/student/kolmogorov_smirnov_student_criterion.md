@@ -1,61 +1,52 @@
-# Kolmogorov-Smirnov test for Student distribution
+# Kolmogorov-Smirnov distance to a specified Student t CDF.
 
-## Description
-Performs Kolmogorov-Smirnov goodness-of-fit test for the hypothesis that the sample comes from a Student's t-distribution.
-The statistic compares the empirical distribution function with the theoretical Student cumulative distribution function.
+## Hypothesis and formula
 
-Hypothesis of Student Distribution
-The null hypothesis is that the data comes from a Student's t-distribution with positive degrees of freedom `df`, location parameter `loc`, and positive scale parameter `scale`.
+The null fixes df, loc and scale on the whole real line. Write
+u_i = t_df.cdf((x_(i)-loc)/scale) for sorted observations, i=1,...,n.
+D+ = max(i/n-u_i), D- = max(u_i-(i-1)/n). Return max(D+,D-)
+for two-sided deviations, D+ for RIGHT/greater and D- for LEFT/less.
+No sqrt(n) scaling is applied.
+Large values reject. The probability integral transform removes all
+distribution parameters from the null law, not from the hypothesis.
+The reference describes a general statistic, applied here through the
+specified Student CDF, not a separately derived Student-specific test.
 
-Test Statistic
-The statistic is based on the maximum distance between the empirical distribution function and the reference Student cumulative distribution function.
+## Parameters
 
-## Usage
+df : float, default: 1
+Fixed finite degrees of freedom, strictly positive.
+loc : float, default: 0
+Fixed finite location.
+scale : float, default: 1
+Fixed finite scale, strictly positive.
+alternative_type : AlternativeType or str, optional
+CDF deviation direction; default TWO_TAILED. Also accepts enum values
+'two_tailed', 'right', 'left' and SciPy names 'two-sided', 'greater',
+'less'. All choices reject for large statistic values.
+
+## Input and result
+
+`execute_statistic(rvs, **kwargs)` accepts a finite, real, one-dimensional sample,
+with at least one observation; ties and constants are allowed. It returns one scalar, leaves the input unchanged,
+and ignores extra keyword arguments. Invalid samples and unrepresentable numerical
+transformations raise `ValueError`. No preliminary fit or bootstrap is required.
+
+## Example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    KolmogorovSmirnovStudentGofStatistic,
-)
+from pysatl_criterion.statistics.goodness_of_fit.student import KolmogorovSmirnovStudentGofStatistic
 
-
-test_statistic = KolmogorovSmirnovStudentGofStatistic(df=5, loc=0, scale=1)
-statistic_result = test_statistic.execute_statistic([-1.8, -0.9, -0.25, 0.0, 0.31, 0.95, 1.7])
-print(statistic_result)
+statistic = KolmogorovSmirnovStudentGofStatistic(df=5)
+value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
+print(value)
 ```
 
-## Arguments
-`df` - positive degrees of freedom of the Student's t-distribution. Default value is `1`.
+## Scientific source
 
-`loc` - location parameter of the Student's t-distribution. Default value is `0`.
-
-`scale` - positive scale parameter of the Student's t-distribution. Default value is `1`.
-
-`alternative_type` - alternative hypothesis type used by the Kolmogorov-Smirnov statistic.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-The implementation standardizes the ordered observations as
-
-$$ Z_i = \frac{X_{(i)} - loc}{scale} $$
-
-and evaluates the Student CDF with `df` degrees of freedom.
+M. A. Stephens (1974), EDF Statistics for Goodness of Fit and Some
+Comparisons, JASA 69, 730-737, https://doi.org/10.1080/01621459.1974.10480196.
 
 ## Author(s)
+
 Dmitriy Rusanov, Alexey Mironov
-
-## References
-Kolmogorov, A.N. (1933): Sulla determinazione empirica di una legge di distribuzione. - Giornale dell'Istituto Italiano degli Attuari, vol. 4, pp. 83-91.
-
-Smirnov, N.V. (1948): Table for estimating the goodness of fit of empirical distributions. - Annals of Mathematical Statistics, vol. 19, pp. 279-281.
-
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    KolmogorovSmirnovStudentGofStatistic,
-)
-
-
-test_statistic = KolmogorovSmirnovStudentGofStatistic(df=5, loc=0, scale=1)
-statistic_result = test_statistic.execute_statistic([-1.8, -0.9, -0.25, 0.0, 0.31, 0.95, 1.7])
-print(statistic_result)
-```

@@ -113,13 +113,14 @@ def test_unknown_names_and_foreign_tokens_are_rejected():
             Student.DEFAULT.parse({key: 1})
 
 
-def test_current_lilliefors_cannot_claim_arbitrary_location_scale():
-    standard = Student.DEFAULT.parse({"df": 5}, fill_defaults=True)
-    statistic = LillieforsStudentGofStatistic.from_parameters(standard)
-    assert statistic.hypothesis().parameters() == standard.as_dict()
-    shifted = Student.DEFAULT.parse({"df": 5, "loc": 1}, fill_defaults=True)
-    with pytest.raises(ValueError, match="Unsupported"):
-        LillieforsStudentGofStatistic.from_parameters(shifted)
+def test_lilliefors_requires_unknown_location_and_scale():
+    composite = Student.DEFAULT.parse({"df": 5})
+    statistic = LillieforsStudentGofStatistic.from_parameters(composite)
+    assert statistic.hypothesis().parameters() == {"df": 5}
+    for loc in (0, 1):
+        fixed = Student.DEFAULT.parse({"df": 5, "loc": loc}, fill_defaults=True)
+        with pytest.raises(ValueError, match="Unsupported"):
+            LillieforsStudentGofStatistic.from_parameters(fixed)
 
 
 def test_parsing_copies_input_and_exports_independent_dictionaries():

@@ -27,22 +27,22 @@ from pysatl_criterion.statistics.goodness_of_fit.student import (
 @pytest.fixture
 def t_sample_df3():
     """Sample from t-distribution with df=3."""
-    np.random.default_rng(42)
-    return np.random.standard_t(df=3, size=50)
+    rng = np.random.default_rng(42)
+    return rng.standard_t(df=3, size=50)
 
 
 @pytest.fixture
 def t_sample_df5():
     """Sample from t-distribution with df=5."""
-    np.random.default_rng(42)
-    return np.random.standard_t(df=5, size=50)
+    rng = np.random.default_rng(42)
+    return rng.standard_t(df=5, size=50)
 
 
 @pytest.fixture
 def normal_sample():
     """Sample from normal distribution."""
-    np.random.default_rng(42)
-    return np.random.normal(0, 1, size=50)
+    rng = np.random.default_rng(42)
+    return rng.normal(0, 1, size=50)
 
 
 # Tests for AbstractStudentGofStatistic
@@ -380,9 +380,9 @@ class TestStudentStatisticsIntegration:
 
     def test_power_against_normal(self):
         """Test that statistics detect non-t data."""
-        np.random.default_rng(42)
-        normal_data = np.random.normal(0, 1, size=1000)
-        t_data = np.random.standard_t(df=3, size=1000)
+        rng = np.random.default_rng(42)
+        normal_data = rng.normal(0, 1, size=1000)
+        t_data = rng.standard_t(df=3, size=1000)
 
         stat = KolmogorovSmirnovStudentGofStatistic(df=3)
 
@@ -411,8 +411,8 @@ class TestStudentStatisticsEdgeCases:
 
     def test_large_df(self):
         """Test statistics with large degrees of freedom (approaches normal)."""
-        np.random.default_rng(42)
-        data = np.random.standard_t(df=100, size=50)
+        rng = np.random.default_rng(42)
+        data = rng.standard_t(df=100, size=50)
         stat = KolmogorovSmirnovStudentGofStatistic(df=100)
         result = stat.execute_statistic(data)
         assert np.isfinite(result)
@@ -420,8 +420,8 @@ class TestStudentStatisticsEdgeCases:
 
     def test_df_equals_one(self):
         """Test statistics with df=1 (Cauchy distribution)."""
-        np.random.default_rng(42)
-        data = np.random.standard_cauchy(size=50)
+        rng = np.random.default_rng(42)
+        data = rng.standard_cauchy(size=50)
         stat = KolmogorovSmirnovStudentGofStatistic(df=1)
         result = stat.execute_statistic(data)
         assert np.isfinite(result)

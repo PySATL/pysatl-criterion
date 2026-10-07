@@ -1,47 +1,48 @@
-# Lilliefors test for Student distribution
+# Fitted KS distance for Student t with known degrees of freedom.
 
-## Description
-Performs Lilliefors-type goodness-of-fit test for the hypothesis that the sample comes from a Student's t-distribution.
-The implementation reuses the common Lilliefors statistic calculation with Student CDF values.
+## Hypothesis and formula
 
-Hypothesis of Student Distribution
-The null hypothesis is that the data comes from a Student's t-distribution with positive degrees of freedom `df`.
+The null is t_df with unknown location and positive scale. Each call
+estimates location by the sample median and scale by
+(Q_0.75-Q_0.25)/(2*t_df.ppf(0.75)), using linear sample quantiles.
+Return max(max(i/n-u_i), max(u_i-(i-1)/n)) for the fitted CDF.
+This quantile estimator works without finite moments, including df <= 2;
+it is not maximum likelihood. Samples need n >= 2 and positive IQR.
+Ties are accepted if the IQR remains positive. Estimates are not stored.
 
-## Usage
+This is a locally specified Lilliefors-type extension. A search did not
+identify a primary paper establishing this exact Student/quantile version.
+The normal Lilliefors paper does not validate it. Large values reject.
+Location/scale equivariance removes those nuisance parameters; the null
+law still depends on df, sample size and the estimator. Refit each
+Monte Carlo replicate; ordinary KS and normal Lilliefors tables do not
+apply. The built-in sampler requires complete Student parameters and
+rejects this composite hypothesis. Calibrate externally at the fixed df
+(location 0, scale 1 is justified by equivariance), calling this method
+on every replicate. Previously stored LILLIE distributions are invalid.
+
+## Parameters
+
+df : float, default: 1
+Fixed finite degrees of freedom, strictly positive.
+
+## Input and result
+
+`execute_statistic(rvs, **kwargs)` accepts a finite, real, one-dimensional sample,
+with at least two observations and positive interquartile range. It returns one scalar, leaves the input unchanged,
+and ignores extra keyword arguments. Invalid samples and unrepresentable numerical
+transformations raise `ValueError`. No preliminary fit or bootstrap is required.
+
+## Example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    LillieforsStudentGofStatistic,
-)
+from pysatl_criterion.statistics.goodness_of_fit.student import LillieforsStudentGofStatistic
 
-
-test_statistic = LillieforsStudentGofStatistic(df=5)
-statistic_result = test_statistic.execute_statistic([-1.8, -0.9, -0.25, 0.0, 0.31, 0.95, 1.7])
-print(statistic_result)
+statistic = LillieforsStudentGofStatistic(df=5)
+value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
+print(value)
 ```
-
-## Arguments
-`df` - positive degrees of freedom of the Student's t-distribution. Default value is `1`.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-The sorted sample is transformed with the Student cumulative distribution function using `df` degrees of freedom.
-The transformed values are passed to the common Lilliefors statistic implementation.
 
 ## Author(s)
+
 Dmitriy Rusanov, Alexey Mironov
-
-## References
-Lilliefors, H.W. (1967): On the Kolmogorov-Smirnov test for normality with mean and variance unknown. - Journal of the American Statistical Association, vol. 62, pp. 399-402.
-
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    LillieforsStudentGofStatistic,
-)
-
-
-test_statistic = LillieforsStudentGofStatistic(df=5)
-statistic_result = test_statistic.execute_statistic([-1.8, -0.9, -0.25, 0.0, 0.31, 0.95, 1.7])
-print(statistic_result)
-```

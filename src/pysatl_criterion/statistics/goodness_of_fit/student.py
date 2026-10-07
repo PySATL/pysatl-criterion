@@ -1,4 +1,5 @@
 from abc import ABC
+from numbers import Integral
 
 import numpy as np
 import scipy.stats as scipy_stats
@@ -29,6 +30,9 @@ class AbstractStudentGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
         loc: float = Student.LOCATION.default_value,
         scale: float = Student.SCALE.default_value,
     ):
+        df = self._validate_parameter(df, "Degrees of freedom")
+        loc = self._validate_parameter(loc, "Location")
+        scale = self._validate_parameter(scale, "Scale")
         if df <= 0:
             raise ValueError("Degrees of freedom must be positive")
         if scale <= 0:
@@ -86,21 +90,90 @@ class AbstractStudentGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
         """
         return f"STUDENT_{AbstractGoodnessOfFitStatistic.code()}"
 
-    def _cdf_clipped(self, standardized: np.ndarray, eps: float = 1e-10) -> np.ndarray:
-        """
-        Compute the Student t CDF for standardized values and clip to avoid log(0) issues.
+    @staticmethod
+    def _validate_parameter(value, name):
+        array = np.asarray(value)
+        if array.ndim != 0 or array.dtype.kind not in "iuf" or not np.isfinite(array):
+            raise ValueError(f"{name} must be a finite real scalar")
+        return float(array)
 
-        :param standardized: array of standardized sample values (x - loc) / scale.
-        :param eps: small clipping epsilon to keep CDF in [eps, 1-eps] (default is 1e-10).
-        :return: array of clipped CDF values.
-        """
-        cdf_vals = scipy_stats.t.cdf(standardized, self.df)
-        return np.clip(cdf_vals, eps, 1 - eps)
+    @staticmethod
+    def _validate_sample(rvs):
+        sample = np.asarray(rvs)
+        if sample.dtype.kind not in "iuf":
+            raise ValueError("Sample must contain finite real numbers")
+        sample = np.asarray(sample, dtype=float)
+        if sample.ndim != 1 or sample.size == 0 or not np.all(np.isfinite(sample)):
+            raise ValueError("Sample must be nonempty, one-dimensional and finite")
+        return np.sort(sample)
+
+    def _standardize(self, sample):
+        # Recover representable differences when subtraction alone overflows.
+        with np.errstate(over="ignore", invalid="ignore"):
+            difference = sample - self.loc
+            z = difference / self.scale
+            overflow = np.isinf(difference)
+            z[overflow] = sample[overflow] / self.scale - self.loc / self.scale
+        if not np.all(np.isfinite(z)):
+            raise ValueError("Standardized observations exceed floating-point range")
+        return z
+
+    def _log_probabilities(self, standardized):
+        logcdf = scipy_stats.t.logcdf(standardized, self.df)
+        logsf = scipy_stats.t.logsf(standardized, self.df)
+        if not np.all(np.isfinite(logcdf)) or not np.all(np.isfinite(logsf)):
+            raise ValueError("Student tail probabilities exceed floating-point range")
+        return logcdf, logsf
 
 
 class KolmogorovSmirnovStudentGofStatistic(AbstractStudentGofStatistic, KSStatistic):
-    """
-    Kolmogorov-Smirnov test statistic for the Student's t-distribution.
+    """Kolmogorov-Smirnov distance to a specified Student t CDF.
+
+    Parameters
+    ----------
+    df : float, default: 1
+        Fixed finite degrees of freedom, strictly positive.
+    loc : float, default: 0
+        Fixed finite location.
+    scale : float, default: 1
+        Fixed finite scale, strictly positive.
+    alternative_type : AlternativeType or str, optional
+        CDF deviation direction; default TWO_TAILED. Also accepts enum values
+        'two_tailed', 'right', 'left' and SciPy names 'two-sided', 'greater',
+        'less'. All choices reject for large statistic values.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar discrepancy without changing the input or fitting state.
+    hypothesis()
+        Return the fixed parameters of the null hypothesis.
+    alternative()
+        Return the right tail of the statistic's distribution.
+
+    Notes
+    -----
+    The null fixes df, loc and scale on the whole real line. Write
+    u_i = t_df.cdf((x_(i)-loc)/scale) for sorted observations, i=1,...,n.
+    D+ = max(i/n-u_i), D- = max(u_i-(i-1)/n). Return max(D+,D-)
+    for two-sided deviations, D+ for RIGHT/greater and D- for LEFT/less.
+    No sqrt(n) scaling is applied.
+    Large values reject. The probability integral transform removes all
+    distribution parameters from the null law, not from the hypothesis.
+    The reference describes a general statistic, applied here through the
+    specified Student CDF, not a separately derived Student-specific test.
+
+    References
+    ----------
+    .. [1] M. A. Stephens (1974), EDF Statistics for Goodness of Fit and Some
+    Comparisons, JASA 69, 730-737, https://doi.org/10.1080/01621459.1974.10480196.
+
+    Examples
+    --------
+    >>> statistic = KolmogorovSmirnovStudentGofStatistic(df=5)
+    >>> value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     def __init__(
@@ -111,6 +184,19 @@ class KolmogorovSmirnovStudentGofStatistic(AbstractStudentGofStatistic, KSStatis
         alternative_type: AlternativeType = AlternativeType.TWO_TAILED,
     ):
         AbstractStudentGofStatistic.__init__(self, df, loc, scale)
+        aliases = {
+            "two-sided": AlternativeType.TWO_TAILED,
+            "greater": AlternativeType.RIGHT,
+            "less": AlternativeType.LEFT,
+        }
+        if isinstance(alternative_type, str):
+            alternative_type = aliases.get(alternative_type, alternative_type)
+            try:
+                alternative_type = AlternativeType(alternative_type)
+            except ValueError as exc:
+                raise ValueError("Invalid KS alternative_type") from exc
+        if alternative_type not in tuple(AlternativeType):
+            raise ValueError("Invalid KS alternative_type")
         KSStatistic.__init__(self, alternative_type)
 
     @staticmethod
@@ -136,22 +222,81 @@ class KolmogorovSmirnovStudentGofStatistic(AbstractStudentGofStatistic, KSStatis
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """
-        Calculate the Kolmogorov-Smirnov statistic for testing fit to Student's t-distribution.
+        """Compute kolmogorov-Smirnov distance to a specified Student t CDF.
 
-        :param rvs: array of sample data.
-        :return: Kolmogorov-Smirnov test statistic value.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real sample on the whole real line, with
+            at least one observation; ties and constants are allowed.
+            The input is not modified.
+        **kwargs : dict
+            Accepted for the common interface; no call-time options are used.
+
+        Returns
+        -------
+        float or numpy.float64
+            Unscaled statistic; large values reject the null.
+
+        Raises
+        ------
+        ValueError
+            If the sample is invalid or required numerical transformations
+            cannot be represented in floating-point arithmetic.
         """
-        rvs = np.sort(rvs)
+        rvs = self._validate_sample(rvs)
         # Standardize the data
-        standardized = (rvs - self.loc) / self.scale
+        standardized = self._standardize(rvs)
         cdf_vals = scipy_stats.t.cdf(standardized, self.df)
         return KSStatistic.do_execute_statistic(self, rvs, cdf_vals)
 
 
 class AndersonDarlingStudentGofStatistic(AbstractStudentGofStatistic, ADStatistic):
-    """
-    Anderson-Darling test statistic for the Student's t-distribution.
+    """Anderson-Darling A-squared for a specified Student t CDF.
+
+    Parameters
+    ----------
+    df : float, default: 1
+        Fixed finite degrees of freedom, strictly positive.
+    loc : float, default: 0
+        Fixed finite location.
+    scale : float, default: 1
+        Fixed finite scale, strictly positive.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar discrepancy without changing the input or fitting state.
+    hypothesis()
+        Return the fixed parameters of the null hypothesis.
+    alternative()
+        Return the right tail of the statistic's distribution.
+
+    Notes
+    -----
+    The null fixes df, loc and scale on the whole real line. Write
+    u_i = t_df.cdf((x_(i)-loc)/scale) for sorted observations, i=1,...,n.
+    A2 = -n - sum((2*i-1)*(log(u_i)+log(1-u_(n+1-i))))/n.
+    No fitted-parameter correction is applied.
+    Large values reject. The probability integral transform removes all
+    distribution parameters from the null law, not from the hypothesis.
+    The reference describes a general statistic, applied here through the
+    specified Student CDF, not a separately derived Student-specific test.
+    Log-CDF and log-survival are evaluated separately without clipping.
+    True probabilities are interior for finite data; numerical tail
+    underflow raises ValueError instead of fabricating a finite statistic.
+
+    References
+    ----------
+    .. [1] J. Zhang (2002), Powerful goodness-of-fit tests based on the likelihood
+    ratio, JRSS B 64, 281-294, https://doi.org/10.1111/1467-9868.00337. Section 2.2.
+
+    Examples
+    --------
+    >>> statistic = AndersonDarlingStudentGofStatistic(df=5)
+    >>> value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -177,23 +322,78 @@ class AndersonDarlingStudentGofStatistic(AbstractStudentGofStatistic, ADStatisti
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """
-        Calculate the Anderson-Darling statistic for testing fit to Student's t-distribution.
+        """Compute anderson-Darling A-squared for a specified Student t CDF.
 
-        :param rvs: array of sample data.
-        :return: Anderson-Darling test statistic value.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real sample on the whole real line, with
+            at least one observation; ties and constants are allowed.
+            The input is not modified.
+        **kwargs : dict
+            Accepted for the common interface; no call-time options are used.
+
+        Returns
+        -------
+        float or numpy.float64
+            Unscaled statistic; large values reject the null.
+
+        Raises
+        ------
+        ValueError
+            If the sample is invalid or required numerical transformations
+            cannot be represented in floating-point arithmetic.
         """
-        y = np.sort(rvs)
+        y = self._validate_sample(rvs)
         # Standardize the data
-        standardized = (y - self.loc) / self.scale
-        logcdf = scipy_stats.t.logcdf(standardized, self.df)
-        logsf = scipy_stats.t.logsf(standardized, self.df)
+        standardized = self._standardize(y)
+        logcdf, logsf = self._log_probabilities(standardized)
         return ADStatistic.do_execute_statistic(self, y, log_cdf=logcdf, log_sf=logsf)
 
 
 class CramerVonMisesStudentGofStatistic(AbstractStudentGofStatistic, CrammerVonMisesStatistic):
-    """
-    Cramer-von Mises test statistic for the Student's t-distribution.
+    """Cramer-von Mises W-squared for a specified Student t CDF.
+
+    Parameters
+    ----------
+    df : float, default: 1
+        Fixed finite degrees of freedom, strictly positive.
+    loc : float, default: 0
+        Fixed finite location.
+    scale : float, default: 1
+        Fixed finite scale, strictly positive.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar discrepancy without changing the input or fitting state.
+    hypothesis()
+        Return the fixed parameters of the null hypothesis.
+    alternative()
+        Return the right tail of the statistic's distribution.
+
+    Notes
+    -----
+    The null fixes df, loc and scale on the whole real line. Write
+    u_i = t_df.cdf((x_(i)-loc)/scale) for sorted observations, i=1,...,n.
+    W2 = 1/(12*n) + sum((u_i-(i-0.5)/n)**2).
+    No finite-sample correction is applied.
+    Large values reject. The probability integral transform removes all
+    distribution parameters from the null law, not from the hypothesis.
+    The reference describes a general statistic, applied here through the
+    specified Student CDF, not a separately derived Student-specific test.
+
+    References
+    ----------
+    .. [1] J. Zhang (2002), Powerful goodness-of-fit tests based on the likelihood
+    ratio, JRSS B 64, 281-294, https://doi.org/10.1111/1467-9868.00337. Section 2.3.
+
+    Examples
+    --------
+    >>> statistic = CramerVonMisesStudentGofStatistic(df=5)
+    >>> value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @staticmethod
@@ -219,22 +419,78 @@ class CramerVonMisesStudentGofStatistic(AbstractStudentGofStatistic, CrammerVonM
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """
-        Calculate the Cramer-von Mises statistic for testing fit to Student's t-distribution.
+        """Compute cramer-von Mises W-squared for a specified Student t CDF.
 
-        :param rvs: array of sample data.
-        :return: Cramer-von Mises test statistic value.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real sample on the whole real line, with
+            at least one observation; ties and constants are allowed.
+            The input is not modified.
+        **kwargs : dict
+            Accepted for the common interface; no call-time options are used.
+
+        Returns
+        -------
+        float or numpy.float64
+            Unscaled statistic; large values reject the null.
+
+        Raises
+        ------
+        ValueError
+            If the sample is invalid or required numerical transformations
+            cannot be represented in floating-point arithmetic.
         """
-        rvs = np.sort(rvs)
+        rvs = self._validate_sample(rvs)
         # Standardize the data
-        standardized = (rvs - self.loc) / self.scale
+        standardized = self._standardize(rvs)
         cdf_vals = scipy_stats.t.cdf(standardized, self.df)
         return CrammerVonMisesStatistic.do_execute_statistic(self, rvs, cdf_vals)
 
 
 class KuiperStudentGofStatistic(AbstractStudentGofStatistic):
-    """
-    Kuiper's test statistic for the Student's t-distribution.
+    """Kuiper V for a specified Student t CDF.
+
+    Parameters
+    ----------
+    df : float, default: 1
+        Fixed finite degrees of freedom, strictly positive.
+    loc : float, default: 0
+        Fixed finite location.
+    scale : float, default: 1
+        Fixed finite scale, strictly positive.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar discrepancy without changing the input or fitting state.
+    hypothesis()
+        Return the fixed parameters of the null hypothesis.
+    alternative()
+        Return the right tail of the statistic's distribution.
+
+    Notes
+    -----
+    The null fixes df, loc and scale on the whole real line. Write
+    u_i = t_df.cdf((x_(i)-loc)/scale) for sorted observations, i=1,...,n.
+    V = max(i/n-u_i) + max(u_i-(i-1)/n).
+    This is the unscaled sum of the two one-sided EDF distances.
+    Large values reject. The probability integral transform removes all
+    distribution parameters from the null law, not from the hypothesis.
+    The reference describes a general statistic, applied here through the
+    specified Student CDF, not a separately derived Student-specific test.
+
+    References
+    ----------
+    .. [1] M. A. Stephens (1974), EDF Statistics for Goodness of Fit and Some
+    Comparisons, JASA 69, 730-737, https://doi.org/10.1080/01621459.1974.10480196.
+
+    Examples
+    --------
+    >>> statistic = KuiperStudentGofStatistic(df=5)
+    >>> value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -264,16 +520,32 @@ class KuiperStudentGofStatistic(AbstractStudentGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """
-        Calculate Kuiper's statistic for testing fit to Student's t-distribution.
+        """Compute kuiper V for a specified Student t CDF.
 
-        :param rvs: array of sample data.
-        :return: Kuiper's test statistic value (D+ + D-).
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real sample on the whole real line, with
+            at least one observation; ties and constants are allowed.
+            The input is not modified.
+        **kwargs : dict
+            Accepted for the common interface; no call-time options are used.
+
+        Returns
+        -------
+        float or numpy.float64
+            Unscaled statistic; large values reject the null.
+
+        Raises
+        ------
+        ValueError
+            If the sample is invalid or required numerical transformations
+            cannot be represented in floating-point arithmetic.
         """
+        rvs = self._validate_sample(rvs)
         n = len(rvs)
-        rvs = np.sort(rvs)
         # Standardize the data
-        standardized = (rvs - self.loc) / self.scale
+        standardized = self._standardize(rvs)
         cdf_vals = scipy_stats.t.cdf(standardized, self.df)
 
         # D+ and D-
@@ -284,8 +556,49 @@ class KuiperStudentGofStatistic(AbstractStudentGofStatistic):
 
 
 class WatsonStudentGofStatistic(AbstractStudentGofStatistic):
-    """
-    Watson's U^2 test statistic for the Student's t-distribution.
+    """Watson U-squared for a specified Student t CDF.
+
+    Parameters
+    ----------
+    df : float, default: 1
+        Fixed finite degrees of freedom, strictly positive.
+    loc : float, default: 0
+        Fixed finite location.
+    scale : float, default: 1
+        Fixed finite scale, strictly positive.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar discrepancy without changing the input or fitting state.
+    hypothesis()
+        Return the fixed parameters of the null hypothesis.
+    alternative()
+        Return the right tail of the statistic's distribution.
+
+    Notes
+    -----
+    The null fixes df, loc and scale on the whole real line. Write
+    u_i = t_df.cdf((x_(i)-loc)/scale) for sorted observations, i=1,...,n.
+    U2 = W2 - n*(mean(u)-0.5)**2, where
+    W2 = 1/(12*n) + sum((u_i-(i-0.5)/n)**2). Centered residuals
+    implement the same formula without cancellation. No correction is applied.
+    Large values reject. The probability integral transform removes all
+    distribution parameters from the null law, not from the hypothesis.
+    The reference describes a general statistic, applied here through the
+    specified Student CDF, not a separately derived Student-specific test.
+
+    References
+    ----------
+    .. [1] G. S. Watson (1961), Goodness-of-fit tests on a circle, Biometrika
+    48, 109-114, https://doi.org/10.1093/biomet/48.1-2.109.
+
+    Examples
+    --------
+    >>> statistic = WatsonStudentGofStatistic(df=5)
+    >>> value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -315,34 +628,87 @@ class WatsonStudentGofStatistic(AbstractStudentGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """
-        Calculate Watson's U^2 statistic for testing fit to Student's t-distribution.
+        """Compute watson U-squared for a specified Student t CDF.
 
-        :param rvs: array of sample data.
-        :return: Watson's U^2 test statistic value.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real sample on the whole real line, with
+            at least one observation; ties and constants are allowed.
+            The input is not modified.
+        **kwargs : dict
+            Accepted for the common interface; no call-time options are used.
+
+        Returns
+        -------
+        float or numpy.float64
+            Unscaled statistic; large values reject the null.
+
+        Raises
+        ------
+        ValueError
+            If the sample is invalid or required numerical transformations
+            cannot be represented in floating-point arithmetic.
         """
+        rvs = self._validate_sample(rvs)
         n = len(rvs)
-        rvs = np.sort(rvs)
         # Standardize the data
-        standardized = (rvs - self.loc) / self.scale
+        standardized = self._standardize(rvs)
         cdf_vals = scipy_stats.t.cdf(standardized, self.df)
 
-        # Cramer-von Mises statistic
-        u = (2 * np.arange(1, n + 1) - 1) / (2 * n)
-        w2 = 1 / (12 * n) + np.sum((u - cdf_vals) ** 2)
-
-        # Mean of CDF values
-        f_bar = np.mean(cdf_vals)
-
-        # Watson's U^2
-        u2 = w2 - n * (f_bar - 0.5) ** 2
-
-        return u2
+        # Center residuals before squaring to avoid subtracting large terms.
+        residual = cdf_vals - (np.arange(1, n + 1) - 0.5) / n
+        return float(1 / (12 * n) + np.sum((residual - np.mean(residual)) ** 2))
 
 
 class ZhangZcStudentGofStatistic(AbstractStudentGofStatistic):
-    """
-    Zhang's Zc test statistic for the Student's t-distribution.
+    """Zhang Z_C for a specified Student t CDF.
+
+    Parameters
+    ----------
+    df : float, default: 1
+        Fixed finite degrees of freedom, strictly positive.
+    loc : float, default: 0
+        Fixed finite location.
+    scale : float, default: 1
+        Fixed finite scale, strictly positive.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar discrepancy without changing the input or fitting state.
+    hypothesis()
+        Return the fixed parameters of the null hypothesis.
+    alternative()
+        Return the right tail of the statistic's distribution.
+
+    Notes
+    -----
+    The null fixes df, loc and scale on the whole real line. Write
+    u_i = t_df.cdf((x_(i)-loc)/scale) for sorted observations, i=1,...,n.
+    Z_C = sum((log((1-u_i)/u_i) - log((n-i+0.25)/(i-0.75)))**2).
+    This implements equation (3.3), not the exact integrated likelihood
+    ratio from which Zhang derives that formula approximately.
+    Large values reject. The probability integral transform removes all
+    distribution parameters from the null law, not from the hypothesis.
+    The reference describes a general statistic, applied here through the
+    specified Student CDF, not a separately derived Student-specific test.
+    Log-CDF and log-survival are evaluated separately without clipping.
+    True probabilities are interior for finite data; numerical tail
+    underflow raises ValueError instead of fabricating a finite statistic.
+    Recompute stored null distributions made with the previous clipped code.
+
+    References
+    ----------
+    .. [1] J. Zhang (2002), Powerful goodness-of-fit tests based on the likelihood
+    ratio, JRSS B 64, 281-294, https://doi.org/10.1111/1467-9868.00337. Section 3.3.
+
+    Examples
+    --------
+    >>> statistic = ZhangZcStudentGofStatistic(df=5)
+    >>> value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -372,32 +738,85 @@ class ZhangZcStudentGofStatistic(AbstractStudentGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """
-        Calculate Zhang's Zc statistic for testing fit to Student's t-distribution.
+        """Compute zhang Z_C for a specified Student t CDF.
 
-        :param rvs: array of sample data.
-        :return: Zhang's Zc test statistic value.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real sample on the whole real line, with
+            at least one observation; ties and constants are allowed.
+            The input is not modified.
+        **kwargs : dict
+            Accepted for the common interface; no call-time options are used.
+
+        Returns
+        -------
+        float or numpy.float64
+            Unscaled statistic; large values reject the null.
+
+        Raises
+        ------
+        ValueError
+            If the sample is invalid or required numerical transformations
+            cannot be represented in floating-point arithmetic.
         """
+        rvs = self._validate_sample(rvs)
         n = len(rvs)
-        rvs = np.sort(rvs)
         # Standardize the data
-        standardized = (rvs - self.loc) / self.scale
-        cdf_vals = self._cdf_clipped(standardized)
-
+        standardized = self._standardize(rvs)
+        logcdf, logsf = self._log_probabilities(standardized)
         i = np.arange(1, n + 1)
-        # Zhang's Zc statistic
-        term1 = 1 / cdf_vals - 1
-        term2 = (n - 0.5) / i - 1
-        # Avoid division by zero and log of negative numbers
-        term2 = np.where(term2 <= 0, 1e-10, term2)
-        zc = np.sum(np.log(term1 / term2) ** 2)
-
-        return zc
+        log_rank_odds = np.log(n - i + 0.25) - np.log(i - 0.75)
+        return float(np.sum((logsf - logcdf - log_rank_odds) ** 2))
 
 
 class ZhangZaStudentGofStatistic(AbstractStudentGofStatistic):
-    """
-    Zhang's Za test statistic for the Student's t-distribution.
+    """Zhang Z_A for a specified Student t CDF.
+
+    Parameters
+    ----------
+    df : float, default: 1
+        Fixed finite degrees of freedom, strictly positive.
+    loc : float, default: 0
+        Fixed finite location.
+    scale : float, default: 1
+        Fixed finite scale, strictly positive.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar discrepancy without changing the input or fitting state.
+    hypothesis()
+        Return the fixed parameters of the null hypothesis.
+    alternative()
+        Return the right tail of the statistic's distribution.
+
+    Notes
+    -----
+    The null fixes df, loc and scale on the whole real line. Write
+    u_i = t_df.cdf((x_(i)-loc)/scale) for sorted observations, i=1,...,n.
+    Z_A = -sum(log(u_i)/(n-i+0.5) + log(1-u_i)/(i-0.5)).
+    No additional normalization is applied.
+    Large values reject. The probability integral transform removes all
+    distribution parameters from the null law, not from the hypothesis.
+    The reference describes a general statistic, applied here through the
+    specified Student CDF, not a separately derived Student-specific test.
+    Log-CDF and log-survival are evaluated separately without clipping.
+    True probabilities are interior for finite data; numerical tail
+    underflow raises ValueError instead of fabricating a finite statistic.
+    Recompute stored null distributions made with the previous clipped code.
+
+    References
+    ----------
+    .. [1] J. Zhang (2002), Powerful goodness-of-fit tests based on the likelihood
+    ratio, JRSS B 64, 281-294, https://doi.org/10.1111/1467-9868.00337. Equation (3.2).
+
+    Examples
+    --------
+    >>> statistic = ZhangZaStudentGofStatistic(df=5)
+    >>> value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -427,46 +846,100 @@ class ZhangZaStudentGofStatistic(AbstractStudentGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """
-        Calculate Zhang's Za statistic for testing fit to Student's t-distribution.
+        """Compute zhang Z_A for a specified Student t CDF.
 
-        :param rvs: array of sample data.
-        :return: Zhang's Za test statistic value.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real sample on the whole real line, with
+            at least one observation; ties and constants are allowed.
+            The input is not modified.
+        **kwargs : dict
+            Accepted for the common interface; no call-time options are used.
+
+        Returns
+        -------
+        float or numpy.float64
+            Unscaled statistic; large values reject the null.
+
+        Raises
+        ------
+        ValueError
+            If the sample is invalid or required numerical transformations
+            cannot be represented in floating-point arithmetic.
         """
+        rvs = self._validate_sample(rvs)
         n = len(rvs)
-        rvs = np.sort(rvs)
         # Standardize the data
-        standardized = (rvs - self.loc) / self.scale
-        cdf_vals = self._cdf_clipped(standardized)
-
+        standardized = self._standardize(rvs)
+        logcdf, logsf = self._log_probabilities(standardized)
         i = np.arange(1, n + 1)
-        # Zhang's Za statistic
-        za = -np.sum(np.log(cdf_vals) / (n - i + 0.5)) - np.sum(np.log(1 - cdf_vals) / (i - 0.5))
-
-        return za
+        return float(-np.sum(logcdf / (n - i + 0.5) + logsf / (i - 0.5)))
 
 
 class LillieforsStudentGofStatistic(AbstractStudentGofStatistic, LillieforsTest):
-    """
-    Lilliefors-type test statistic for the Student's t-distribution.
+    """Fitted KS distance for Student t with known degrees of freedom.
+
+    Parameters
+    ----------
+    df : float, default: 1
+        Fixed finite degrees of freedom, strictly positive.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar discrepancy without changing the input or fitting state.
+    hypothesis()
+        Return the fixed parameters of the null hypothesis.
+    alternative()
+        Return the right tail of the statistic's distribution.
+
+    Notes
+    -----
+    The null is t_df with unknown location and positive scale. Each call
+    estimates location by the sample median and scale by
+    (Q_0.75-Q_0.25)/(2*t_df.ppf(0.75)), using linear sample quantiles.
+    Return max(max(i/n-u_i), max(u_i-(i-1)/n)) for the fitted CDF.
+    This quantile estimator works without finite moments, including df <= 2;
+    it is not maximum likelihood. Samples need n >= 2 and positive IQR.
+    Ties are accepted if the IQR remains positive. Estimates are not stored.
+
+    This is a locally specified Lilliefors-type extension. A search did not
+    identify a primary paper establishing this exact Student/quantile version.
+    The normal Lilliefors paper does not validate it. Large values reject.
+    Location/scale equivariance removes those nuisance parameters; the null
+    law still depends on df, sample size and the estimator. Refit each
+    Monte Carlo replicate; ordinary KS and normal Lilliefors tables do not
+    apply. The built-in sampler requires complete Student parameters and
+    rejects this composite hypothesis. Calibrate externally at the fixed df
+    (location 0, scale 1 is justified by equivariance), calling this method
+    on every replicate. Previously stored LILLIE distributions are invalid.
+
+    Examples
+    --------
+    >>> statistic = LillieforsStudentGofStatistic(df=5)
+    >>> value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     def __init__(self, df: float = Student.DF.default_value):
         AbstractStudentGofStatistic.__init__(self, df, 0, 1)
 
+    @override
+    def hypothesis(self) -> GoodnessOfFitHypothesis:
+        return GoodnessOfFitHypothesis(Student.DEFAULT.parse({Student.DF: self.df}))
+
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (HypothesisSupport(Student.DEFAULT, frozenset({Student.DF})),)
+
     @classmethod
     def from_parameters(cls, parameters: ParameterValues, **options):
-        """The current implementation only handles fixed location 0 and scale 1."""
+        """Construct for fixed df and unknown location and scale."""
         if not cls.supports_hypothesis(GoodnessOfFitHypothesis(parameters)):
             raise ValueError("Unsupported Student hypothesis or parameterization")
         return cls(df=parameters[Student.DF], **options)
-
-    @classmethod
-    def supports_hypothesis(cls, hypothesis: GoodnessOfFitHypothesis) -> bool:
-        if not super().supports_hypothesis(hypothesis):
-            return False
-        values = hypothesis.parameter_values
-        return values is not None and values[Student.LOCATION] == 0 and values[Student.SCALE] == 1
 
     @staticmethod
     @override
@@ -490,25 +963,100 @@ class LillieforsStudentGofStatistic(AbstractStudentGofStatistic, LillieforsTest)
         return f"{short_code}_{AbstractStudentGofStatistic.code()}"
 
     @override
-    def execute_statistic(self, rvs):
-        """
-        Calculate the Lilliefors statistic for testing fit to Student's t-distribution.
+    def execute_statistic(self, rvs, **kwargs):
+        """Compute fitted KS distance for Student t with known degrees of freedom.
 
-        The current implementation fixes location to 0 and scale to 1;
-        it does not estimate them from the sample.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real sample on the whole real line, with
+            at least two observations and positive interquartile range.
+            The input is not modified.
+        **kwargs : dict
+            Accepted for the common interface; no call-time options are used.
 
-        :param rvs: array of sample data.
-        :return: Lilliefors test statistic value.
-        :raises ValueError: if sample standard deviation is zero.
+        Returns
+        -------
+        float or numpy.float64
+            Unscaled statistic; large values reject the null.
+
+        Raises
+        ------
+        ValueError
+            If the sample is invalid or required numerical transformations
+            cannot be represented in floating-point arithmetic.
+            Also raised for fewer than two observations or zero IQR.
         """
-        rvs_sorted = np.sort(rvs)
-        cdf_vals = scipy_stats.t.cdf(rvs_sorted, self.df)
-        return LillieforsTest.do_execute_statistic(self, rvs_sorted, cdf_vals)
+        sample = self._validate_sample(rvs)
+        if sample.size < 2:
+            raise ValueError("At least two observations are required")
+        # Normalize first, so quantile interpolation cannot overflow.
+        magnitude = np.max(np.abs(sample))
+        if magnitude == 0:
+            raise ValueError("Sample interquartile range must be positive")
+        sample = sample / magnitude
+        q1, median, q3 = np.quantile(sample, [0.25, 0.5, 0.75], method="linear")
+        reference = scipy_stats.t.ppf(0.75, self.df)
+        fitted_scale = ((q3 - q1) / 2) / reference
+        if not np.isfinite(fitted_scale) or fitted_scale <= 0:
+            raise ValueError("Sample interquartile range must define a positive finite scale")
+        with np.errstate(over="ignore"):
+            standardized = (sample - median) / fitted_scale
+        if not np.all(np.isfinite(standardized)):
+            raise ValueError("Fitted observations exceed floating-point range")
+        cdf_vals = scipy_stats.t.cdf(standardized, self.df)
+        return float(LillieforsTest.do_execute_statistic(self, sample, cdf_vals))
 
 
 class ChiSquareStudentGofStatistic(AbstractStudentGofStatistic):
-    """
-    Chi-square goodness-of-fit test statistic for the Student's t-distribution.
+    """Pearson chi-squared for equiprobable Student t bins.
+
+    Parameters
+    ----------
+    df : float, default: 1
+        Fixed finite degrees of freedom, strictly positive.
+    loc : float, default: 0
+        Fixed finite location.
+    scale : float, default: 1
+        Fixed finite scale, strictly positive.
+    n_bins : int, default: 10
+        Fixed number of equiprobable bins, at least 2; booleans are rejected.
+
+    Methods
+    -------
+    execute_statistic(rvs, **kwargs)
+        Return one scalar discrepancy without changing the input or fitting state.
+    hypothesis()
+        Return the fixed parameters of the null hypothesis.
+    alternative()
+        Return the right tail of the statistic's distribution.
+
+    Notes
+    -----
+    The null fixes df, loc and scale on the whole real line. Write
+    u_i = t_df.cdf((x_(i)-loc)/scale) for sorted observations, i=1,...,n.
+    For k=n_bins, use edges t_df.ppf(j/k), j=0,...,k on standardized
+    data, with infinite outer edges. Internal boundary ties enter the right
+    bin. Return sum((O_j-n/k)**2/(n/k)), where O_j are observed counts.
+    Empty cells contribute n/k. Under the null, counts are multinomial with
+    probabilities 1/k. The chi-squared(k-1) law is only asymptotic and needs
+    sufficiently large expected counts. Monte Carlo must retain n_bins.
+    Large values reject. The probability integral transform removes all
+    distribution parameters from the null law, not from the hypothesis.
+    The reference describes a general statistic, applied here through the
+    specified Student CDF, not a separately derived Student-specific test.
+
+    References
+    ----------
+    .. [1] K. Pearson (1900), On the criterion that a given system of deviations
+    from the probable ... , https://doi.org/10.1080/14786440009463897.
+
+    Examples
+    --------
+    >>> statistic = ChiSquareStudentGofStatistic(df=5)
+    >>> value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
+    >>> bool(np.isfinite(value))
+    True
     """
 
     @override
@@ -523,7 +1071,9 @@ class ChiSquareStudentGofStatistic(AbstractStudentGofStatistic):
         n_bins: int = 10,
     ):
         super().__init__(df, loc, scale)
-        self.n_bins = n_bins
+        if isinstance(n_bins, bool) or not isinstance(n_bins, Integral) or n_bins < 2:
+            raise ValueError("n_bins must be an integer of at least 2")
+        self.n_bins = int(n_bins)
 
     @staticmethod
     @override
@@ -548,20 +1098,39 @@ class ChiSquareStudentGofStatistic(AbstractStudentGofStatistic):
 
     @override
     def execute_statistic(self, rvs, **kwargs):
-        """
-        Calculate the Chi-square statistic for testing fit to Student's t-distribution.
+        """Compute pearson chi-squared for equiprobable Student t bins.
 
-        :param rvs: array of sample data.
-        :return: Chi-square test statistic value.
+        Parameters
+        ----------
+        rvs : array_like, shape (n,)
+            Finite real sample on the whole real line, with
+            at least one observation; ties and constants are allowed.
+            The input is not modified.
+        **kwargs : dict
+            Accepted for the common interface; no call-time options are used.
+
+        Returns
+        -------
+        float or numpy.float64
+            Unscaled statistic; large values reject the null.
+
+        Raises
+        ------
+        ValueError
+            If the sample is invalid or required numerical transformations
+            cannot be represented in floating-point arithmetic.
         """
+        rvs = self._validate_sample(rvs)
         n = len(rvs)
-        # Standardize the data
-        standardized = (np.array(rvs) - self.loc) / self.scale
+        standardized = self._standardize(rvs)
 
         # Create bin edges based on quantiles of the t-distribution
         bin_edges = scipy_stats.t.ppf(np.linspace(0, 1, self.n_bins + 1), self.df)
         bin_edges[0] = -np.inf
         bin_edges[-1] = np.inf
+
+        if not np.all(np.isfinite(bin_edges[1:-1])) or np.any(np.diff(bin_edges) <= 0):
+            raise ValueError("Student quantile bins cannot be represented distinctly")
 
         # Observed frequencies
         observed, _ = np.histogram(standardized, bins=bin_edges)

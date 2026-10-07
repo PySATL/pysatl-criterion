@@ -1,55 +1,48 @@
-# Watson test for Student distribution
+# Watson U-squared for a specified Student t CDF.
 
-## Description
-Performs Watson goodness-of-fit test for the hypothesis that the sample comes from a Student's t-distribution.
-The Watson statistic is a centered modification of the Cramer-von Mises statistic.
+## Hypothesis and formula
 
-Hypothesis of Student Distribution
-The null hypothesis is that the data comes from a Student's t-distribution with positive degrees of freedom `df`, location parameter `loc`, and positive scale parameter `scale`.
+The null fixes df, loc and scale on the whole real line. Write
+u_i = t_df.cdf((x_(i)-loc)/scale) for sorted observations, i=1,...,n.
+U2 = W2 - n*(mean(u)-0.5)**2, where
+W2 = 1/(12*n) + sum((u_i-(i-0.5)/n)**2). Centered residuals
+implement the same formula without cancellation. No correction is applied.
+Large values reject. The probability integral transform removes all
+distribution parameters from the null law, not from the hypothesis.
+The reference describes a general statistic, applied here through the
+specified Student CDF, not a separately derived Student-specific test.
 
-Test Statistic
-The statistic removes the squared mean deviation of the probability-transformed observations from the Cramer-von Mises statistic.
+## Parameters
 
-## Usage
+df : float, default: 1
+Fixed finite degrees of freedom, strictly positive.
+loc : float, default: 0
+Fixed finite location.
+scale : float, default: 1
+Fixed finite scale, strictly positive.
+
+## Input and result
+
+`execute_statistic(rvs, **kwargs)` accepts a finite, real, one-dimensional sample,
+with at least one observation; ties and constants are allowed. It returns one scalar, leaves the input unchanged,
+and ignores extra keyword arguments. Invalid samples and unrepresentable numerical
+transformations raise `ValueError`. No preliminary fit or bootstrap is required.
+
+## Example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    WatsonStudentGofStatistic,
-)
+from pysatl_criterion.statistics.goodness_of_fit.student import WatsonStudentGofStatistic
 
-
-test_statistic = WatsonStudentGofStatistic(df=5, loc=0, scale=1)
-statistic_result = test_statistic.execute_statistic([-1.8, -0.9, -0.25, 0.0, 0.31, 0.95, 1.7])
-print(statistic_result)
+statistic = WatsonStudentGofStatistic(df=5)
+value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
+print(value)
 ```
 
-## Arguments
-`df` - positive degrees of freedom of the Student's t-distribution. Default value is `1`.
+## Scientific source
 
-`loc` - location parameter of the Student's t-distribution. Default value is `0`.
-
-`scale` - positive scale parameter of the Student's t-distribution. Default value is `1`.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-The implementation computes Cramer-von Mises terms from Student CDF values and subtracts the Watson centering correction
-
-$$ n\left(\bar F_0 - \frac{1}{2}\right)^2. $$
+G. S. Watson (1961), Goodness-of-fit tests on a circle, Biometrika
+48, 109-114, https://doi.org/10.1093/biomet/48.1-2.109.
 
 ## Author(s)
+
 Dmitriy Rusanov, Alexey Mironov
-
-## References
-Watson, G.S. (1961): Goodness-of-fit tests on a circle. - Biometrika, vol. 48, pp. 109-114.
-
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    WatsonStudentGofStatistic,
-)
-
-
-test_statistic = WatsonStudentGofStatistic(df=5, loc=0, scale=1)
-statistic_result = test_statistic.execute_statistic([-1.8, -0.9, -0.25, 0.0, 0.31, 0.95, 1.7])
-print(statistic_result)
-```

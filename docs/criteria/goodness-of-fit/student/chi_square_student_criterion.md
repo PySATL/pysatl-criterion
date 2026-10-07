@@ -1,52 +1,53 @@
-# Chi-square test for Student distribution
+# Pearson chi-squared for equiprobable Student t bins.
 
-## Description
-Performs chi-square goodness-of-fit test for the hypothesis that the sample comes from a Student's t-distribution.
-The implementation bins standardized observations using equiprobable Student quantile bins.
+## Hypothesis and formula
 
-Hypothesis of Student Distribution
-The null hypothesis is that the data comes from a Student's t-distribution with positive degrees of freedom `df`, location parameter `loc`, and positive scale parameter `scale`.
+The null fixes df, loc and scale on the whole real line. Write
+u_i = t_df.cdf((x_(i)-loc)/scale) for sorted observations, i=1,...,n.
+For k=n_bins, use edges t_df.ppf(j/k), j=0,...,k on standardized
+data, with infinite outer edges. Internal boundary ties enter the right
+bin. Return sum((O_j-n/k)**2/(n/k)), where O_j are observed counts.
+Empty cells contribute n/k. Under the null, counts are multinomial with
+probabilities 1/k. The chi-squared(k-1) law is only asymptotic and needs
+sufficiently large expected counts. Monte Carlo must retain n_bins.
+Large values reject. The probability integral transform removes all
+distribution parameters from the null law, not from the hypothesis.
+The reference describes a general statistic, applied here through the
+specified Student CDF, not a separately derived Student-specific test.
 
-## Usage
+## Parameters
+
+df : float, default: 1
+Fixed finite degrees of freedom, strictly positive.
+loc : float, default: 0
+Fixed finite location.
+scale : float, default: 1
+Fixed finite scale, strictly positive.
+n_bins : int, default: 10
+Fixed number of equiprobable bins, at least 2; booleans are rejected.
+
+## Input and result
+
+`execute_statistic(rvs, **kwargs)` accepts a finite, real, one-dimensional sample,
+with at least one observation; ties and constants are allowed. It returns one scalar, leaves the input unchanged,
+and ignores extra keyword arguments. Invalid samples and unrepresentable numerical
+transformations raise `ValueError`. No preliminary fit or bootstrap is required.
+
+## Example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    ChiSquareStudentGofStatistic,
-)
+from pysatl_criterion.statistics.goodness_of_fit.student import ChiSquareStudentGofStatistic
 
-
-test_statistic = ChiSquareStudentGofStatistic(df=5, loc=0, scale=1, n_bins=4)
-statistic_result = test_statistic.execute_statistic([-1.8, -0.9, -0.25, 0.0, 0.31, 0.95, 1.7])
-print(statistic_result)
+statistic = ChiSquareStudentGofStatistic(df=5)
+value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
+print(value)
 ```
 
-## Arguments
-`df` - positive degrees of freedom of the Student's t-distribution. Default value is `1`.
+## Scientific source
 
-`loc` - location parameter of the Student's t-distribution. Default value is `0`.
-
-`scale` - positive scale parameter of the Student's t-distribution. Default value is `1`.
-
-`n_bins` - number of equiprobable Student quantile bins. Default value is `10`.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-The implementation standardizes observations, builds bin edges from Student quantiles, and compares observed bin counts with equal expected counts.
+K. Pearson (1900), On the criterion that a given system of deviations
+from the probable ... , https://doi.org/10.1080/14786440009463897.
 
 ## Author(s)
+
 Dmitriy Rusanov, Alexey Mironov
-
-## References
-Pearson, K. (1900): On the criterion that a given system of deviations from the probable in the case of a correlated system of variables is such that it can be reasonably supposed to have arisen from random sampling. - Philosophical Magazine, vol. 50, pp. 157-175.
-
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    ChiSquareStudentGofStatistic,
-)
-
-
-test_statistic = ChiSquareStudentGofStatistic(df=5, loc=0, scale=1, n_bins=4)
-statistic_result = test_statistic.execute_statistic([-1.8, -0.9, -0.25, 0.0, 0.31, 0.95, 1.7])
-print(statistic_result)
-```
