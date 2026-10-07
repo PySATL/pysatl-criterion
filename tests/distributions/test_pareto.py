@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import scipy.stats as scipy_stats
 
-from pysatl_criterion.statistics.alternative import AlternativeType, RightAlternative
+from pysatl_criterion.statistics.alternative import AlternativeType
 from pysatl_criterion.statistics.goodness_of_fit.pareto import (
     AbstractParetoGofStatistic,
     AndersonDarlingParetoGofStatistic,
@@ -16,21 +16,6 @@ from pysatl_criterion.statistics.goodness_of_fit.pareto import (
     MinToshiyukiParetoGofStatistic,
     ObradovicParetoGofStatistic,
 )
-
-
-class ConcreteGreenwoodParetoGofStatistic(GreenwoodParetoGofStatistic):
-    def alternative(self):
-        return RightAlternative()
-
-
-class ConcreteLequesneKlParetoGofStatistic(LequesneKlParetoGofStatistic):
-    def alternative(self):
-        return RightAlternative()
-
-
-class ConcreteObradovicParetoGofStatistic(ObradovicParetoGofStatistic):
-    def alternative(self):
-        return RightAlternative()
 
 
 def test_abstract_pareto_criterion_code():
@@ -120,9 +105,8 @@ def test_ks_pareto_non_positive_values():
     stat = KolmogorovSmirnovParetoGofStatistic(shape=2.0, scale=1.0)
 
     for values in ([0, 1, 2, 3], [-1, 1, 2, 3]):
-        result = stat.execute_statistic(values)
-        assert np.isfinite(result)
-        assert 0 <= result <= 1
+        with pytest.raises(ValueError, match="strictly positive"):
+            stat.execute_statistic(values)
 
 
 @pytest.mark.parametrize(
@@ -187,7 +171,7 @@ def test_lilliefors_pareto_criterion_code():
 def test_lilliefors_pareto_positive():
     np.random.seed(42)
     sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50)
-    stat = LillieforsParetoGofStatistic(shape=2.0, scale=1.0)
+    stat = LillieforsParetoGofStatistic()
     result = stat.execute_statistic(sample)
     assert result > 0
 
@@ -195,7 +179,7 @@ def test_lilliefors_pareto_positive():
 def test_lilliefors_pareto_less_than_one():
     np.random.seed(42)
     sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50)
-    stat = LillieforsParetoGofStatistic(shape=2.0, scale=1.0)
+    stat = LillieforsParetoGofStatistic()
     result = stat.execute_statistic(sample)
     assert result < 1
 
@@ -203,29 +187,30 @@ def test_lilliefors_pareto_less_than_one():
 def test_lilliefors_pareto_estimates_parameters():
     np.random.seed(42)
     sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=10)
-    stat = LillieforsParetoGofStatistic(shape=2.0, scale=1.0)
-    stat.execute_statistic(sample)
-
-    assert stat.shape > 0
-    assert stat.scale > 0
-    assert stat.scale == pytest.approx(np.min(sample))
+    stat = LillieforsParetoGofStatistic()
+    result = stat.execute_statistic(sample)
+    scale = np.min(sample)
+    shape = 1 / np.mean(np.log(sample / scale))
+    expected = scipy_stats.kstest(sample, scipy_stats.pareto(shape, scale=scale).cdf).statistic
+    assert result == pytest.approx(expected)
+    assert stat.hypothesis().parameters() == {}
+    assert vars(stat) == {}
 
 
 def test_lilliefors_pareto_empty_sample():
-    stat = LillieforsParetoGofStatistic(shape=2.0, scale=1.0)
-    with pytest.raises(ValueError, match="At least one observation is required"):
+    stat = LillieforsParetoGofStatistic()
+    with pytest.raises(ValueError, match="At least 2 observations"):
         stat.execute_statistic(np.array([]))
 
 
 def test_lilliefors_pareto_constant_sample():
-    stat = LillieforsParetoGofStatistic(shape=2.0, scale=1.0)
-    result = stat.execute_statistic(np.ones(10) * 2.0)
-    assert result == 1.0
-    assert np.isinf(stat.shape)
+    stat = LillieforsParetoGofStatistic()
+    with pytest.raises(ValueError, match="nonconstant"):
+        stat.execute_statistic(np.ones(10) * 2.0)
 
 
 def test_lilliefors_pareto_non_positive_values():
-    stat = LillieforsParetoGofStatistic(shape=2.0, scale=1.0)
+    stat = LillieforsParetoGofStatistic()
 
     with pytest.raises(ValueError, match="Sample values must be strictly positive"):
         stat.execute_statistic([0, 1, 2, 3])
@@ -264,18 +249,21 @@ def test_mt_pareto_finite():
 def test_mt_pareto_finite_values(data, shape, scale):
     stat = MinToshiyukiParetoGofStatistic(shape=shape, scale=scale)
     result = stat.execute_statistic(data)
-    assert np.isfinite(result)
+    if min(data) == scale:
+        assert result == np.inf
+    else:
+        assert np.isfinite(result)
     assert result > 0
 
 
 def test_obradovic_pareto_criterion_code():
-    assert "OJM_Integral_PARETO_GOODNESS_OF_FIT" == ConcreteObradovicParetoGofStatistic().code()
+    assert "OJM_Integral_PARETO_GOODNESS_OF_FIT" == ObradovicParetoGofStatistic().code()
 
 
 def test_obradovic_pareto_finite():
     np.random.seed(42)
     sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50)
-    stat = ConcreteObradovicParetoGofStatistic(shape=2.0, scale=1.0)
+    stat = ObradovicParetoGofStatistic(scale=1.0)
     result = stat.execute_statistic(sample)
     assert np.isfinite(result)
 
@@ -283,19 +271,19 @@ def test_obradovic_pareto_finite():
 def test_obradovic_pareto_small_sample():
     np.random.seed(42)
     sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=5)
-    stat = ConcreteObradovicParetoGofStatistic(shape=2.0, scale=1.0)
+    stat = ObradovicParetoGofStatistic(scale=1.0)
     result = stat.execute_statistic(sample)
     assert np.isfinite(result)
 
 
 def test_obradovic_pareto_too_small_sample():
-    stat = ConcreteObradovicParetoGofStatistic(shape=2.0, scale=1.0)
+    stat = ObradovicParetoGofStatistic(scale=1.0)
     with pytest.raises(ValueError, match="At least 2 observations are required"):
         stat.execute_statistic([1.0])
 
 
 def test_obradovic_pareto_non_positive_values():
-    stat = ConcreteObradovicParetoGofStatistic(shape=2.0, scale=1.0)
+    stat = ObradovicParetoGofStatistic(scale=1.0)
     with pytest.raises(ValueError, match="Sample values must be strictly positive"):
         stat.execute_statistic([0, 1, 2, 3, 4])
     with pytest.raises(ValueError, match="Sample values must be strictly positive"):
@@ -303,31 +291,31 @@ def test_obradovic_pareto_non_positive_values():
 
 
 def test_greenwood_pareto_criterion_code():
-    assert "Greenwood_PARETO_GOODNESS_OF_FIT" == ConcreteGreenwoodParetoGofStatistic().code()
+    assert "Greenwood_PARETO_GOODNESS_OF_FIT" == GreenwoodParetoGofStatistic().code()
 
 
 def test_greenwood_pareto_range():
     np.random.seed(42)
     sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50)
-    stat = ConcreteGreenwoodParetoGofStatistic(shape=2.0, scale=1.0)
+    stat = GreenwoodParetoGofStatistic()
     result = stat.execute_statistic(sample)
     assert 0 <= result <= 1
 
 
 def test_greenwood_pareto_constant_sample():
-    stat = ConcreteGreenwoodParetoGofStatistic(shape=2.0, scale=1.0)
-    result = stat.execute_statistic(np.ones(10) * 2.0)
-    assert result == 1.0
+    stat = GreenwoodParetoGofStatistic()
+    with pytest.raises(ValueError, match="nonconstant"):
+        stat.execute_statistic(np.ones(10) * 2.0)
 
 
 def test_greenwood_pareto_too_small_sample():
-    stat = ConcreteGreenwoodParetoGofStatistic(shape=2.0, scale=1.0)
-    with pytest.raises(ValueError, match="At least 2 observations are required"):
+    stat = GreenwoodParetoGofStatistic()
+    with pytest.raises(ValueError, match="At least 3 observations are required"):
         stat.execute_statistic([1.0])
 
 
 def test_greenwood_pareto_non_positive_values():
-    stat = ConcreteGreenwoodParetoGofStatistic(shape=2.0, scale=1.0)
+    stat = GreenwoodParetoGofStatistic()
     with pytest.raises(ValueError, match="Sample values must be strictly positive"):
         stat.execute_statistic([0, 1, 2, 3, 4])
     with pytest.raises(ValueError, match="Sample values must be strictly positive"):
@@ -335,13 +323,13 @@ def test_greenwood_pareto_non_positive_values():
 
 
 def test_lequesne_pareto_criterion_code():
-    assert "Lequesne_KL_PARETO_GOODNESS_OF_FIT" == ConcreteLequesneKlParetoGofStatistic().code()
+    assert "Lequesne_KL_PARETO_GOODNESS_OF_FIT" == LequesneKlParetoGofStatistic().code()
 
 
 def test_lequesne_pareto_non_negative():
     np.random.seed(42)
     sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50)
-    stat = ConcreteLequesneKlParetoGofStatistic(shape=2.0, scale=1.0)
+    stat = LequesneKlParetoGofStatistic()
     result = stat.execute_statistic(sample)
     assert result >= 0
 
@@ -349,7 +337,7 @@ def test_lequesne_pareto_non_negative():
 def test_lequesne_pareto_custom_window():
     np.random.seed(42)
     sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50)
-    stat = ConcreteLequesneKlParetoGofStatistic(shape=2.0, scale=1.0)
+    stat = LequesneKlParetoGofStatistic()
 
     result_default = stat.execute_statistic(sample)
     result_custom = stat.execute_statistic(sample, m=5)
@@ -360,13 +348,13 @@ def test_lequesne_pareto_custom_window():
 
 
 def test_lequesne_pareto_small_sample():
-    stat = ConcreteLequesneKlParetoGofStatistic(shape=2.0, scale=1.0)
-    with pytest.raises(ValueError, match="requires n >= 4"):
+    stat = LequesneKlParetoGofStatistic()
+    with pytest.raises(ValueError, match="At least 4 observations"):
         stat.execute_statistic([1.0, 2.0, 3.0])
 
 
 def test_lequesne_pareto_non_positive_values():
-    stat = ConcreteLequesneKlParetoGofStatistic(shape=2.0, scale=1.0)
+    stat = LequesneKlParetoGofStatistic()
     with pytest.raises(ValueError, match="Sample values must be strictly positive"):
         stat.execute_statistic([0, 1, 2, 3, 4])
     with pytest.raises(ValueError, match="Sample values must be strictly positive"):
@@ -381,11 +369,11 @@ def test_all_pareto_statistics_run():
         KolmogorovSmirnovParetoGofStatistic(shape=2.0, scale=1.0),
         AndersonDarlingParetoGofStatistic(shape=2.0, scale=1.0),
         CramerVonMisesParetoGofStatistic(shape=2.0, scale=1.0),
-        LillieforsParetoGofStatistic(shape=2.0, scale=1.0),
+        LillieforsParetoGofStatistic(),
         MinToshiyukiParetoGofStatistic(shape=2.0, scale=1.0),
-        ConcreteObradovicParetoGofStatistic(shape=2.0, scale=1.0),
-        ConcreteGreenwoodParetoGofStatistic(shape=2.0, scale=1.0),
-        ConcreteLequesneKlParetoGofStatistic(shape=2.0, scale=1.0),
+        ObradovicParetoGofStatistic(scale=1.0),
+        GreenwoodParetoGofStatistic(),
+        LequesneKlParetoGofStatistic(),
     ]
 
     for stat in statistics:
@@ -401,7 +389,7 @@ def test_pareto_statistics_with_different_parameters():
         KolmogorovSmirnovParetoGofStatistic(shape=3.0, scale=2.0),
         AndersonDarlingParetoGofStatistic(shape=3.0, scale=2.0),
         CramerVonMisesParetoGofStatistic(shape=3.0, scale=2.0),
-        ConcreteGreenwoodParetoGofStatistic(shape=3.0, scale=2.0),
+        GreenwoodParetoGofStatistic(),
     ]
 
     for stat in statistics:
@@ -409,10 +397,10 @@ def test_pareto_statistics_with_different_parameters():
         assert np.isfinite(result), f"{stat.code()} returned non-finite value"
 
 
-def test_pareto_power_against_alternatives():
+def test_pareto_distance_for_one_supported_alternative_sample():
     np.random.seed(42)
     pareto_data = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=1000)
-    normal_data = np.random.normal(2, 1, size=1000)
+    normal_data = 1 + np.abs(np.random.normal(2, 1, size=1000))
 
     stat = KolmogorovSmirnovParetoGofStatistic(shape=2.0, scale=1.0)
 

@@ -33,6 +33,12 @@ def get_hypothesis_generator(
         raise ValueError("No schema-aware sampler for this distribution")
     distribution = statistic.distribution()
     params = statistic.hypothesis().parameters()
+    if distribution == DistributionType.PARETO:
+        raise ValueError(
+            "Pareto requires external calibration; no built-in generator exists. "
+            "For fitted KL specify the simulation shape and window m; "
+            "refit unknown parameters with execute_statistic on every replicate"
+        )
     if distribution == DistributionType.INVERSE_GAMMA:
         raise ValueError(
             "Inverse Gamma requires external calibration; no built-in generator exists. "

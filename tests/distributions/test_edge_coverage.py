@@ -212,11 +212,11 @@ def test_empty_graph_independence_statistic():
 
 
 def test_pareto_kl_spacing_fallbacks():
-    with pytest.raises(ValueError, match="n >= 4"):
-        pareto.LequesneKlParetoGofStatistic.execute_statistic(object(), [1.0, 2.0, 3.0])
-    assert np.isscalar(
-        pareto.LequesneKlParetoGofStatistic.execute_statistic(object(), [1.0, 1.0, 1.0, 1.0], m=10)
-    )
+    statistic = pareto.LequesneKlParetoGofStatistic()
+    with pytest.raises(ValueError, match="At least 4"):
+        statistic.execute_statistic([1.0, 2.0, 3.0])
+    with pytest.raises(ValueError, match="nonconstant"):
+        statistic.execute_statistic([1.0, 1.0, 1.0, 1.0], m=10)
 
 
 def test_weibull_family_base_paths(monkeypatch):
