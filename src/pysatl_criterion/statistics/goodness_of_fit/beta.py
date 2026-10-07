@@ -3,7 +3,7 @@
 Samples must be real-valued; masked observations are rejected, not discarded.
 
 KS, AD, CvM, Watson, Kuiper and Pearson use specified shape parameters.
-Lilliefors fits both shapes inside execute_statistic, returning a scalar KS distance.
+Lilliefors and Ebner-Liebenberg fit both shapes inside execute_statistic.
 MB, SK, Ratio, Entropy and Mode are locally defined discrepancies: no scientific
 source for their exact formulas was identified. Their docstrings state their
 mathematical meaning without attributing them to unrelated published tests.
@@ -14,6 +14,7 @@ from abc import ABC
 import numpy as np
 import scipy.stats as scipy_stats
 from scipy.optimize import minimize_scalar
+from scipy.special import betainc, betaln
 from typing_extensions import override
 
 from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
@@ -54,6 +55,18 @@ class AbstractBetaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
         if np.any((rvs < 0) | (rvs > 1)):
             raise ValueError("Beta distribution values must be in the interval [0, 1]")
         return rvs
+
+    @classmethod
+    def _fit(cls, rvs):
+        sample = cls._validate_rvs(rvs, min_size=2)
+        if np.any((sample <= 0) | (sample >= 1)):
+            raise ValueError("Beta maximum likelihood requires observations strictly in (0, 1)")
+        if np.ptp(sample) == 0:
+            raise ValueError("Beta maximum likelihood requires a nonconstant sample")
+        alpha, beta, _, _ = scipy_stats.beta.fit(sample, floc=0, fscale=1)
+        if not np.isfinite(alpha) or not np.isfinite(beta) or alpha <= 0 or beta <= 0:
+            raise ValueError("Beta maximum likelihood did not produce finite positive shapes")
+        return sample, float(alpha), float(beta)
 
     @staticmethod
     @override
@@ -429,18 +442,6 @@ class LillieforsTestBetaGofStatistic(AbstractBetaGofStatistic, LillieforsTest):
     @classmethod
     def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
         return (HypothesisSupport(Beta.DEFAULT, frozenset()),)
-
-    @classmethod
-    def _fit(cls, rvs):
-        sample = cls._validate_rvs(rvs, min_size=2)
-        if np.any((sample <= 0) | (sample >= 1)):
-            raise ValueError("Beta maximum likelihood requires observations strictly in (0, 1)")
-        if np.ptp(sample) == 0:
-            raise ValueError("Beta maximum likelihood requires a nonconstant sample")
-        alpha, beta, _, _ = scipy_stats.beta.fit(sample, floc=0, fscale=1)
-        if not np.isfinite(alpha) or not np.isfinite(beta) or alpha <= 0 or beta <= 0:
-            raise ValueError("Beta maximum likelihood did not produce finite positive shapes")
-        return sample, float(alpha), float(beta)
 
     @staticmethod
     @override
@@ -1342,3 +1343,76 @@ class ModeBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
         statistic = np.sqrt(n) * np.abs(sample_mode - theoretical_mode)
 
         return statistic
+
+
+class EbnerLiebenbergBetaGofStatistic(AbstractBetaGofStatistic):
+    """Conditional-moment Beta goodness-of-fit statistic of Ebner and Liebenberg.
+
+    Parameters
+    ----------
+    parameters : ParameterValues
+        Beta.DEFAULT.parse({}); both shapes unknown, support fixed at [0, 1].
+
+    Notes
+    -----
+    Fit a and b by maximum likelihood on each call. For c_j=(a+b)*x_j-a,
+    compute T_n=n*integral_0^1 (mean_j(c_j*1{x_j>=t})
+    - t**a*(1-t)**b/B(a,b))**2 dt, using equation (3) of [1]_.
+    Sorting and cumulative sums evaluate the pairwise minimum term in
+    O(n log n) time and O(n) space. Beta ratios use log beta functions.
+
+    Reject for large values. The null law depends on the unknown shapes.
+    Calibrate by parametric bootstrap from the fitted Beta distribution,
+    refitting both shapes for every replicate (Section 2 of [1]_).
+    This class returns only the statistic, without p-values or fitted state.
+
+    References
+    ----------
+    .. [1] B. Ebner and S. C. Liebenberg, "On a new test of fit to the beta
+       distribution" (2020), equation (3). https://arxiv.org/abs/2009.13995
+
+    Examples
+    --------
+    >>> statistic = EbnerLiebenbergBetaGofStatistic(Beta.DEFAULT.parse({}))
+    >>> statistic.execute_statistic([0.1, 0.2, 0.3, 0.5]) >= 0
+    True
+    """
+
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (HypothesisSupport(Beta.DEFAULT, frozenset()),)
+
+    @staticmethod
+    @override
+    def short_code():
+        return "EL"
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
+    @override
+    def execute_statistic(self, rvs, **kwargs) -> float:
+        """Return T_n for a finite, nonconstant sample in (0, 1), n >= 2.
+
+        Invalid samples raise ValueError; MLE solver failures propagate.
+        Additional keyword arguments are ignored for interface compatibility.
+        """
+        sample, a, b = self._fit(rvs)
+        x = np.sort(sample)
+        n = x.size
+        c = (a + b) * x - a
+        # Integral of the squared empirical tail sum, equivalent to
+        # sum_{i,j} c_i*c_j*min(x_i,x_j), without a quadratic matrix.
+        tails = np.cumsum(c[::-1])[::-1]
+        first = np.dot(np.diff(np.r_[0.0, x]), tails**2) / n
+        ratio = (a / (a + b)) * (b / (a + b + 1))
+        second = 2 * ratio * np.dot(c, betainc(a + 1, b + 1, x))
+        third = n * np.exp(betaln(2 * a + 1, 2 * b + 1) - 2 * betaln(a, b))
+        value = first - second + third
+        if not np.isfinite(value):
+            raise ValueError("Beta statistic could not be evaluated with finite precision")
+        tolerance = 64 * np.finfo(float).eps * (abs(first) + abs(second) + abs(third))
+        if value < -tolerance:
+            raise ValueError("Beta statistic lost numerical precision")
+        return float(max(0.0, value))

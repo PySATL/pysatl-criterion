@@ -64,6 +64,7 @@ nav:
                 - Anderson-Darling: criteria/goodness-of-fit/beta/anderson_darling_beta_criterion.md
                 - Cramer-von Mises: criteria/goodness-of-fit/beta/cvm_beta_criterion.md
                 - Lilliefors: criteria/goodness-of-fit/beta/lilliefors_beta_criterion.md
+                - Ebner-Liebenberg: criteria/goodness-of-fit/beta/ebner_liebenberg_beta_criterion.md
                 - Pearson chi-squared: criteria/goodness-of-fit/beta/chi2_pearson_beta_criterion.md
                 - Watson: criteria/goodness-of-fit/beta/watson_beta_criterion.md
                 - Kuiper: criteria/goodness-of-fit/beta/kuiper_beta_criterion.md
