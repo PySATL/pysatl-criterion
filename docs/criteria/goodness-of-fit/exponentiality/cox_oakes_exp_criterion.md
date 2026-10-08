@@ -73,3 +73,14 @@ print(value)
 Lev Golofastov
 
 See the [current audit and migration notes](../../../exponent-statistics-audit.md).
+
+## Scope and verification (2026-10-08)
+
+The returned score is unstandardized. Its asymptotically standard normal
+version is sqrt(6/n)*CO/pi, not CO itself. Both tails are used.
+This score contrast is not universally consistent: alternatives with
+E[(X/E(X)-1)*log(X/E(X))]=1 are not separated by its population contrast.
+Monte Carlo refits the mean in every replicate; n=500 validation gave .0474
+at nominal .05. Primary full-text limitations are recorded in the audit.
+
+[Independent audit and outstanding checks](../../../exponential-verification.md).

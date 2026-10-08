@@ -82,3 +82,13 @@ print(value)
 Lev Golofastov
 
 See the [current audit and migration notes](../../../exponent-statistics-audit.md).
+
+## Scope and verification (2026-10-08)
+
+The original Deshpande (1983) procedure targets **IFRA** (increasing failure
+rate average) alternatives, DOI https://doi.org/10.1093/biomet/70.2.514.
+It is not an omnibus exponentiality procedure. The current upper-tail contrast
+and its exact finite-n normalization still need comparison with the complete
+primary text; calibration sanity alone does not close this gate.
+
+[Independent audit and outstanding checks](../../../exponential-verification.md).

@@ -13,7 +13,7 @@ y=x/mean(x). The implemented formula is:
     sqrt(48*n) * (mean(exp(-y)) - 1/2). This is a signed
     Laplace-transform contrast, not an integrated squared distance.
 
-Reject in the upper tail. This is a directional test; it is not
+Reject in both tails. This signed contrast is not
 claimed consistent against every nonexponential alternative.
 Use independent continuous, uncensored observations. Rounded or tied
 data require calibration of the observation process. No parameters
@@ -78,3 +78,19 @@ print(value)
 Lev Golofastov
 
 See the [current audit and migration notes](../../../exponent-statistics-audit.md).
+
+## Calibration correction (2026-10-08)
+
+The signed statistic now uses both tails. Its numerical value is unchanged;
+previous one-sided p-values and rejection decisions must be recomputed.
+See [independent verification](../../../exponential-verification.md).
+
+## Scope and verification (2026-10-08)
+
+The implemented EP is asymptotically N(0,1). Both tails are used.
+Consistency is established for monotone-hazard alternatives under the paper's
+continuity and finite-mean conditions, not universally. Null validation with
+n=500 and 5000 replicates gave a .0502 rejection rate at nominal .05.
+See the audit for the accessible review versus unavailable primary full text.
+
+[Independent audit and outstanding checks](../../../exponential-verification.md).

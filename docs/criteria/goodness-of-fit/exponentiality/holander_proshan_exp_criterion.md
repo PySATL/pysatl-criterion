@@ -75,3 +75,14 @@ print(value)
 Lev Golofastov
 
 See the [current audit and migration notes](../../../exponent-statistics-audit.md).
+
+## Scope and verification (2026-10-08)
+
+The original Hollander–Proschan (1972), *Testing Whether New is Better than
+Used*, targets the **NBU** reliability class. The implemented contrast estimates
+P(X1>X2+X3), whose increase corresponds to the opposite, NWU direction:
+under NBU, integrating S(y+z)<=S(y)S(z) against dF(y)dF(z) gives a value <=1/4.
+The current right-tail implementation must not be presented as the original
+NBU test or an omnibus test. Its author convention remains unverified.
+
+[Independent audit and outstanding checks](../../../exponential-verification.md).

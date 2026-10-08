@@ -1,7 +1,7 @@
 """Exponential goodness-of-fit statistics for observations with known origin zero.
 
-See ``docs/exponent-statistics-audit.md`` for source verification, calibration
-migration and limitations. Composite statistics are invariant under positive
+See ``docs/exponential-verification.md`` for current verification, calibration
+migration and unresolved source limitations. Composite statistics are invariant under positive
 rescaling; Monte Carlo calibration may therefore use Exp(1).
 """
 
@@ -26,8 +26,12 @@ from pysatl_criterion.statistics.alternative import (
     TwoSidedAlternative,
 )
 from pysatl_criterion.statistics.goodness_of_fit.common import (
+    ADStatistic,
+    Chi2Statistic,
     CrammerVonMisesStatistic,
     KSStatistic,
+    KuiperStatistic,
+    WatsonStatistic,
 )
 from pysatl_criterion.statistics.goodness_of_fit.graph_goodness_of_fit import (
     AbstractGraphTestStatistic,
@@ -42,6 +46,8 @@ from pysatl_criterion.statistics.goodness_of_fit.graph_goodness_of_fit import (
 
 def _sample(rvs, minimum=2, *, rescale=True, positive_total=True):
     """Validate a sample and return an independent, optionally rescaled copy."""
+    if np.ma.isMaskedArray(rvs) and np.any(np.ma.getmaskarray(rvs)):
+        raise ValueError("rvs must not contain masked observations")
     if np.iscomplexobj(rvs):
         raise ValueError("rvs must be real")
     try:
@@ -179,7 +185,7 @@ class EppsPulleyExponentialityGofStatistic(AbstractExponentialityGofStatistic):
         sqrt(48*n) * (mean(exp(-y)) - 1/2). This is a signed
         Laplace-transform contrast, not an integrated squared distance.
 
-    Reject in the upper tail. This is a directional test; it is not
+    Reject in both tails. This signed contrast is not
     claimed consistent against every nonexponential alternative.
     Use independent continuous, uncensored observations. Rounded or tied
     data require calibration of the observation process. No parameters
@@ -206,7 +212,7 @@ class EppsPulleyExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     @override
     def alternative(self) -> Alternative:
-        return RightAlternative()
+        return TwoSidedAlternative()
 
     @staticmethod
     @override
@@ -725,12 +731,17 @@ class CramerVonMisesExponentialityGofStatistic(
 
     Notes
     -----
-    H0 is Exp(lam) with known origin zero and fixed rate lam.
+    H0 is Exp(lam) with known origin zero. An empty parameter mapping
+    estimates the rate as 1/mean(x) on every call; otherwise lam is fixed.
     Write n for sample size, x_(i) for sorted observations, and
     y=x/mean(x). The implemented formula is::
 
         1/(12*n) + sum((F(x_(i))-(2*i-1)/(2*n))**2),
-        where F(x) = 1-exp(-lam*x). No parameters are estimated.
+        where F(x) = 1-exp(-lam*x), with fixed or fitted rate.
+
+    Fitted-rate calibration must refit every replicate; ordinary CvM tables
+    do not apply. Baringhaus & Henze (1991), p. 557, gives this fitted form.
+    DOI: 10.1007/BF00053372.
 
     Reject in the upper tail. Calibrate the exact statistic returned here.
     Use independent continuous, uncensored observations. Rounded or tied
@@ -760,7 +771,10 @@ class CramerVonMisesExponentialityGofStatistic(
 
     @classmethod
     def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
-        return (HypothesisSupport(Distribution.DEFAULT, frozenset({Distribution.RATE})),)
+        return (
+            HypothesisSupport(Distribution.DEFAULT, frozenset({Distribution.RATE})),
+            HypothesisSupport(Distribution.DEFAULT, frozenset()),
+        )
 
     @override
     def alternative(self) -> Alternative:
@@ -800,10 +814,12 @@ class CramerVonMisesExponentialityGofStatistic(
             Unsupported execution keyword arguments.
         """
         _settings(kwargs)
-        rvs = _sample(rvs, 1, rescale=False, positive_total=False)
+        fixed = bool(self.hypothesis().parameters())
+        rvs = _sample(rvs, 1 if fixed else 2, rescale=not fixed, positive_total=not fixed)
         rvs = np.sort(rvs)
         with np.errstate(over="ignore", under="ignore"):
-            cdf_vals = -np.expm1(-self.lam * rvs)
+            y = self.lam * rvs if fixed else rvs / rvs.mean()
+            cdf_vals = -np.expm1(-y)
         return float(CrammerVonMisesStatistic.do_execute_statistic(self, rvs, cdf_vals))
 
 
@@ -1952,7 +1968,7 @@ class MoranExponentialityGofStatistic(AbstractExponentialityGofStatistic):
         statistic. It is not standardized to unit variance. Zero observations
         give negative infinity.
 
-    Reject in the upper tail. This is a directional test; it is not
+    Reject in both tails. This signed contrast is not
     claimed consistent against every nonexponential alternative.
     Use independent continuous, uncensored observations. Rounded or tied
     data require calibration of the observation process. No parameters
@@ -1975,7 +1991,7 @@ class MoranExponentialityGofStatistic(AbstractExponentialityGofStatistic):
 
     @override
     def alternative(self) -> Alternative:
-        return RightAlternative()
+        return TwoSidedAlternative()
 
     @staticmethod
     @override
@@ -3245,3 +3261,209 @@ class LillieforsExponentialityGofStatistic(AbstractExponentialityGofStatistic, K
         x = np.sort(_sample(rvs))
         cdf = -np.expm1(-x / x.mean())
         return float(KSStatistic.do_execute_statistic(self, x, cdf))
+
+
+class AbstractExponentialEDFStatistic(AbstractExponentialityGofStatistic, ABC):
+    """Shared sample transformation for specified and fitted exponential EDF tests."""
+
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (
+            HypothesisSupport(Distribution.DEFAULT, frozenset()),
+            HypothesisSupport(Distribution.DEFAULT, frozenset({Distribution.RATE})),
+        )
+
+    def _scaled_ordered(self, rvs):
+        fixed = bool(self.hypothesis().parameters())
+        x = np.sort(_sample(rvs, 1 if fixed else 2, rescale=not fixed, positive_total=not fixed))
+        with np.errstate(over="ignore", under="ignore"):
+            return x * self.lam if fixed else x / x.mean()
+
+
+class AndersonDarlingExponentialityGofStatistic(AbstractExponentialEDFStatistic, ADStatistic):
+    """Unmodified A², known or fitted rate; shared AD kernel.
+
+    Anderson & Darling (1952), DOI 10.1214/aoms/1177729437.
+    The fitted statistic is also given in Baringhaus & Henze (1991), p. 558.
+    Reject right. Zero observations yield +inf (the mathematical boundary).
+    Simple-null tables must not be used after fitting the mean.
+    """
+
+    @staticmethod
+    def short_code():
+        return "AD"
+
+    def execute_statistic(self, rvs, **kwargs):
+        _settings(kwargs)
+        y = self._scaled_ordered(rvs)
+        with np.errstate(divide="ignore", under="ignore"):
+            return float(ADStatistic.do_execute_statistic(self, y, np.log(-np.expm1(-y)), -y))
+
+
+class WatsonExponentialityGofStatistic(AbstractExponentialEDFStatistic, WatsonStatistic):
+    """Watson U² on the exponential probability scale; right tail.
+
+    Watson (1961), DOI 10.1093/biomet/48.1-2.109. Both parameter modes are
+    supported; each requires its own finite-sample Monte Carlo calibration.
+    """
+
+    @staticmethod
+    def short_code():
+        return "W"
+
+    def execute_statistic(self, rvs, **kwargs):
+        _settings(kwargs)
+        return WatsonStatistic.do_execute_statistic(self, -np.expm1(-self._scaled_ordered(rvs)))
+
+
+class KuiperExponentialityGofStatistic(AbstractExponentialEDFStatistic, KuiperStatistic):
+    """Unscaled V=D+ + D-; right tail, known or fitted exponential rate.
+
+    Kuiper (1960), DOI 10.1016/S1385-7258(60)50006-0. No finite-n correction.
+    """
+
+    @staticmethod
+    def short_code():
+        return "KUIPER"
+
+    def execute_statistic(self, rvs, **kwargs):
+        _settings(kwargs)
+        return KuiperStatistic.do_execute_statistic(self, -np.expm1(-self._scaled_ordered(rvs)))
+
+
+class Chi2PearsonExponentialityGofStatistic(AbstractExponentialEDFStatistic, Chi2Statistic):
+    """Pearson X² in k equiprobable exponential bins, including both support tails.
+
+    Pearson (1900), DOI 10.1080/14786440009463897. Fixed rate gives asymptotic
+    chi²(k-1). With ungrouped MLE and moving bins, chi²(k-2) is NOT asserted;
+    use Monte Carlo which repeats the fit and bin construction. Fixed k is
+    not universally consistent. Default k=5; sparse expected counts require MC.
+    """
+
+    def __init__(self, parameters: ParameterValues, *, bins=5):
+        super().__init__(parameters)
+        if isinstance(bins, bool) or not isinstance(bins, (int, np.integer)) or bins < 2:
+            raise ValueError("bins must be an integer >= 2")
+        self.bins = int(bins)
+
+    @staticmethod
+    def short_code():
+        return "CHI2"
+
+    def _validate_storage_calibration(self):
+        if self.bins != 5:
+            raise ValueError("Stored calibration omits bins; use fresh Monte Carlo")
+
+    def execute_statistic(self, rvs, **kwargs):
+        _settings(kwargs)
+        y = self._scaled_ordered(rvs)
+        cuts = -np.log1p(-np.arange(1, self.bins) / self.bins)
+        counts = np.bincount(np.searchsorted(cuts, y, side="right"), minlength=self.bins)
+        expected = np.full(self.bins, len(y) / self.bins)
+        return float(Chi2Statistic.do_execute_statistic(self, counts, expected, 1))
+
+
+class GreenwoodExponentialityGofStatistic(AbstractExponentialityGofStatistic):
+    """G=sum(x_i²)/sum(x_i)²; both tails, unknown rate.
+
+    Greenwood (1946), The Statistical Study of Infectious Diseases, HMSO
+    (no DOI assigned). See also Moran (1947), DOI 10.2307/2983572, and
+    Arendarczyk et al. (2023), DOI 10.57805/revstat.v21i3.357, (1.4)-(1.5).
+    Normalized exponential observations have the Dirichlet
+    law of uniform spacings; do not replace observations by ordered spacings.
+    E(G)=2/(n+1), Var(G)=4(n-1)/((n+1)²(n+2)(n+3)). This moment contrast is
+    not universally consistent. sqrt(n)*(n*G-2)/2 tends to N(0,1).
+    """
+
+    @staticmethod
+    def short_code():
+        return "GREENWOOD"
+
+    def alternative(self):
+        return TwoSidedAlternative()
+
+    def execute_statistic(self, rvs, **kwargs):
+        _settings(kwargs)
+        x = _sample(rvs)
+        p = x / x.sum()
+        return float(p @ p)
+
+
+class AbstractTunedExponentialStatistic(AbstractExponentialityGofStatistic, ABC):
+    """A fixed, prespecified tuning parameter is part of the calibration."""
+
+    def __init__(self, parameters: ParameterValues, *, a=1.0):
+        super().__init__(parameters)
+        self.a = _scalar(a, "a")
+        if not 0 < self.a <= 100:
+            raise ValueError("Supported numerical range is 0 < a <= 100")
+
+    def alternative(self):
+        return RightAlternative()
+
+    def _validate_storage_calibration(self):
+        if self.a != 1:
+            raise ValueError("Stored calibration omits a; use fresh Monte Carlo")
+
+
+class BaringhausHenzeELTExponentialityGofStatistic(AbstractTunedExponentialStatistic):
+    """Baringhaus & Henze (1991), pp. 552-553, empirical Laplace ODE test.
+
+    DOI 10.1007/BF00053372. T=n*integral(((1+t)L'_n(t)+L_n(t))² exp(-a*t),
+    t=0..inf), L_n(t)=mean(exp(-t*x/mean(x))). Theory allows a>0; this
+    implementation restricts a<=100 to limit cancellation in the pair kernel.
+    Weighted chi-square series null, not normal or a single chi-square law.
+    Right tail; consistent for alternatives with positive finite mean.
+    O(n²) time and O(n) auxiliary memory. No state retained from fitting.
+    """
+
+    @staticmethod
+    def short_code():
+        return "BH_ELT"
+
+    def execute_statistic(self, rvs, **kwargs):
+        _settings(kwargs)
+        x = _sample(rvs)
+        y = x / x.mean()
+        total = np.longdouble(0)
+        for v in y:
+            inv = 1 / (v + y + self.a)
+            kernel = ((1 - v) * (1 - y) + (2 * v * y - v - y) * inv + 2 * v * y * inv**2) * inv
+            total += np.sum(kernel, dtype=np.longdouble)
+        result = float(total / len(y))
+        if not np.isfinite(result):
+            raise ValueError("Statistic outside representable numerical range")
+        return max(0.0, result)
+
+
+class BaringhausHenzeBHCExponentialityGofStatistic(AbstractTunedExponentialStatistic):
+    """Generalized mean residual life statistic, a>0 (a=1 is BH CvM).
+
+    Baringhaus & Henze (2008), DOI 10.1016/j.spl.2007.09.060; independent
+    primary derivation: Ebner (2023), arXiv:2209.05153v2, (4), Remark 1.1.
+    T=n*integral(mean((Y-t-1)*1{Y>t})²*exp(-a*t), t=0..inf).
+    Piecewise polynomial integration avoids a cancelling n-by-n sum.
+    No separate class for the identical a=1 statistic. Positive finite mean
+    alternatives; right tail; Gaussian quadratic functional null.
+    """
+
+    @staticmethod
+    def short_code():
+        return "BH_BHC"
+
+    def execute_statistic(self, rvs, **kwargs):
+        _settings(kwargs)
+        x = _sample(rvs)
+        y = np.sort(x / x.mean())
+        left = np.r_[0.0, y[:-1]]
+        width = y - left
+        count = np.arange(len(y), 0, -1)
+        tail = np.cumsum(y[::-1])[::-1]
+        q = tail - count * (left + 1)
+        z = -self.a * width
+        # Integral_0^h u^k exp(-a*u) du = h^(k+1)/(k+1)*1F1(k+1;k+2;-a*h).
+        m0 = width * scipy_special.hyp1f1(1, 2, z)
+        m1 = width**2 / 2 * scipy_special.hyp1f1(2, 3, z)
+        m2 = width**3 / 3 * scipy_special.hyp1f1(3, 4, z)
+        terms = np.exp(-self.a * left) * (q * q * m0 - 2 * q * count * m1 + count * count * m2)
+        return float(np.sum(np.maximum(terms, 0)) / len(y))

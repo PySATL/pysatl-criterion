@@ -13,6 +13,14 @@ nav:
     - Criteria:
         - Goodness-of-fit:
             - Exponentiality:
+                - Independent verification: exponential-verification.md
+                - Anderson–Darling: criteria/goodness-of-fit/exponentiality/anderson_darling_exp_criterion.md
+                - Watson U²: criteria/goodness-of-fit/exponentiality/watson_exp_criterion.md
+                - Kuiper: criteria/goodness-of-fit/exponentiality/kuiper_exp_criterion.md
+                - Pearson chi-square: criteria/goodness-of-fit/exponentiality/pearson_exp_criterion.md
+                - Greenwood: criteria/goodness-of-fit/exponentiality/greenwood_exp_criterion.md
+                - Baringhaus–Henze empirical Laplace transform: criteria/goodness-of-fit/exponentiality/baringhaus_henze_elt_exp_criterion.md
+                - Generalized Baringhaus–Henze BHC: criteria/goodness-of-fit/exponentiality/baringhaus_henze_bhc_exp_criterion.md
                 - Lilliefors: criteria/goodness-of-fit/exponentiality/lilliefors_exp_criterion.md
                 - Epps and Pulley: criteria/goodness-of-fit/exponentiality/epps_pulley_exp_criterion.md
                 - Kolmogorov-Smirnov: criteria/goodness-of-fit/exponentiality/kolmogorov_smirnov_exp_criterion.md

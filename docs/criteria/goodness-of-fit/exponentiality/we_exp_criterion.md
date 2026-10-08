@@ -75,3 +75,12 @@ print(value)
 Lev Golofastov
 
 See the [current audit and migration notes](../../../exponent-statistics-audit.md).
+
+## Scope and verification (2026-10-08)
+
+This statistic is an affine transform of Greenwood at each fixed n:
+WE=(n-1)*(n*G-1)/n². The historic WE class retains its right-tail decision;
+Greenwood uses both tails. They must not be counted as two independent
+statistical families. WE detects excess variation only, not all alternatives.
+
+[Independent audit and outstanding checks](../../../exponential-verification.md).

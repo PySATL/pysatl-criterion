@@ -29,6 +29,15 @@ FITTED = {
 }
 
 
+EXPONENTIAL_BOTH_MODES = {
+    "AndersonDarlingExponentialityGofStatistic",
+    "CramerVonMisesExponentialityGofStatistic",
+    "WatsonExponentialityGofStatistic",
+    "KuiperExponentialityGofStatistic",
+    "Chi2PearsonExponentialityGofStatistic",
+}
+
+
 def expected_fixed(criterion):
     """Independent inventory of the implemented null hypotheses."""
     name = criterion.__name__
@@ -66,6 +75,8 @@ def test_shared_constructor_checks_every_fixed_parameter_subset(criterion):
         for subset in combinations(names, count):
             values = schema.parse({name: defaults[name] for name in subset})
             supported = set(subset) == expected
+            if criterion.__name__ in EXPONENTIAL_BOTH_MODES:
+                supported = set(subset) in (set(), {"lam"})
             assert criterion.supports_hypothesis(GoodnessOfFitHypothesis(values)) is supported
             if supported:
                 statistic = criterion(values)

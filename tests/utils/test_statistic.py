@@ -69,6 +69,13 @@ from pysatl_criterion.utils.statistic import (
         (
             "exponential",
             [
+                "AD",
+                "W",
+                "KUIPER",
+                "CHI2",
+                "GREENWOOD",
+                "BH_ELT",
+                "BH_BHC",
                 "LILLIE",
                 "INDEPENDENCENUMBER",
                 "HM",

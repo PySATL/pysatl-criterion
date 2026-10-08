@@ -4,11 +4,7 @@ import numpy as np
 from scipy import special
 from typing_extensions import override
 
-from pysatl_criterion.statistics.alternative import (
-    Alternative,
-    AlternativeType,
-    RightAlternative,
-)
+from pysatl_criterion.statistics.alternative import Alternative, AlternativeType, RightAlternative
 from pysatl_criterion.statistics.statistic import AbstractStatistic
 
 
@@ -196,3 +192,27 @@ class MinToshiyukiStatistic(AbstractStatistic, ABC):
 
         s = np.sum(d * np.sqrt(fi))
         return s / np.sqrt(n)
+
+
+class WatsonStatistic(AbstractStatistic, ABC):
+    """Watson (1961), DOI 10.1093/biomet/48.1-2.109; sorted CDF input."""
+
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
+    def do_execute_statistic(self, cdf_vals):
+        n = len(cdf_vals)
+        residual = np.asarray(cdf_vals) - (np.arange(n) + 0.5) / n
+        return float(1 / (12 * n) + np.sum((residual - residual.mean()) ** 2))
+
+
+class KuiperStatistic(AbstractStatistic, ABC):
+    """Kuiper (1960), DOI 10.1016/S1385-7258(60)50006-0; unscaled D+ + D-."""
+
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
+    def do_execute_statistic(self, cdf_vals):
+        n = len(cdf_vals)
+        residual = np.asarray(cdf_vals) - np.arange(n) / n
+        return float(1 / n + np.ptp(residual))

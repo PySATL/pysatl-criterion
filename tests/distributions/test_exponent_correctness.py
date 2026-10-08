@@ -22,10 +22,17 @@ from pysatl_criterion.utils.generator import get_hypothesis_generator
 from tests.parameter_cases import parameters_for
 
 
+# Historical 31-class cohort; the added classes have their own verification suite.
 CLASSES = [
     cls
     for name, cls in vars(exp).items()
-    if inspect.isclass(cls) and cls.__module__ == exp.__name__ and not name.startswith("Abstract")
+    if inspect.isclass(cls)
+    and cls.__module__ == exp.__name__
+    and not inspect.isabstract(cls)
+    and not issubclass(
+        cls, (exp.AbstractExponentialEDFStatistic, exp.AbstractTunedExponentialStatistic)
+    )
+    and cls is not exp.GreenwoodExponentialityGofStatistic
 ]
 FIXED = (
     exp.KolmogorovSmirnovExponentialityGofStatistic,

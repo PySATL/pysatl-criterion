@@ -82,3 +82,11 @@ print(value)
 Lev Golofastov
 
 See the [current audit and migration notes](../../../exponent-statistics-audit.md).
+
+## Parameter modes (2026-10-08)
+
+An empty `ExponentialDistributionDescriptor.DEFAULT.parse({})` now selects the
+composite hypothesis and refits rate=1/mean(x) on every call. A fixed `lam`
+selects the original specified-rate mode. Both reuse the common CvM kernel;
+simple-null critical values must not be used in fitted mode.
+See [independent verification](../../../exponential-verification.md).
