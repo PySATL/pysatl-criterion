@@ -21,6 +21,7 @@ CRITERIA = sorted(
 )
 FITTED = {
     "EbnerLiebenbergBetaGofStatistic",
+    "RaschkeBetaGofStatistic",
     "GreenwoodParetoGofStatistic",
     "LequesneKlParetoGofStatistic",
     "NikulinLogLogisticGofStatistic",

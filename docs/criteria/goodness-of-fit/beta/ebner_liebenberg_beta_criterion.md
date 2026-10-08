@@ -100,35 +100,23 @@ uses a parametric bootstrap:
 4. Reject when the observed statistic exceeds the empirical upper critical
    quantile at the chosen significance level.
 
-The following standalone example performs that calibration explicitly;
-bootstrap simulation is not a method of the statistic class.
+The hypothesis-testing layer implements this procedure with reproducible RNG:
 
 ```python
-import numpy as np
-from scipy import stats
+from pysatl_criterion.hypothesis_testing.beta_bootstrap import parametric_bootstrap_beta
 
-from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
-from pysatl_criterion.statistics.goodness_of_fit import EbnerLiebenbergBetaGofStatistic
-
-sample = np.array([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
-statistic = EbnerLiebenbergBetaGofStatistic(Beta.DEFAULT.parse({}))
-observed = statistic.execute_statistic(sample)
-a_hat, b_hat, _, _ = stats.beta.fit(sample, floc=0, fscale=1)
-
-rng = np.random.default_rng(2026)
-replicates = 1999
-significance = 0.05
-bootstrap = np.empty(replicates)
-for i in range(replicates):
-    simulated = rng.beta(a_hat, b_hat, size=sample.size)
-    bootstrap[i] = statistic.execute_statistic(simulated)
-
-critical_value = np.quantile(bootstrap, 1 - significance)
-reject = observed > critical_value
-# Monte Carlo estimate with a finite-simulation correction.
-p_value = (1 + np.count_nonzero(bootstrap >= observed)) / (replicates + 1)
-print(observed, critical_value, p_value, reject)
+result = parametric_bootstrap_beta(
+    statistic, sample, significance_level=0.05, n_resamples=1999, random_state=2026
+)
+print(result.statistic, result.critical_value, result.p_value, result.rejected)
 ```
+
+The function uses the inverse empirical CDF for the upper critical quantile.
+`rejected` means strictly greater than that quantile, following the paper.
+The reported p-value is $(1+\#\{T_b^*\ge T_n\})/(B+1)$, where $B$ is
+`n_resamples`; its decision can differ from the critical-value decision at
+finite $B$. Every replicate is refitted. Fit failures propagate; simulated
+endpoints caused by floating-point rounding are neither clipped nor dropped.
 
 The p-value is a bootstrap approximation; the correction does not make a
 composite-null bootstrap exact in finite samples. More replicates reduce
@@ -136,8 +124,31 @@ simulation error. Universal critical values or arbitrary Beta(1, 1)
 calibration are inappropriate. An empty composite hypothesis alone does not
 specify the generating shapes; calibration needs the observed sample.
 
+## Null limit, consistency and implementation
+
+The null limit is $\sum_{j\ge1}\lambda_j(a,b)Z_j^2$, with independent
+standard normal $Z_j$ and eigenvalues of the fitted-process covariance
+operator (Corollary 2.2). The weights depend on both shapes. Section 3 proves
+consistency against alternatives for which the shape estimators converge to
+finite positive limits, as assumed in equation (6). This is an omnibus
+characterization under those conditions, not an unconditional assertion for
+all possible samples or endpoint-contaminated distributions.
+
+[Statistic implementation](https://github.com/PySATL/pysatl-criterion/blob/main/src/pysatl_criterion/statistics/goodness_of_fit/beta.py)
+and [bootstrap implementation](https://github.com/PySATL/pysatl-criterion/blob/main/src/pysatl_criterion/hypothesis_testing/beta_bootstrap.py).
+The full identifier is `EL_BETA_GOODNESS_OF_FIT`.
+
 ## References
 
 B. Ebner and S. C. Liebenberg,
 [On a new test of fit to the beta distribution](https://arxiv.org/pdf/2009.13995)
 (2020 preprint), Corollary 1.2, equation (3), and Section 2.
+
+Ebner, B., Liebenberg, S. C. (2021). *On a new test of fit to the beta distribution.*
+Stat, 10, e341. DOI: [10.1002/sta4.341](https://doi.org/10.1002/sta4.341).
+
+## Stored calibration
+
+`StorageLimitDistributionResolver` rejects this composite hypothesis because
+the storage key lacks fitted shapes. Use `parametric_bootstrap_beta` with the
+observed sample; a stored law indexed only by code and sample size is invalid.

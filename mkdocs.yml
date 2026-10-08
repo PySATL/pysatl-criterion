@@ -60,10 +60,13 @@ nav:
                 - Sherman: criteria/goodness-of-fit/uniformity/sherman_uniform_criterion.md
                 - Quesenberry-Miller: criteria/goodness-of-fit/uniformity/quesenberry_miller_uniform_criterion.md
             - Beta distribution:
+                - GOF audit and status: beta-gof-extension-audit.md
                 - Kolmogorov-Smirnov: criteria/goodness-of-fit/beta/kolmogorov_smirnov_beta_criterion.md
                 - Anderson-Darling: criteria/goodness-of-fit/beta/anderson_darling_beta_criterion.md
                 - Cramer-von Mises: criteria/goodness-of-fit/beta/cvm_beta_criterion.md
                 - Ebner-Liebenberg: criteria/goodness-of-fit/beta/ebner_liebenberg_beta_criterion.md
+                - Neyman smooth: criteria/goodness-of-fit/beta/neyman_smooth_beta_criterion.md
+                - Raschke: criteria/goodness-of-fit/beta/raschke_beta_criterion.md
                 - Pearson chi-squared: criteria/goodness-of-fit/beta/chi2_pearson_beta_criterion.md
                 - Watson: criteria/goodness-of-fit/beta/watson_beta_criterion.md
                 - Kuiper: criteria/goodness-of-fit/beta/kuiper_beta_criterion.md

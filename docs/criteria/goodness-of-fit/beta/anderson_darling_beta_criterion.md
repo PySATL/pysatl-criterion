@@ -60,3 +60,11 @@ test_statistic = AndersonDarlingBetaGofStatistic(BetaDistributionDescriptor.DEFA
 statistic_result = test_statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
 print(statistic_result)
 ```
+
+## Numerical tails
+
+If SciPy underflows an interior tail to zero, logarithmic
+[DLMF 8.17.8](https://dlmf.nist.gov/8.17.E8) is used, with symmetry for the upper
+tail. No clipping is applied. Beta(50,70) and `[1e-12, 0.2, 0.4, 0.6]` give
+338.882139831. Exact endpoints retain infinite AD. Failure to evaluate a
+finite interior log tail raises `ValueError`.

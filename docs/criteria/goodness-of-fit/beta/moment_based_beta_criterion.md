@@ -25,11 +25,11 @@ print(statistic_result)
 ```
 
 ## Arguments
-`alpha` - first positive shape parameter of the beta distribution. Default value is `1`.
+`parameters` - `BetaDistributionDescriptor.DEFAULT.parse({"a": alpha, "b": beta})`. Both shapes must be explicitly supplied, positive and finite.
 
-`beta` - second positive shape parameter of the beta distribution. Default value is `1`.
+`alpha` and `beta` are fixed independently of the sample. Neither is estimated or filled in by the constructor.
 
-`rvs` - a nonempty one-dimensional sample of finite values in `[0, 1]`, passed to `execute_statistic`. Both shape parameters must be finite. All these statistics reject for large values.
+`rvs` - a one-dimensional sample of at least two observations of finite values in `[0, 1]`, passed to `execute_statistic`. Both shape parameters must be finite. All these statistics reject for large values.
 
 ## Details
 For a beta distribution,
@@ -68,3 +68,21 @@ test_statistic = MomentBasedBetaGofStatistic(BetaDistributionDescriptor.DEFAULT.
 statistic_result = test_statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
 print(statistic_result)
 ```
+
+## Omnibus limitation
+
+Matching the mean and variance does not characterize the Beta family. This
+criterion is not an omnibus GOF test and is not a replacement for EDF tests
+or Ebner–Liebenberg. It is retained as a moment discrepancy.
+
+
+## Numerical evaluation
+
+For $s=\alpha+\beta$, standardized skewness $g$, $d_1=(\bar X-\mu)/\sigma$
+and $d_2=S^2/\sigma^2-1$, the exact Schur complement is
+
+$$r=E[((X-\mu)/\sigma)^4]-1-g^2=\frac{2s}{s+3}(1+g^2/4).$$
+
+The equivalent statistic $T=n[d_1^2+(d_2-gd_1)^2/r]$ avoids subtracting
+nearly equal fourth moments. Unrepresentable results raise `ValueError`.
+The mathematical statistic and its asymptotic interpretation are unchanged.

@@ -63,3 +63,11 @@ test_statistic = SkewnessKurtosisBetaGofStatistic(BetaDistributionDescriptor.DEF
 statistic_result = test_statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
 print(statistic_result)
 ```
+
+## Numerical evaluation
+
+The influence-function covariance and Schur complement use standard-library
+`decimal` arithmetic with precision adapted to the shapes. This prevents
+cancellation from producing negative statistics near small positive shapes.
+Unrepresentable final float results raise `ValueError`. This adds computational
+cost but does not change the statistic or its asymptotic interpretation.

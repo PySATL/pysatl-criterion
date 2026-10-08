@@ -64,3 +64,10 @@ test_statistic = KolmogorovSmirnovBetaGofStatistic(BetaDistributionDescriptor.DE
 statistic_result = test_statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
 print(statistic_result)
 ```
+
+## Stored calibration
+
+Storage keys omit algorithm options. Stored calibration is allowed only for
+two-sided CDF distance. Other settings raise `ValueError` before storage lookup; use
+`MonteCarloLimitDistributionResolver` instead. Existing stored results generated
+with other options under the same key must be regenerated.

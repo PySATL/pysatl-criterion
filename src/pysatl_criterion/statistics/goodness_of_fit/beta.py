@@ -2,22 +2,29 @@
 
 Samples must be real-valued; masked observations are rejected, not discarded.
 
-KS, AD, CvM, Watson, Kuiper and Pearson use specified shape parameters.
-Ebner-Liebenberg fits both shapes inside execute_statistic.
+Numerical reductions use cached Numba kernels without fast-math. SciPy handles
+special functions and fitting; Decimal retains guard digits for the theoretical
+skewness/kurtosis covariance near singular shape limits.
+
+KS, AD, CvM, Watson, Kuiper, Pearson and Neyman use specified shape parameters.
+Ebner-Liebenberg and Raschke fit both shapes inside execute_statistic.
 MB, SK, Ratio, Entropy and Mode are locally defined discrepancies: no scientific
 source for their exact formulas was identified. Their docstrings state their
 mathematical meaning without attributing them to unrelated published tests.
 """
 
 from abc import ABC
+from decimal import Decimal, localcontext
 
 import numpy as np
 import scipy.stats as scipy_stats
+from numba import jit
 from scipy.optimize import minimize_scalar
-from scipy.special import betainc, betaln
+from scipy.special import betainc, betaln, hyp2f1
 from typing_extensions import override
 
 from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
+from pysatl_criterion.distribution.distributions import UniformDistributionDescriptor as Uniform
 from pysatl_criterion.distribution.parameters import HypothesisSupport, ParameterValues
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.alternative import Alternative, AlternativeType, RightAlternative
@@ -27,6 +34,7 @@ from pysatl_criterion.statistics.goodness_of_fit.common import (
     CrammerVonMisesStatistic,
     KSStatistic,
 )
+from pysatl_criterion.statistics.goodness_of_fit.uniform import NeymanSmoothTestUniformGofStatistic
 
 
 class AbstractBetaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
@@ -37,6 +45,63 @@ class AbstractBetaGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
     parameterized by two positive shape parameters, denoted by α (alpha) and β (beta).
     Subclasses declare which parameters are fixed by their hypothesis.
     """
+
+    @staticmethod
+    def _beta_logtails(x, a, b):
+        """Beta log tails, retaining interior probabilities below float64 range.
+
+        On underflow use DLMF 8.17.8 in log form. Its hypergeometric series
+        has positive terms, avoiding the cancellation in DLMF 8.17.7.
+        Exact endpoints retain their mathematically infinite log tails.
+        """
+        logcdf = scipy_stats.beta.logcdf(x, a, b)
+        logsf = scipy_stats.beta.logsf(x, a, b)
+        for logs, points, first, second in ((logcdf, x, a, b), (logsf, 1 - x, b, a)):
+            missing = np.isneginf(logs) & (points > 0) & (points < 1)
+            t = points[missing]
+            if t.size:
+                factor = hyp2f1(first + second, 1, first + 1, t)
+                if np.any(~np.isfinite(factor)) or np.any(factor <= 0):
+                    raise ValueError("Beta log tail could not be evaluated with finite precision")
+                logs[missing] = (
+                    first * np.log(t)
+                    + second * np.log1p(-t)
+                    - np.log(first)
+                    - betaln(first, second)
+                    + np.log(factor)
+                )
+                if np.any(~np.isfinite(logs[missing])) or np.any(logs[missing] > 0):
+                    raise ValueError("Beta log tail could not be evaluated with finite precision")
+        if np.any(np.isnan(logcdf)) or np.any(np.isnan(logsf)):
+            raise ValueError("Beta log tails could not be evaluated with finite precision")
+        return logcdf, logsf
+
+    @staticmethod
+    @jit(nopython=True, cache=True)
+    def _ad_kernel(logcdf, logsf):
+        n = len(logcdf)
+        total = 0.0
+        for i in range(n):
+            total += (2 * i + 1.0) / n * (logcdf[i] + logsf[n - 1 - i])
+        return -n - total
+
+    def _validate_storage_calibration(self):
+        """Reject shape-dependent composite laws and settings missing from storage keys."""
+        if not self.hypothesis().parameters():
+            raise ValueError(
+                "Composite Beta calibration depends on fitted shapes; "
+                "use parametric_bootstrap_beta with the observed sample"
+            )
+        if (
+            getattr(self, "alternative_type", AlternativeType.TWO_TAILED)
+            != AlternativeType.TWO_TAILED
+            or getattr(self, "lambda_", 1) != 1
+            or getattr(self, "k", 4) != 4
+        ):
+            raise ValueError(
+                "Stored Beta calibration does not identify these settings; "
+                "use MonteCarloLimitDistributionResolver"
+            )
 
     @staticmethod
     def _validate_rvs(rvs, min_size=1):
@@ -99,20 +164,6 @@ class AbstractSpecifiedBetaGofStatistic(AbstractBetaGofStatistic, ABC):
     @classmethod
     def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
         return (HypothesisSupport(Beta.DEFAULT, frozenset(Beta.DEFAULT.parameters)),)
-
-    def _standardized_moments(self, order):
-        """Central moments of Z=(X-E[X])/sd(X), using the Beta Stein identity."""
-        total = self.alpha + self.beta
-        mean, variance = scipy_stats.beta.stats(self.alpha, self.beta, moments="mv")
-        moments = np.zeros(order + 1)
-        moments[0] = 1
-        for k in range(1, order):
-            moments[k + 1] = (
-                k
-                / (total + k)
-                * ((total + 1) * moments[k - 1] + (1 - 2 * mean) / np.sqrt(variance) * moments[k])
-            )
-        return moments
 
 
 class KolmogorovSmirnovBetaGofStatistic(AbstractSpecifiedBetaGofStatistic, KSStatistic):
@@ -211,10 +262,25 @@ class KolmogorovSmirnovBetaGofStatistic(AbstractSpecifiedBetaGofStatistic, KSSta
         See the class Notes for the formula, null hypothesis and calibration.
         """
         rvs = self._validate_rvs(rvs)
+        cdf = scipy_stats.beta.cdf(np.sort(rvs), self.alpha, self.beta)
+        direction = 1 if self.alternative_type == AlternativeType.RIGHT else -1
+        if self.alternative_type == AlternativeType.TWO_TAILED:
+            direction = 0
+        return self._statistic_kernel(cdf, direction)
 
-        rvs_sorted = np.sort(rvs)
-        cdf_vals = scipy_stats.beta.cdf(rvs_sorted, self.alpha, self.beta)
-        return KSStatistic.do_execute_statistic(self, rvs_sorted, cdf_vals)
+    @staticmethod
+    @jit(nopython=True, cache=True)
+    def _statistic_kernel(cdf, direction):
+        n = len(cdf)
+        plus, minus = 0.0, 0.0
+        for i in range(n):
+            plus = max(plus, (i + 1) / n - cdf[i])
+            minus = max(minus, cdf[i] - i / n)
+        if direction == 1:
+            return plus
+        if direction == -1:
+            return minus
+        return max(plus, minus)
 
 
 class AndersonDarlingBetaGofStatistic(AbstractSpecifiedBetaGofStatistic, ADStatistic):
@@ -288,18 +354,8 @@ class AndersonDarlingBetaGofStatistic(AbstractSpecifiedBetaGofStatistic, ADStati
         See the class Notes for the formula, null hypothesis and calibration.
         """
         rvs = self._validate_rvs(rvs)
-
-        rvs_sorted = np.sort(rvs)
-        n = len(rvs_sorted)
-
-        # Compute log CDF and log SF (survival function)
-        logcdf = scipy_stats.beta.logcdf(rvs_sorted, self.alpha, self.beta)
-        logsf = scipy_stats.beta.logsf(rvs_sorted, self.alpha, self.beta)
-
-        i = np.arange(1, n + 1)
-        A2 = -n - np.sum((2 * i - 1.0) / n * (logcdf + logsf[::-1]))
-
-        return A2
+        logcdf, logsf = self._beta_logtails(np.sort(rvs), self.alpha, self.beta)
+        return self._ad_kernel(logcdf, logsf)
 
 
 class CrammerVonMisesBetaGofStatistic(AbstractSpecifiedBetaGofStatistic, CrammerVonMisesStatistic):
@@ -378,10 +434,16 @@ class CrammerVonMisesBetaGofStatistic(AbstractSpecifiedBetaGofStatistic, Crammer
         See the class Notes for the formula, null hypothesis and calibration.
         """
         rvs = self._validate_rvs(rvs)
+        return self._statistic_kernel(scipy_stats.beta.cdf(np.sort(rvs), self.alpha, self.beta))
 
-        rvs_sorted = np.sort(rvs)
-        cdf_vals = scipy_stats.beta.cdf(rvs_sorted, self.alpha, self.beta)
-        return CrammerVonMisesStatistic.do_execute_statistic(self, rvs_sorted, cdf_vals)
+    @staticmethod
+    @jit(nopython=True, cache=True)
+    def _statistic_kernel(cdf):
+        n = len(cdf)
+        value = 1.0 / (12 * n)
+        for i in range(n):
+            value += ((2 * i + 1) / (2 * n) - cdf[i]) ** 2
+        return value
 
 
 class Chi2PearsonBetaGofStatistic(AbstractSpecifiedBetaGofStatistic, Chi2Statistic):
@@ -498,7 +560,27 @@ class Chi2PearsonBetaGofStatistic(AbstractSpecifiedBetaGofStatistic, Chi2Statist
         )
         expected = probabilities * n
 
-        return Chi2Statistic.do_execute_statistic(self, observed, expected, self.lambda_)
+        observed, expected = self._validate_frequencies(observed, expected)
+        return self._statistic_kernel(observed, expected, float(self.lambda_))
+
+    @staticmethod
+    @jit(nopython=True, cache=True, error_model="numpy")
+    def _statistic_kernel(observed, expected, power):
+        total = 0.0
+        for i in range(len(observed)):
+            obs, exp = observed[i], expected[i]
+            if obs == 0 and power <= -1:
+                return np.inf
+            if power == 1:
+                total += (obs - exp) ** 2 / exp
+            elif obs > 0:
+                if power == 0:
+                    total += 2 * obs * np.log(obs / exp)
+                elif power == -1:
+                    total += 2 * exp * np.log(exp / obs)
+                else:
+                    total += obs * ((obs / exp) ** power - 1) / (0.5 * power * (power + 1))
+        return total
 
 
 class WatsonBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
@@ -583,20 +665,16 @@ class WatsonBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
         See the class Notes for the formula, null hypothesis and calibration.
         """
         rvs = self._validate_rvs(rvs)
+        return self._statistic_kernel(scipy_stats.beta.cdf(np.sort(rvs), self.alpha, self.beta))
 
-        rvs_sorted = np.sort(rvs)
-        n = len(rvs_sorted)
-        cdf_vals = scipy_stats.beta.cdf(rvs_sorted, self.alpha, self.beta)
-
-        # Cramér-von Mises statistic
-        u = (2 * np.arange(1, n + 1) - 1) / (2 * n)
-        cvm = 1 / (12 * n) + np.sum((u - cdf_vals) ** 2)
-
-        # Watson correction
-        correction_term = n * (np.mean(cdf_vals) - 0.5) ** 2
-        watson_statistic = cvm - correction_term
-
-        return watson_statistic
+    @staticmethod
+    @jit(nopython=True, cache=True)
+    def _statistic_kernel(cdf):
+        n = len(cdf)
+        value = 1.0 / (12 * n)
+        for i in range(n):
+            value += ((2 * i + 1) / (2 * n) - cdf[i]) ** 2
+        return value - n * (np.mean(cdf) - 0.5) ** 2
 
 
 class KuiperBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
@@ -680,19 +758,17 @@ class KuiperBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
         See the class Notes for the formula, null hypothesis and calibration.
         """
         rvs = self._validate_rvs(rvs)
+        return self._statistic_kernel(scipy_stats.beta.cdf(np.sort(rvs), self.alpha, self.beta))
 
-        rvs_sorted = np.sort(rvs)
-        n = len(rvs_sorted)
-        cdf_vals = scipy_stats.beta.cdf(rvs_sorted, self.alpha, self.beta)
-
-        # D+ = max(i/n - F(x_i))
-        d_plus = np.max(np.arange(1, n + 1) / n - cdf_vals)
-
-        # D- = max(F(x_i) - (i-1)/n)
-        d_minus = np.max(cdf_vals - np.arange(0, n) / n)
-
-        # Kuiper statistic is D+ + D-
-        return d_plus + d_minus
+    @staticmethod
+    @jit(nopython=True, cache=True)
+    def _statistic_kernel(cdf):
+        n = len(cdf)
+        plus, minus = 0.0, 0.0
+        for i in range(n):
+            plus = max(plus, (i + 1) / n - cdf[i])
+            minus = max(minus, cdf[i] - i / n)
+        return plus + minus
 
 
 class MomentBasedBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
@@ -775,15 +851,23 @@ class MomentBasedBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
         """
         rvs = self._validate_rvs(rvs, min_size=2)
         mean, variance = scipy_stats.beta.stats(self.alpha, self.beta, moments="mv")
-        moments = self._standardized_moments(4)
-        covariance = np.array([[1, moments[3]], [moments[3], moments[4] - 1]])
-        difference = np.array(
-            [
-                (np.mean(rvs) - mean) / np.sqrt(variance),
-                np.var(rvs, ddof=1) / variance - 1,
-            ]
-        )
-        return float(len(rvs) * difference @ np.linalg.solve(covariance, difference))
+        skewness = scipy_stats.beta.stats(self.alpha, self.beta, moments="s")
+        total = self.alpha + self.beta
+        residual = 2 * (total / (total + 3)) * (1 + (skewness / 2) ** 2)
+        value = self._statistic_kernel(rvs, float(mean), float(variance), float(skewness), residual)
+        if not np.isfinite(value) or residual <= 0:
+            raise ValueError("Beta moment statistic could not be evaluated with finite precision")
+        return float(value)
+
+    @staticmethod
+    @jit(nopython=True, cache=True, error_model="numpy")
+    def _statistic_kernel(rvs, mean, variance, skewness, residual):
+        n = len(rvs)
+        sample_mean = np.mean(rvs)
+        sample_variance = np.sum((rvs - sample_mean) ** 2) / (n - 1)
+        d0 = (sample_mean - mean) / np.sqrt(variance)
+        d1 = sample_variance / variance - 1
+        return n * (d0**2 + ((d1 - skewness * d0) / np.sqrt(residual)) ** 2)
 
 
 class SkewnessKurtosisBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
@@ -870,28 +954,75 @@ class SkewnessKurtosisBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
         rvs = self._validate_rvs(rvs, min_size=4)
         if np.ptp(rvs) == 0:
             raise ValueError("Skewness and kurtosis require a nonconstant sample")
-        # Skewness and kurtosis are affine invariant. Center before scaling
-        # to preserve small differences near a large common sample value.
-        scaled = (rvs - rvs.min()) / np.ptp(rvs)
-        moments = self._standardized_moments(8)
-        skewness, pearson_kurtosis = moments[3:5]
-        # Influence polynomials in Z=(X-mu)/sigma, coefficients in ascending order.
-        polynomials = [
-            [skewness / 2, -3, -1.5 * skewness, 1],
-            [pearson_kurtosis, -4 * skewness, -2 * pearson_kurtosis, 0, 1],
-        ]
-        covariance = np.empty((2, 2))
-        for i in range(2):
-            for j in range(2):
-                product = np.polynomial.polynomial.polymul(polynomials[i], polynomials[j])
-                covariance[i, j] = product @ moments[: len(product)]
-        difference = np.array(
-            [
-                scipy_stats.skew(scaled, bias=False) - skewness,
-                scipy_stats.kurtosis(scaled, bias=False) - (pearson_kurtosis - 3),
-            ]
+        skewness, excess = self._sample_moments(rvs)
+        value = len(rvs) * self._skewness_kurtosis_quadratic(
+            self.alpha, self.beta, skewness, excess
         )
-        return float(len(rvs) * difference @ np.linalg.solve(covariance, difference))
+        if not np.isfinite(value):
+            raise ValueError("Beta moment statistic could not be evaluated with finite precision")
+        return float(value)
+
+    @staticmethod
+    @jit(nopython=True, cache=True)
+    def _sample_moments(rvs):
+        n = len(rvs)
+        scaled = (rvs - np.min(rvs)) / (np.max(rvs) - np.min(rvs))
+        centered = scaled - np.mean(scaled)
+        m2 = np.mean(centered**2)
+        m3 = np.mean(centered**3)
+        m4 = np.mean(centered**4)
+        skewness = np.sqrt(n * (n - 1)) / (n - 2) * m3 / m2**1.5
+        excess = ((n * n - 1) * m4 / m2**2 - 3 * (n - 1) ** 2) / ((n - 2) * (n - 3))
+        return skewness, excess
+
+    @staticmethod
+    def _skewness_kurtosis_quadratic(a, b, sample_skewness, sample_excess):
+        """Evaluate the same influence-function quadratic with guard digits.
+
+        Near the Bernoulli limit, covariance terms cancel to O(a+b). Float64
+        arithmetic can turn this positive covariance indefinite. Decimal is from
+        the standard library; precision scales with the shape exponents. All
+        operations through the Schur complement stay in that precision.
+        """
+        a, b = Decimal(float(a)), Decimal(float(b))
+        with localcontext() as context:
+            context.prec = 80 + 2 * max(abs(a.adjusted()), abs(b.adjusted()))
+            total = a + b
+            mean = a / total
+            variance = a * b / (total**2 * (total + 1))
+            asymmetry = (1 - 2 * mean) / variance.sqrt()
+            moments = [Decimal(1), Decimal(0)]
+            for k in range(1, 8):
+                moments.append(
+                    Decimal(k)
+                    / (total + k)
+                    * ((total + 1) * moments[k - 1] + asymmetry * moments[k])
+                )
+            g, kurtosis = moments[3:5]
+            polynomials = [
+                [g / 2, Decimal(-3), -3 * g / 2, Decimal(1)],
+                [kurtosis, -4 * g, -2 * kurtosis, Decimal(0), Decimal(1)],
+            ]
+            covariance = [
+                [
+                    sum(
+                        c * d * moments[i + j]
+                        for i, c in enumerate(left)
+                        for j, d in enumerate(right)
+                    )
+                    for right in polynomials
+                ]
+                for left in polynomials
+            ]
+            v00, v01 = covariance[0]
+            if v00 <= 0:
+                raise ValueError("Beta moment covariance lost numerical precision")
+            residual = covariance[1][1] - v01**2 / v00
+            if residual <= 0:
+                raise ValueError("Beta moment covariance lost numerical precision")
+            d0 = Decimal(float(sample_skewness)) - g
+            d1 = Decimal(float(sample_excess)) - (kurtosis - 3)
+            return float(d0**2 / v00 + (d1 - v01 / v00 * d0) ** 2 / residual)
 
 
 class RatioBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
@@ -974,33 +1105,23 @@ class RatioBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
         See the class Notes for the formula, null hypothesis and calibration.
         """
         rvs = self._validate_rvs(rvs)
-
-        n = len(rvs)
-
-        # G/A is scale invariant; avoid underflow in the arithmetic mean.
-        scale = np.max(rvs)
-        if scale == 0:
-            raise ValueError("Arithmetic mean is zero, cannot compute ratio")
-        arithmetic_mean = np.mean(rvs / scale)
-        with np.errstate(divide="ignore"):
-            # Subtract logs rather than logging rvs/scale: that division can
-            # itself underflow for samples spanning the float64 range.
-            log_geometric_mean = np.mean(np.log(rvs) - np.log(scale))
-        sample_ratio = np.exp(log_geometric_mean - np.log(arithmetic_mean))
-
-        # Theoretical ratio for Beta distribution
-        # E[X] = α/(α+β)
-        # E[log X] = ψ(α) - ψ(α+β) where ψ is digamma function
         from scipy.special import psi
 
         theoretical_mean = self.alpha / (self.alpha + self.beta)
         theoretical_log_mean = psi(self.alpha) - psi(self.alpha + self.beta)
         theoretical_ratio = np.exp(theoretical_log_mean) / theoretical_mean
+        return self._statistic_kernel(rvs, theoretical_ratio)
 
-        # Test statistic
-        statistic = np.sqrt(n) * np.abs(sample_ratio - theoretical_ratio)
-
-        return statistic
+    @staticmethod
+    @jit(nopython=True, cache=True)
+    def _statistic_kernel(rvs, theoretical_ratio):
+        scale = np.max(rvs)
+        if scale == 0:
+            raise ValueError("Arithmetic mean is zero, cannot compute ratio")
+        arithmetic_mean = np.mean(rvs / scale)
+        log_geometric_mean = np.mean(np.log(rvs) - np.log(scale))
+        sample_ratio = np.exp(log_geometric_mean - np.log(arithmetic_mean))
+        return np.sqrt(len(rvs)) * np.abs(sample_ratio - theoretical_ratio)
 
 
 class EntropyBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
@@ -1095,12 +1216,6 @@ class EntropyBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
             raise TypeError("m must be an integer with 1 <= m < n/2")
         if not 1 <= m < n / 2:
             raise ValueError("m must be an integer with 1 <= m < n/2")
-        # Zero spacings imply entropy -infinity, hence discrepancy +infinity.
-        with np.errstate(divide="ignore"):
-            sample_entropy = scipy_stats.differential_entropy(
-                rvs, window_length=m, method="vasicek"
-            )
-
         # Theoretical entropy
         from scipy.special import betaln, psi
 
@@ -1112,9 +1227,22 @@ class EntropyBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
         )
 
         # Test statistic
-        statistic = np.sqrt(n) * np.abs(sample_entropy - theoretical_entropy)
+        statistic = self._statistic_kernel(rvs, int(m), theoretical_entropy)
 
         return statistic
+
+    @staticmethod
+    @jit(nopython=True, cache=True)
+    def _statistic_kernel(rvs, m, theoretical_entropy):
+        x = np.sort(rvs)
+        n = len(x)
+        total = 0.0
+        for i in range(n):
+            spacing = x[min(n - 1, i + m)] - x[max(0, i - m)]
+            if spacing == 0:
+                return np.inf
+            total += np.log(n * spacing / (2 * m))
+        return np.sqrt(n) * np.abs(total / n - theoretical_entropy)
 
 
 class ModeBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
@@ -1219,18 +1347,20 @@ class ModeBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
         # Gaussian mixture modes lie inside the sample range. Refine every
         # grid-local maximum, including candidates near either support boundary.
         x_grid = np.linspace(0, 1, max(257, int(np.sqrt(n)) + 1))
-        density = kde(x_grid)
+        bandwidth = float(np.sqrt(kde.covariance[0, 0]))
+        density = self._density_kernel(x_grid, scaled, bandwidth)
         peaks = np.flatnonzero((density[1:-1] >= density[:-2]) & (density[1:-1] >= density[2:])) + 1
         candidates = [0.0, 1.0]
         for i in peaks:
             result = minimize_scalar(
-                lambda x: -kde([x])[0],
+                lambda x: -self._density_kernel(np.array([x]), scaled, bandwidth)[0],
                 bounds=(x_grid[i - 1], x_grid[i + 1]),
                 method="bounded",
                 options={"xatol": 1e-12},
             )
             candidates.append(result.x)
-        sample_mode = lower + width * candidates[np.argmax(kde(candidates))]
+        candidate_density = self._density_kernel(np.asarray(candidates), scaled, bandwidth)
+        sample_mode = lower + width * candidates[np.argmax(candidate_density)]
 
         # Theoretical mode
         theoretical_mode = (self.alpha - 1) / (self.alpha + self.beta - 2)
@@ -1239,6 +1369,18 @@ class ModeBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
         statistic = np.sqrt(n) * np.abs(sample_mode - theoretical_mode)
 
         return statistic
+
+    @staticmethod
+    @jit(nopython=True, cache=True)
+    def _density_kernel(points, sample, bandwidth):
+        density = np.empty(len(points))
+        normalizer = len(sample) * bandwidth * np.sqrt(2 * np.pi)
+        for i in range(len(points)):
+            total = 0.0
+            for x in sample:
+                total += np.exp(-0.5 * ((points[i] - x) / bandwidth) ** 2)
+            density[i] = total / normalizer
+        return density
 
 
 class EbnerLiebenbergBetaGofStatistic(AbstractBetaGofStatistic):
@@ -1303,19 +1445,149 @@ class EbnerLiebenbergBetaGofStatistic(AbstractBetaGofStatistic):
         """
         sample, a, b = self._fit(rvs)
         x = np.sort(sample)
-        n = x.size
-        c = (a + b) * x - a
-        # Integral of the squared empirical tail sum, equivalent to
-        # sum_{i,j} c_i*c_j*min(x_i,x_j), without a quadratic matrix.
-        tails = np.cumsum(c[::-1])[::-1]
-        first = np.dot(np.diff(np.r_[0.0, x]), tails**2) / n
+        integrals = betainc(a + 1, b + 1, x)
+        third = len(x) * np.exp(betaln(2 * a + 1, 2 * b + 1) - 2 * betaln(a, b))
+        return self._statistic_kernel(x, a, b, integrals, third)
+
+    @staticmethod
+    @jit(nopython=True, cache=True)
+    def _statistic_kernel(x, a, b, integrals, third):
+        n = len(x)
+        tail, first, cross = 0.0, 0.0, 0.0
+        for i in range(n - 1, -1, -1):
+            c = (a + b) * x[i] - a
+            tail += c
+            width = x[i] - x[i - 1] if i else x[i]
+            first += width * tail**2
+            cross += c * integrals[i]
+        first /= n
         ratio = (a / (a + b)) * (b / (a + b + 1))
-        second = 2 * ratio * np.dot(c, betainc(a + 1, b + 1, x))
-        third = n * np.exp(betaln(2 * a + 1, 2 * b + 1) - 2 * betaln(a, b))
+        second = 2 * ratio * cross
         value = first - second + third
         if not np.isfinite(value):
             raise ValueError("Beta statistic could not be evaluated with finite precision")
-        tolerance = 64 * np.finfo(float).eps * (abs(first) + abs(second) + abs(third))
+        tolerance = 64 * np.finfo(np.float64).eps * (abs(first) + abs(second) + abs(third))
         if value < -tolerance:
             raise ValueError("Beta statistic lost numerical precision")
-        return float(max(0.0, value))
+        return max(0.0, value)
+
+
+class NeymanSmoothBetaGofStatistic(AbstractSpecifiedBetaGofStatistic):
+    """Neyman's smooth test applied to the specified Beta probability transform.
+
+    Parameters
+    ----------
+    parameters : ParameterValues
+        Both positive Beta shapes must be fixed independently of the sample.
+    k : int, optional
+        Number of shifted Legendre components, positive and fixed; default 4.
+
+    Notes
+    -----
+    With u_i=F_{a,b}(x_i), return sum_{j=1}^k (sum_i phi_j(u_i))**2/n,
+    phi_j(u)=sqrt(2*j+1)*P_j(2*u-1), evaluated by the Legendre recurrence.
+    Reject for large values. For fixed k the null limit is chi-square(k)
+    and the finite-sample null is shape-free. This is not omnibus for fixed k.
+    Fitted shapes require a different calibration and are not supported here.
+
+    References
+    ----------
+    J. Neyman (1937), Smooth test for goodness of fit, 149-199.
+    https://doi.org/10.1080/03461238.1937.10404821
+    """
+
+    def __init__(self, parameters: ParameterValues, *, k=4):
+        super().__init__(parameters)
+        self._uniform = NeymanSmoothTestUniformGofStatistic(
+            Uniform.DEFAULT.parse({"a": 0, "b": 1}), k=k
+        )
+        self.k = self._uniform.k
+
+    @staticmethod
+    @override
+    def short_code():
+        return "NEYMAN"
+
+    @override
+    def alternative(self) -> Alternative:
+        return RightAlternative()
+
+    @override
+    def execute_statistic(self, rvs, **kwargs) -> float:
+        """Return the smooth statistic for a nonempty finite sample in [0, 1]."""
+        sample = self._validate_rvs(rvs)
+        return self._statistic_kernel(scipy_stats.beta.cdf(sample, self.alpha, self.beta), self.k)
+
+    @staticmethod
+    @jit(nopython=True, cache=True)
+    def _statistic_kernel(cdf, k):
+        sums = np.zeros(k)
+        for u in cdf:
+            x = 2 * u - 1
+            previous, current = 1.0, x
+            for j in range(1, k + 1):
+                sums[j - 1] += np.sqrt(2 * j + 1) * current
+                previous, current = current, ((2 * j + 1) * x * current - j * previous) / (j + 1)
+        return np.sum(sums**2) / len(cdf)
+
+
+class RaschkeBetaGofStatistic(AbstractBetaGofStatistic, ADStatistic):
+    """Biased-transformation Beta test, Raschke (2009), Sections 4-5.
+
+    Parameters
+    ----------
+    parameters : ParameterValues
+        Beta.DEFAULT.parse({}); both shapes are estimated by MLE.
+
+    Notes
+    -----
+    Transform y_i=Phi^{-1}(F_{a_hat,b_hat}(x_i)), fit normal mean and
+    standard deviation by MLE (ddof=0), then compute fitted-normal AD.
+    Return A**2*(1+0.75/n+2.25/n**2), the paper's corrected statistic.
+    Uses the shared AD kernel and both Beta tails to avoid 1-CDF cancellation.
+    Requires at least three nonconstant observations strictly in (0,1).
+    Use parametric_bootstrap_beta in the hypothesis_testing layer to refit
+    the whole procedure. The paper's normal critical values are approximate;
+    no universal null law or omnibus consistency is asserted here.
+
+    References
+    ----------
+    M. Raschke (2009), The Biased Transformation and Its Application in
+    Goodness-of-Fit Tests for the Beta and Gamma Distribution, 1870-1890.
+    https://doi.org/10.1080/03610910903152631
+    """
+
+    @classmethod
+    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
+        return (HypothesisSupport(Beta.DEFAULT, frozenset()),)
+
+    @staticmethod
+    @override
+    def short_code():
+        return "RASCHKE"
+
+    @override
+    def execute_statistic(self, rvs, **kwargs) -> float:
+        """Return corrected AD after Beta and normal MLE; reject large values.
+
+        Invalid samples or unrepresentable transformations raise ValueError.
+        MLE solver errors propagate; observations are never clipped.
+        """
+        sample = self._validate_rvs(rvs, min_size=3)
+        sample, a, b = self._fit(sample)
+        x = np.sort(sample)
+        lower = scipy_stats.beta.cdf(x, a, b)
+        upper = scipy_stats.beta.sf(x, a, b)
+        y = np.empty_like(x)
+        left = lower <= 0.5
+        y[left] = scipy_stats.norm.ppf(lower[left])
+        y[~left] = scipy_stats.norm.isf(upper[~left])
+        if not np.all(np.isfinite(y)):
+            raise ValueError("Beta normal transformation lost numerical precision")
+        scale = np.std(y, ddof=0)
+        if not np.isfinite(scale) or scale <= 0:
+            raise ValueError("Normal maximum likelihood requires positive finite scale")
+        z = (y - np.mean(y)) / scale
+        value = self._ad_kernel(scipy_stats.norm.logcdf(z), scipy_stats.norm.logsf(z))
+        n = len(x)
+        return float(value * (1 + 0.75 / n + 2.25 / n**2))
