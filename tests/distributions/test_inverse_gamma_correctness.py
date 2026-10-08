@@ -23,7 +23,7 @@ CLASSES = [
     for name, cls in vars(module).items()
     if name.endswith("InverseGammaGofStatistic") and not inspect.isabstract(cls)
 ]
-FIXED = [cls for cls in CLASSES if cls is not module.LillieforsInverseGammaGofStatistic]
+FIXED = CLASSES
 
 
 @pytest.mark.parametrize("cls", CLASSES)
@@ -132,29 +132,6 @@ def test_pearson_zero_counts_and_edges():
     )
 
 
-def test_fitted_ks_moments_and_scale_invariance():
-    statistic = module.LillieforsInverseGammaGofStatistic(
-        InverseGammaDistributionDescriptor.DEFAULT.parse({})
-    )
-    assert statistic.hypothesis().parameters() == {}
-    for x in [np.array([0.4, 0.7, 1.2, 2.0]), np.array([0.8, 1.0, 3.0, 9.0])]:
-        mean = sum(x) / len(x)
-        var = sum((x - mean) ** 2) / (len(x) - 1)
-        a = 2 + mean**2 / var
-        b = mean * (a - 1)
-        expected = stats.kstest(x, lambda t, b=b, a=a: stats.gamma.sf(b / t, a=a)).statistic
-        assert statistic.execute_statistic(x) == pytest.approx(expected)
-        for scale in [1e-200, 1e200]:
-            assert statistic.execute_statistic(x * scale) == pytest.approx(expected)
-    with pytest.raises(ValueError, match="Unsupported"):
-        module.LillieforsInverseGammaGofStatistic(
-            InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": 3})
-        )
-    for x in [[1.0], [1.0, 1.0]]:
-        with pytest.raises(ValueError):
-            statistic.execute_statistic(x)
-
-
 @pytest.mark.parametrize(
     "cls",
     [
@@ -202,9 +179,6 @@ def test_monte_carlo_reports_missing_generator(cls):
 @pytest.mark.parametrize(
     "statistic",
     [
-        module.LillieforsInverseGammaGofStatistic(
-            InverseGammaDistributionDescriptor.DEFAULT.parse({})
-        ),
         module.Chi2PearsonInverseGammaGofStatistic(
             InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 1})
         ),
@@ -224,4 +198,4 @@ def test_unsafe_storage_calibration_is_blocked(statistic):
 def test_documented_examples():
     results = doctest.testmod(module)
     assert results.failed == 0
-    assert results.attempted == 48
+    assert results.attempted == 44

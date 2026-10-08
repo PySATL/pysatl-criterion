@@ -12,7 +12,6 @@ from pysatl_criterion.statistics.goodness_of_fit.inverse_gamma import (
     GreenwoodInverseGammaGofStatistic,
     KolmogorovSmirnovInverseGammaGofStatistic,
     KuiperInverseGammaGofStatistic,
-    LillieforsInverseGammaGofStatistic,
     MinToshiyukiInverseGammaGofStatistic,
     WatsonInverseGammaGofStatistic,
     ZhangAInverseGammaGofStatistic,
@@ -90,14 +89,6 @@ def test_kolmogorov_smirnov_inverse_gamma_statistic():
         InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA})
     ).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(0.7039450618147463, rel=1e-9)
-
-
-def test_lilliefors_inverse_gamma_statistic():
-    """Lilliefors-corrected KS statistic with Inverse Gamma MOM estimates."""
-    statistic = LillieforsInverseGammaGofStatistic(
-        InverseGammaDistributionDescriptor.DEFAULT.parse({})
-    ).execute_statistic(_SAMPLE)
-    assert statistic == pytest.approx(0.15992820102663619, rel=1e-9)
 
 
 def test_anderson_darling_inverse_gamma_statistic():
@@ -200,7 +191,6 @@ def test_zhang_k_inverse_gamma_statistic():
     ("stat_class", "expected_code"),
     [
         (KolmogorovSmirnovInverseGammaGofStatistic, "KS_INV_GAMMA_GOODNESS_OF_FIT"),
-        (LillieforsInverseGammaGofStatistic, "LILLIE_INV_GAMMA_GOODNESS_OF_FIT"),
         (AndersonDarlingInverseGammaGofStatistic, "AD_INV_GAMMA_GOODNESS_OF_FIT"),
         (CramerVonMisesInverseGammaGofStatistic, "CVM_INV_GAMMA_GOODNESS_OF_FIT"),
         (WatsonInverseGammaGofStatistic, "WAT_INV_GAMMA_GOODNESS_OF_FIT"),
@@ -235,24 +225,6 @@ def test_inverse_gamma_statistics_require_observations(stat_class):
 
     with pytest.raises(ValueError, match="At least"):
         statistic.execute_statistic([])
-
-
-def test_lilliefors_inverse_gamma_requires_sample():
-    """Lilliefors correction needs at least one observation."""
-    statistic = LillieforsInverseGammaGofStatistic(
-        InverseGammaDistributionDescriptor.DEFAULT.parse({})
-    )
-    with pytest.raises(ValueError, match="At least"):
-        statistic.execute_statistic([])
-
-
-def test_lilliefors_inverse_gamma_requires_positive_moments():
-    """Zero variance samples should trigger the MOM validation error."""
-    statistic = LillieforsInverseGammaGofStatistic(
-        InverseGammaDistributionDescriptor.DEFAULT.parse({})
-    )
-    with pytest.raises(ValueError, match="must be positive"):
-        statistic.execute_statistic([1.0, 1.0, 1.0, 1.0])
 
 
 def test_inverse_gamma_requires_positive_observations():

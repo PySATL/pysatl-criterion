@@ -26,7 +26,6 @@ from pysatl_criterion.statistics.goodness_of_fit._weibull_common import (
 )
 from pysatl_criterion.statistics.goodness_of_fit.common import (
     ADStatistic,
-    LillieforsTest,
 )
 
 
@@ -159,101 +158,6 @@ class AbstractWeibullGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
             "Weibull statistics were revised: regenerate calibration; "
             "unversioned stored critical values are not supported"
         )
-
-
-class LillieforsWeibullGofStatistic(AbstractWeibullGofStatistic, LillieforsTest):
-    """KS distance to an ordinary Weibull fitted by maximum likelihood.
-
-    Parameters
-    ----------
-    parameters : ParameterValues
-        An empty distribution schema; all distribution parameters are unknown.
-
-
-    Methods
-    -------
-    execute_statistic(rvs, **kwargs)
-        Return a scalar statistic, fitting parameters internally when needed.
-    hypothesis()
-        Return the fixed parameters; omitted parameters are unknown.
-    alternative()
-        Return the critical-region tail.
-
-    Notes
-    -----
-    F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
-    and unknown positive scale eta and shape k.
-    Pass Distribution.DEFAULT.parse({}) to declare both parameters unknown.
-    Logarithmic location and scale are eliminated within every call.
-
-    D=max(max(i/n-u_i), max(u_i-(i-1)/n)), where u_i=G(z_i),
-    G(z)=1-exp(-exp(z)), z_i=k_hat*(log(x_(i))-log(eta_hat)).
-    MLE solves the ordinary two-parameter Weibull profile score.
-
-    Reject for right tail values.
-    Calibrate with repeated execute_statistic calls on ordinary Weibull
-    samples. Affine invariance in log(x) permits eta=k=1 for simulation.
-    Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
-    Previously stored unversioned Weibull calibrations must be regenerated.
-    Lilliefors-type describes the fitted KS procedure; the cited paper
-    compares fitted KS for this model, rather than introducing a criterion
-    with this class name. There is no preliminary fit call.
-
-    References
-    ----------
-    .. [1] M. Liao and T. Shimokawa (1999), A new goodness-of-fit test for type-I
-       extreme-value and 2-parameter Weibull distributions with estimated
-       parameters. https://doi.org/10.1080/00949659908811965
-
-    Examples
-    --------
-    >>> parameters = Distribution.DEFAULT.parse({})
-    >>> test = LillieforsWeibullGofStatistic(parameters)
-    >>> value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
-    >>> bool(np.isfinite(value))
-    True
-    """
-
-    @staticmethod
-    @override
-    def short_code():
-        """
-        Get short code identifier for this test.
-
-        :return: short code string "LILLIE".
-        """
-        return "LILLIE"
-
-    def alternative(self):
-        return RightAlternative()
-
-    def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic described in the class Notes.
-
-        Parameters
-        ----------
-        rvs : array_like
-            One-dimensional finite strictly positive observations, n >= 2.
-            Constant samples are invalid; ties are allowed unless stated below.
-        **kwargs : dict
-            Unused common-interface keywords.
-
-        Returns
-        -------
-        statistic : float
-            Scalar discrepancy. Infinite boundary penalties are preserved.
-
-        Raises
-        ------
-        ValueError
-            Invalid sample, unsupported settings, or unrepresentable fit.
-
-        Notes
-        -----
-        The input is never changed and estimated parameters are not retained.
-        """
-        z = _fitted(rvs)
-        return float(self.do_execute_statistic(z, gumbel_l.cdf(z)))
 
 
 class AndersonDarlingWeibullGofStatistic(AbstractWeibullGofStatistic, ADStatistic):

@@ -44,7 +44,6 @@ def test_distribution_hypotheses_and_parameter_validation():
         uniform.KolmogorovSmirnovUniformGofStatistic(
             UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
         ),
-        weibull.LillieforsWeibullGofStatistic(Weibull.DEFAULT.parse({})),
     ]
     for statistic in statistics:
         assert statistic.supports_hypothesis(statistic.hypothesis())

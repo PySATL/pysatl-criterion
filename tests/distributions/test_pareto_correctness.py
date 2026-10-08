@@ -31,7 +31,6 @@ FIXED = [
     pareto.MinToshiyukiParetoGofStatistic,
 ]
 FITTED = [
-    pareto.LillieforsParetoGofStatistic,
     pareto.GreenwoodParetoGofStatistic,
     pareto.LequesneKlParetoGofStatistic,
 ]
@@ -155,7 +154,7 @@ def test_fits_and_scale_invariance(cls):
         stat.execute_statistic([2] * 6)
 
 
-@pytest.mark.parametrize("cls", FITTED[:2])
+@pytest.mark.parametrize("cls", [pareto.GreenwoodParetoGofStatistic])
 def test_power_invariance(cls):
     x = np.array([1.1, 1.7, 2.3, 5.1, 8.7, 19.2])
     assert cls(parameters_for(cls)).execute_statistic(x**3) == pytest.approx(

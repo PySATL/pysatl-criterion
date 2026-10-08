@@ -16,7 +16,6 @@ from pysatl_criterion.distribution.parameters import (
 from pysatl_criterion.generator.generators import TRVSGenerator
 from pysatl_criterion.statistics.goodness_of_fit.student import (
     KolmogorovSmirnovStudentGofStatistic,
-    LillieforsStudentGofStatistic,
 )
 from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 from pysatl_criterion.utils.generator import get_available_generator, get_hypothesis_generator
@@ -111,16 +110,6 @@ def test_unknown_names_and_foreign_tokens_are_rejected():
     for key in ("variance", ParameterSpec("normal.df", "df", "ν")):
         with pytest.raises(ValueError, match="Unknown"):
             Student.DEFAULT.parse({key: 1})
-
-
-def test_lilliefors_requires_unknown_location_and_scale():
-    composite = Student.DEFAULT.parse({"df": 5})
-    statistic = LillieforsStudentGofStatistic(composite)
-    assert statistic.hypothesis().parameters() == {"df": 5}
-    for loc in (0, 1):
-        fixed = Student.DEFAULT.parse({"df": 5, "loc": loc}, fill_defaults=True)
-        with pytest.raises(ValueError, match="Unsupported"):
-            LillieforsStudentGofStatistic(fixed)
 
 
 def test_parsing_copies_input_and_exports_independent_dictionaries():

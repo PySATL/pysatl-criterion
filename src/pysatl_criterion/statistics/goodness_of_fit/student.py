@@ -16,7 +16,6 @@ from pysatl_criterion.statistics.goodness_of_fit.common import (
     ADStatistic,
     CrammerVonMisesStatistic,
     KSStatistic,
-    LillieforsTest,
 )
 
 
@@ -738,113 +737,6 @@ class ZhangZaStudentGofStatistic(AbstractStudentGofStatistic):
         logcdf, logsf = self._log_probabilities(standardized)
         i = np.arange(1, n + 1)
         return float(-np.sum(logcdf / (n - i + 0.5) + logsf / (i - 0.5)))
-
-
-class LillieforsStudentGofStatistic(AbstractStudentGofStatistic, LillieforsTest):
-    """Fitted KS distance for Student t with known degrees of freedom.
-
-    Parameters
-    ----------
-    parameters : ParameterValues
-        Values with df fixed; omitted parameters are unknown.
-
-    Methods
-    -------
-    execute_statistic(rvs, **kwargs)
-        Return one scalar discrepancy without changing the input or fitting state.
-    hypothesis()
-        Return the fixed parameters of the null hypothesis.
-    alternative()
-        Return the right tail of the statistic's distribution.
-
-    Notes
-    -----
-    The null is t_df with unknown location and positive scale. Each call
-    estimates location by the sample median and scale by
-    (Q_0.75-Q_0.25)/(2*t_df.ppf(0.75)), using linear sample quantiles.
-    Return max(max(i/n-u_i), max(u_i-(i-1)/n)) for the fitted CDF.
-    This quantile estimator works without finite moments, including df <= 2;
-    it is not maximum likelihood. Samples need n >= 2 and positive IQR.
-    Ties are accepted if the IQR remains positive. Estimates are not stored.
-
-    This is a locally specified Lilliefors-type extension. A search did not
-    identify a primary paper establishing this exact Student/quantile version.
-    The normal Lilliefors paper does not validate it. Large values reject.
-    Location/scale equivariance removes those nuisance parameters; the null
-    law still depends on df, sample size and the estimator. Refit each
-    Monte Carlo replicate; ordinary KS and normal Lilliefors tables do not
-    apply. The built-in sampler requires complete Student parameters and
-    rejects this composite hypothesis. Calibrate externally at the fixed df
-    (location 0, scale 1 is justified by equivariance), calling this method
-    on every replicate. Previously stored LILLIE distributions are invalid.
-
-    Examples
-    --------
-    >>> parameters = Distribution.DEFAULT.parse({'df': 5})
-    >>> statistic = LillieforsStudentGofStatistic(parameters)
-    >>> value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
-    >>> bool(np.isfinite(value))
-    True
-    """
-
-    @classmethod
-    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
-        return (HypothesisSupport(Student.DEFAULT, frozenset({Student.DF})),)
-
-    @staticmethod
-    @override
-    def short_code():
-        """
-        Get short code identifier for this test.
-
-        :return: short code string "LILLIE".
-        """
-        return "LILLIE"
-
-    @override
-    def execute_statistic(self, rvs, **kwargs):
-        """Compute fitted KS distance for Student t with known degrees of freedom.
-
-        Parameters
-        ----------
-        rvs : array_like, shape (n,)
-            Finite real sample on the whole real line, with
-            at least two observations and positive interquartile range.
-            The input is not modified.
-        **kwargs : dict
-            Accepted for the common interface; no call-time options are used.
-
-        Returns
-        -------
-        float or numpy.float64
-            Unscaled statistic; large values reject the null.
-
-        Raises
-        ------
-        ValueError
-            If the sample is invalid or required numerical transformations
-            cannot be represented in floating-point arithmetic.
-            Also raised for fewer than two observations or zero IQR.
-        """
-        sample = self._validate_sample(rvs)
-        if sample.size < 2:
-            raise ValueError("At least two observations are required")
-        # Normalize first, so quantile interpolation cannot overflow.
-        magnitude = np.max(np.abs(sample))
-        if magnitude == 0:
-            raise ValueError("Sample interquartile range must be positive")
-        sample = sample / magnitude
-        q1, median, q3 = np.quantile(sample, [0.25, 0.5, 0.75], method="linear")
-        reference = scipy_stats.t.ppf(0.75, self.df)
-        fitted_scale = ((q3 - q1) / 2) / reference
-        if not np.isfinite(fitted_scale) or fitted_scale <= 0:
-            raise ValueError("Sample interquartile range must define a positive finite scale")
-        with np.errstate(over="ignore"):
-            standardized = (sample - median) / fitted_scale
-        if not np.all(np.isfinite(standardized)):
-            raise ValueError("Fitted observations exceed floating-point range")
-        cdf_vals = scipy_stats.t.cdf(standardized, self.df)
-        return float(LillieforsTest.do_execute_statistic(self, sample, cdf_vals))
 
 
 class ChiSquareStudentGofStatistic(AbstractStudentGofStatistic):

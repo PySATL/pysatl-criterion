@@ -16,7 +16,6 @@ from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
 )
 from pysatl_criterion.statistics.alternative import AlternativeType, RightAlternative
 from pysatl_criterion.statistics.goodness_of_fit import gamma as g
-from pysatl_criterion.utils.generator import get_hypothesis_generator
 from tests.parameter_cases import parameters_for
 
 
@@ -40,9 +39,7 @@ def test_common_interface_and_independent_calls(cls):
     np.testing.assert_array_equal(x, SAMPLE)
     assert vars(statistic) == state
     assert "kwargs" in inspect.signature(statistic.execute_statistic).parameters
-    assert statistic.hypothesis().parameters() == (
-        {} if cls is g.LillieforsGammaGofStatistic else {"alfa": 1.0, "beta": 1.0}
-    )
+    assert statistic.hypothesis().parameters() == ({"alfa": 1.0, "beta": 1.0})
 
 
 @pytest.mark.parametrize("cls", CLASSES)
@@ -64,7 +61,7 @@ def test_invalid_samples(cls, sample):
         cls(parameters_for(cls)).execute_statistic(sample)
 
 
-@pytest.mark.parametrize("cls", [c for c in CLASSES if c is not g.LillieforsGammaGofStatistic])
+@pytest.mark.parametrize("cls", CLASSES)
 @pytest.mark.parametrize("value", [0, -1, np.nan, np.inf, [1.0], 1j, True, "1"])
 @pytest.mark.parametrize("parameter", ["alfa", "beta"])
 def test_invalid_parameters(cls, parameter, value):
@@ -90,25 +87,6 @@ def test_ks_reference_and_tail(direction, scipy_direction):
     ).statistic
     assert statistic.execute_statistic(SAMPLE) == pytest.approx(expected)
     assert isinstance(statistic.alternative(), RightAlternative)
-
-
-def test_fitted_ks_moments_rescaling_and_calibration():
-    statistic = g.LillieforsGammaGofStatistic(GammaDistributionDescriptor.DEFAULT.parse({}))
-    for x in (SAMPLE, np.array([0, 1.0, 2.0, 4.0, 8.0])):
-        mean, var = np.mean(x), np.var(x, ddof=1)
-        expected = stats.ks_1samp(x, stats.gamma(mean**2 / var, scale=var / mean).cdf).statistic
-        assert statistic.execute_statistic(x) == pytest.approx(expected)
-        assert statistic.execute_statistic(x * 1e300) == pytest.approx(expected)
-        assert statistic.execute_statistic(x * 1e-300) == pytest.approx(expected)
-    for x in ([1], [1, 1], [0, 0]):
-        with pytest.raises(ValueError):
-            statistic.execute_statistic(x)
-    with pytest.raises(ValueError):
-        g.LillieforsGammaGofStatistic(GammaDistributionDescriptor.DEFAULT.parse({"alfa": 2}))
-    with pytest.raises(ValueError, match="shape-specific"):
-        get_hypothesis_generator(statistic)
-    with pytest.raises(ValueError, match="shape-specific"):
-        MonteCarloLimitDistributionResolver(2).resolve(statistic, 10)
 
 
 def test_edf_independent_uniform_formulas():
@@ -195,7 +173,6 @@ def test_calibration_storage_settings(mocker):
     store = mocker.Mock()
     resolver = StorageLimitDistributionResolver(store)
     for stat in (
-        g.LillieforsGammaGofStatistic(GammaDistributionDescriptor.DEFAULT.parse({})),
         g.Chi2PearsonGammaGofStatistic(
             GammaDistributionDescriptor.DEFAULT.parse({"alfa": 1, "beta": 1})
         ),

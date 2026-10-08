@@ -529,6 +529,7 @@ for name, obj in inspect.getmembers(normal):
         and name not in EXPLICITLY_IMPLEMENTED_NORMAL_STATS
         and not name.startswith("Abstract")
         and not name.startswith("Graph")
+        and name != "LillieforsNormalityGofStatistic"
     ):
         ln_class = _create_lognormal_class(obj)
         setattr(current_module, ln_class.__name__, ln_class)

@@ -22,7 +22,6 @@ from pysatl_criterion.statistics.goodness_of_fit.common import (
     Chi2Statistic,
     CrammerVonMisesStatistic,
     KSStatistic,
-    LillieforsTest,
     MinToshiyukiStatistic,
 )
 
@@ -213,118 +212,6 @@ class KolmogorovSmirnovInverseGammaGofStatistic(AbstractInverseGammaGofStatistic
         sorted_rvs = self._prepare_sample(rvs)
         cdf_vals = self._cdf(sorted_rvs)
         return KSStatistic.do_execute_statistic(self, sorted_rvs, cdf_vals)
-
-
-class LillieforsInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, LillieforsTest):
-    """KS distance to an Inverse Gamma CDF fitted by sample moments.
-
-    Parameters
-    ----------
-    parameters : ParameterValues
-        An empty distribution schema; all distribution parameters are unknown.
-
-
-    Methods
-    -------
-    execute_statistic(rvs, **kwargs)
-        Return one scalar without modifying the input or retaining estimates.
-    hypothesis()
-        Return fixed parameters; omitted parameters are unknown.
-    alternative()
-        Return the right critical tail.
-
-    Notes
-    -----
-    The iid null model has density beta**alpha/Gamma(alpha) *
-    x**(-alpha-1)*exp(-beta/x), x > 0, with location fixed at zero.
-    Write u_i=F(x_(i)), i=1,...,n, for sorted observations.
-    Both parameters are unknown. Fit alpha_hat = 2 + mean(x)**2/S2 and
-    beta_hat = mean(x)*(alpha_hat-1), with S2 = sum((x-mean(x))**2)/(n-1).
-    Return max(D+,D-) to the fitted CDF, refitting independently each call.
-    Rescaling by max(x) prevents moment overflow without changing the distance.
-    The moment model requires alpha > 2 (finite variance); fourth moments
-    require alpha > 4. This restriction is not encoded in hypothesis metadata.
-    The null law depends on alpha, though scaling removes beta. Ordinary KS
-    tables are invalid. External shape-specific calibration or a justified
-    composite-null procedure must refit every replicate. Generic Monte Carlo
-    and storage calibration are blocked. No primary source confirming this
-    exact Inverse Gamma moment-fitted test and calibration was found.
-    The constructor now takes no alpha/beta; hypothesis parameters are empty.
-
-    Finite positive observations give mathematically finite statistics.
-    Numerical log-tail underflow or overflow raises FloatingPointError,
-    rather than replacing probabilities with epsilon. Ordinary CDF values
-    and spacings may still round in extreme tails.
-
-    Examples
-    --------
-    >>> parameters = Distribution.DEFAULT.parse({})
-    >>> statistic = LillieforsInverseGammaGofStatistic(parameters)
-    >>> value = statistic.execute_statistic([0.4, 0.7, 1.2, 2.0])
-    >>> bool(np.isfinite(value))
-    True
-    """
-
-    @classmethod
-    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
-        return (HypothesisSupport(Distribution.DEFAULT, frozenset()),)
-
-    def _validate_storage_calibration(self):
-        raise ValueError("Fitted Inverse Gamma KS requires external shape-specific calibration")
-
-    @staticmethod
-    @override
-    def short_code() -> str:
-        return "LILLIE"
-
-    @override
-    def execute_statistic(self, rvs, **kwargs):
-        """Compute the statistic defined in the class Notes.
-
-        Parameters
-        ----------
-        rvs : array_like, shape (n,)
-            Finite real strictly positive observations. At least two values;
-            positive sample variance is required.
-        **kwargs : dict
-            Unused compatibility arguments.
-
-        Returns
-        -------
-        float or numpy.float64
-            Scalar statistic; large values reject the null.
-
-        Raises
-        ------
-        ValueError
-            If sample dimension, size, finiteness or support is invalid or
-            moment estimates are numerically degenerate.
-        FloatingPointError
-            If CDF evaluation, required log tails or quantiles are numerically
-            invalid, or the statistic exceeds float64 range.
-
-        Notes
-        -----
-        No mathematically infinite result occurs for admissible finite data.
-        No p-value or finite-sample correction is returned.
-        """
-        sample = self._prepare_sample(rvs, minimum=2)
-        sample = sample / sample[-1]
-        if np.any(sample == 0):
-            raise ValueError("Sample dynamic range exceeds numerical precision")
-        mean = np.mean(sample)
-        var = np.var(sample, ddof=1)
-        if var <= 0:
-            raise ValueError("Sample variance must be positive")
-        with np.errstate(over="ignore", divide="ignore", invalid="ignore"):
-            alpha_hat = 2.0 + mean**2 / var
-            beta_hat = mean * (alpha_hat - 1.0)
-        if not np.isfinite(alpha_hat) or not np.isfinite(beta_hat) or alpha_hat <= 2:
-            raise ValueError("Inverse Gamma moment estimates exceed numerical precision")
-        cdf = scipy_stats.invgamma.cdf(sample, a=alpha_hat, scale=beta_hat)
-        if not np.all(np.isfinite(cdf)):
-            raise FloatingPointError("Invalid fitted CDF")
-        return float(KSStatistic.do_execute_statistic(self, sample, cdf))
 
 
 class AndersonDarlingInverseGammaGofStatistic(AbstractInverseGammaGofStatistic, ADStatistic):

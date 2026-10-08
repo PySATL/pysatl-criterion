@@ -1,9 +1,7 @@
 """Uniform goodness-of-fit statistics.
 
-Except for the fitted-bound Lilliefors statistic, these tests use a specified
-U(a, b) null and expose both bounds in the hypothesis. Standardizing by the
-specified bounds does not make those bounds unknown parameters. Lilliefors
-fits the minimum and maximum and tests the full location-scale family.
+These tests use a specified U(a, b) null and expose both bounds in the
+hypothesis. Standardizing by the specified bounds does not make them unknown.
 """
 
 from abc import ABC
@@ -32,7 +30,6 @@ from pysatl_criterion.statistics.goodness_of_fit.common import (
     Chi2Statistic,
     CrammerVonMisesStatistic,
     KSStatistic,
-    LillieforsTest,
 )
 
 
@@ -208,53 +205,6 @@ class CrammerVonMisesUniformGofStatistic(AbstractUniformGofStatistic, CrammerVon
         rvs_sorted = np.sort(rvs)
         cdf_vals = scipy_stats.uniform.cdf(rvs_sorted, loc=self.a, scale=self.b - self.a)
         return CrammerVonMisesStatistic.do_execute_statistic(self, rvs_sorted, cdf_vals)
-
-
-class LillieforsTestUniformGofStatistic(AbstractUniformGofStatistic, LillieforsTest):
-    """Parameters
-    ----------
-    parameters : ParameterValues
-        An empty distribution schema; all distribution parameters are unknown.
-
-    Lilliefors-type KS statistic with both bounds estimated by maximum likelihood.
-
-    The fitted bounds are the sample minimum and maximum. No distribution
-    parameters are accepted; the null is the entire uniform family. Calibration
-    must refit the bounds for every simulated sample (ordinary KS tables do not
-    apply). At least two distinct finite observations are required.
-    """
-
-    def __init__(self, parameters: ParameterValues):
-        AbstractGoodnessOfFitStatistic.__init__(self, parameters)
-
-    @classmethod
-    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
-        return (HypothesisSupport(Uniform.DEFAULT, frozenset()),)
-
-    @staticmethod
-    @override
-    def short_code():
-        """
-        Get short code identifier for this test.
-
-        :return: short code string "LILLIE".
-        """
-        return "LILLIE"
-
-    @override
-    def execute_statistic(self, rvs, **kwargs):
-        """
-        Execute the Lilliefors test statistic.
-
-        :param rvs: nonempty one-dimensional sample of finite observations.
-        :return: Lilliefors test statistic value.
-        """
-        rvs_sorted = np.sort(_validate_sample(rvs, min_size=2))
-        width = rvs_sorted[-1] - rvs_sorted[0]
-        if not np.isfinite(width) or width <= 0:
-            raise ValueError("Sample must have a positive, finite range")
-        cdf_vals = (rvs_sorted - rvs_sorted[0]) / width
-        return LillieforsTest.do_execute_statistic(self, rvs_sorted, cdf_vals)
 
 
 class Chi2PearsonUniformGofStatistic(AbstractUniformGofStatistic, Chi2Statistic):

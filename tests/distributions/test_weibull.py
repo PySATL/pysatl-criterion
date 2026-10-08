@@ -189,9 +189,6 @@ def test_mle_and_fitted_edf(sample):
     power = (sample / mle["eta"]) ** mle["beta"]
     assert np.dot(power, log_x) / power.sum() - log_x.mean() == pytest.approx(1 / mle["beta"])
     u = stats.gumbel_l.cdf(z)
-    assert w.LillieforsWeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(
-        sample
-    ) == pytest.approx(ks_reference(u))
     expected_ad = stats.anderson(np.log(sample), dist="gumbel_l").statistic
     assert w.AndersonDarlingWeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(
         sample
@@ -203,19 +200,6 @@ def test_mle_and_fitted_edf(sample):
     assert w.SPPWeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(
         sample
     ) == pytest.approx(expected_spp)
-
-
-def test_refitting_changes_cdf_not_just_state():
-    statistic = w.LillieforsWeibullGofStatistic(Weibull.DEFAULT.parse({}))
-    assert statistic.execute_statistic(SAMPLE) != pytest.approx(
-        ew.KolmogorovSmirnovExponentiatedWeibullGofStatistic(
-            ExponentiatedWeibull.DEFAULT.parse({"exponent": 1, "shape": 1, "scale": 1})
-        ).execute_statistic(SAMPLE)
-    )
-    for sample in [SAMPLE, np.array([0.01, 0.2, 0.4, 0.8, 10])]:
-        assert statistic.execute_statistic(sample) == pytest.approx(
-            ks_reference(stats.gumbel_l.cdf(fitted_logs(sample)))
-        )
 
 
 @pytest.mark.parametrize(
@@ -485,7 +469,7 @@ def test_critical_tails_and_calibration():
 
 
 def test_documentation_examples_and_class_count():
-    assert len(CLASSES) == 24
+    assert len(CLASSES) == 23
     assert doctest.testmod(w).failed == 0
     assert doctest.testmod(ew).failed == 0
 
@@ -500,9 +484,9 @@ def test_monte_carlo_refits_every_replicate(mocker):
         "pysatl_criterion.generator.generators.generate_weibull", side_effect=samples
     )
     result = MonteCarloLimitDistributionResolver(2).resolve(
-        w.LillieforsWeibullGofStatistic(Weibull.DEFAULT.parse({})), sample_size=len(SAMPLE)
+        w.AndersonDarlingWeibullGofStatistic(Weibull.DEFAULT.parse({})), sample_size=len(SAMPLE)
     )
-    expected = [ks_reference(stats.gumbel_l.cdf(fitted_logs(sample))) for sample in samples]
+    expected = [stats.anderson(np.log(sample), dist="gumbel_l").statistic for sample in samples]
     np.testing.assert_allclose(result, expected)
     assert sampler.call_count == 2
     assert all(call.kwargs["shape"] == call.kwargs["scale"] == 1 for call in sampler.call_args_list)

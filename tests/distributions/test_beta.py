@@ -11,7 +11,6 @@ from pysatl_criterion.statistics.goodness_of_fit.beta import (
     EntropyBetaGofStatistic,
     KolmogorovSmirnovBetaGofStatistic,
     KuiperBetaGofStatistic,
-    LillieforsTestBetaGofStatistic,
     ModeBetaGofStatistic,
     MomentBasedBetaGofStatistic,
     RatioBetaGofStatistic,
@@ -332,55 +331,6 @@ class TestCrammerVonMisesBetaGofStatistic:
 
         with pytest.raises(ValueError, match="Beta distribution values must be in the interval"):
             stat.execute_statistic([0.5, 1.5, 0.3])
-
-
-class TestLillieforsTestBetaGofStatistic:
-    """Tests for Lilliefors test statistic."""
-
-    def test_code(self):
-        """Test that the Lilliefors statistic returns correct code."""
-        assert "LILLIE_BETA_GOODNESS_OF_FIT" == LillieforsTestBetaGofStatistic.code()
-
-    @pytest.mark.parametrize(
-        ("data", "result"),
-        [
-            (
-                [
-                    0.3536766572,
-                    0.2485580661,
-                    0.4159590873,
-                    0.1599675758,
-                    0.5502830781,
-                    0.1109452876,
-                    0.5098966418,
-                    0.1772703795,
-                    0.1982904719,
-                    0.3762367882,
-                ],
-                0.162452763942,
-            ),
-            (
-                [
-                    0.3366836981,
-                    0.5643169242,
-                    0.5625418098,
-                    0.4038462174,
-                    0.3593278603,
-                    0.7521677033,
-                    0.6460545301,
-                    0.7051711915,
-                    0.1494688017,
-                    0.8260848760,
-                ],
-                0.158289804227,
-            ),
-        ],
-    )
-    def test_lillie_with_parametrized_data(self, data, result):
-        """Test Lilliefors statistic with precomputed expected values."""
-        stat = LillieforsTestBetaGofStatistic(Beta.DEFAULT.parse({}))
-        statistic_value = stat.execute_statistic(data)
-        assert result == pytest.approx(statistic_value, 0.00001)
 
 
 class TestChi2PearsonBetaGofStatistic:
@@ -1060,7 +1010,6 @@ class TestBetaIntegration:
             KolmogorovSmirnovBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
             AndersonDarlingBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
             CrammerVonMisesBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
-            LillieforsTestBetaGofStatistic(Beta.DEFAULT.parse({})),
             Chi2PearsonBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
             WatsonBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
             KuiperBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),

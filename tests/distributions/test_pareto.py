@@ -13,7 +13,6 @@ from pysatl_criterion.statistics.goodness_of_fit.pareto import (
     GreenwoodParetoGofStatistic,
     KolmogorovSmirnovParetoGofStatistic,
     LequesneKlParetoGofStatistic,
-    LillieforsParetoGofStatistic,
     MinToshiyukiParetoGofStatistic,
     ObradovicParetoGofStatistic,
 )
@@ -205,63 +204,6 @@ def test_cvm_pareto_positive():
     assert result > 0
 
 
-def test_lilliefors_pareto_criterion_code():
-    assert (
-        "Lilliefors_PARETO_GOODNESS_OF_FIT"
-        == LillieforsParetoGofStatistic(ParetoDistributionDescriptor.DEFAULT.parse({})).code()
-    )
-
-
-def test_lilliefors_pareto_positive():
-    np.random.seed(42)
-    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50)
-    stat = LillieforsParetoGofStatistic(ParetoDistributionDescriptor.DEFAULT.parse({}))
-    result = stat.execute_statistic(sample)
-    assert result > 0
-
-
-def test_lilliefors_pareto_less_than_one():
-    np.random.seed(42)
-    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50)
-    stat = LillieforsParetoGofStatistic(ParetoDistributionDescriptor.DEFAULT.parse({}))
-    result = stat.execute_statistic(sample)
-    assert result < 1
-
-
-def test_lilliefors_pareto_estimates_parameters():
-    np.random.seed(42)
-    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=10)
-    stat = LillieforsParetoGofStatistic(ParetoDistributionDescriptor.DEFAULT.parse({}))
-    result = stat.execute_statistic(sample)
-    scale = np.min(sample)
-    shape = 1 / np.mean(np.log(sample / scale))
-    expected = scipy_stats.kstest(sample, scipy_stats.pareto(shape, scale=scale).cdf).statistic
-    assert result == pytest.approx(expected)
-    assert stat.hypothesis().parameters() == {}
-    assert stat.hypothesis().parameters() == {}
-
-
-def test_lilliefors_pareto_empty_sample():
-    stat = LillieforsParetoGofStatistic(ParetoDistributionDescriptor.DEFAULT.parse({}))
-    with pytest.raises(ValueError, match="At least 2 observations"):
-        stat.execute_statistic(np.array([]))
-
-
-def test_lilliefors_pareto_constant_sample():
-    stat = LillieforsParetoGofStatistic(ParetoDistributionDescriptor.DEFAULT.parse({}))
-    with pytest.raises(ValueError, match="nonconstant"):
-        stat.execute_statistic(np.ones(10) * 2.0)
-
-
-def test_lilliefors_pareto_non_positive_values():
-    stat = LillieforsParetoGofStatistic(ParetoDistributionDescriptor.DEFAULT.parse({}))
-
-    with pytest.raises(ValueError, match="Sample values must be strictly positive"):
-        stat.execute_statistic([0, 1, 2, 3])
-    with pytest.raises(ValueError, match="Sample values must be strictly positive"):
-        stat.execute_statistic([-1, 1, 2, 3])
-
-
 def test_mt_pareto_criterion_code():
     assert (
         "MT_PARETO_GOODNESS_OF_FIT"
@@ -441,7 +383,6 @@ def test_all_pareto_statistics_run():
         CramerVonMisesParetoGofStatistic(
             ParetoDistributionDescriptor.DEFAULT.parse({"shape": 2.0, "scale": 1.0})
         ),
-        LillieforsParetoGofStatistic(ParetoDistributionDescriptor.DEFAULT.parse({})),
         MinToshiyukiParetoGofStatistic(
             ParetoDistributionDescriptor.DEFAULT.parse({"shape": 2.0, "scale": 1.0})
         ),

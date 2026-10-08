@@ -8,10 +8,6 @@ import pytest
 from scipy import integrate, stats
 
 from pysatl_criterion.distribution.distributions import StudentDistributionDescriptor
-from pysatl_criterion.distribution.distributions import StudentDistributionDescriptor as Student
-from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
-    MonteCarloLimitDistributionResolver,
-)
 from pysatl_criterion.statistics.alternative import AlternativeType
 from pysatl_criterion.statistics.goodness_of_fit import student
 from tests.parameter_cases import parameters_for
@@ -22,7 +18,7 @@ CLASSES = [
     for _, cls in inspect.getmembers(student, inspect.isclass)
     if cls.__module__ == student.__name__ and not inspect.isabstract(cls)
 ]
-FIXED = [cls for cls in CLASSES if cls is not student.LillieforsStudentGofStatistic]
+FIXED = CLASSES
 SAMPLE = np.array([2.1, -1.3, 0.2, 4.7, -0.8, 0.5, 1.2])
 
 
@@ -195,43 +191,3 @@ def test_pearson_counts_with_empty_cells_and_boundary_tie():
         ).execute_statistic(x)
         == expected
     )
-
-
-@pytest.mark.parametrize("df", [0.5, 1, 5, 30])
-def test_lilliefors_quantile_fit_fresh_for_each_call(df):
-    statistic = student.LillieforsStudentGofStatistic(
-        StudentDistributionDescriptor.DEFAULT.parse({"df": df})
-    )
-    state = vars(statistic).copy()
-    for x in (SAMPLE, 7 + 3 * SAMPLE, np.array([-7, -3, -1, 1, 2, 10]), SAMPLE):
-        q1, median, q3 = np.quantile(x, [0.25, 0.5, 0.75], method="linear")
-        scale = (q3 - q1) / (stats.t.ppf(0.75, df) - stats.t.ppf(0.25, df))
-        expected = stats.kstest(x, stats.t(df, loc=median, scale=scale).cdf).statistic
-        assert statistic.execute_statistic(x) == pytest.approx(expected)
-    assert vars(statistic) == state
-    assert statistic.execute_statistic(SAMPLE) == pytest.approx(
-        statistic.execute_statistic(7 + 3 * SAMPLE)
-    )
-    assert statistic.execute_statistic(1e200 * SAMPLE) == pytest.approx(
-        statistic.execute_statistic(SAMPLE)
-    )
-
-
-@pytest.mark.parametrize("x", [[1], [1, 1], [0, 0, 0, 0, 1]])
-def test_lilliefors_degenerate_quantiles(x):
-    with pytest.raises(ValueError):
-        student.LillieforsStudentGofStatistic(
-            StudentDistributionDescriptor.DEFAULT.parse({"df": 5})
-        ).execute_statistic(x)
-
-
-def test_lilliefors_sampler_preserves_df_and_uses_location_scale_invariance():
-    statistic = student.LillieforsStudentGofStatistic(Student.DEFAULT.parse({"df": 5}))
-    assert statistic.hypothesis().parameters() == {"df": 5}
-    from pysatl_criterion.utils.generator import get_hypothesis_generator
-
-    assert get_hypothesis_generator(statistic).parameters() == {"df": 5, "loc": 0, "scale": 1}
-    result = MonteCarloLimitDistributionResolver(2).resolve(statistic, 10)
-    assert len(result) == 2
-    assert np.all(np.isfinite(result))
-    assert statistic.hypothesis().parameters() == {"df": 5}

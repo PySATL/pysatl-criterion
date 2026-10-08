@@ -78,5 +78,4 @@ print(statistic_result)
 To fix the default interval explicitly, use
 `Uniform.DEFAULT.parse({}, fill_defaults=True)` before calling the constructor.
 This differs from `parse({})`, which declares no fixed bounds and is unsupported
-by this KS class. For unknown bounds, see the
-[Lilliefors-type implementation](lilliefors_uniform_criterion.md#examples).
+by this KS class.

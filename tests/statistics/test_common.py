@@ -16,8 +16,8 @@ from pysatl_criterion.hypothesis_testing.alternative_factory.alternative_factori
 from pysatl_criterion.statistics.alternative import AlternativeType
 from pysatl_criterion.statistics.goodness_of_fit.beta import (
     Chi2PearsonBetaGofStatistic,
+    EbnerLiebenbergBetaGofStatistic,
     KolmogorovSmirnovBetaGofStatistic,
-    LillieforsTestBetaGofStatistic,
 )
 from pysatl_criterion.statistics.goodness_of_fit.common import Chi2Statistic
 from pysatl_criterion.statistics.goodness_of_fit.exponentiated_weibull import (
@@ -57,7 +57,7 @@ def test_ks_direction_selects_deviation_but_always_uses_right_tail(direction, sc
         for direction in AlternativeType
     ]
     + [
-        LillieforsTestBetaGofStatistic(Beta.DEFAULT.parse({})),
+        EbnerLiebenbergBetaGofStatistic(Beta.DEFAULT.parse({})),
         MinToshiyukiGammaGofStatistic(
             GammaDistributionDescriptor.DEFAULT.parse({"alfa": 1, "beta": 1})
         ),

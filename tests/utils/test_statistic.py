@@ -69,6 +69,7 @@ from pysatl_criterion.utils.statistic import (
         (
             "exponential",
             [
+                "LILLIE",
                 "INDEPENDENCENUMBER",
                 "HM",
                 "WE",
@@ -111,7 +112,6 @@ from pysatl_criterion.utils.statistic import (
                 "RSB",
                 "MD",
                 "LT2",
-                "LILLIE",
                 "OK",
                 "LT3",
                 "SB",
@@ -136,7 +136,6 @@ from pysatl_criterion.utils.statistic import (
                 "CVM",
                 "GREENWOOD",
                 "NEYMAN",
-                "LILLIE",
                 "BICKEL_ROSENBLATT",
                 "SHERMAN",
                 "CHI2_PEARSON",
@@ -148,7 +147,7 @@ from pysatl_criterion.utils.statistic import (
         ),
         (
             "student",
-            ["KUIPER", "CHI2", "WATSON", "KS", "ZHANG_ZC", "AD", "ZHANG_ZA", "CVM", "LILLIE"],
+            ["KUIPER", "CHI2", "WATSON", "KS", "ZHANG_ZC", "AD", "ZHANG_ZA", "CVM"],
         ),
         (
             "gamma",
@@ -158,7 +157,6 @@ from pysatl_criterion.utils.statistic import (
                 "MOR",
                 "CRESSIE_READ",
                 "CVM",
-                "LILLIE",
                 "AVGDEGREE",
                 "MT",
                 "PPCC",

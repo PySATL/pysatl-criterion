@@ -453,7 +453,6 @@ def test_dynamic_lognormal_negative_data_handling(log_normal_cls, normal_cls):
 
 def test_dynamic_lognormal_example_code_method():
     from pysatl_criterion.statistics.goodness_of_fit import (
-        LillieforsLogNormalGofStatistic,
         ShapiroWilkLogNormalGofStatistic,
     )
 
@@ -462,8 +461,4 @@ def test_dynamic_lognormal_example_code_method():
         == ShapiroWilkLogNormalGofStatistic(
             LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1})
         ).code()
-    )
-    assert (
-        "LILLIE_LOGNORMAL_GOODNESS_OF_FIT"
-        == LillieforsLogNormalGofStatistic(LogNormal.SHAPE_SCALE.parse({"s": 1, "scale": 1})).code()
     )

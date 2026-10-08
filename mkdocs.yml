@@ -13,6 +13,7 @@ nav:
     - Criteria:
         - Goodness-of-fit:
             - Exponentiality:
+                - Lilliefors: criteria/goodness-of-fit/exponentiality/lilliefors_exp_criterion.md
                 - Epps and Pulley: criteria/goodness-of-fit/exponentiality/epps_pulley_exp_criterion.md
                 - Kolmogorov-Smirnov: criteria/goodness-of-fit/exponentiality/kolmogorov_smirnov_exp_criterion.md
                 - Wong and Wong: criteria/goodness-of-fit/exponentiality/wong_wong_exp_criterion.md
@@ -47,7 +48,6 @@ nav:
                 - Kolmogorov-Smirnov: criteria/goodness-of-fit/uniformity/kolmogorov_smirnov_uniform_criterion.md
                 - Anderson-Darling: criteria/goodness-of-fit/uniformity/anderson_darling_uniform_criterion.md
                 - Cramer-von Mises: criteria/goodness-of-fit/uniformity/cvm_uniform_criterion.md
-                - Lilliefors: criteria/goodness-of-fit/uniformity/lilliefors_uniform_criterion.md
                 - Pearson chi-squared: criteria/goodness-of-fit/uniformity/chi2_pearson_uniform_criterion.md
                 - Watson: criteria/goodness-of-fit/uniformity/watson_uniform_criterion.md
                 - Kuiper: criteria/goodness-of-fit/uniformity/kuiper_uniform_criterion.md
@@ -63,7 +63,6 @@ nav:
                 - Kolmogorov-Smirnov: criteria/goodness-of-fit/beta/kolmogorov_smirnov_beta_criterion.md
                 - Anderson-Darling: criteria/goodness-of-fit/beta/anderson_darling_beta_criterion.md
                 - Cramer-von Mises: criteria/goodness-of-fit/beta/cvm_beta_criterion.md
-                - Lilliefors: criteria/goodness-of-fit/beta/lilliefors_beta_criterion.md
                 - Ebner-Liebenberg: criteria/goodness-of-fit/beta/ebner_liebenberg_beta_criterion.md
                 - Pearson chi-squared: criteria/goodness-of-fit/beta/chi2_pearson_beta_criterion.md
                 - Watson: criteria/goodness-of-fit/beta/watson_beta_criterion.md
@@ -75,7 +74,6 @@ nav:
                 - Mode: criteria/goodness-of-fit/beta/mode_beta_criterion.md
             - Gamma distribution:
                 - Kolmogorov-Smirnov: criteria/goodness-of-fit/gamma/kolmogorov_smirnov_gamma_criterion.md
-                - Lilliefors: criteria/goodness-of-fit/gamma/lilliefors_gamma_criterion.md
                 - Anderson-Darling: criteria/goodness-of-fit/gamma/anderson_darling_gamma_criterion.md
                 - Cramer-von Mises: criteria/goodness-of-fit/gamma/cvm_gamma_criterion.md
                 - Watson: criteria/goodness-of-fit/gamma/watson_gamma_criterion.md
@@ -108,15 +106,15 @@ nav:
                 - Watson: criteria/goodness-of-fit/student/watson_student_criterion.md
                 - Zhang Zc: criteria/goodness-of-fit/student/zhang_zc_student_criterion.md
                 - Zhang Za: criteria/goodness-of-fit/student/zhang_za_student_criterion.md
-                - Lilliefors: criteria/goodness-of-fit/student/lilliefors_student_criterion.md
                 - Chi-square: criteria/goodness-of-fit/student/chi_square_student_criterion.md
+            - Exponentiated Weibull distribution:
+                - Pearson chi-squared: criteria/goodness-of-fit/exponentiated-weibull/chi2_pearson_exponentiated_weibull_criterion.md
+                - Cramer-von Mises: criteria/goodness-of-fit/exponentiated-weibull/cvm_exponentiated_weibull_criterion.md
+                - Kolmogorov-Smirnov: criteria/goodness-of-fit/exponentiated-weibull/kolmogorov_smirnov_exponentiated_weibull_criterion.md
+                - Min-Toshiyuki: criteria/goodness-of-fit/exponentiated-weibull/min_toshiyuki_exponentiated_weibull_criterion.md
+                - Watson: criteria/goodness-of-fit/exponentiated-weibull/watson_exponentiated_weibull_criterion.md
             - Weibull distribution:
-                - Min-Toshiyuki: criteria/goodness-of-fit/weibull/min_toshiyuki_weibull_criterion.md
-                - Pearson chi-squared: criteria/goodness-of-fit/weibull/chi2_pearson_weibull_criterion.md
-                - Lilliefors: criteria/goodness-of-fit/weibull/lilliefors_weibull_criterion.md
-                - Cramer-von Mises: criteria/goodness-of-fit/weibull/cvm_weibull_criterion.md
                 - Anderson-Darling: criteria/goodness-of-fit/weibull/anderson_darling_weibull_criterion.md
-                - Kolmogorov-Smirnov: criteria/goodness-of-fit/weibull/kolmogorov_smirnov_weibull_criterion.md
                 - Sb: criteria/goodness-of-fit/weibull/sb_weibull_criterion.md
                 - ST2: criteria/goodness-of-fit/weibull/st2_weibull_criterion.md
                 - ST1: criteria/goodness-of-fit/weibull/st1_weibull_criterion.md
@@ -129,7 +127,6 @@ nav:
                 - Evans-Johnson-Green: criteria/goodness-of-fit/weibull/rejg_weibull_criterion.md
                 - Stabilized probability plot: criteria/goodness-of-fit/weibull/spp_weibull_criterion.md
                 - Mahdi-Doostparast: criteria/goodness-of-fit/weibull/mahdi_doostparast_weibull_criterion.md
-                - Watson: criteria/goodness-of-fit/weibull/watson_weibull_criterion.md
                 - Liao-Shimokawa: criteria/goodness-of-fit/weibull/liao_shimokawa_weibull_criterion.md
                 - Kullback-Leibler: criteria/goodness-of-fit/weibull/kullback_leibler_weibull_criterion.md
                 - Laplace transform 2: criteria/goodness-of-fit/weibull/laplace_transform2_weibull_criterion.md
@@ -163,7 +160,6 @@ nav:
                 - Hosking4: criteria/goodness-of-fit/log-normal/hosking4_log_normal_criterion.md
                 - Jarque-Bera: criteria/goodness-of-fit/log-normal/jarque_bera_log_normal_criterion.md
                 - Kurtosis: criteria/goodness-of-fit/log-normal/kurtosis_log_normal_criterion.md
-                - Lilliefors: criteria/goodness-of-fit/log-normal/lilliefors_log_normal_criterion.md
                 - Looney-Gulledge: criteria/goodness-of-fit/log-normal/looney_gulledge_log_normal_criterion.md
                 - Martinez-Iglewicz: criteria/goodness-of-fit/log-normal/martinez_iglewicz_log_normal_criterion.md
                 - Robust Jarque-Bera: criteria/goodness-of-fit/log-normal/robust_jarque_bera_log_normal_criterion.md

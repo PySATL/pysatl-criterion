@@ -21,7 +21,6 @@ from pysatl_criterion.statistics.goodness_of_fit.common import (
     Chi2Statistic,
     CrammerVonMisesStatistic,
     KSStatistic,
-    LillieforsTest,
     MinToshiyukiStatistic,
 )
 from pysatl_criterion.statistics.goodness_of_fit.graph_goodness_of_fit import (
@@ -238,114 +237,6 @@ class KolmogorovSmirnovGammaGofStatistic(AbstractGammaGofStatistic, KSStatistic)
         sorted_rvs = np.sort(_sample(rvs))
         cdf_vals = self._cdf(sorted_rvs)
         return KSStatistic.do_execute_statistic(self, sorted_rvs, cdf_vals)
-
-
-class LillieforsGammaGofStatistic(AbstractGammaGofStatistic, LillieforsTest):
-    """KS distance to a Gamma CDF fitted by sample moments.
-
-    Parameters
-    ----------
-    parameters : ParameterValues
-        An empty distribution schema; all distribution parameters are unknown.
-
-
-    Methods
-    -------
-    execute_statistic(rvs, **kwargs)
-        Compute one scalar statistic without changing the sample.
-    hypothesis()
-        Return fixed null parameters; omitted keys mean unknown parameters.
-
-    Notes
-    -----
-    Fit shape = mean(x)**2 / S2 and scale = S2 / mean(x), where
-    S2 = sum((x-mean(x))**2)/(n-1). Compute max(D+,D-) using the fitted
-    CDF. Both parameters are unknown; hypothesis().parameters() is empty.
-    Each call fits independently after rescaling to avoid overflow.
-    A nonconstant sample of size at least two with positive mean is required.
-    Zero is accepted as a support boundary by this moment estimator.
-    This is a Lilliefors-type construction, not the normality test or its
-    tables. No primary source verifying this exact Gamma moment estimator
-    and finite-sample calibration was found. The null law depends on shape.
-    Generic Monte Carlo and storage calibration are blocked: external
-    calibration must specify the shape or a justified composite-null scheme
-    and refit each replicate. Ordinary KS tables are inappropriate.
-    The constructor no longer accepts alpha or beta.
-
-    Reject for large values. No p-value is computed by this class.
-
-    Examples
-    --------
-    >>> parameters = Distribution.DEFAULT.parse({})
-    >>> statistic = LillieforsGammaGofStatistic(parameters)
-    >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
-    >>> bool(np.isfinite(value))
-    True
-    """
-
-    @classmethod
-    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
-        return (HypothesisSupport(Distribution.DEFAULT, frozenset()),)
-
-    def _validate_storage_calibration(self):
-        raise ValueError("Fitted Gamma KS requires external shape-specific calibration")
-
-    @staticmethod
-    @override
-    def short_code():
-        """
-        Get short code identifier for this test.
-
-        :return: short code string "LILLIE".
-        """
-        return "LILLIE"
-
-    @override
-    def execute_statistic(self, rvs, **kwargs):
-        """Compute the scalar statistic defined in the class Notes.
-
-        Parameters
-        ----------
-        rvs : array_like, shape (n,)
-            Finite real nonnegative observations. Zero is a support boundary.
-            At least two observations; the sample must be nonconstant.
-        **kwargs : dict, optional
-            Reserved for interface compatibility; ignored.
-
-        Returns
-        -------
-        statistic : float or numpy.float64
-            The statistic in the class Notes. No p-value is calculated.
-
-        Raises
-        ------
-        ValueError
-            If the sample violates the stated shape, support or size constraints,
-            or the required estimates/quantiles are numerically degenerate.
-
-        Notes
-        -----
-        Both moment estimates are recomputed from this sample.
-        No fitted values are stored; see class Notes for calibration limits.
-        """
-
-        sample = _sample(rvs, minimum=2)
-        maximum = np.max(sample)
-        if maximum == 0:
-            raise ValueError("Sample mean and variance must be positive")
-        sample /= maximum
-        mean = np.mean(sample)
-        var = np.var(sample, ddof=1)
-        if var <= 0:
-            raise ValueError("Sample mean and variance must be positive")
-        with np.errstate(over="ignore"):
-            shape_hat = mean**2 / var
-        scale_hat = var / mean
-        if not np.isfinite(shape_hat) or shape_hat <= 0 or scale_hat <= 0:
-            raise ValueError("Gamma moment estimates exceed float64 precision")
-        sorted_sample = np.sort(sample)
-        cdf_vals = scipy_stats.gamma.cdf(sorted_sample, a=shape_hat, scale=scale_hat)
-        return KSStatistic.do_execute_statistic(self, sorted_sample, cdf_vals)
 
 
 class AndersonDarlingGammaGofStatistic(AbstractGammaGofStatistic, ADStatistic):

@@ -98,18 +98,6 @@ class ADStatistic(AbstractStatistic, ABC):
         return A2
 
 
-class LillieforsTest(KSStatistic, ABC):
-    alternative_type = AlternativeType.TWO_TAILED
-    mode = "auto"
-
-    @override
-    def alternative(self) -> Alternative:
-        return RightAlternative()
-
-    def do_execute_statistic(self, z, cdf_vals=None):
-        return super().do_execute_statistic(z, cdf_vals)
-
-
 class CrammerVonMisesStatistic(AbstractStatistic, ABC):
     @override
     def alternative(self) -> Alternative:

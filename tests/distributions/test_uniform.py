@@ -14,7 +14,6 @@ from pysatl_criterion.statistics.goodness_of_fit.uniform import (
     GreenwoodTestUniformGofStatistic,
     KolmogorovSmirnovUniformGofStatistic,
     KuiperUniformGofStatistic,
-    LillieforsTestUniformGofStatistic,
     NeymanSmoothTestUniformGofStatistic,
     QuesenberryMillerUniformGofStatistic,
     ShermanUniformGofStatistic,
@@ -201,32 +200,6 @@ class TestCrammerVonMisesUniformGofStatistic:
         assert CrammerVonMisesUniformGofStatistic(
             UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
         ).execute_statistic(sample) == pytest.approx(expected)
-
-
-class TestLillieforsTestUniformGofStatistic:
-    """Tests for Lilliefors test statistic."""
-
-    def test_code(self):
-        """Test that the Lilliefors statistic returns correct code."""
-        assert "LILLIE_UNIFORM_GOODNESS_OF_FIT" == LillieforsTestUniformGofStatistic.code()
-
-    @pytest.mark.parametrize(
-        ("a", "b", "seed", "n"),
-        [
-            (0, 1, 42, 50),
-            (0, 10, 123, 100),
-        ],
-    )
-    def test_lillie_with_generated_data(self, a, b, seed, n):
-        """Test Lilliefors statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
-
-        stat = LillieforsTestUniformGofStatistic(UniformDistributionDescriptor.DEFAULT.parse({}))
-        statistic_value = stat.execute_statistic(data)
-
-        assert statistic_value >= 0
-        assert statistic_value < 0.5
 
 
 class TestChi2PearsonUniformGofStatistic:
@@ -632,7 +605,6 @@ class TestUniformIntegration:
             CrammerVonMisesUniformGofStatistic(
                 UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
             ),
-            LillieforsTestUniformGofStatistic(UniformDistributionDescriptor.DEFAULT.parse({})),
             Chi2PearsonUniformGofStatistic(
                 UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
             ),

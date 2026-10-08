@@ -17,7 +17,6 @@ from pysatl_criterion.statistics.goodness_of_fit.student import (
     CramerVonMisesStudentGofStatistic,
     KolmogorovSmirnovStudentGofStatistic,
     KuiperStudentGofStatistic,
-    LillieforsStudentGofStatistic,
     WatsonStudentGofStatistic,
     ZhangZaStudentGofStatistic,
     ZhangZcStudentGofStatistic,
@@ -334,37 +333,6 @@ class TestZhangZaStudent:
         assert np.isfinite(result)
 
 
-# Tests for LillieforsStudentGofStatistic
-class TestLillieforsStudent:
-    """Tests for Lilliefors-type statistic."""
-
-    def test_lilliefors_code(self):
-        """Test that Lilliefors statistic returns correct code."""
-        assert "LILLIE_STUDENT_GOODNESS_OF_FIT" == LillieforsStudentGofStatistic.code()
-
-    def test_lilliefors_positive(self, t_sample_df5):
-        """Test that Lilliefors statistic is always positive."""
-        stat = LillieforsStudentGofStatistic(StudentDistributionDescriptor.DEFAULT.parse({"df": 5}))
-        result = stat.execute_statistic(t_sample_df5)
-        assert result > 0
-
-    @pytest.mark.parametrize(
-        ("data", "df"),
-        [
-            ([0.5, 1.0, -0.5, 0.0, 2.0], 5),
-            ([-1.5, -0.5, 0.5, 1.5], 3),
-            ([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0], 10),
-        ],
-    )
-    def test_lilliefors_less_than_one(self, data, df):
-        """Test that Lilliefors statistic is less than 1."""
-        stat = LillieforsStudentGofStatistic(
-            StudentDistributionDescriptor.DEFAULT.parse({"df": df})
-        )
-        result = stat.execute_statistic(data)
-        assert 0 < result < 1
-
-
 # Tests for ChiSquareStudentGofStatistic
 class TestChiSquareStudent:
     """Tests for Chi-Square statistic."""
@@ -421,7 +389,6 @@ class TestStudentStatisticsIntegration:
             ZhangZaStudentGofStatistic(
                 StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1})
             ),
-            LillieforsStudentGofStatistic(StudentDistributionDescriptor.DEFAULT.parse({"df": 5})),
             ChiSquareStudentGofStatistic(
                 StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1}),
                 n_bins=5,

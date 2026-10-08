@@ -13,7 +13,7 @@ STATISTICS = [
     beta.KolmogorovSmirnovBetaGofStatistic,
     beta.AndersonDarlingBetaGofStatistic,
     beta.CrammerVonMisesBetaGofStatistic,
-    beta.LillieforsTestBetaGofStatistic,
+    beta.EbnerLiebenbergBetaGofStatistic,
     beta.WatsonBetaGofStatistic,
     beta.KuiperBetaGofStatistic,
     beta.Chi2PearsonBetaGofStatistic,
@@ -29,13 +29,13 @@ STATISTICS = [
 @pytest.mark.parametrize("sample", [[], [[0.2, 0.3]], [np.nan] * 8, [np.inf], [-0.1], [1.1]])
 def test_invalid_samples(cls, sample):
     with pytest.raises(ValueError):
-        fixed = {} if cls is beta.LillieforsTestBetaGofStatistic else {"a": 2, "b": 5}
+        fixed = {} if cls is beta.EbnerLiebenbergBetaGofStatistic else {"a": 2, "b": 5}
         statistic = cls(Beta.DEFAULT.parse(fixed))
         statistic.execute_statistic(sample)
 
 
 @pytest.mark.parametrize(
-    "cls", [cls for cls in STATISTICS if cls is not beta.LillieforsTestBetaGofStatistic]
+    "cls", [cls for cls in STATISTICS if cls is not beta.EbnerLiebenbergBetaGofStatistic]
 )
 @pytest.mark.parametrize("value", [np.nan, np.inf, -np.inf, [2, 3]])
 @pytest.mark.parametrize("parameter", ["alpha", "beta"])
@@ -60,22 +60,6 @@ def test_ks_direction_and_rejection_tail(direction, scipy_direction):
     assert isinstance(statistic.alternative(), RightAlternative)
     expected = stats.kstest(sample, stats.beta(2, 5).cdf, alternative=scipy_direction).statistic
     assert statistic.execute_statistic(sample) == pytest.approx(expected)
-
-
-def test_lilliefors_fits_both_shapes_and_exposes_composite_null():
-    sample = [0.1, 0.2, 0.3, 0.5]
-    statistic = beta.LillieforsTestBetaGofStatistic(Beta.DEFAULT.parse({}))
-    a, b, _, _ = stats.beta.fit(sample, floc=0, fscale=1)
-    expected = stats.kstest(sample, stats.beta(a, b).cdf).statistic
-    assert statistic.execute_statistic(sample) == pytest.approx(expected)
-    assert statistic.execute_statistic(sample) != pytest.approx(
-        beta.KolmogorovSmirnovBetaGofStatistic(
-            Beta.DEFAULT.parse({"a": 1, "b": 1})
-        ).execute_statistic(sample)
-    )
-    assert isinstance(statistic.alternative(), RightAlternative)
-    assert statistic.hypothesis().parameters() == {}
-    assert dict(statistic.hypothesis().parameter_values) == {}
 
 
 @pytest.mark.parametrize(
@@ -227,29 +211,6 @@ def test_pearson_uses_survival_probabilities_in_right_tail():
     assert statistic >= 0
 
 
-@pytest.mark.parametrize("sample", [[0.2], [0.5] * 8, [0, 0.3, 0.7], [0.2, 0.7, 1]])
-def test_lilliefors_rejects_samples_without_finite_interior_mle(sample):
-    with pytest.raises(ValueError):
-        beta.LillieforsTestBetaGofStatistic(Beta.DEFAULT.parse({})).execute_statistic(sample)
-
-
-def test_lilliefors_does_not_accept_fixed_shape_parameters():
-    with pytest.raises(ValueError, match="Unsupported"):
-        beta.LillieforsTestBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}))
-
-
-def test_lilliefors_refits_each_sample_through_unified_method():
-    statistic = beta.LillieforsTestBetaGofStatistic(Beta.DEFAULT.parse({}))
-    rng = np.random.default_rng(42)
-    samples = [rng.beta(a, b, size=40) for a, b in [(2, 5), (5, 2), (1, 1)]]
-    for sample in samples + samples[:1]:
-        a, b, _, _ = stats.beta.fit(sample, floc=0, fscale=1)
-        expected = stats.kstest(sample, stats.beta(a, b).cdf).statistic
-        assert statistic.execute_statistic(sample) == pytest.approx(expected)
-        assert statistic.hypothesis().parameters() == {}
-        assert dict(statistic.hypothesis().parameter_values) == {}
-
-
 @pytest.mark.parametrize("cls", STATISTICS)
 def test_all_beta_statistics_support_uniform_scalar_execution(cls):
     from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
@@ -257,7 +218,7 @@ def test_all_beta_statistics_support_uniform_scalar_execution(cls):
     statistic: AbstractGoodnessOfFitStatistic = cls(
         Beta.DEFAULT.parse(
             {}
-            if cls is beta.LillieforsTestBetaGofStatistic
+            if cls is beta.EbnerLiebenbergBetaGofStatistic
             else {"a": 2, "b": 2}
             if cls is beta.ModeBetaGofStatistic
             else {"a": 1, "b": 1}
@@ -277,7 +238,7 @@ def test_composite_beta_cannot_use_default_uniform_calibration():
     from pysatl_criterion.utils.generator import get_hypothesis_generator
 
     with pytest.raises(ValueError, match="simulation shapes externally"):
-        get_hypothesis_generator(beta.LillieforsTestBetaGofStatistic(Beta.DEFAULT.parse({})))
+        get_hypothesis_generator(beta.EbnerLiebenbergBetaGofStatistic(Beta.DEFAULT.parse({})))
 
 
 @pytest.mark.parametrize("a,b", [(1, 1), (2, 5), (5, 2), (0.5, 0.5)])
@@ -295,7 +256,7 @@ def test_fixed_edf_statistics_match_uniform_transform(a, b):
             cls(
                 Beta.DEFAULT.parse(
                     {}
-                    if cls is beta.LillieforsTestBetaGofStatistic
+                    if cls is beta.EbnerLiebenbergBetaGofStatistic
                     else {"a": 2, "b": 2}
                     if cls is beta.ModeBetaGofStatistic
                     else {"a": 1, "b": 1}
@@ -343,7 +304,7 @@ def test_no_silent_loss_of_sample_information(cls, sample):
         cls(
             Beta.DEFAULT.parse(
                 {}
-                if cls is beta.LillieforsTestBetaGofStatistic
+                if cls is beta.EbnerLiebenbergBetaGofStatistic
                 else {"a": 2, "b": 2}
                 if cls is beta.ModeBetaGofStatistic
                 else {"a": 1, "b": 1}
@@ -410,7 +371,7 @@ def test_schema_construction_and_supported_fixed_parameters(cls):
     from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
     from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
-    fitted = cls is beta.LillieforsTestBetaGofStatistic
+    fitted = cls is beta.EbnerLiebenbergBetaGofStatistic
     values = Beta.DEFAULT.parse({} if fitted else {Beta.ALPHA: 2, Beta.BETA: 5})
     statistic = cls(values)
     assert statistic.supports_hypothesis(statistic.hypothesis())
@@ -491,7 +452,7 @@ def test_beta_family_does_not_require_fixed_shapes():
 @pytest.mark.parametrize("cls", STATISTICS)
 def test_beta_hierarchy_reflects_fixed_parameter_contract(cls):
     assert issubclass(cls, beta.AbstractBetaGofStatistic)
-    fitted = cls is beta.LillieforsTestBetaGofStatistic
+    fitted = cls is beta.EbnerLiebenbergBetaGofStatistic
     assert issubclass(cls, beta.AbstractSpecifiedBetaGofStatistic) is not fitted
     if fitted:
         assert dict(cls(Beta.DEFAULT.parse({})).hypothesis().parameter_values) == {}
@@ -505,7 +466,7 @@ def test_beta_hierarchy_reflects_fixed_parameter_contract(cls):
 def test_direct_constructor_enforces_the_schema_contract(cls):
     from dataclasses import replace
 
-    fitted = cls is beta.LillieforsTestBetaGofStatistic
+    fitted = cls is beta.EbnerLiebenbergBetaGofStatistic
     values = Beta.DEFAULT.parse({} if fitted else {"a": 2, "b": 5})
     statistic = cls(values)
     assert statistic.hypothesis().parameter_values is values

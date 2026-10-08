@@ -186,10 +186,7 @@ def test_all_goodness_of_fit_classes_expose_the_common_contract():
                 if issubclass(statistic_class, beta.AbstractBetaGofStatistic):
                     fixed = (
                         {}
-                        if statistic_class in (
-                            beta.LillieforsTestBetaGofStatistic,
-                            beta.EbnerLiebenbergBetaGofStatistic,
-                        )
+                        if statistic_class is beta.EbnerLiebenbergBetaGofStatistic
                         else {"a": 2, "b": 5}
                     )
                     statistic = statistic_class(Beta.DEFAULT.parse(fixed))

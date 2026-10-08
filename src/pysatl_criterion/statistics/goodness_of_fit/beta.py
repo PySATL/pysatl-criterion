@@ -3,7 +3,7 @@
 Samples must be real-valued; masked observations are rejected, not discarded.
 
 KS, AD, CvM, Watson, Kuiper and Pearson use specified shape parameters.
-Lilliefors and Ebner-Liebenberg fit both shapes inside execute_statistic.
+Ebner-Liebenberg fits both shapes inside execute_statistic.
 MB, SK, Ratio, Entropy and Mode are locally defined discrepancies: no scientific
 source for their exact formulas was identified. Their docstrings state their
 mathematical meaning without attributing them to unrelated published tests.
@@ -26,7 +26,6 @@ from pysatl_criterion.statistics.goodness_of_fit.common import (
     Chi2Statistic,
     CrammerVonMisesStatistic,
     KSStatistic,
-    LillieforsTest,
 )
 
 
@@ -146,7 +145,7 @@ class KolmogorovSmirnovBetaGofStatistic(AbstractSpecifiedBetaGofStatistic, KSSta
     This is the classical continuous-null statistic [1]_ applied through
     the specified Beta CDF. Its finite-sample null law is shape-free by
     the probability integral transform. It is not the fitted-Beta test;
-    use LillieforsTestBetaGofStatistic when both shapes are unknown.
+    use EbnerLiebenbergBetaGofStatistic when both shapes are unknown.
 
     References
     ----------
@@ -383,109 +382,6 @@ class CrammerVonMisesBetaGofStatistic(AbstractSpecifiedBetaGofStatistic, Crammer
         rvs_sorted = np.sort(rvs)
         cdf_vals = scipy_stats.beta.cdf(rvs_sorted, self.alpha, self.beta)
         return CrammerVonMisesStatistic.do_execute_statistic(self, rvs_sorted, cdf_vals)
-
-
-class LillieforsTestBetaGofStatistic(AbstractBetaGofStatistic, LillieforsTest):
-    """Lilliefors-type KS statistic with both Beta shapes fitted by MLE.
-
-    Parameters
-    ----------
-    parameters : ParameterValues
-        Beta.DEFAULT.parse({}); both shape parameters remain unknown.
-
-    Methods
-    -------
-    execute_statistic(rvs, **kwargs)
-        Return a scalar discrepancy; reject for large values.
-    hypothesis()
-        Return the null hypothesis parameter specification.
-
-    Notes
-    -----
-    The null is the entire two-shape Beta family on the fixed support
-    [0, 1]. Fit alpha_hat and beta_hat by maximum likelihood with location
-    0 and scale 1. Compute the two-sided KS distance to the fitted CDF:
-    D = max_i(i/n-u_i, u_i-(i-1)/n), u_i = F_hat(x_(i)).
-    The fit solves psi(alpha_hat)-psi(alpha_hat+beta_hat)=mean(log(X))
-    and the analogous equation for beta_hat and log(1-X).
-
-    Reference [1]_, Section 4, studies this fitted-Beta KS procedure as a
-    competitor to its proposed test. The paper calls it KS, not a separately
-    named "Beta Lilliefors" test. The historical class name denotes the
-    Lilliefors-type principle of fitting before computing the distance.
-    This class does NOT implement the paper's new conditional-moment test.
-
-    ``hypothesis().parameters()`` is empty because both shapes are unknown.
-    The null law need not be shape-free. Calibration belongs to the
-    hypothesis-testing layer, which must choose simulation shapes and call
-    ``execute_statistic`` on every replicate so that both shapes are refitted.
-    Ordinary KS critical values and a default Beta(1, 1) simulation are
-    invalid here. This class computes only the scalar statistic, not p-values.
-    Construction no longer accepts fixed ``alpha`` or ``beta`` arguments.
-    Fitted values are local to a call; executing does not mutate the object.
-
-    References
-    ----------
-    .. [1] B. Ebner and S. C. Liebenberg (2021), "On a new test of fit to
-       the beta distribution", Stat 10, e341, Sections 2 and 4.
-       https://doi.org/10.1002/sta4.341
-       https://arxiv.org/pdf/2009.13995
-
-    Examples
-    --------
-    >>> statistic = LillieforsTestBetaGofStatistic(Beta.DEFAULT.parse({}))
-    >>> value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
-    >>> bool(value >= 0)
-    True
-    """
-
-    @classmethod
-    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
-        return (HypothesisSupport(Beta.DEFAULT, frozenset()),)
-
-    @staticmethod
-    @override
-    def short_code():
-        """Return the short statistic identifier.
-
-        Returns
-        -------
-        code : str
-            Stable identifier for this statistic.
-        """
-        return "LILLIE"
-
-    @override
-    def execute_statistic(self, rvs, **kwargs) -> float | np.float64:
-        """Compute the statistic described in the class Notes.
-
-        Parameters
-        ----------
-        rvs : array_like, shape (n,)
-            One-dimensional, finite, nonconstant sample strictly in (0, 1), n >= 2.
-        **kwargs : dict, optional
-            Reserved for interface compatibility; ignored.
-
-        Returns
-        -------
-        statistic : float
-            Nonnegative discrepancy; larger values oppose the null hypothesis.
-
-        Raises
-        ------
-        ValueError
-            If the sample violates the class constraints.
-        scipy.stats.FitError
-            If the maximum-likelihood solver fails to converge.
-
-        Notes
-        -----
-        See the class Notes for the formula, null hypothesis and calibration.
-        """
-        sample, alpha, beta = self._fit(rvs)
-        ordered = np.sort(sample)
-        cdf_vals = scipy_stats.beta.cdf(ordered, alpha, beta)
-        return LillieforsTest.do_execute_statistic(self, ordered, cdf_vals)
 
 
 class Chi2PearsonBetaGofStatistic(AbstractSpecifiedBetaGofStatistic, Chi2Statistic):
@@ -1370,11 +1266,13 @@ class EbnerLiebenbergBetaGofStatistic(AbstractBetaGofStatistic):
     ----------
     .. [1] B. Ebner and S. C. Liebenberg, "On a new test of fit to the beta
        distribution" (2020), equation (3). https://arxiv.org/abs/2009.13995
+       Published in Stat (2021): https://doi.org/10.1002/sta4.341
 
     Examples
     --------
     >>> statistic = EbnerLiebenbergBetaGofStatistic(Beta.DEFAULT.parse({}))
-    >>> statistic.execute_statistic([0.1, 0.2, 0.3, 0.5]) >= 0
+    >>> value = statistic.execute_statistic([0.1, 0.2, 0.3, 0.5])
+    >>> value >= 0
     True
     """
 
@@ -1397,6 +1295,11 @@ class EbnerLiebenbergBetaGofStatistic(AbstractBetaGofStatistic):
 
         Invalid samples raise ValueError; MLE solver failures propagate.
         Additional keyword arguments are ignored for interface compatibility.
+
+        Returns
+        -------
+        statistic : float
+            Nonnegative discrepancy; reject for large values.
         """
         sample, a, b = self._fit(rvs)
         x = np.sort(sample)

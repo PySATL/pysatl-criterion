@@ -26,7 +26,6 @@ from pysatl_criterion.statistics.goodness_of_fit.common import (
     ADStatistic,
     CrammerVonMisesStatistic,
     KSStatistic,
-    LillieforsTest,
     MinToshiyukiStatistic,
 )
 
@@ -361,85 +360,6 @@ class CramerVonMisesParetoGofStatistic(AbstractParetoGofStatistic, CrammerVonMis
         _, log_sf = _log_probabilities(sorted_rvs, self.shape, self.scale)
         cdf_vals = -np.expm1(log_sf)
         return CrammerVonMisesStatistic.do_execute_statistic(self, sorted_rvs, cdf_vals)
-
-
-class LillieforsParetoGofStatistic(AbstractParetoGofStatistic, LillieforsTest):
-    """Fitted two-sided KS distance for the full Pareto I family.
-
-    Parameters
-    ----------
-    parameters : ParameterValues
-        An empty distribution schema; all distribution parameters are unknown.
-
-
-    Methods
-    -------
-    execute_statistic(rvs, **kwargs)
-        Return one scalar statistic without modifying data or retaining fits.
-    hypothesis()
-        Report fixed parameters; omitted keys denote unknown parameters.
-    alternative()
-        Report the critical tail.
-
-    Notes
-    -----
-    Both parameters are unknown: s_hat=min(x), a_hat=1/mean(log(x/s_hat))
-    are the MLEs, recomputed on every call. Set u_i=1-exp(-a_hat*log(x_(i)/s_hat));
-    return max(max(i/n-u_i), max(u_i-(i-1)/n)). Reject for large values.
-    A nonconstant sample is required; repeats otherwise are accepted.
-    Under X=s*exp(E/a), E~Exp(1), fitted probabilities depend only on
-    (E-min(E))/mean(E-min(E)); the continuous null law is parameter-free.
-    Refit every simulated sample; ordinary specified-CDF KS tables are invalid.
-    A primary source for this exact two-parameter Pareto implementation under
-    this class name was not located. Lilliefors-type describes the fitting
-    procedure, not an attribution to the normality paper.
-    Accept a finite real one-dimensional sample of length n>=2.
-    Built-in Pareto simulation is unavailable; use external calibration.
-
-    Examples
-    --------
-    >>> parameters = Distribution.DEFAULT.parse({})
-    >>> statistic = LillieforsParetoGofStatistic(parameters)
-    >>> value = statistic.execute_statistic([1.1, 1.4, 1.9, 2.7, 4.2, 8.0])
-    >>> bool(np.isfinite(value))
-    True
-    """
-
-    @classmethod
-    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
-        return (HypothesisSupport(Distribution.DEFAULT, frozenset()),)
-
-    @staticmethod
-    @override
-    def short_code():
-        return "Lilliefors"
-
-    @override
-    def execute_statistic(self, rvs, **kwargs):
-        """Compute Lilliefors for this sample.
-
-        Parameters
-        ----------
-        rvs : array_like, shape (n,)
-            Finite real observations, n >= 2; x > 0, nonconstant.
-        **kwargs : dict, optional
-            Unused compatibility keywords.
-
-        Returns
-        -------
-        statistic : float
-            Scalar in the normalization in Notes; no p-value is computed.
-
-        Raises
-        ------
-        ValueError
-            If input is nonreal, nonfinite, not one-dimensional, too short,
-            outside the support, or a required fit or window is undefined.
-        """
-        sample = _sample(rvs, 2)
-        y = _fitted_logs(sample)
-        cdf_vals = -np.expm1(-y / np.mean(y))
-        return float(super().do_execute_statistic(sample, cdf_vals))
 
 
 class MinToshiyukiParetoGofStatistic(AbstractParetoGofStatistic, MinToshiyukiStatistic):

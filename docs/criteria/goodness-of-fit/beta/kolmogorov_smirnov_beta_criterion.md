@@ -46,7 +46,7 @@ Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
 
 ## References
 
-The reference is for the classical continuous-null KS statistic; a specified Beta CDF is substituted here. Both shapes are known. For unknown shapes use the fitted-Beta Lilliefors-type class.
+The reference is for the classical continuous-null KS statistic; a specified Beta CDF is substituted here. Both shapes are known. For unknown shapes, the [Ebner–Liebenberg criterion](ebner_liebenberg_beta_criterion.md) tests the composite Beta family.
 
 N. Smirnov (1948), "Table for Estimating the Goodness of Fit
    of Empirical Distributions", Ann. Math. Statist. 19, 279-281.

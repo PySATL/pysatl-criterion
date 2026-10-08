@@ -38,7 +38,6 @@ from pysatl_criterion.statistics.goodness_of_fit.common import (
     ADStatistic,
     CrammerVonMisesStatistic,
     KSStatistic,
-    LillieforsTest,
 )
 from pysatl_criterion.statistics.goodness_of_fit.graph_goodness_of_fit import (
     AbstractGraphTestStatistic,
@@ -604,7 +603,7 @@ class CramerVonMiseNormalityGofStatistic(AbstractNormalityGofStatistic, CrammerV
         return CrammerVonMisesStatistic.do_execute_statistic(self, sorted_rvs, cdf_vals)
 
 
-class LillieforsNormalityGofStatistic(AbstractNormalityGofStatistic, LillieforsTest):
+class LillieforsNormalityGofStatistic(AbstractNormalityGofStatistic, KSStatistic):
     """Lilliefors statistic for normality with unknown mean and variance.
 
     Parameters
@@ -655,6 +654,8 @@ class LillieforsNormalityGofStatistic(AbstractNormalityGofStatistic, LillieforsT
     True
     """
 
+    alternative_type = AlternativeType.TWO_TAILED
+
     @staticmethod
     @override
     def short_code():
@@ -688,7 +689,7 @@ class LillieforsNormalityGofStatistic(AbstractNormalityGofStatistic, LillieforsT
         x = np.asarray(rvs)
         z = (x - x.mean()) / x.std(ddof=1)
         cdf_vals = scipy_stats.norm.cdf(np.sort(z))
-        return super(LillieforsTest, self).do_execute_statistic(rvs, cdf_vals)
+        return float(KSStatistic.do_execute_statistic(self, np.sort(z), cdf_vals))
 
 
 class JBNormalityGofStatistic(AbstractNormalityGofStatistic):

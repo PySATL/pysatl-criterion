@@ -20,9 +20,7 @@ from tests.parameter_cases import parameters_for
 FIXED = [
     cls
     for _, cls in inspect.getmembers(u, inspect.isclass)
-    if issubclass(cls, u.AbstractUniformGofStatistic)
-    and not inspect.isabstract(cls)
-    and cls is not u.LillieforsTestUniformGofStatistic
+    if issubclass(cls, u.AbstractUniformGofStatistic) and not inspect.isabstract(cls)
 ]
 SAMPLE = np.array([0.81, 0.03, 0.29, 0.52, 0.17])
 
@@ -58,7 +56,7 @@ def test_invalid_fixed_bounds(cls, a, b):
         cls(parameters_for(cls, a=a, b=b))
 
 
-@pytest.mark.parametrize("cls", [*FIXED, u.LillieforsTestUniformGofStatistic])
+@pytest.mark.parametrize("cls", FIXED)
 @pytest.mark.parametrize("sample", [[], [0.1, np.nan], [np.inf, 0.5], [[0.1, 0.2]]])
 def test_invalid_samples(cls, sample):
     with pytest.raises(ValueError):
@@ -114,32 +112,6 @@ def test_edf_statistics_against_integral_definitions():
         stats.kstest(sample, "uniform", alternative="greater").statistic
         + stats.kstest(sample, "uniform", alternative="less").statistic
     )
-
-
-def test_lilliefors_fits_bounds_and_rejects_fixed_parameters():
-    statistic = u.LillieforsTestUniformGofStatistic(UniformDistributionDescriptor.DEFAULT.parse({}))
-    assert statistic.hypothesis().parameters() == {}
-    assert statistic.supports_hypothesis(statistic.hypothesis())
-    assert not statistic.supports_hypothesis(
-        u.KolmogorovSmirnovUniformGofStatistic(
-            UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
-        ).hypothesis()
-    )
-    assert type(statistic)(Uniform.DEFAULT.parse({})).hypothesis().parameters() == {}
-    for kwargs in ({"a": 0}, {"b": 1}, {"a": 0, "b": 1}):
-        with pytest.raises(TypeError):
-            u.LillieforsTestUniformGofStatistic(**kwargs)
-    reference = stats.uniform(loc=SAMPLE.min(), scale=np.ptp(SAMPLE))
-    expected = stats.kstest(SAMPLE, reference.cdf).statistic
-    assert statistic.execute_statistic(SAMPLE) == pytest.approx(expected)
-    assert statistic.execute_statistic(4 + 7 * SAMPLE) == pytest.approx(expected)
-    assert expected != pytest.approx(
-        u.KolmogorovSmirnovUniformGofStatistic(
-            UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
-        ).execute_statistic(SAMPLE)
-    )
-    with pytest.raises(ValueError, match="range"):
-        statistic.execute_statistic([0.3, 0.3])
 
 
 @pytest.mark.parametrize(
@@ -328,7 +300,6 @@ def test_invalid_censoring_flags(flags):
         u.KolmogorovSmirnovUniformGofStatistic(
             UniformDistributionDescriptor.DEFAULT.parse({"a": 2, "b": 5})
         ),
-        u.LillieforsTestUniformGofStatistic(UniformDistributionDescriptor.DEFAULT.parse({})),
     ],
 )
 def test_monte_carlo_uses_the_declared_hypothesis(mocker, statistic):

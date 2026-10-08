@@ -18,7 +18,6 @@ from pysatl_criterion.statistics.goodness_of_fit.gamma import (
     KolmogorovSmirnovGammaGofStatistic,
     KuiperGammaGofStatistic,
     LikelihoodRatioGammaGofStatistic,
-    LillieforsGammaGofStatistic,
     MinToshiyukiGammaGofStatistic,
     MoranGammaGofStatistic,
     ProbabilityPlotCorrelationGammaGofStatistic,
@@ -86,27 +85,6 @@ def test_kolmogorov_smirnov_gamma_statistic():
         GammaDistributionDescriptor.DEFAULT.parse({"alfa": _SHAPE, "beta": 1 / _SCALE})
     ).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(0.2814182084684763, rel=1e-9)
-
-
-def test_lilliefors_gamma_statistic():
-    """Lilliefors-corrected KS statistic with Gamma MOM estimates.
-
-    Parameters
-    ----------
-    sample : list[float]
-        Observations used to estimate Gamma shape/scale via moments.
-
-    Returns
-    -------
-    float
-        EDF discrepancy (expected 0.12149161117056506) from direct evaluation
-        of the moment-fitted CDF.
-    """
-
-    statistic = LillieforsGammaGofStatistic(
-        GammaDistributionDescriptor.DEFAULT.parse({})
-    ).execute_statistic(_SAMPLE)
-    assert statistic == pytest.approx(0.12149161117056506, rel=1e-9)
 
 
 def test_anderson_darling_gamma_statistic():
@@ -359,7 +337,6 @@ def test_graph_independence_number_gamma_statistic():
     ("stat_class", "expected_code"),
     [
         (KolmogorovSmirnovGammaGofStatistic, "KS_GAMMA_GOODNESS_OF_FIT"),
-        (LillieforsGammaGofStatistic, "LILLIE_GAMMA_GOODNESS_OF_FIT"),
         (AndersonDarlingGammaGofStatistic, "AD_GAMMA_GOODNESS_OF_FIT"),
         (CramerVonMisesGammaGofStatistic, "CVM_GAMMA_GOODNESS_OF_FIT"),
         (WatsonGammaGofStatistic, "WAT_GAMMA_GOODNESS_OF_FIT"),
@@ -416,22 +393,6 @@ def test_gamma_statistics_require_observations(stat_class):
     statistic = stat_class(parameters_for(stat_class, alfa=_SHAPE, beta=1 / _SCALE))
     with pytest.raises(ValueError, match="At least one observation"):
         statistic.execute_statistic([])
-
-
-def test_lilliefors_gamma_requires_sample():
-    """Lilliefors correction needs at least one observation."""
-
-    statistic = LillieforsGammaGofStatistic(GammaDistributionDescriptor.DEFAULT.parse({}))
-    with pytest.raises(ValueError, match="At least one observation"):
-        statistic.execute_statistic([])
-
-
-def test_lilliefors_gamma_requires_positive_moments():
-    """Zero variance samples should trigger the MOM validation error."""
-
-    statistic = LillieforsGammaGofStatistic(GammaDistributionDescriptor.DEFAULT.parse({}))
-    with pytest.raises(ValueError, match="must be positive"):
-        statistic.execute_statistic([1.0, 1.0, 1.0, 1.0])
 
 
 def test_moran_gamma_detects_non_positive_spacings():

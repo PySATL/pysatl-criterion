@@ -3191,3 +3191,57 @@ class GraphIndependenceNumberExponentialityGofStatistic(
                 count += 1
                 last = value
         return float(count)
+
+
+class LillieforsExponentialityGofStatistic(AbstractExponentialityGofStatistic, KSStatistic):
+    """Lilliefors (1969) statistic for an exponential law with unknown mean.
+
+    Parameters
+    ----------
+    parameters : ParameterValues
+        Distribution.DEFAULT.parse({}); rate is unknown and origin is zero.
+
+    Notes
+    -----
+    Estimate the mean by the sample mean on every call. For ordered data,
+    F_i = 1-exp(-x_(i)/mean(x)) and
+    D = max_i(i/n-F_i, F_i-(i-1)/n). Reject for large D.
+    The null law is rate-free: calibration can simulate Exp(1), but must
+    re-estimate the mean for each replicate. Ordinary KS tables do not apply.
+    Returns only the statistic; no p-value or fitted state is retained.
+
+    References
+    ----------
+    .. [1] H. W. Lilliefors (1969). On the Kolmogorov-Smirnov Test for the
+       Exponential Distribution with Mean Unknown. JASA 64(325), 387-389.
+       https://doi.org/10.1080/01621459.1969.10500983
+
+    Examples
+    --------
+    >>> parameters = Distribution.DEFAULT.parse({})
+    >>> statistic = LillieforsExponentialityGofStatistic(parameters)
+    >>> value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
+    >>> 0 <= value <= 1
+    True
+    """
+
+    alternative_type = AlternativeType.TWO_TAILED
+
+    @staticmethod
+    @override
+    def short_code():
+        return "LILLIE"
+
+    @override
+    def execute_statistic(self, rvs, **kwargs) -> float:
+        """Compute D for finite nonnegative observations with positive mean, n >= 2.
+
+        Masked observations and invalid samples raise ValueError. Extra keyword
+        arguments raise TypeError.
+        """
+        _settings(kwargs)
+        if np.ma.isMaskedArray(rvs) and np.any(np.ma.getmaskarray(rvs)):
+            raise ValueError("rvs must not contain masked observations")
+        x = np.sort(_sample(rvs))
+        cdf = -np.expm1(-x / x.mean())
+        return float(KSStatistic.do_execute_statistic(self, x, cdf))
