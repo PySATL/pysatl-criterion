@@ -34,6 +34,7 @@ build-backend = "poetry.core.masonry.api"
 poetry-dynamic-versioning = { version = ">=1.8.0,<2.0.0", extras = ["plugin"] }
 
 [tool.poetry.group.dev.dependencies]
+statsmodels = "0.14.6"  # Independent multiple-testing reference; never a runtime dependency.
 markdown = "3.10.3"
 mkdocs = "1.6.1"
 mkdocs-material = "9.7.7"

@@ -10,6 +10,24 @@ nav:
         - Usage guide: load/index.md
         - Examples: load/examples.md
         - Custom loaders: load/custom-loaders.md
+    - Multiple Hypothesis Testing:
+        - Overview: multiple_testing/index.md
+        - Implementation report: multiple_testing/implementation_report.md
+        - "Bonferroni": multiple_testing/bonferroni.md
+        - "Šidák": multiple_testing/sidak.md
+        - "Holm–Bonferroni": multiple_testing/holm.md
+        - "Holm–Šidák": multiple_testing/holm_sidak.md
+        - "Hochberg (Simes–Hochberg)": multiple_testing/hochberg.md
+        - "Hommel": multiple_testing/hommel.md
+        - "Simes": multiple_testing/simes.md
+        - "Rom": multiple_testing/rom.md
+        - "Holland–Copenhaver": multiple_testing/holland_copenhaver.md
+        - "Westfall–Young maxT": multiple_testing/westfall_young_max_t.md
+        - "Westfall–Young minP": multiple_testing/westfall_young_min_p.md
+        - "Benjamini–Hochberg (BH)": multiple_testing/benjamini_hochberg.md
+        - "Benjamini–Yekutieli (BY)": multiple_testing/benjamini_yekutieli.md
+        - "Two-stage Benjamini–Hochberg": multiple_testing/two_stage_bh.md
+        - "Two-stage Benjamini–Krieger–Yekutieli (BKY)": multiple_testing/bky.md
     - Criteria:
         - Goodness-of-fit:
             - Exponentiality:

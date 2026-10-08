@@ -54,10 +54,10 @@ from tests.parameter_cases import parameters_for
 def test_convenience_api_exports():
     assert distributions_api.DistributionType is DistributionType
     assert testing_api.GoodnessOfFitTest is not None
-    assert testing_api.BonferroniMultipleTesting is not None
+    assert testing_api.Bonferroni is not None
     assert testing_api.Holm is not None
-    assert testing_api.SidakMultipleTesting is not None
-    assert testing_api.SidakHolm is not None
+    assert testing_api.Sidak is not None
+    assert testing_api.HolmSidak is not None
     assert testing_api.BenjaminiYekutieli is not None
     assert testing_api.PValueCalculator is not None
     assert testing_api.CriticalValueCalculator is not None

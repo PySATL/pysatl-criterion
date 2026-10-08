@@ -40,12 +40,14 @@ from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     MonteCarloLimitDistributionResolver,
 )
 from pysatl_criterion.hypothesis_testing.model import DecisionMethod
-from pysatl_criterion.hypothesis_testing.multiple_testing.abstract_multiple_testing import (
-    AbstractMultipleTesting,
-)
-from pysatl_criterion.hypothesis_testing.multiple_testing.fdr import BenjaminiYekutieli
-from pysatl_criterion.hypothesis_testing.multiple_testing.fwer import Holm, SidakHolm
 from pysatl_criterion.hypothesis_testing.p_value.calculator.model import PValueCalculator
+from pysatl_criterion.multiple_testing import (
+    AbstractMultipleTesting,
+    BenjaminiYekutieli,
+    Holm,
+    HolmSidak,
+    PValues,
+)
 from pysatl_criterion.persistence.models.base import IDataStorage, IStorage
 from pysatl_criterion.persistence.models.limit_distribution import ILimitDistributionStorage
 from pysatl_criterion.statistics.alternative import Alternative, AlternativeType
@@ -106,7 +108,7 @@ def test_abstract_protocol_method_bodies():
         (AbstractGoodnessOfFitStatistic.execute_statistic, (object(), [])),
         (AbstractIndependenceStatistic.execute_statistic, (object(), [], [])),
         (AbstractLimitDistributionResolver.resolve, (object(), object(), 1)),
-        (AbstractMultipleTesting.adjust, ([0.1],)),
+        (AbstractMultipleTesting.test, (object(), PValues(np.array([0.1])))),
         (Alternative.type, ()),
     ):
         with pytest.raises(NotImplementedError):
@@ -248,12 +250,12 @@ def test_common_statistic_helpers_and_empty_multiple_testing_inputs():
     assert Chi2Statistic._m_sum(np.array([1.0, 2.0]), axis=0, preserve_mask=False, xp=np) == 3
     assert np.isfinite(Chi2Statistic.do_execute_statistic(object(), [2, 3], np.array([1, 4]), -1))
     assert CrammerVonMisesStatistic.code() == "CVM"
-    assert Holm.adjust([]) == []
-    assert SidakHolm.adjust([]) == []
-    assert BenjaminiYekutieli.adjust([]) == []
-    assert len(BenjaminiYekutieli.adjust([0.5] * 10001)) == 10001
-    assert BenjaminiYekutieli.adjust([0.4, 0.01]) == pytest.approx([0.6, 0.03])
-    assert BenjaminiYekutieli.adjust([0.4, 0.41]) == pytest.approx([0.615, 0.615])
+    assert Holm().adjust(np.array([])).size == 0
+    assert HolmSidak().adjust(np.array([])).size == 0
+    assert BenjaminiYekutieli().adjust(np.array([])).size == 0
+    assert len(BenjaminiYekutieli().adjust(np.full(10001, 0.5))) == 10001
+    assert BenjaminiYekutieli().adjust(np.array([0.4, 0.01])) == pytest.approx([0.6, 0.03])
+    assert BenjaminiYekutieli().adjust(np.array([0.4, 0.41])) == pytest.approx([0.615, 0.615])
 
 
 def test_compressed_float_array_compatibility_and_errors():
