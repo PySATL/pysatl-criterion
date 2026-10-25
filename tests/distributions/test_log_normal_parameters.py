@@ -7,9 +7,9 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from pysatl_criterion.distribution.distributions import LogNormalDistributionDescriptor as LogNormal
-from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor as Normal
-from pysatl_criterion.statistics.goodness_of_fit.log_normal import (
+from pysatl_criterion.distribution import LogNormalDistributionDescriptor as LogNormal
+from pysatl_criterion.distribution import NormalDistributionDescriptor as Normal
+from pysatl_criterion.statistics.goodness_of_fit.continuous.log_normal import (
     KolmogorovSmirnovLogNormalGofStatistic as KS,
 )
 from pysatl_criterion.utils.generator import get_hypothesis_generator
@@ -166,8 +166,10 @@ def test_constructor_rejects_invalid_converter_result(monkeypatch):
 
 
 def test_default_calculation_schema_and_identity_conversion():
-    from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
-    from pysatl_criterion.statistics.goodness_of_fit.beta import KolmogorovSmirnovBetaGofStatistic
+    from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
+    from pysatl_criterion.statistics.goodness_of_fit.continuous.beta import (
+        KolmogorovSmirnovBetaGofStatistic,
+    )
 
     values = Beta.DEFAULT.parse({"a": 2, "b": 5})
     assert Beta.default_parameterization() is Beta.DEFAULT
@@ -183,7 +185,7 @@ def test_default_calculation_schema_and_identity_conversion():
 
 
 def test_base_converter_does_not_guess_transformations(monkeypatch):
-    from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
+    from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
 
     other = replace(Beta.DEFAULT, id="beta.other")
     monkeypatch.setattr(Beta, "parameterizations", classmethod(lambda cls: (cls.DEFAULT, other)))

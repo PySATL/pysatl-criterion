@@ -1,46 +1,56 @@
-# Watson U-squared for a specified Student t CDF.
+# Watson for a specified Student distribution
+
+[All Student criteria](index.md) · [Mathematical verification](mathematical-validation.md)
+
+Class: `WatsonStudentGofStatistic`. Code: `WATSON_STUDENT_GOODNESS_OF_FIT`.
 
 ## Hypothesis and formula
 
-The null fixes df, loc and scale on the whole real line. Write
-u_i = t_df.cdf((x_(i)-loc)/scale) for sorted observations, i=1,...,n.
-U2 = W2 - n*(mean(u)-0.5)**2, where
-W2 = 1/(12*n) + sum((u_i-(i-0.5)/n)**2). Centered residuals
-implement the same formula without cancellation. No correction is applied.
-Large values reject. The probability integral transform removes all
-distribution parameters from the null law, not from the hypothesis.
-The reference describes a general statistic, applied here through the
-specified Student CDF, not a separately derived Student-specific test.
+Fix all three parameters: `df > 0`, finite `loc`, and `scale > 0`.
+Use `StudentDistributionDescriptor.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1})`.
+Omitted parameters remain unknown and are not supported by this criterion.
+Write $u_i=F_{\nu,\mu,s}(X_{(i)})$ for the CDF values of sorted observations.
 
-## Parameters
+$$
+U^2=W^2-n(\bar u-1/2)^2,\quad W^2=\frac1{12n}+\sum_i[u_i-(i-1/2)/n]^2
+$$
 
-```text
-parameters : ParameterValues
-    Values with df, loc, scale fixed; omitted parameters are unknown.
-```
+Centered residuals evaluate this expression without subtracting two large terms.
 
-## Input and result
+## Input, result and calibration
 
-`execute_statistic(rvs, **kwargs)` accepts a finite, real, one-dimensional sample,
-with at least one observation; ties and constants are allowed. It returns one scalar, leaves the input unchanged,
-and ignores extra keyword arguments. Invalid samples and unrepresentable numerical
-transformations raise `ValueError`. No preliminary fit or bootstrap is required.
+`execute_statistic(rvs, **kwargs)` accepts a nonempty, finite, one-dimensional
+real sample. Ties and constants are allowed. It returns one scalar without
+changing the input or retaining fitted state. Large values reject
+(`RightAlternative`). Extra execution keywords are ignored.
+
+The Student implementation evaluates log-CDF and log-survival separately.
+AD, Liao–Shimokawa and Zhang kernels consume these logarithms directly;
+other EDF kernels reconstruct the CDF. Unrepresentable standardization or
+underflow of a required tail probability raises `ValueError`.
+
+For a continuous fully specified null, the probability integral transform
+removes the null parameters from the EDF law. Calibrate the same statistic at
+the same sample size; no parameter estimation is performed. The source below
+identifies the general discrepancy, not a separate Student-specific derivation.
 
 ## Example
 
 ```python
-from pysatl_criterion.distribution.distributions import StudentDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.student import WatsonStudentGofStatistic
+from pysatl_criterion.distribution import StudentDistributionDescriptor as Student
+from pysatl_criterion.statistics.goodness_of_fit.continuous.student import (
+    WatsonStudentGofStatistic,
+)
 
-statistic = WatsonStudentGofStatistic(StudentDistributionDescriptor.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1}))
-value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
+parameters = Student.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1})
+statistic = WatsonStudentGofStatistic(parameters)
+value = statistic.execute_statistic([-3.2, -1.1, -0.3, 0.2, 0.7, 1.8, 4.1])
 print(value)
 ```
 
 ## Scientific source
 
-G. S. Watson (1961), Goodness-of-fit tests on a circle, Biometrika
-48, 109-114, https://doi.org/10.1093/biomet/48.1-2.109.
+[Watson (1961), Goodness-of-fit tests on a circle](https://doi.org/10.1093/biomet/48.1-2.109).
 
 ## Author(s)
 

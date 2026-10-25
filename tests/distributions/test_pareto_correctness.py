@@ -8,14 +8,15 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from pysatl_criterion.distribution.distributions import ParetoDistributionDescriptor
+from pysatl_criterion.distribution import ParetoDistributionDescriptor
 from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     MonteCarloLimitDistributionResolver,
     StorageLimitDistributionResolver,
 )
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.alternative import AlternativeType
-from pysatl_criterion.statistics.goodness_of_fit import pareto
+from pysatl_criterion.statistics.goodness_of_fit.continuous import pareto
+from pysatl_criterion.statistics.goodness_of_fit.continuous.pareto import pareto_statistics
 from tests.parameter_cases import parameters_for
 
 
@@ -93,18 +94,17 @@ def test_fixed_support_and_constant(cls):
 
 
 @pytest.mark.parametrize(
-    "direction,scipy_direction",
+    "cls,scipy_direction",
     [
-        (AlternativeType.TWO_TAILED, "two-sided"),
-        (AlternativeType.RIGHT, "greater"),
-        (AlternativeType.LEFT, "less"),
+        (pareto.KolmogorovSmirnovParetoGofStatistic, "two-sided"),
+        (pareto.KolmogorovSmirnovDPlusParetoGofStatistic, "greater"),
+        (pareto.KolmogorovSmirnovDMinusParetoGofStatistic, "less"),
     ],
 )
-def test_ks_scipy_and_tail(direction, scipy_direction):
+def test_ks_scipy_and_tail(cls, scipy_direction):
     x = [2.1, 2.3, 3.7, 4.9, 7.2]
-    stat = pareto.KolmogorovSmirnovParetoGofStatistic(
+    stat = cls(
         ParetoDistributionDescriptor.DEFAULT.parse({"shape": 1.7, "scale": 2}),
-        alternative_type=direction,
     )
     expected = stats.kstest(
         x, stats.pareto(1.7, scale=2).cdf, alternative=scipy_direction
@@ -236,19 +236,18 @@ def test_storage_guards(mocker):
         resolver.resolve(
             pareto.LequesneKlParetoGofStatistic(ParetoDistributionDescriptor.DEFAULT.parse({})), 10
         )
-    with pytest.raises(ValueError, match="direction"):
-        resolver.resolve(
-            pareto.KolmogorovSmirnovParetoGofStatistic(
-                ParetoDistributionDescriptor.DEFAULT.parse({"shape": 1, "scale": 1}),
-                alternative_type=AlternativeType.LEFT,
-            ),
-            10,
-        )
     store.get.assert_not_called()
 
 
 def test_documented_examples():
-    assert doctest.testmod(pareto).failed == 0
+    runner = doctest.DocTestRunner()
+    finder = doctest.DocTestFinder()
+    for cls in CLASSES:
+        for test in finder.find(cls, globs=vars(pareto_statistics)):
+            runner.run(test)
+    result = runner.summarize()
+    assert result.attempted > 0
+    assert result.failed == 0
 
 
 def test_obradovic_overflowing_ratios():

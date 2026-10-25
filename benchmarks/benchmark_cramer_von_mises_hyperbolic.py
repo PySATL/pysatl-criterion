@@ -11,8 +11,8 @@ from hyperbolic_benchmark_utils import (
     create_sorted_sample,
 )
 
-from pysatl_criterion.distribution.distributions import HyperbolicDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.hyperbolic import (
+from pysatl_criterion.distribution import HyperbolicDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.continuous.hyperbolic import (
     CramerVonMisesHyperbolicGofStatistic,
 )
 
@@ -33,7 +33,7 @@ def main() -> None:
             {"alpha": ALPHA, "beta": BETA, "delta": DELTA, "mu": MU}
         )
     )
-    optimized_result = statistic.do_execute_statistic(sorted_sample, cdf)
+    optimized_result = statistic.do_execute_statistic(cdf)
     np.testing.assert_allclose(optimized_result, reference(cdf))
 
     BenchmarkRunner(CALLS).run_comparison(
@@ -41,7 +41,7 @@ def main() -> None:
         reference_name="NumPy reference statistic kernel",
         reference_function=lambda: reference(cdf),
         optimized_name="Numba statistic kernel",
-        optimized_function=lambda: statistic.do_execute_statistic(sorted_sample, cdf),
+        optimized_function=lambda: statistic.do_execute_statistic(cdf),
     )
 
 

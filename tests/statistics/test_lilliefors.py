@@ -4,15 +4,15 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from pysatl_criterion.distribution.distributions import (
+from pysatl_criterion.distribution import (
     ExponentialDistributionDescriptor as Exponential,
 )
-from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor as Normal
+from pysatl_criterion.distribution import NormalDistributionDescriptor as Normal
 from pysatl_criterion.statistics.alternative import RightAlternative
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous import (
     LillieforsExponentialityGofStatistic,
     LillieforsNormalityGofStatistic,
-    common,
+    edf,
     log_normal,
 )
 from pysatl_criterion.utils.generator import get_hypothesis_generator
@@ -64,9 +64,9 @@ def test_invalid_exponential_samples(sample):
 
 
 def test_lilliefors_is_exported_only_for_normal_and_exponential():
-    from pysatl_criterion.statistics import goodness_of_fit
+    from pysatl_criterion.statistics.goodness_of_fit import continuous
 
-    exported = {name for name in goodness_of_fit.__all__ if name.startswith("Lilliefors")}
+    exported = {name for name in continuous.__all__ if name.startswith("Lilliefors")}
     assert exported == {"LillieforsNormalityGofStatistic", "LillieforsExponentialityGofStatistic"}
-    assert not hasattr(common, "LillieforsTest")
+    assert not hasattr(edf, "LillieforsTest")
     assert not hasattr(log_normal, "LillieforsLogNormalGofStatistic")

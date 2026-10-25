@@ -5,8 +5,8 @@ from fractions import Fraction
 import numpy as np
 import pytest
 
-from pysatl_criterion.distribution.distributions import ExponentialDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit import exponent as exp
+from pysatl_criterion.distribution import ExponentialDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.continuous import exponent as exp
 from tests.parameter_cases import parameters_for
 
 

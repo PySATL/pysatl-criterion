@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 from scipy.stats import expon
 
-from pysatl_criterion.distribution.distributions import ExponentialDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.exponent import (
+from pysatl_criterion.distribution import ExponentialDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.continuous.exponent import (
     AbstractExponentialityGofStatistic,
     AhsanullahExponentialityGofStatistic,
     AtkinsonExponentialityGofStatistic,
@@ -702,15 +702,15 @@ def test_sw_exponentiality_criterion_code():
 @pytest.mark.parametrize(
     ("data", "result"),
     [
-        ([1, 2, 3, 4, 5, 6, 7], 0.035714),
-        ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 0.027273),
+        ([1, 2, 3, 4, 5, 6, 7], 1 / 28),
+        ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 3 / 110),
     ],
 )
 def test_we_exponentiality_criterion(data, result):
     statistic = WeExponentialityGofStatistic(
         ExponentialDistributionDescriptor.DEFAULT.parse({})
     ).execute_statistic(data)
-    assert result == pytest.approx(statistic, abs=0.01)
+    assert result == pytest.approx(statistic)
 
 
 def test_we_exponentiality_criterion_code():

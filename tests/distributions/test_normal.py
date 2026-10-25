@@ -1,7 +1,7 @@
 import pytest
 
-from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.normal import (
+from pysatl_criterion.distribution import NormalDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import (
     AndersonDarlingNormalityGofStatistic,
     BHSNormalityGofStatistic,
     BonettSeierNormalityGofStatistic,

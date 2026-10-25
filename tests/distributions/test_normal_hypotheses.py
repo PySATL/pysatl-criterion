@@ -4,14 +4,14 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
+from pysatl_criterion.distribution import NormalDistributionDescriptor
 from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     MonteCarloLimitDistributionResolver,
     StorageLimitDistributionResolver,
 )
 from pysatl_criterion.persistence.models.distribution_key import DistributionKey
 from pysatl_criterion.persistence.stores.base import IStoreReader
-from pysatl_criterion.statistics.goodness_of_fit import normal
+from pysatl_criterion.statistics.goodness_of_fit.continuous import normal
 from pysatl_criterion.utils.generator import get_hypothesis_generator
 from tests.parameter_cases import parameters_for
 
@@ -138,7 +138,9 @@ def test_normal_storage_lookup_uses_the_hypothesis_parameters(mocker, statistic,
     storage = mocker.Mock(spec=IStoreReader)
     storage.get.return_value = None
     assert StorageLimitDistributionResolver(storage).resolve(statistic, sample_size=32) is None
-    storage.get.assert_called_once_with(DistributionKey(statistic.code(), parameters, 32))
+    storage.get.assert_called_once_with(
+        DistributionKey(statistic.code(), parameters, 32, statistic.configuration())
+    )
 
 
 def test_normal_family_sampler_uses_a_representative_without_fixing_the_hypothesis():

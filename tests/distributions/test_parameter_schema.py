@@ -7,14 +7,14 @@ import pytest
 from scipy import stats
 
 from pysatl_criterion import DistributionType
-from pysatl_criterion.distribution.distributions import StudentDistributionDescriptor as Student
+from pysatl_criterion.distribution import StudentDistributionDescriptor as Student
 from pysatl_criterion.distribution.parameters import (
     HypothesisSupport,
     ParameterizationDescriptor,
     ParameterSpec,
 )
 from pysatl_criterion.generator.generators import TRVSGenerator
-from pysatl_criterion.statistics.goodness_of_fit.student import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous.student import (
     KolmogorovSmirnovStudentGofStatistic,
 )
 from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis

@@ -1,63 +1,88 @@
-# Glen-Leemis-Barr test for log-normal distribution
+# Glen-Leemis-Barr test for log-normal data
 
-## Description
-Performs Glen-Leemis-Barr goodness-of-fit test for the hypothesis that the sample comes from a log-normal distribution.
-The implementation uses positive observations and either evaluates the log-normal model directly or applies a normality statistic to standardized logarithms.
+**Class:** `GlenLeemisBarrLogNormalGofStatistic`
 
-Hypothesis of Log-Normal Distribution
-The null hypothesis is that the data comes from a log-normal distribution with positive shape parameter `s` and positive scale parameter `scale`.
-Observations passed to `execute_statistic` should be positive; tests that receive non-positive observations may return `inf`.
+**Code:** `GLB_LOGNORMAL_GOODNESS_OF_FIT`
 
-Test Statistic
-The statistic is based on the wrapped Glen-Leemis-Barr normality statistic applied to standardized log observations.
+## Hypothesis and inputs
 
-## Usage
-```python
-from pysatl_criterion.distribution.distributions import LogNormalDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit import (
-    GlenLeemisBarrLogNormalGofStatistic,
-)
+This is a **log-normal family/shape** statistic: log(X) is normal with unknown
+location and positive scale. Use `LogNormalDistributionDescriptor.DEFAULT.parse({})`.
+An empty `SHAPE_SCALE` schema is also accepted. All observations must be finite,
+real, strictly positive and one-dimensional. Active masks and undefined
+constant-sample contrasts raise `ValueError`; minimum sizes are specified below.
+
+For compatibility, fully specified `mu, s` or `s, scale` coordinates are also
+accepted and preserved by `hypothesis()`. They do **not** enter this shape
+statistic: it cannot detect a wrong location/scale within the log-normal family.
+Use a fixed-CDF EDF or frequency criterion when those particular values are
+part of the hypothesis. Partial parameter sets are rejected.
+
+## Logarithmic reduction
+
+The implementation computes `GlenLeemisBarrNormalityGofStatistic` on `y = log(rvs)` with an empty
+normal-family hypothesis. Thus its formula, sample-size limits, normalization
+and rejection tail are exactly those of the normality statistic at its default
+settings. Constructor-specific normality options are not exposed by this wrapper.
+The identity was checked on normal, nonnormal and tied logarithmic samples and
+under transformations `X -> exp(a) * X**b`, b > 0.
+
+## Underlying normality definition
+
+**In this section, x denotes y = log(X), not the original positive sample.**
+The normal-family hypothesis and dispersion conventions below concern these
+log observations. See also the [normality source page](../normality/glen_leemis_barr_normality_criterion.md).
 
 
-test_statistic = GlenLeemisBarrLogNormalGofStatistic(LogNormalDistributionDescriptor.SHAPE_SCALE.parse({'s': 1, 'scale': 1}))
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.58, 0.76, 0.93, 1.12, 1.35, 1.61, 1.92, 2.28, 2.71, 3.23, 3.84]
-)
-print(statistic_result)
-```
+H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+Location and positive scale cancel, allowing N(0,1) null simulation.
+Every simulated sample must go through execute_statistic again.
+Large values of the statistic define rejection. Use at least 4
+finite real observations in one dimension. Nonzero dispersion is required.
+Ties are accepted unless a scale or contrast becomes undefined.
+Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+the standard normal CDF and density, s0=std(x,ddof=0), and
+s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-## Arguments
-`parameters` - required `ParameterValues` with both parameters fixed.
-Use `LogNormalDistributionDescriptor.SHAPE_SCALE.parse({"s": ..., "scale": ...})`
-or `LogNormalDistributionDescriptor.LOG_LOCATION_SCALE.parse({"mu": ..., "s": ...})`.
-Here `scale = exp(mu)`; omitted values are not filled automatically.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-For dynamically generated log-normal tests, the implementation transforms observations with
-
-$$ Z_i = \frac{\log X_i - \log(scale)}{s} $$
-
-and applies the corresponding normality statistic to the standardized values. Explicit EDF and KL-based implementations use the formulas in `pysatl_criterion.statistics.goodness_of_fit.log_normal`.
-
-## Author(s)
-Anton Dorosev, Alexey Mironov
+For z=(x-mean(x))/s1, form u_i=Phi(z_(i)), then
+v_i=BetaCDF(u_i; i,n+1-i), and sort the v_i again. Return
+-n-sum_i((2*n+1-2*i)*log(v_(i))+(2*i-1)*log(1-v_(i)))/n.
+These are reversed Anderson-Darling weights, not the ordinary AD
+statistic. A primary source confirming this exact fitted formula was
+not located in the review; no author-specific calibration is claimed.
+The beta transforms are dependent and are not uniform after fitting.
+Use simulation of this formula only. Log-binomial sums recover
+beta tails that underflow in direct probability arithmetic.
 
 ## References
-The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.log_normal`.
+
+Glen, A. G., Leemis, L. M., Barr, D. R. (2001). Order statistics in goodness-of-fit testing. IEEE Transactions on Reliability, 50(2), 209–213.
+https://doi.org/10.1109/24.963129
+
+This identifies the order-statistic approach. The primary full text was not accessible during this audit; the reversed-weight, fitted-normal implementation is checked as the formula documented here, not certified as an exact reproduction of that paper.
+
+
+## Rejection and calibration
+
+Rejection tail: **right**. A statistic value alone is not a p-value.
+For the composite null, simulation can use log-normal mu=0, s=1 because
+log-location and log-scale are removed by the statistic. Every replicate must
+call `execute_statistic` again. This does not make every directed shape test
+omnibus. Signed two-tail tests require both null quantiles, without assuming
+symmetry. Legacy attribution qualifications carry over from normality.
 
 ## Examples
+
 ```python
-from pysatl_criterion.distribution.distributions import LogNormalDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit import (
-    GlenLeemisBarrLogNormalGofStatistic,
-)
+import numpy as np
+from pysatl_criterion.distribution import LogNormalDistributionDescriptor as LogNormal
+from pysatl_criterion.statistics.goodness_of_fit.continuous.log_normal import GlenLeemisBarrLogNormalGofStatistic
 
-
-test_statistic = GlenLeemisBarrLogNormalGofStatistic(LogNormalDistributionDescriptor.SHAPE_SCALE.parse({'s': 1, 'scale': 1}))
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.58, 0.76, 0.93, 1.12, 1.35, 1.61, 1.92, 2.28, 2.71, 3.23, 3.84]
-)
-print(statistic_result)
+parameters = LogNormal.DEFAULT.parse({})
+statistic = GlenLeemisBarrLogNormalGofStatistic(parameters)
+sample = np.exp([-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1])
+value = statistic.execute_statistic(sample)
+assert np.isfinite(value)
 ```
+
+See the [complete catalog](index.md) and [mathematical verification](mathematical-validation.md).

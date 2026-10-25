@@ -11,18 +11,18 @@ import numpy as np
 import pytest
 from scipy import integrate, special, stats
 
-from pysatl_criterion.distribution.distributions import ExponentialDistributionDescriptor
+from pysatl_criterion.distribution import ExponentialDistributionDescriptor
 from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     MonteCarloLimitDistributionResolver,
     StorageLimitDistributionResolver,
 )
 from pysatl_criterion.statistics.alternative import AlternativeType
-from pysatl_criterion.statistics.goodness_of_fit import exponent as exp
+from pysatl_criterion.statistics.goodness_of_fit.continuous import exponent as exp
 from pysatl_criterion.utils.generator import get_hypothesis_generator
 from tests.parameter_cases import parameters_for
 
 
-# Historical 31-class cohort; the added classes have their own verification suite.
+# Specialized exponential criteria; generated criteria have their own suite.
 CLASSES = [
     cls
     for name, cls in vars(exp).items()
@@ -30,7 +30,12 @@ CLASSES = [
     and cls.__module__ == exp.__name__
     and not inspect.isabstract(cls)
     and not issubclass(
-        cls, (exp.AbstractExponentialEDFStatistic, exp.AbstractTunedExponentialStatistic)
+        cls,
+        (
+            exp.AbstractExponentialEDFStatistic,
+            exp.AbstractExponentialFrequencyStatistic,
+            exp.AbstractTunedExponentialStatistic,
+        ),
     )
     and cls is not exp.GreenwoodExponentialityGofStatistic
 ]
@@ -40,6 +45,17 @@ FIXED = (
 )
 GRAPHS = [cls for cls in CLASSES if cls.__name__.startswith("Graph")]
 COMPOSITE = [cls for cls in CLASSES if cls not in FIXED]
+
+
+def test_hypothesis_support_belongs_to_concrete_criteria():
+    for cls in vars(exp).values():
+        if not inspect.isclass(cls) or cls.__module__ != exp.__name__:
+            continue
+        if inspect.isabstract(cls):
+            assert "supported_hypotheses" not in vars(cls)
+        else:
+            assert "supported_hypotheses" in vars(cls)
+            assert cls.supported_hypotheses()
 
 
 @pytest.mark.parametrize("cls", CLASSES)
@@ -90,24 +106,22 @@ def test_invalid_fixed_rate(cls, lam):
 
 
 @pytest.mark.parametrize(
-    "direction,scipy_direction",
+    "cls,scipy_direction",
     [
-        (AlternativeType.TWO_TAILED, "two-sided"),
-        (AlternativeType.RIGHT, "greater"),
-        (AlternativeType.LEFT, "less"),
+        (exp.KolmogorovSmirnovExponentialityGofStatistic, "two-sided"),
+        (exp.KolmogorovSmirnovDPlusExponentialityGofStatistic, "greater"),
+        (exp.KolmogorovSmirnovDMinusExponentialityGofStatistic, "less"),
     ],
 )
-def test_ks_matches_known_cdf(direction, scipy_direction):
+def test_ks_matches_known_cdf(cls, scipy_direction):
     x = np.array([0, 0.05, 0.1, 0.7, 2])
-    obj = exp.KolmogorovSmirnovExponentialityGofStatistic(
-        ExponentialDistributionDescriptor.DEFAULT.parse({"lam": 3}), alternative_type=direction
-    )
+    obj = cls(ExponentialDistributionDescriptor.DEFAULT.parse({"lam": 3}))
     expected = stats.kstest(x, stats.expon(scale=1 / 3).cdf, alternative=scipy_direction).statistic
     assert obj.execute_statistic(x) == pytest.approx(expected)
     assert obj.hypothesis().parameters() == {"lam": 3}
     assert obj.alternative().type() == AlternativeType.RIGHT
-    assert obj.execute_statistic(x) != exp.KolmogorovSmirnovExponentialityGofStatistic(
-        ExponentialDistributionDescriptor.DEFAULT.parse({"lam": 1}), alternative_type=direction
+    assert obj.execute_statistic(x) != cls(
+        ExponentialDistributionDescriptor.DEFAULT.parse({"lam": 1})
     ).execute_statistic(x)
 
 
@@ -348,10 +362,6 @@ def test_documented_examples():
         ),
         exp.HarrisExponentialityGofStatistic(
             ExponentialDistributionDescriptor.DEFAULT.parse({}), r=1
-        ),
-        exp.KolmogorovSmirnovExponentialityGofStatistic(
-            ExponentialDistributionDescriptor.DEFAULT.parse({"lam": 1}),
-            alternative_type=AlternativeType.LEFT,
         ),
     ],
 )

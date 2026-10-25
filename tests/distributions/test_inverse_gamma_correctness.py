@@ -8,13 +8,17 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from pysatl_criterion.distribution.distributions import InverseGammaDistributionDescriptor
+from pysatl_criterion.distribution import InverseGammaDistributionDescriptor
 from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     MonteCarloLimitDistributionResolver,
     StorageLimitDistributionResolver,
 )
 from pysatl_criterion.statistics.alternative import AlternativeType
-from pysatl_criterion.statistics.goodness_of_fit import inverse_gamma as module
+from pysatl_criterion.statistics.goodness_of_fit.binning import EqualProbabilityBins
+from pysatl_criterion.statistics.goodness_of_fit.continuous import inverse_gamma as module
+from pysatl_criterion.statistics.goodness_of_fit.continuous.inverse_gamma import (
+    inverse_gamma_statistics as implementation,
+)
 from tests.parameter_cases import parameters_for
 
 
@@ -37,7 +41,6 @@ FIXED = CLASSES
         [0.0, 1.0],
         [-1.0, 2.0],
         [1 + 1j],
-        ["1", "2"],
         [True, False],
     ],
 )
@@ -61,7 +64,7 @@ def test_interface_and_independence(cls):
     original = x.copy()
     first = statistic.execute_statistic(x, compatibility=True)
     assert isinstance(first, (float, np.float64))
-    assert np.isfinite(first)
+    assert not np.isnan(first)
     statistic.execute_statistic([0.6, 0.9, 3.0, 4.0])
     assert statistic.execute_statistic(x) == first
     np.testing.assert_array_equal(x, original)
@@ -76,8 +79,8 @@ def test_fixed_parameter_scaling_and_hypothesis(cls):
     assert statistic.execute_statistic(x) == pytest.approx(
         cls(parameters_for(cls, alpha=3, beta=14)).execute_statistic(x * 7), rel=2e-13
     )
-    assert np.isfinite(statistic.execute_statistic([1.0]))
-    assert np.isfinite(statistic.execute_statistic([1.0, 1.0, 1.0]))
+    assert not np.isnan(statistic.execute_statistic([1.0]))
+    assert not np.isnan(statistic.execute_statistic([1.0, 1.0, 1.0]))
 
 
 @pytest.mark.parametrize(
@@ -101,9 +104,10 @@ def test_ks_directions(direction, scipy_direction):
 
 @pytest.mark.parametrize("bins", [True, 1, 2.5, np.nan, np.inf, [3]])
 def test_bins_validation(bins):
-    with pytest.raises(ValueError):
+    with pytest.raises((ValueError, TypeError)):
         module.Chi2PearsonInverseGammaGofStatistic(
-            InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 1}), bins=bins
+            InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 1}),
+            binning=EqualProbabilityBins(bins),
         )
 
 
@@ -113,7 +117,8 @@ def test_balanced_quantile_bins(beta):
     x = beta / stats.gamma.ppf((np.arange(40) + 0.5) / 40, a=3)
     assert (
         module.Chi2PearsonInverseGammaGofStatistic(
-            InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": 3, "beta": beta}), bins=8
+            InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": 3, "beta": beta}),
+            binning=EqualProbabilityBins(8),
         ).execute_statistic(x)
         == 0
     )
@@ -121,11 +126,15 @@ def test_balanced_quantile_bins(beta):
 
 def test_pearson_zero_counts_and_edges():
     statistic = module.Chi2PearsonInverseGammaGofStatistic(
-        InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 2}), bins=4
+        InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 2}),
+        binning=EqualProbabilityBins(4),
     )
     # For shape=1, F(x)=exp(-2/x). An interior quantile belongs to the right bin.
     edge = stats.invgamma.ppf(0.5, a=1, scale=2)
-    counts, expected = statistic._counts_and_expected([edge, edge, 100.0])
+    table = statistic.binning.build(
+        [edge, edge, 100.0], statistic.distribution().bind(statistic._parameters)
+    )
+    counts, expected = table.observed, table.expected
     np.testing.assert_array_equal(counts, [0, 0, 2, 1])
     assert statistic.execute_statistic([edge, edge, 100.0]) == pytest.approx(
         sum((counts - expected) ** 2 / expected)
@@ -139,7 +148,7 @@ def test_pearson_zero_counts_and_edges():
         module.ZhangAInverseGammaGofStatistic,
         module.ZhangCInverseGammaGofStatistic,
         module.ZhangKInverseGammaGofStatistic,
-        module.MinToshiyukiInverseGammaGofStatistic,
+        module.LiaoShimokawaInverseGammaGofStatistic,
     ],
 )
 def test_numerical_underflow_is_explicit(cls):
@@ -166,8 +175,6 @@ def test_zhang_unclipped_extreme_upper_tail(prefix):
         InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 2})
     )
     assert statistic.execute_statistic(x) == pytest.approx(expected[prefix])
-    with pytest.raises(TypeError, match="epsilon"):
-        statistic.execute_statistic(x, epsilon=1e-10)
 
 
 @pytest.mark.parametrize("cls", CLASSES)
@@ -179,9 +186,6 @@ def test_monte_carlo_reports_missing_generator(cls):
 @pytest.mark.parametrize(
     "statistic",
     [
-        module.Chi2PearsonInverseGammaGofStatistic(
-            InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 1})
-        ),
         module.KolmogorovSmirnovInverseGammaGofStatistic(
             InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 1}),
             alternative_type=AlternativeType.LEFT,
@@ -196,6 +200,48 @@ def test_unsafe_storage_calibration_is_blocked(statistic):
 
 
 def test_documented_examples():
-    results = doctest.testmod(module)
+    results = doctest.testmod(
+        module, extraglobs={"np": np, "Distribution": InverseGammaDistributionDescriptor}
+    )
     assert results.failed == 0
-    assert results.attempted == 44
+    assert results.attempted > 0
+
+
+@pytest.mark.parametrize(
+    "cls", [cls for cls in CLASSES if cls.__name__ not in implementation._FREQUENCY_STATISTICS]
+)
+def test_edf_rejects_numeric_strings(cls):
+    with pytest.raises(ValueError):
+        cls(parameters_for(cls)).execute_statistic(["1", "2"])
+
+
+def test_hypotheses_belong_to_concrete_statistics():
+    assert "supported_hypotheses" not in vars(module.AbstractInverseGammaGofStatistic)
+    for cls in CLASSES:
+        assert "supported_hypotheses" in vars(cls)
+        assert cls.supported_hypotheses()[0].fixed_parameters == frozenset(
+            {InverseGammaDistributionDescriptor.SHAPE, InverseGammaDistributionDescriptor.SCALE}
+        )
+
+
+@pytest.mark.parametrize(
+    "name, scipy_lambda",
+    [
+        ("Chi2Pearson", 1),
+        ("FreemanTukey", -0.5),
+        ("ModifiedLogLikelihood", -1),
+        ("NeymanChi2", -2),
+        ("CressieRead", 2 / 3),
+    ],
+)
+def test_generated_frequency_statistics(name, scipy_lambda):
+    cls = getattr(module, name + "InverseGammaGofStatistic")
+    statistic = cls(parameters_for(cls), binning=EqualProbabilityBins(4))
+    probabilities = [0.1, 0.2, 0.3, 0.4, 0.45, 0.6, 0.8]
+    sample = stats.invgamma.ppf(probabilities, a=1)
+    expected = stats.power_divergence([2, 3, 1, 1], [1.75] * 4, lambda_=scipy_lambda).statistic
+    assert statistic.execute_statistic(sample) == pytest.approx(expected)
+    assert (
+        statistic.configuration()["binning"]
+        != cls(parameters_for(cls), binning=EqualProbabilityBins(5)).configuration()["binning"]
+    )

@@ -9,13 +9,13 @@ from scipy import stats
 from pysatl_criterion import DistributionType
 from pysatl_criterion.core.distributions.continues import exponentiated_weibull as exp_core
 from pysatl_criterion.core.distributions.continues import weibull as core
-from pysatl_criterion.distribution.distributions import (
+from pysatl_criterion.distribution import (
     ExponentiatedWeibullDistributionDescriptor as Exp,
 )
-from pysatl_criterion.distribution.distributions import WeibullDistributionDescriptor as Weibull
+from pysatl_criterion.distribution import WeibullDistributionDescriptor as Weibull
 from pysatl_criterion.generator.generators import ExponentiatedWeibullGenerator, WeibullGenerator
-from pysatl_criterion.statistics.goodness_of_fit import exponentiated_weibull as exp
-from pysatl_criterion.statistics.goodness_of_fit import weibull
+from pysatl_criterion.statistics.goodness_of_fit.continuous import exponentiated_weibull as exp
+from pysatl_criterion.statistics.goodness_of_fit.continuous import weibull
 from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 from pysatl_criterion.utils.distribution import get_available_distribution_descriptor
 from pysatl_criterion.utils.generator import get_available_generator, get_hypothesis_generator
@@ -70,10 +70,12 @@ def test_registries_do_not_mix_families_or_reuse_old_codes():
         criteria = get_available_criteria(descriptor.type())
         assert criteria
         assert all(cls.distribution() is descriptor for cls in criteria)
-    assert len(get_available_criteria(Exp.type())) == 5
-    assert len(get_available_criteria(Weibull.type())) == 18
-    with pytest.raises(ValueError):
+    assert len(get_available_criteria(Exp.type())) == 18
+    assert len(get_available_criteria(Weibull.type())) == 33
+    assert (
         get_criterion_by_code("KS_WEIBULL_GOODNESS_OF_FIT")
+        is weibull.KolmogorovSmirnovWeibullGofStatistic
+    )
     assert (
         get_criterion_by_code("KS_EXPONENTIATED_WEIBULL_GOODNESS_OF_FIT")
         is exp.KolmogorovSmirnovExponentiatedWeibullGofStatistic

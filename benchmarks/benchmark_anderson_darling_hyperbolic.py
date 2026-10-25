@@ -11,8 +11,8 @@ from hyperbolic_benchmark_utils import (
     log_probabilities,
 )
 
-from pysatl_criterion.distribution.distributions import HyperbolicDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.hyperbolic import (
+from pysatl_criterion.distribution import HyperbolicDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.continuous.hyperbolic import (
     AndersonDarlingHyperbolicGofStatistic,
 )
 
@@ -33,8 +33,7 @@ def main() -> None:
             {"alpha": ALPHA, "beta": BETA, "delta": DELTA, "mu": MU}
         )
     )
-    optimized_result = statistic.do_execute_statistic(
-        sorted_sample,
+    optimized_result = statistic.do_execute_log_statistic(
         log_cdf=log_cdf,
         log_sf=log_sf,
     )
@@ -45,8 +44,7 @@ def main() -> None:
         reference_name="NumPy reference statistic kernel",
         reference_function=lambda: reference(log_cdf, log_sf),
         optimized_name="Numba statistic kernel",
-        optimized_function=lambda: statistic.do_execute_statistic(
-            sorted_sample,
+        optimized_function=lambda: statistic.do_execute_log_statistic(
             log_cdf=log_cdf,
             log_sf=log_sf,
         ),

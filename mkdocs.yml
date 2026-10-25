@@ -30,47 +30,102 @@ nav:
         - "Two-stage Benjamini–Krieger–Yekutieli (BKY)": multiple_testing/bky.md
     - Criteria:
         - Goodness-of-fit:
+            - Binning:
+                - Overview: criteria/goodness-of-fit/binning/index.md
+                - Calibration storage: criteria/goodness-of-fit/binning/calibration.md
+                - Count rules:
+                    - Fixed count: criteria/goodness-of-fit/binning/fixed-count.md
+                    - Sturges: criteria/goodness-of-fit/binning/sturges-count.md
+                    - Square root: criteria/goodness-of-fit/binning/sqrt-count.md
+                    - Power rule: criteria/goodness-of-fit/binning/power-count.md
+                - Strategies:
+                    - Equal probability: criteria/goodness-of-fit/binning/equal-probability.md
+                    - Explicit edges: criteria/goodness-of-fit/binning/explicit.md
+                    - Equal width: criteria/goodness-of-fit/binning/equal-width.md
+                    - Interpolated: criteria/goodness-of-fit/binning/interpolated.md
+                    - Discrete categories: criteria/goodness-of-fit/binning/discrete.md
+                    - Alternative-specific selection: criteria/goodness-of-fit/binning/alternative-optimized.md
+            - Hyperbolic:
+                - Overview: criteria/goodness-of-fit/hyperbolic/index.md
+                - Mathematical verification: criteria/goodness-of-fit/hyperbolic/mathematical-validation.md
+                - Anderson Darling: criteria/goodness-of-fit/hyperbolic/anderson_darling_hyperbolic_criterion.md
+                - Cramer Von Mises: criteria/goodness-of-fit/hyperbolic/cramer_von_mises_hyperbolic_criterion.md
+                - Kolmogorov Smirnov: criteria/goodness-of-fit/hyperbolic/kolmogorov_smirnov_hyperbolic_criterion.md
+                - Kuiper: criteria/goodness-of-fit/hyperbolic/kuiper_hyperbolic_criterion.md
+                - Watson: criteria/goodness-of-fit/hyperbolic/watson_hyperbolic_criterion.md
+                - Pearson χ²: criteria/goodness-of-fit/hyperbolic/chi2_pearson_hyperbolic_criterion.md
+                - Freeman–Tukey: criteria/goodness-of-fit/hyperbolic/freeman_tukey_hyperbolic_criterion.md
+                - Modified Log Likelihood: criteria/goodness-of-fit/hyperbolic/modified_log_likelihood_hyperbolic_criterion.md
+                - Neyman χ²: criteria/goodness-of-fit/hyperbolic/neyman_chi2_hyperbolic_criterion.md
+                - Cressie–Read: criteria/goodness-of-fit/hyperbolic/cressie_read_hyperbolic_criterion.md
             - Exponentiality:
-                - Independent verification: exponential-verification.md
-                - Anderson–Darling: criteria/goodness-of-fit/exponentiality/anderson_darling_exp_criterion.md
-                - Watson U²: criteria/goodness-of-fit/exponentiality/watson_exp_criterion.md
-                - Kuiper: criteria/goodness-of-fit/exponentiality/kuiper_exp_criterion.md
-                - Pearson chi-square: criteria/goodness-of-fit/exponentiality/pearson_exp_criterion.md
-                - Greenwood: criteria/goodness-of-fit/exponentiality/greenwood_exp_criterion.md
-                - Baringhaus–Henze empirical Laplace transform: criteria/goodness-of-fit/exponentiality/baringhaus_henze_elt_exp_criterion.md
-                - Generalized Baringhaus–Henze BHC: criteria/goodness-of-fit/exponentiality/baringhaus_henze_bhc_exp_criterion.md
-                - Lilliefors: criteria/goodness-of-fit/exponentiality/lilliefors_exp_criterion.md
-                - Epps and Pulley: criteria/goodness-of-fit/exponentiality/epps_pulley_exp_criterion.md
-                - Kolmogorov-Smirnov: criteria/goodness-of-fit/exponentiality/kolmogorov_smirnov_exp_criterion.md
-                - Wong and Wong: criteria/goodness-of-fit/exponentiality/wong_wong_exp_criterion.md
-                - WE: criteria/goodness-of-fit/exponentiality/we_exp_criterion.md
+                - Overview: criteria/goodness-of-fit/exponentiality/index.md
+                - Mathematical verification: criteria/goodness-of-fit/exponentiality/mathematical-validation.md
+                - Epps–Pulley: criteria/goodness-of-fit/exponentiality/epps_pulley_exp_criterion.md
                 - Ahsanullah: criteria/goodness-of-fit/exponentiality/ahsanullah_exp_criterion.md
                 - Atkinson: criteria/goodness-of-fit/exponentiality/atkinson_exp_criterion.md
-                - Cox and Oakes: criteria/goodness-of-fit/exponentiality/cox_oakes_exp_criterion.md
-                - Cramer-von Mises: criteria/goodness-of-fit/exponentiality/cvm_exp_criterion.md
+                - Cox–Oakes: criteria/goodness-of-fit/exponentiality/cox_oakes_exp_criterion.md
                 - Deshpande: criteria/goodness-of-fit/exponentiality/deshpande_exp_criterion.md
-                - Epstein: criteria/goodness-of-fit/exponentiality/epstein_exp_criterion.md
-                - Frozini: criteria/goodness-of-fit/exponentiality/frozini_exp_criterion.md
+                - Epstein spacing log contrast: criteria/goodness-of-fit/exponentiality/epstein_exp_criterion.md
+                - Frozini EDF distance: criteria/goodness-of-fit/exponentiality/frozini_exp_criterion.md
                 - Gini: criteria/goodness-of-fit/exponentiality/gini_exp_criterion.md
-                - Gnedenko: criteria/goodness-of-fit/exponentiality/gnedenko_exp_criterion.md
-                - Harris: criteria/goodness-of-fit/exponentiality/harris_exp_criterion.md
-                - Hegazy1: criteria/goodness-of-fit/exponentiality/hegazy1_exp_criterion.md
-                - Hegazy2: criteria/goodness-of-fit/exponentiality/hegazy2_exp_criterion.md
-                - Holander-Proshan: criteria/goodness-of-fit/exponentiality/holander_proshan_exp_criterion.md
-                - Kimber-Michael: criteria/goodness-of-fit/exponentiality/kimber_michael_exp_criterion.md
-                - Kochar: criteria/goodness-of-fit/exponentiality/kochar_exp_criterion.md
-                - Lorenz: criteria/goodness-of-fit/exponentiality/lorenz_exp_criterion.md
-                - Moran: criteria/goodness-of-fit/exponentiality/moran_exp_criterion.md
+                - Gnedenko F ratio: criteria/goodness-of-fit/exponentiality/gnedenko_exp_criterion.md
+                - Harris F ratio: criteria/goodness-of-fit/exponentiality/harris_exp_criterion.md
+                - Hegazy–Green 1: criteria/goodness-of-fit/exponentiality/hegazy1_exp_criterion.md
+                - Hegazy–Green 2: criteria/goodness-of-fit/exponentiality/hegazy2_exp_criterion.md
+                - Hollander–Proschan: criteria/goodness-of-fit/exponentiality/holander_proshan_exp_criterion.md
+                - Kimber–Michael: criteria/goodness-of-fit/exponentiality/kimber_michael_exp_criterion.md
+                - Kochar exponential scores: criteria/goodness-of-fit/exponentiality/kochar_exp_criterion.md
+                - Lorenz ordinate: criteria/goodness-of-fit/exponentiality/lorenz_exp_criterion.md
+                - Moran log-mean contrast: criteria/goodness-of-fit/exponentiality/moran_exp_criterion.md
                 - Pietra: criteria/goodness-of-fit/exponentiality/pietra_exp_criterion.md
-                - Shapiro-Wilk: criteria/goodness-of-fit/exponentiality/shapiro_wilk_exp_criterion.md
-                - Rossberg: criteria/goodness-of-fit/exponentiality/rossberg_exp_criterion.md
-                - Graph edges number: criteria/goodness-of-fit/exponentiality/graph_edges_number_exp_criterion.md
-                - Graph max degree: criteria/goodness-of-fit/exponentiality/graph_max_degree_exp_criterion.md
+                - Shapiro–Wilk exponential W: criteria/goodness-of-fit/exponentiality/shapiro_wilk_exp_criterion.md
+                - Rossberg integral contrast: criteria/goodness-of-fit/exponentiality/rossberg_exp_criterion.md
+                - WE (legacy CV-squared functional): criteria/goodness-of-fit/exponentiality/we_exp_criterion.md
+                - Wong–Wong extremal quotient: criteria/goodness-of-fit/exponentiality/wong_wong_exp_criterion.md
+                - Greenwood: criteria/goodness-of-fit/exponentiality/greenwood_exp_criterion.md
+                - Baringhaus–Henze empirical Laplace transform: criteria/goodness-of-fit/exponentiality/baringhaus_henze_elt_exp_criterion.md
+                - Baringhaus–Henze mean residual life: criteria/goodness-of-fit/exponentiality/baringhaus_henze_bhc_exp_criterion.md
+                - Graph edge count: criteria/goodness-of-fit/exponentiality/graph_edges_number_exp_criterion.md
+                - Graph maximum degree: criteria/goodness-of-fit/exponentiality/graph_max_degree_exp_criterion.md
                 - Graph average degree: criteria/goodness-of-fit/exponentiality/graph_average_degree_exp_criterion.md
                 - Graph connected components: criteria/goodness-of-fit/exponentiality/graph_connected_components_exp_criterion.md
                 - Graph clique number: criteria/goodness-of-fit/exponentiality/graph_clique_number_exp_criterion.md
                 - Graph independence number: criteria/goodness-of-fit/exponentiality/graph_independence_number_exp_criterion.md
+                - Kolmogorov–Smirnov D+: criteria/goodness-of-fit/exponentiality/kolmogorov_smirnov_d_plus_exp_criterion.md
+                - Kolmogorov–Smirnov D−: criteria/goodness-of-fit/exponentiality/kolmogorov_smirnov_d_minus_exp_criterion.md
+                - Kolmogorov–Smirnov: criteria/goodness-of-fit/exponentiality/kolmogorov_smirnov_exp_criterion.md
+                - Lilliefors exponential: criteria/goodness-of-fit/exponentiality/lilliefors_exp_criterion.md
+                - Anderson–Darling: criteria/goodness-of-fit/exponentiality/anderson_darling_exp_criterion.md
+                - Cramér–von Mises: criteria/goodness-of-fit/exponentiality/cvm_exp_criterion.md
+                - Liao–Shimokawa: criteria/goodness-of-fit/exponentiality/liao_shimokawa_exp_criterion.md
+                - Watson: criteria/goodness-of-fit/exponentiality/watson_exp_criterion.md
+                - Kuiper: criteria/goodness-of-fit/exponentiality/kuiper_exp_criterion.md
+                - Scaled Kuiper: criteria/goodness-of-fit/exponentiality/kuiper_scaled_exp_criterion.md
+                - Corrected Kuiper: criteria/goodness-of-fit/exponentiality/kuiper_corrected_exp_criterion.md
+                - Zhang Z_K: criteria/goodness-of-fit/exponentiality/zhang_k_exp_criterion.md
+                - Zhang Z_A: criteria/goodness-of-fit/exponentiality/zhang_a_exp_criterion.md
+                - Zhang Z_C: criteria/goodness-of-fit/exponentiality/zhang_c_exp_criterion.md
+                - Pearson chi-square: criteria/goodness-of-fit/exponentiality/pearson_exp_criterion.md
+                - Freeman–Tukey: criteria/goodness-of-fit/exponentiality/freeman_tukey_exp_criterion.md
+                - Modified log-likelihood: criteria/goodness-of-fit/exponentiality/modified_log_likelihood_exp_criterion.md
+                - Neyman chi-square: criteria/goodness-of-fit/exponentiality/neyman_chi2_exp_criterion.md
+                - Cressie–Read: criteria/goodness-of-fit/exponentiality/cressie_read_exp_criterion.md
             - Uniformity:
+                - Overview: criteria/goodness-of-fit/uniformity/index.md
+                - Mathematical verification: criteria/goodness-of-fit/uniformity/mathematical-validation.md
+                - Kolmogorov–Smirnov D+ test: criteria/goodness-of-fit/uniformity/kolmogorov_smirnov_d_plus_uniform_criterion.md
+                - Kolmogorov–Smirnov D− test: criteria/goodness-of-fit/uniformity/kolmogorov_smirnov_d_minus_uniform_criterion.md
+                - Liao–Shimokawa test: criteria/goodness-of-fit/uniformity/liao_shimokawa_uniform_criterion.md
+                - Scaled Kuiper test: criteria/goodness-of-fit/uniformity/kuiper_scaled_uniform_criterion.md
+                - Corrected Kuiper test: criteria/goodness-of-fit/uniformity/kuiper_corrected_uniform_criterion.md
+                - Zhang Z_K test: criteria/goodness-of-fit/uniformity/zhang_k_uniform_criterion.md
+                - Zhang Z_A test: criteria/goodness-of-fit/uniformity/zhang_a_uniform_criterion.md
+                - Zhang Z_C test: criteria/goodness-of-fit/uniformity/zhang_c_uniform_criterion.md
+                - Freeman–Tukey test: criteria/goodness-of-fit/uniformity/freeman_tukey_uniform_criterion.md
+                - Modified log-likelihood test: criteria/goodness-of-fit/uniformity/modified_log_likelihood_uniform_criterion.md
+                - Neyman modified chi-squared test: criteria/goodness-of-fit/uniformity/neyman_chi2_uniform_criterion.md
+                - Cressie–Read test: criteria/goodness-of-fit/uniformity/cressie_read_uniform_criterion.md
                 - Kolmogorov-Smirnov: criteria/goodness-of-fit/uniformity/kolmogorov_smirnov_uniform_criterion.md
                 - Anderson-Darling: criteria/goodness-of-fit/uniformity/anderson_darling_uniform_criterion.md
                 - Cramer-von Mises: criteria/goodness-of-fit/uniformity/cvm_uniform_criterion.md
@@ -79,29 +134,75 @@ nav:
                 - Kuiper: criteria/goodness-of-fit/uniformity/kuiper_uniform_criterion.md
                 - Greenwood: criteria/goodness-of-fit/uniformity/greenwood_uniform_criterion.md
                 - Bickel-Rosenblatt: criteria/goodness-of-fit/uniformity/bickel_rosenblatt_uniform_criterion.md
-                - Zhang: criteria/goodness-of-fit/uniformity/zhang_uniform_criterion.md
                 - Stein: criteria/goodness-of-fit/uniformity/stein_uniform_criterion.md
                 - Censored Stein: criteria/goodness-of-fit/uniformity/censored_stein_uniform_criterion.md
                 - Neyman smooth: criteria/goodness-of-fit/uniformity/neyman_smooth_uniform_criterion.md
                 - Sherman: criteria/goodness-of-fit/uniformity/sherman_uniform_criterion.md
                 - Quesenberry-Miller: criteria/goodness-of-fit/uniformity/quesenberry_miller_uniform_criterion.md
             - Beta distribution:
-                - GOF audit and status: beta-gof-extension-audit.md
-                - Kolmogorov-Smirnov: criteria/goodness-of-fit/beta/kolmogorov_smirnov_beta_criterion.md
-                - Anderson-Darling: criteria/goodness-of-fit/beta/anderson_darling_beta_criterion.md
-                - Cramer-von Mises: criteria/goodness-of-fit/beta/cvm_beta_criterion.md
-                - Ebner-Liebenberg: criteria/goodness-of-fit/beta/ebner_liebenberg_beta_criterion.md
-                - Neyman smooth: criteria/goodness-of-fit/beta/neyman_smooth_beta_criterion.md
-                - Raschke: criteria/goodness-of-fit/beta/raschke_beta_criterion.md
-                - Pearson chi-squared: criteria/goodness-of-fit/beta/chi2_pearson_beta_criterion.md
+                - Overview: criteria/goodness-of-fit/beta/index.md
+                - Mathematical verification: criteria/goodness-of-fit/beta/mathematical-validation.md
+                - Kolmogorov–Smirnov D+: criteria/goodness-of-fit/beta/kolmogorov_smirnov_d_plus_beta_criterion.md
+                - Kolmogorov–Smirnov D−: criteria/goodness-of-fit/beta/kolmogorov_smirnov_d_minus_beta_criterion.md
+                - Kolmogorov–Smirnov: criteria/goodness-of-fit/beta/kolmogorov_smirnov_beta_criterion.md
+                - Anderson–Darling: criteria/goodness-of-fit/beta/anderson_darling_beta_criterion.md
+                - Cramér–von Mises: criteria/goodness-of-fit/beta/cvm_beta_criterion.md
+                - Liao–Shimokawa: criteria/goodness-of-fit/beta/liao_shimokawa_beta_criterion.md
                 - Watson: criteria/goodness-of-fit/beta/watson_beta_criterion.md
                 - Kuiper: criteria/goodness-of-fit/beta/kuiper_beta_criterion.md
-                - Moment-based: criteria/goodness-of-fit/beta/moment_based_beta_criterion.md
-                - Skewness-kurtosis: criteria/goodness-of-fit/beta/skewness_kurtosis_beta_criterion.md
-                - Ratio: criteria/goodness-of-fit/beta/ratio_beta_criterion.md
-                - Entropy: criteria/goodness-of-fit/beta/entropy_beta_criterion.md
-                - Mode: criteria/goodness-of-fit/beta/mode_beta_criterion.md
+                - Scaled Kuiper: criteria/goodness-of-fit/beta/kuiper_scaled_beta_criterion.md
+                - Corrected Kuiper: criteria/goodness-of-fit/beta/kuiper_corrected_beta_criterion.md
+                - Zhang Z_K: criteria/goodness-of-fit/beta/zhang_k_beta_criterion.md
+                - Zhang Z_A: criteria/goodness-of-fit/beta/zhang_a_beta_criterion.md
+                - Zhang Z_C: criteria/goodness-of-fit/beta/zhang_c_beta_criterion.md
+                - Pearson chi-squared: criteria/goodness-of-fit/beta/chi2_pearson_beta_criterion.md
+                - Freeman–Tukey: criteria/goodness-of-fit/beta/freeman_tukey_beta_criterion.md
+                - Modified log-likelihood: criteria/goodness-of-fit/beta/modified_log_likelihood_beta_criterion.md
+                - Neyman chi-squared: criteria/goodness-of-fit/beta/neyman_chi2_beta_criterion.md
+                - Cressie–Read: criteria/goodness-of-fit/beta/cressie_read_beta_criterion.md
+                - Neyman smooth: criteria/goodness-of-fit/beta/neyman_smooth_beta_criterion.md
+                - Ebner–Liebenberg: criteria/goodness-of-fit/beta/ebner_liebenberg_beta_criterion.md
+                - Raschke: criteria/goodness-of-fit/beta/raschke_beta_criterion.md
+                - Riad–Abd El Mabood: criteria/goodness-of-fit/beta/riad_abd_el_mabood_beta_criterion.md
+                - Kullback–Leibler (Vasicek): criteria/goodness-of-fit/beta/kullback_leibler_beta_criterion.md
+            - Pareto distribution:
+                - Overview: criteria/goodness-of-fit/pareto/index.md
+                - Mathematical verification: criteria/goodness-of-fit/pareto/mathematical-validation.md
+                - Kolmogorov–Smirnov: criteria/goodness-of-fit/pareto/kolmogorov_smirnov_pareto_criterion.md
+                - Kolmogorov–Smirnov D+: criteria/goodness-of-fit/pareto/kolmogorov_smirnov_d_plus_pareto_criterion.md
+                - Kolmogorov–Smirnov D−: criteria/goodness-of-fit/pareto/kolmogorov_smirnov_d_minus_pareto_criterion.md
+                - Anderson–Darling: criteria/goodness-of-fit/pareto/anderson_darling_pareto_criterion.md
+                - Cramér–von Mises: criteria/goodness-of-fit/pareto/cramer_von_mises_pareto_criterion.md
+                - Liao–Shimokawa functional (legacy MinToshiyuki name): criteria/goodness-of-fit/pareto/min_toshiyuki_pareto_criterion.md
+                - Watson: criteria/goodness-of-fit/pareto/watson_pareto_criterion.md
+                - Kuiper: criteria/goodness-of-fit/pareto/kuiper_pareto_criterion.md
+                - Scaled Kuiper: criteria/goodness-of-fit/pareto/kuiper_scaled_pareto_criterion.md
+                - Corrected Kuiper: criteria/goodness-of-fit/pareto/kuiper_corrected_pareto_criterion.md
+                - Zhang Z_K: criteria/goodness-of-fit/pareto/zhang_k_pareto_criterion.md
+                - Zhang Z_A: criteria/goodness-of-fit/pareto/zhang_a_pareto_criterion.md
+                - Zhang Z_C: criteria/goodness-of-fit/pareto/zhang_c_pareto_criterion.md
+                - Pearson chi-square: criteria/goodness-of-fit/pareto/chi2_pearson_pareto_criterion.md
+                - Freeman–Tukey: criteria/goodness-of-fit/pareto/freeman_tukey_pareto_criterion.md
+                - Modified log-likelihood: criteria/goodness-of-fit/pareto/modified_log_likelihood_pareto_criterion.md
+                - Neyman modified chi-square: criteria/goodness-of-fit/pareto/neyman_chi2_pareto_criterion.md
+                - Cressie–Read: criteria/goodness-of-fit/pareto/cressie_read_pareto_criterion.md
+                - Obradović–Jovanović–Milošević: criteria/goodness-of-fit/pareto/obradovic_pareto_criterion.md
+                - Greenwood logarithmic residual ratio: criteria/goodness-of-fit/pareto/greenwood_pareto_criterion.md
+                - Vasicek–Song fixed-window KL: criteria/goodness-of-fit/pareto/lequesne_kl_pareto_criterion.md
             - Gamma distribution:
+                - Overview: criteria/goodness-of-fit/gamma/index.md
+                - Mathematical verification: criteria/goodness-of-fit/gamma/mathematical-validation.md
+                - Kolmogorov–Smirnov D+: criteria/goodness-of-fit/gamma/kolmogorov_smirnov_d_plus_gamma_criterion.md
+                - Kolmogorov–Smirnov D−: criteria/goodness-of-fit/gamma/kolmogorov_smirnov_d_minus_gamma_criterion.md
+                - Scaled Kuiper: criteria/goodness-of-fit/gamma/kuiper_scaled_gamma_criterion.md
+                - Corrected Kuiper: criteria/goodness-of-fit/gamma/kuiper_corrected_gamma_criterion.md
+                - Liao–Shimokawa: criteria/goodness-of-fit/gamma/liao_shimokawa_gamma_criterion.md
+                - Zhang K: criteria/goodness-of-fit/gamma/zhang_k_gamma_criterion.md
+                - Zhang A: criteria/goodness-of-fit/gamma/zhang_a_gamma_criterion.md
+                - Zhang C: criteria/goodness-of-fit/gamma/zhang_c_gamma_criterion.md
+                - Freeman–Tukey: criteria/goodness-of-fit/gamma/freeman_tukey_gamma_criterion.md
+                - Modified log-likelihood: criteria/goodness-of-fit/gamma/modified_log_likelihood_gamma_criterion.md
+                - Neyman modified chi-squared: criteria/goodness-of-fit/gamma/neyman_chi2_gamma_criterion.md
                 - Kolmogorov-Smirnov: criteria/goodness-of-fit/gamma/kolmogorov_smirnov_gamma_criterion.md
                 - Anderson-Darling: criteria/goodness-of-fit/gamma/anderson_darling_gamma_criterion.md
                 - Cramer-von Mises: criteria/goodness-of-fit/gamma/cvm_gamma_criterion.md
@@ -120,39 +221,143 @@ nav:
                 - Graph connected components: criteria/goodness-of-fit/gamma/graph_connected_components_gamma_criterion.md
                 - Graph clique number: criteria/goodness-of-fit/gamma/graph_clique_number_gamma_criterion.md
                 - Graph independence number: criteria/goodness-of-fit/gamma/graph_independence_number_gamma_criterion.md
+            - Inverse gamma:
+                - Overview: criteria/goodness-of-fit/inverse-gamma/index.md
+                - Mathematical verification: criteria/goodness-of-fit/inverse-gamma/mathematical-validation.md
+                - Kolmogorov–Smirnov: criteria/goodness-of-fit/inverse-gamma/kolmogorov_smirnov_inverse_gamma_criterion.md
+                - Kolmogorov–Smirnov D+: criteria/goodness-of-fit/inverse-gamma/kolmogorov_smirnov_d_plus_inverse_gamma_criterion.md
+                - Kolmogorov–Smirnov D−: criteria/goodness-of-fit/inverse-gamma/kolmogorov_smirnov_d_minus_inverse_gamma_criterion.md
+                - Anderson–Darling: criteria/goodness-of-fit/inverse-gamma/anderson_darling_inverse_gamma_criterion.md
+                - Cramér–von Mises: criteria/goodness-of-fit/inverse-gamma/cramer_von_mises_inverse_gamma_criterion.md
+                - Watson: criteria/goodness-of-fit/inverse-gamma/watson_inverse_gamma_criterion.md
+                - Kuiper: criteria/goodness-of-fit/inverse-gamma/kuiper_inverse_gamma_criterion.md
+                - Scaled Kuiper: criteria/goodness-of-fit/inverse-gamma/kuiper_scaled_inverse_gamma_criterion.md
+                - Corrected Kuiper: criteria/goodness-of-fit/inverse-gamma/kuiper_corrected_inverse_gamma_criterion.md
+                - Liao–Shimokawa: criteria/goodness-of-fit/inverse-gamma/liao_shimokawa_inverse_gamma_criterion.md
+                - Zhang A: criteria/goodness-of-fit/inverse-gamma/zhang_a_inverse_gamma_criterion.md
+                - Zhang C: criteria/goodness-of-fit/inverse-gamma/zhang_c_inverse_gamma_criterion.md
+                - Zhang K: criteria/goodness-of-fit/inverse-gamma/zhang_k_inverse_gamma_criterion.md
+                - Greenwood: criteria/goodness-of-fit/inverse-gamma/greenwood_inverse_gamma_criterion.md
+                - Pearson chi-squared: criteria/goodness-of-fit/inverse-gamma/chi2_pearson_inverse_gamma_criterion.md
+                - Freeman–Tukey: criteria/goodness-of-fit/inverse-gamma/freeman_tukey_inverse_gamma_criterion.md
+                - Modified log-likelihood: criteria/goodness-of-fit/inverse-gamma/modified_log_likelihood_inverse_gamma_criterion.md
+                - Neyman modified chi-squared: criteria/goodness-of-fit/inverse-gamma/neyman_chi2_inverse_gamma_criterion.md
+                - Cressie–Read: criteria/goodness-of-fit/inverse-gamma/cressie_read_inverse_gamma_criterion.md
             - Laplace distribution:
+                - Overview: criteria/goodness-of-fit/laplace/index.md
+                - Mathematical verification: criteria/goodness-of-fit/laplace/mathematical-validation.md
                 - Kolmogorov-Smirnov: criteria/goodness-of-fit/laplace/kolmogorov_smirnov_laplace_criterion.md
                 - Cramer-von Mises: criteria/goodness-of-fit/laplace/cvm_laplace_criterion.md
                 - Anderson-Darling: criteria/goodness-of-fit/laplace/anderson_darling_laplace_criterion.md
                 - Kuiper: criteria/goodness-of-fit/laplace/kuiper_laplace_criterion.md
                 - Watson: criteria/goodness-of-fit/laplace/watson_laplace_criterion.md
                 - Greenwood: criteria/goodness-of-fit/laplace/greenwood_laplace_criterion.md
+                - Kolmogorov–Smirnov D+: criteria/goodness-of-fit/laplace/kolmogorov_smirnov_d_plus_laplace_criterion.md
+                - Kolmogorov–Smirnov D−: criteria/goodness-of-fit/laplace/kolmogorov_smirnov_d_minus_laplace_criterion.md
+                - Liao–Shimokawa: criteria/goodness-of-fit/laplace/liao_shimokawa_laplace_criterion.md
+                - Scaled Kuiper: criteria/goodness-of-fit/laplace/kuiper_scaled_laplace_criterion.md
+                - Corrected Kuiper: criteria/goodness-of-fit/laplace/kuiper_corrected_laplace_criterion.md
+                - Zhang Z_A: criteria/goodness-of-fit/laplace/zhang_a_laplace_criterion.md
+                - Zhang Z_K: criteria/goodness-of-fit/laplace/zhang_k_laplace_criterion.md
+                - Zhang Z_C: criteria/goodness-of-fit/laplace/zhang_c_laplace_criterion.md
+                - Freeman–Tukey: criteria/goodness-of-fit/laplace/freeman_tukey_laplace_criterion.md
+                - Modified log-likelihood: criteria/goodness-of-fit/laplace/modified_log_likelihood_laplace_criterion.md
+                - Neyman modified chi-squared: criteria/goodness-of-fit/laplace/neyman_chi2_laplace_criterion.md
+                - Cressie–Read: criteria/goodness-of-fit/laplace/cressie_read_laplace_criterion.md
+                - Pearson chi-squared: criteria/goodness-of-fit/laplace/chi2_pearson_laplace_criterion.md
+                - Fitted definitions: criteria/goodness-of-fit/laplace/fitted-definitions.md
+                - A_RAT: criteria/goodness-of-fit/laplace/a_rat_laplace_criterion.md
+                - AJ: criteria/goodness-of-fit/laplace/aj_laplace_criterion.md
+                - ME1: criteria/goodness-of-fit/laplace/me1_laplace_criterion.md
+                - ME2: criteria/goodness-of-fit/laplace/me2_laplace_criterion.md
+                - CK_V: criteria/goodness-of-fit/laplace/ck_v_laplace_criterion.md
+                - CK_C: criteria/goodness-of-fit/laplace/ck_c_laplace_criterion.md
+                - CK_E: criteria/goodness-of-fit/laplace/ck_e_laplace_criterion.md
+                - AP_V: criteria/goodness-of-fit/laplace/ap_v_laplace_criterion.md
+                - AP_E: criteria/goodness-of-fit/laplace/ap_e_laplace_criterion.md
+                - AP_Y: criteria/goodness-of-fit/laplace/ap_y_laplace_criterion.md
+                - AP_A: criteria/goodness-of-fit/laplace/ap_a_laplace_criterion.md
+                - AP_Z: criteria/goodness-of-fit/laplace/ap_z_laplace_criterion.md
+                - BRT_V3: criteria/goodness-of-fit/laplace/brt_v3_laplace_criterion.md
+                - BRT_V4: criteria/goodness-of-fit/laplace/brt_v4_laplace_criterion.md
+                - GE: criteria/goodness-of-fit/laplace/ge_laplace_criterion.md
+                - GV: criteria/goodness-of-fit/laplace/gv_laplace_criterion.md
+                - DLO_X: criteria/goodness-of-fit/laplace/dlo_x_laplace_criterion.md
+                - DLO_Z: criteria/goodness-of-fit/laplace/dlo_z_laplace_criterion.md
+                - DD_SMOOTH: criteria/goodness-of-fit/laplace/dd_smooth_laplace_criterion.md
             - Student distribution:
-                - Kolmogorov-Smirnov: criteria/goodness-of-fit/student/kolmogorov_smirnov_student_criterion.md
-                - Anderson-Darling: criteria/goodness-of-fit/student/anderson_darling_student_criterion.md
-                - Cramer-von Mises: criteria/goodness-of-fit/student/cvm_student_criterion.md
-                - Kuiper: criteria/goodness-of-fit/student/kuiper_student_criterion.md
+                - Overview: criteria/goodness-of-fit/student/index.md
+                - Mathematical verification: criteria/goodness-of-fit/student/mathematical-validation.md
+                - Kolmogorov–Smirnov D+: criteria/goodness-of-fit/student/kolmogorov_smirnov_d_plus_student_criterion.md
+                - Kolmogorov–Smirnov D−: criteria/goodness-of-fit/student/kolmogorov_smirnov_d_minus_student_criterion.md
+                - Kolmogorov–Smirnov: criteria/goodness-of-fit/student/kolmogorov_smirnov_student_criterion.md
+                - Anderson–Darling: criteria/goodness-of-fit/student/anderson_darling_student_criterion.md
+                - Cramér–von Mises: criteria/goodness-of-fit/student/cvm_student_criterion.md
+                - Liao–Shimokawa: criteria/goodness-of-fit/student/liao_shimokawa_student_criterion.md
                 - Watson: criteria/goodness-of-fit/student/watson_student_criterion.md
-                - Zhang Zc: criteria/goodness-of-fit/student/zhang_zc_student_criterion.md
-                - Zhang Za: criteria/goodness-of-fit/student/zhang_za_student_criterion.md
-                - Chi-square: criteria/goodness-of-fit/student/chi_square_student_criterion.md
+                - Kuiper: criteria/goodness-of-fit/student/kuiper_student_criterion.md
+                - Scaled Kuiper: criteria/goodness-of-fit/student/kuiper_scaled_student_criterion.md
+                - Corrected Kuiper: criteria/goodness-of-fit/student/kuiper_corrected_student_criterion.md
+                - Zhang Z_K: criteria/goodness-of-fit/student/zhang_k_student_criterion.md
+                - Zhang Z_A: criteria/goodness-of-fit/student/zhang_za_student_criterion.md
+                - Zhang Z_C: criteria/goodness-of-fit/student/zhang_zc_student_criterion.md
+                - Pearson chi-squared: criteria/goodness-of-fit/student/chi_square_student_criterion.md
+                - Freeman–Tukey: criteria/goodness-of-fit/student/freeman_tukey_student_criterion.md
+                - Modified log-likelihood: criteria/goodness-of-fit/student/modified_log_likelihood_student_criterion.md
+                - Neyman chi-squared: criteria/goodness-of-fit/student/neyman_chi2_student_criterion.md
+                - Cressie–Read: criteria/goodness-of-fit/student/cressie_read_student_criterion.md
+                - Meintanis ECF: criteria/goodness-of-fit/student/meintanis_student_criterion.md
+                - Çadirci Rényi kNN: criteria/goodness-of-fit/student/cadirci_renyi_student_criterion.md
+                - Lequesne Rényi: criteria/goodness-of-fit/student/lequesne_renyi_student_criterion.md
             - Exponentiated Weibull distribution:
-                - Pearson chi-squared: criteria/goodness-of-fit/exponentiated-weibull/chi2_pearson_exponentiated_weibull_criterion.md
-                - Cramer-von Mises: criteria/goodness-of-fit/exponentiated-weibull/cvm_exponentiated_weibull_criterion.md
-                - Kolmogorov-Smirnov: criteria/goodness-of-fit/exponentiated-weibull/kolmogorov_smirnov_exponentiated_weibull_criterion.md
-                - Min-Toshiyuki: criteria/goodness-of-fit/exponentiated-weibull/min_toshiyuki_exponentiated_weibull_criterion.md
+                - Overview: criteria/goodness-of-fit/exponentiated-weibull/index.md
+                - Mathematical verification: criteria/goodness-of-fit/exponentiated-weibull/mathematical-validation.md
+                - Kolmogorov–Smirnov D+: criteria/goodness-of-fit/exponentiated-weibull/kolmogorov_smirnov_d_plus_exponentiated_weibull_criterion.md
+                - Kolmogorov–Smirnov D−: criteria/goodness-of-fit/exponentiated-weibull/kolmogorov_smirnov_d_minus_exponentiated_weibull_criterion.md
+                - Kolmogorov–Smirnov: criteria/goodness-of-fit/exponentiated-weibull/kolmogorov_smirnov_exponentiated_weibull_criterion.md
+                - Anderson–Darling: criteria/goodness-of-fit/exponentiated-weibull/anderson_darling_exponentiated_weibull_criterion.md
+                - Cramér–von Mises: criteria/goodness-of-fit/exponentiated-weibull/cvm_exponentiated_weibull_criterion.md
+                - Liao–Shimokawa (historical Min–Toshiyuki): criteria/goodness-of-fit/exponentiated-weibull/min_toshiyuki_exponentiated_weibull_criterion.md
                 - Watson: criteria/goodness-of-fit/exponentiated-weibull/watson_exponentiated_weibull_criterion.md
+                - Kuiper: criteria/goodness-of-fit/exponentiated-weibull/kuiper_exponentiated_weibull_criterion.md
+                - Scaled Kuiper: criteria/goodness-of-fit/exponentiated-weibull/kuiper_scaled_exponentiated_weibull_criterion.md
+                - Corrected Kuiper: criteria/goodness-of-fit/exponentiated-weibull/kuiper_corrected_exponentiated_weibull_criterion.md
+                - Zhang Z_K: criteria/goodness-of-fit/exponentiated-weibull/zhang_k_exponentiated_weibull_criterion.md
+                - Zhang Z_A: criteria/goodness-of-fit/exponentiated-weibull/zhang_a_exponentiated_weibull_criterion.md
+                - Zhang Z_C: criteria/goodness-of-fit/exponentiated-weibull/zhang_c_exponentiated_weibull_criterion.md
+                - Pearson chi-squared: criteria/goodness-of-fit/exponentiated-weibull/chi2_pearson_exponentiated_weibull_criterion.md
+                - Freeman–Tukey: criteria/goodness-of-fit/exponentiated-weibull/freeman_tukey_exponentiated_weibull_criterion.md
+                - Modified log-likelihood: criteria/goodness-of-fit/exponentiated-weibull/modified_log_likelihood_exponentiated_weibull_criterion.md
+                - Neyman modified chi-squared: criteria/goodness-of-fit/exponentiated-weibull/neyman_chi2_exponentiated_weibull_criterion.md
+                - Cressie–Read: criteria/goodness-of-fit/exponentiated-weibull/cressie_read_exponentiated_weibull_criterion.md
             - Weibull distribution:
+                - Overview: criteria/goodness-of-fit/weibull/index.md
+                - Mathematical verification: criteria/goodness-of-fit/weibull/mathematical-validation.md
+                - One-sided Kolmogorov–Smirnov D+: criteria/goodness-of-fit/weibull/kolmogorov_smirnov_d_plus_weibull_criterion.md
+                - One-sided Kolmogorov–Smirnov D−: criteria/goodness-of-fit/weibull/kolmogorov_smirnov_d_minus_weibull_criterion.md
+                - Kolmogorov–Smirnov: criteria/goodness-of-fit/weibull/kolmogorov_smirnov_weibull_criterion.md
+                - Cramér–von Mises: criteria/goodness-of-fit/weibull/cvm_weibull_criterion.md
+                - Watson: criteria/goodness-of-fit/weibull/watson_weibull_criterion.md
+                - Kuiper: criteria/goodness-of-fit/weibull/kuiper_weibull_criterion.md
+                - Scaled Kuiper: criteria/goodness-of-fit/weibull/kuiper_scaled_weibull_criterion.md
+                - Corrected Kuiper: criteria/goodness-of-fit/weibull/kuiper_corrected_weibull_criterion.md
+                - Zhang Z_K: criteria/goodness-of-fit/weibull/zhang_k_weibull_criterion.md
+                - Zhang Z_A: criteria/goodness-of-fit/weibull/zhang_a_weibull_criterion.md
+                - Zhang Z_C: criteria/goodness-of-fit/weibull/zhang_c_weibull_criterion.md
+                - Pearson chi-squared: criteria/goodness-of-fit/weibull/chi2_pearson_weibull_criterion.md
+                - Freeman–Tukey: criteria/goodness-of-fit/weibull/freeman_tukey_weibull_criterion.md
+                - Modified log-likelihood ratio: criteria/goodness-of-fit/weibull/modified_log_likelihood_weibull_criterion.md
+                - Neyman chi-squared: criteria/goodness-of-fit/weibull/neyman_chi2_weibull_criterion.md
+                - Cressie–Read: criteria/goodness-of-fit/weibull/cressie_read_weibull_criterion.md
                 - Anderson-Darling: criteria/goodness-of-fit/weibull/anderson_darling_weibull_criterion.md
-                - Sb: criteria/goodness-of-fit/weibull/sb_weibull_criterion.md
-                - ST2: criteria/goodness-of-fit/weibull/st2_weibull_criterion.md
-                - ST1: criteria/goodness-of-fit/weibull/st1_weibull_criterion.md
+                - Best–Rayner–Thas kurtosis (ST2): criteria/goodness-of-fit/weibull/st2_weibull_criterion.md
+                - Best–Rayner–Thas skewness (ST1): criteria/goodness-of-fit/weibull/st1_weibull_criterion.md
                 - RSB: criteria/goodness-of-fit/weibull/rsb_weibull_criterion.md
                 - Tiku-Singh: criteria/goodness-of-fit/weibull/tiku_singh_weibull_criterion.md
                 - Lockhart-OReilly-Stephens: criteria/goodness-of-fit/weibull/los_weibull_criterion.md
                 - Mann-Scheuer-Fertig: criteria/goodness-of-fit/weibull/msf_weibull_criterion.md
-                - Ozturk-Korukoglu: criteria/goodness-of-fit/weibull/ok_weibull_criterion.md
-                - SB WPP: criteria/goodness-of-fit/weibull/sb_wpp_weibull_criterion.md
+                - Ozturk-Korukoglu: criteria/goodness-of-fit/weibull/ozturk_korukoglu_weibull_criterion.md
+                - Shapiro–Brain: criteria/goodness-of-fit/weibull/shapiro_brain_weibull_criterion.md
                 - Evans-Johnson-Green: criteria/goodness-of-fit/weibull/rejg_weibull_criterion.md
                 - Stabilized probability plot: criteria/goodness-of-fit/weibull/spp_weibull_criterion.md
                 - Mahdi-Doostparast: criteria/goodness-of-fit/weibull/mahdi_doostparast_weibull_criterion.md
@@ -161,48 +366,90 @@ nav:
                 - Laplace transform 2: criteria/goodness-of-fit/weibull/laplace_transform2_weibull_criterion.md
                 - Laplace transform 3: criteria/goodness-of-fit/weibull/laplace_transform3_weibull_criterion.md
                 - Cabana-Quiroz: criteria/goodness-of-fit/weibull/cabana_quiroz_weibull_criterion.md
+            - Log-logistic distribution:
+                - Overview: criteria/goodness-of-fit/log-logistic/index.md
+                - Mathematical verification: criteria/goodness-of-fit/log-logistic/mathematical-validation.md
+                - Kolmogorov–Smirnov D+: criteria/goodness-of-fit/log-logistic/ks-plus.md
+                - Kolmogorov–Smirnov D−: criteria/goodness-of-fit/log-logistic/ks-minus.md
+                - Kolmogorov–Smirnov: criteria/goodness-of-fit/log-logistic/ks.md
+                - Anderson–Darling: criteria/goodness-of-fit/log-logistic/ad.md
+                - Cramér–von Mises: criteria/goodness-of-fit/log-logistic/cvm.md
+                - Liao–Shimokawa: criteria/goodness-of-fit/log-logistic/liao-shimokawa.md
+                - Watson: criteria/goodness-of-fit/log-logistic/watson.md
+                - Kuiper: criteria/goodness-of-fit/log-logistic/kuiper.md
+                - Scaled Kuiper: criteria/goodness-of-fit/log-logistic/kuiper-scaled.md
+                - Corrected Kuiper: criteria/goodness-of-fit/log-logistic/kuiper-corrected.md
+                - Zhang K: criteria/goodness-of-fit/log-logistic/zhang-k.md
+                - Zhang A: criteria/goodness-of-fit/log-logistic/zhang-a.md
+                - Zhang C: criteria/goodness-of-fit/log-logistic/zhang-c.md
+                - Pearson chi-squared: criteria/goodness-of-fit/log-logistic/pearson.md
+                - Freeman–Tukey: criteria/goodness-of-fit/log-logistic/freeman-tukey.md
+                - Modified log-likelihood: criteria/goodness-of-fit/log-logistic/modified-log-likelihood.md
+                - Neyman chi-squared: criteria/goodness-of-fit/log-logistic/neyman-chi2.md
+                - Cressie–Read: criteria/goodness-of-fit/log-logistic/cressie-read.md
+                - Bagdonavicius–Nikulin: criteria/goodness-of-fit/log-logistic/nikulin.md
+                - Mirvaliev: criteria/goodness-of-fit/log-logistic/mirvaliev.md
             - Log-normal distribution:
-                - Kolmogorov-Smirnov: criteria/goodness-of-fit/log-normal/kolmogorov_smirnov_log_normal_criterion.md
-                - Cramer-von Mises: criteria/goodness-of-fit/log-normal/cvm_log_normal_criterion.md
-                - Quesenberry-Miller: criteria/goodness-of-fit/log-normal/quesenberry_miller_log_normal_criterion.md
-                - KL supremum: criteria/goodness-of-fit/log-normal/kl_supremum_log_normal_criterion.md
-                - KL integral: criteria/goodness-of-fit/log-normal/kl_integral_log_normal_criterion.md
-                - Anderson-Darling: criteria/goodness-of-fit/log-normal/anderson_darling_log_normal_criterion.md
-                - Bonett-Seier: criteria/goodness-of-fit/log-normal/bonett_seier_log_normal_criterion.md
-                - Bontemps-Meddahi1: criteria/goodness-of-fit/log-normal/bontemps_meddahi1_log_normal_criterion.md
-                - Bontemps-Meddahi2: criteria/goodness-of-fit/log-normal/bontemps_meddahi2_log_normal_criterion.md
-                - Cabana-Cabana1: criteria/goodness-of-fit/log-normal/cabana_cabana1_log_normal_criterion.md
-                - Cabana-Cabana2: criteria/goodness-of-fit/log-normal/cabana_cabana2_log_normal_criterion.md
-                - Chen-Shapiro: criteria/goodness-of-fit/log-normal/chen_shapiro_log_normal_criterion.md
-                - Coin: criteria/goodness-of-fit/log-normal/coin_log_normal_criterion.md
-                - D'Agostino-Pearson: criteria/goodness-of-fit/log-normal/dagostino_pearson_log_normal_criterion.md
-                - D'Agostino: criteria/goodness-of-fit/log-normal/dagostino_log_normal_criterion.md
-                - Desgagne-Lafaye: criteria/goodness-of-fit/log-normal/desgagne_lafaye_log_normal_criterion.md
-                - Doornik-Hansen: criteria/goodness-of-fit/log-normal/doornik_hansen_log_normal_criterion.md
-                - Epps-Pulley: criteria/goodness-of-fit/log-normal/epps_pulley_log_normal_criterion.md
-                - Filliben: criteria/goodness-of-fit/log-normal/filliben_log_normal_criterion.md
-                - GMG: criteria/goodness-of-fit/log-normal/gmg_log_normal_criterion.md
-                - Glen-Leemis-Barr: criteria/goodness-of-fit/log-normal/glen_leemis_barr_log_normal_criterion.md
-                - Hosking1: criteria/goodness-of-fit/log-normal/hosking1_log_normal_criterion.md
-                - Hosking2: criteria/goodness-of-fit/log-normal/hosking2_log_normal_criterion.md
-                - Hosking3: criteria/goodness-of-fit/log-normal/hosking3_log_normal_criterion.md
-                - Hosking4: criteria/goodness-of-fit/log-normal/hosking4_log_normal_criterion.md
-                - Jarque-Bera: criteria/goodness-of-fit/log-normal/jarque_bera_log_normal_criterion.md
-                - Kurtosis: criteria/goodness-of-fit/log-normal/kurtosis_log_normal_criterion.md
-                - Looney-Gulledge: criteria/goodness-of-fit/log-normal/looney_gulledge_log_normal_criterion.md
-                - Martinez-Iglewicz: criteria/goodness-of-fit/log-normal/martinez_iglewicz_log_normal_criterion.md
-                - Robust Jarque-Bera: criteria/goodness-of-fit/log-normal/robust_jarque_bera_log_normal_criterion.md
-                - Ryan-Joiner: criteria/goodness-of-fit/log-normal/ryan_joiner_log_normal_criterion.md
-                - SF: criteria/goodness-of-fit/log-normal/sf_log_normal_criterion.md
-                - SWRG: criteria/goodness-of-fit/log-normal/swrg_log_normal_criterion.md
-                - Shapiro-Wilk: criteria/goodness-of-fit/log-normal/shapiro_wilk_log_normal_criterion.md
-                - Skewness: criteria/goodness-of-fit/log-normal/skew_log_normal_criterion.md
-                - Spiegelhalter: criteria/goodness-of-fit/log-normal/spiegelhalter_log_normal_criterion.md
-                - Zhang Q: criteria/goodness-of-fit/log-normal/zhang_q_log_normal_criterion.md
-                - Zhang Q-star: criteria/goodness-of-fit/log-normal/zhang_q_star_log_normal_criterion.md
-                - Zhang-Wu A: criteria/goodness-of-fit/log-normal/zhang_wu_a_log_normal_criterion.md
-                - Zhang-Wu C: criteria/goodness-of-fit/log-normal/zhang_wu_c_log_normal_criterion.md
+                - Overview: criteria/goodness-of-fit/log-normal/index.md
+                - Mathematical verification: criteria/goodness-of-fit/log-normal/mathematical-validation.md
+                - Anderson-Darling test for log-normal data: criteria/goodness-of-fit/log-normal/anderson_darling_log_normal_criterion.md
+                - Bonett-Seier test for log-normal data: criteria/goodness-of-fit/log-normal/bonett_seier_log_normal_criterion.md
+                - Bontemps-Meddahi1 test for log-normal data: criteria/goodness-of-fit/log-normal/bontemps_meddahi1_log_normal_criterion.md
+                - Bontemps-Meddahi2 test for log-normal data: criteria/goodness-of-fit/log-normal/bontemps_meddahi2_log_normal_criterion.md
+                - Cabana-Cabana1 test for log-normal data: criteria/goodness-of-fit/log-normal/cabana_cabana1_log_normal_criterion.md
+                - Cabana-Cabana2 test for log-normal data: criteria/goodness-of-fit/log-normal/cabana_cabana2_log_normal_criterion.md
+                - Chen-Shapiro test for log-normal data: criteria/goodness-of-fit/log-normal/chen_shapiro_log_normal_criterion.md
+                - Pearson chi-squared for log-normal data: criteria/goodness-of-fit/log-normal/chi2_pearson_log_normal_criterion.md
+                - Coin test for log-normal data: criteria/goodness-of-fit/log-normal/coin_log_normal_criterion.md
+                - Cramer-von Mises test for log-normal data: criteria/goodness-of-fit/log-normal/cvm_log_normal_criterion.md
+                - Cressie–Read for log-normal data: criteria/goodness-of-fit/log-normal/cressie_read_log_normal_criterion.md
+                - D’Agostino–Pearson omnibus test: criteria/goodness-of-fit/log-normal/dagostino_pearson_log_normal_criterion.md
+                - D'Agostino test for log-normal data: criteria/goodness-of-fit/log-normal/dagostino_log_normal_criterion.md
+                - Desgagne-Lafaye test for log-normal data: criteria/goodness-of-fit/log-normal/desgagne_lafaye_log_normal_criterion.md
+                - Doornik-Hansen test for log-normal data: criteria/goodness-of-fit/log-normal/doornik_hansen_log_normal_criterion.md
+                - Epps-Pulley test for log-normal data: criteria/goodness-of-fit/log-normal/epps_pulley_log_normal_criterion.md
+                - Filliben test for log-normal data: criteria/goodness-of-fit/log-normal/filliben_log_normal_criterion.md
+                - Freeman–Tukey for log-normal data: criteria/goodness-of-fit/log-normal/freeman_tukey_log_normal_criterion.md
+                - GMG test for log-normal data: criteria/goodness-of-fit/log-normal/gmg_log_normal_criterion.md
+                - Glen-Leemis-Barr test for log-normal data: criteria/goodness-of-fit/log-normal/glen_leemis_barr_log_normal_criterion.md
+                - Hosking1 test for log-normal data: criteria/goodness-of-fit/log-normal/hosking1_log_normal_criterion.md
+                - Hosking2 test for log-normal data: criteria/goodness-of-fit/log-normal/hosking2_log_normal_criterion.md
+                - Hosking3 test for log-normal data: criteria/goodness-of-fit/log-normal/hosking3_log_normal_criterion.md
+                - Hosking4 test for log-normal data: criteria/goodness-of-fit/log-normal/hosking4_log_normal_criterion.md
+                - Jarque-Bera test for log-normal data: criteria/goodness-of-fit/log-normal/jarque_bera_log_normal_criterion.md
+                - KL integral test for log-normal distribution: criteria/goodness-of-fit/log-normal/kl_integral_log_normal_criterion.md
+                - KL supremum test for log-normal distribution: criteria/goodness-of-fit/log-normal/kl_supremum_log_normal_criterion.md
+                - Kolmogorov–Smirnov D− for log-normal data: criteria/goodness-of-fit/log-normal/kolmogorov_smirnov_d_minus_log_normal_criterion.md
+                - Kolmogorov–Smirnov D+ for log-normal data: criteria/goodness-of-fit/log-normal/kolmogorov_smirnov_d_plus_log_normal_criterion.md
+                - Kolmogorov-Smirnov test for log-normal data: criteria/goodness-of-fit/log-normal/kolmogorov_smirnov_log_normal_criterion.md
+                - Corrected Kuiper for log-normal data: criteria/goodness-of-fit/log-normal/kuiper_corrected_log_normal_criterion.md
+                - Kuiper for log-normal data: criteria/goodness-of-fit/log-normal/kuiper_log_normal_criterion.md
+                - Scaled Kuiper for log-normal data: criteria/goodness-of-fit/log-normal/kuiper_scaled_log_normal_criterion.md
+                - Kurtosis test for log-normal data: criteria/goodness-of-fit/log-normal/kurtosis_log_normal_criterion.md
+                - Liao–Shimokawa for log-normal data: criteria/goodness-of-fit/log-normal/liao_shimokawa_log_normal_criterion.md
+                - Looney-Gulledge test for log-normal data: criteria/goodness-of-fit/log-normal/looney_gulledge_log_normal_criterion.md
+                - Martinez-Iglewicz test for log-normal data: criteria/goodness-of-fit/log-normal/martinez_iglewicz_log_normal_criterion.md
+                - Modified log likelihood for log-normal data: criteria/goodness-of-fit/log-normal/modified_log_likelihood_log_normal_criterion.md
+                - Neyman chi-squared for log-normal data: criteria/goodness-of-fit/log-normal/neyman_chi2_log_normal_criterion.md
+                - Quesenberry-Miller test for log-normal distribution: criteria/goodness-of-fit/log-normal/quesenberry_miller_log_normal_criterion.md
+                - Robust Jarque-Bera test for log-normal data: criteria/goodness-of-fit/log-normal/robust_jarque_bera_log_normal_criterion.md
+                - Ryan-Joiner test for log-normal data: criteria/goodness-of-fit/log-normal/ryan_joiner_log_normal_criterion.md
+                - SF test for log-normal data: criteria/goodness-of-fit/log-normal/sf_log_normal_criterion.md
+                - SWRG test for log-normal data: criteria/goodness-of-fit/log-normal/swrg_log_normal_criterion.md
+                - Shapiro-Wilk test for log-normal data: criteria/goodness-of-fit/log-normal/shapiro_wilk_log_normal_criterion.md
+                - Skewness test for log-normal data: criteria/goodness-of-fit/log-normal/skew_log_normal_criterion.md
+                - Spiegelhalter test for log-normal data: criteria/goodness-of-fit/log-normal/spiegelhalter_log_normal_criterion.md
+                - Watson for log-normal data: criteria/goodness-of-fit/log-normal/watson_log_normal_criterion.md
+                - Zhang A for log-normal data: criteria/goodness-of-fit/log-normal/zhang_a_log_normal_criterion.md
+                - Zhang C for log-normal data: criteria/goodness-of-fit/log-normal/zhang_c_log_normal_criterion.md
+                - Zhang K for log-normal data: criteria/goodness-of-fit/log-normal/zhang_k_log_normal_criterion.md
+                - Zhang Q test for log-normal data: criteria/goodness-of-fit/log-normal/zhang_q_log_normal_criterion.md
+                - Zhang Q-star test for log-normal data: criteria/goodness-of-fit/log-normal/zhang_q_star_log_normal_criterion.md
+                - Zhang-Wu A test for log-normal data: criteria/goodness-of-fit/log-normal/zhang_wu_a_log_normal_criterion.md
+                - Zhang-Wu C test for log-normal data: criteria/goodness-of-fit/log-normal/zhang_wu_c_log_normal_criterion.md
             - Normality:
+                - Overview: criteria/goodness-of-fit/normality/index.md
+                - Mathematical verification: criteria/goodness-of-fit/normality/mathematical-validation.md
                 - Kolmogorov-Smirnov: criteria/goodness-of-fit/normality/kolmogorov_smirnov_normality_criterion.md
                 - Anderson-Darling: criteria/goodness-of-fit/normality/anderson_darling_normality_criterion.md
                 - Shapiro-Wilk: criteria/goodness-of-fit/normality/shapiro_wilk_normality_criterion.md
@@ -248,6 +495,21 @@ nav:
                 - Graph connected components: criteria/goodness-of-fit/normality/graph_connected_components_normality_criterion.md
                 - Graph clique number: criteria/goodness-of-fit/normality/graph_clique_number_normality_criterion.md
                 - Graph independence number: criteria/goodness-of-fit/normality/graph_independence_number_normality_criterion.md
+                - Kolmogorov–Smirnov D+: criteria/goodness-of-fit/normality/kolmogorov_smirnov_d_plus_normality_criterion.md
+                - Kolmogorov–Smirnov D−: criteria/goodness-of-fit/normality/kolmogorov_smirnov_d_minus_normality_criterion.md
+                - Liao–Shimokawa: criteria/goodness-of-fit/normality/liao_shimokawa_normality_criterion.md
+                - Watson: criteria/goodness-of-fit/normality/watson_normality_criterion.md
+                - Kuiper: criteria/goodness-of-fit/normality/kuiper_normality_criterion.md
+                - Scaled Kuiper: criteria/goodness-of-fit/normality/kuiper_scaled_normality_criterion.md
+                - Corrected Kuiper: criteria/goodness-of-fit/normality/kuiper_corrected_normality_criterion.md
+                - Zhang K: criteria/goodness-of-fit/normality/zhang_k_normality_criterion.md
+                - Zhang A: criteria/goodness-of-fit/normality/zhang_a_normality_criterion.md
+                - Zhang C: criteria/goodness-of-fit/normality/zhang_c_normality_criterion.md
+                - Pearson chi-squared: criteria/goodness-of-fit/normality/chi2_pearson_normality_criterion.md
+                - Freeman–Tukey: criteria/goodness-of-fit/normality/freeman_tukey_normality_criterion.md
+                - Modified log likelihood: criteria/goodness-of-fit/normality/modified_log_likelihood_normality_criterion.md
+                - Neyman chi-squared: criteria/goodness-of-fit/normality/neyman_chi2_normality_criterion.md
+                - Cressie–Read: criteria/goodness-of-fit/normality/cressie_read_normality_criterion.md
 theme:
   name: material
   logo: "images/logo.jpeg"

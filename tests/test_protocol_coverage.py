@@ -10,10 +10,10 @@ from pysatl_criterion.persistence.sqlalchemy.alchemy_decorator import Compressed
 
 import pysatl_criterion
 from pysatl_criterion import DistributionType
-from pysatl_criterion.distribution.distributions import (
+from pysatl_criterion.distribution import (
     BetaDistributionDescriptor as Beta,
 )
-from pysatl_criterion.distribution.distributions import (
+from pysatl_criterion.distribution import (
     DistributionDescriptor,
 )
 from pysatl_criterion.estimation.maximum_likelihood import (
@@ -51,7 +51,7 @@ from pysatl_criterion.multiple_testing import (
 from pysatl_criterion.persistence.models.base import IDataStorage, IStorage
 from pysatl_criterion.persistence.models.limit_distribution import ILimitDistributionStorage
 from pysatl_criterion.statistics.alternative import Alternative, AlternativeType
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous import (
     beta,
     exponent,
     gamma,
@@ -62,15 +62,19 @@ from pysatl_criterion.statistics.goodness_of_fit import (
     student,
     uniform,
 )
-from pysatl_criterion.statistics.goodness_of_fit.common import (
-    ADStatistic,
-    Chi2Statistic,
-    CrammerVonMisesStatistic,
+from pysatl_criterion.statistics.goodness_of_fit.continuous.edf import (
+    AbstractAndersonDarlingStatistic,
+    AbstractChi2Statistic,
+    AbstractCrammerVonMisesStatistic,
+)
+from pysatl_criterion.statistics.goodness_of_fit.goodness_of_fit_statistic import (
+    AbstractGoodnessOfFitStatistic,
+)
+from statistics.independence.independence_statistic import (
+    AbstractIndependenceStatistic,
 )
 from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 from pysatl_criterion.statistics.statistic import (
-    AbstractGoodnessOfFitStatistic,
-    AbstractIndependenceStatistic,
     AbstractStatistic,
 )
 from tests.parameter_cases import parameters_for
@@ -243,13 +247,17 @@ def test_decision_method_defaults_and_missing_distribution_errors():
 
 def test_common_statistic_helpers_and_empty_multiple_testing_inputs():
     with pytest.raises(NotImplementedError):
-        ADStatistic.code()
+        AbstractAndersonDarlingStatistic.code()
     masked = np.ma.array([1.0, 2.0], mask=[False, True])
-    assert Chi2Statistic._m_sum(masked, axis=0, preserve_mask=True, xp=np) == 1
-    assert Chi2Statistic._m_sum(masked, axis=0, preserve_mask=False, xp=np) == 1
-    assert Chi2Statistic._m_sum(np.array([1.0, 2.0]), axis=0, preserve_mask=False, xp=np) == 3
-    assert np.isfinite(Chi2Statistic.do_execute_statistic(object(), [2, 3], np.array([1, 4]), -1))
-    assert CrammerVonMisesStatistic.code() == "CVM"
+    assert AbstractChi2Statistic._m_sum(masked, axis=0, preserve_mask=True, xp=np) == 1
+    assert AbstractChi2Statistic._m_sum(masked, axis=0, preserve_mask=False, xp=np) == 1
+    assert (
+        AbstractChi2Statistic._m_sum(np.array([1.0, 2.0]), axis=0, preserve_mask=False, xp=np) == 3
+    )
+    assert np.isfinite(
+        AbstractChi2Statistic.do_execute_statistic(object(), [2, 3], np.array([1, 4]), -1)
+    )
+    assert AbstractCrammerVonMisesStatistic.code() == "CVM"
     assert Holm().adjust(np.array([])).size == 0
     assert HolmSidak().adjust(np.array([])).size == 0
     assert BenjaminiYekutieli().adjust(np.array([])).size == 0

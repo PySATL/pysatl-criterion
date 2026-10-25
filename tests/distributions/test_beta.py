@@ -2,19 +2,14 @@ import numpy as np
 import pytest
 import scipy.stats as scipy_stats
 
-from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
-from pysatl_criterion.statistics.goodness_of_fit.beta import (
+from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
+from pysatl_criterion.statistics.goodness_of_fit.continuous.beta import (
     AbstractBetaGofStatistic,
     AndersonDarlingBetaGofStatistic,
     Chi2PearsonBetaGofStatistic,
     CrammerVonMisesBetaGofStatistic,
-    EntropyBetaGofStatistic,
     KolmogorovSmirnovBetaGofStatistic,
     KuiperBetaGofStatistic,
-    ModeBetaGofStatistic,
-    MomentBasedBetaGofStatistic,
-    RatioBetaGofStatistic,
-    SkewnessKurtosisBetaGofStatistic,
     WatsonBetaGofStatistic,
 )
 
@@ -377,7 +372,7 @@ class TestChi2PearsonBetaGofStatistic:
                 ],
                 2,
                 5,
-                1.30301816,
+                3.2,
             ),
             (
                 [
@@ -396,7 +391,7 @@ class TestChi2PearsonBetaGofStatistic:
                 ],
                 1,
                 1,
-                3.33333333,
+                5.0,
             ),
             (
                 [
@@ -413,7 +408,7 @@ class TestChi2PearsonBetaGofStatistic:
                 ],
                 3,
                 3,
-                1.13560740,
+                4.4,
             ),
         ],
     )
@@ -429,7 +424,7 @@ class TestWatsonBetaGofStatistic:
 
     def test_code(self):
         """Test that the Watson statistic returns correct code."""
-        assert "W_BETA_GOODNESS_OF_FIT" == WatsonBetaGofStatistic.code()
+        assert "WATSON_BETA_GOODNESS_OF_FIT" == WatsonBetaGofStatistic.code()
 
     @pytest.mark.parametrize(
         ("data", "alpha", "beta", "result"),
@@ -568,421 +563,6 @@ class TestKuiperBetaGofStatistic:
         assert result == pytest.approx(statistic_value, 0.00001)
 
 
-class TestMomentBasedBetaGofStatistic:
-    """Tests for Moment-based test statistic."""
-
-    def test_code(self):
-        """Test that the Moment-based statistic returns correct code."""
-        assert "MB_BETA_GOODNESS_OF_FIT" == MomentBasedBetaGofStatistic.code()
-
-    @pytest.mark.parametrize(
-        ("data", "alpha", "beta", "result"),
-        [
-            (
-                [
-                    0.3536766572,
-                    0.2485580661,
-                    0.4159590873,
-                    0.1599675758,
-                    0.5502830781,
-                    0.1109452876,
-                    0.5098966418,
-                    0.1772703795,
-                    0.1982904719,
-                    0.3762367882,
-                ],
-                2,
-                5,
-                0.4252810524,
-            ),
-            (
-                [
-                    0.7087962001,
-                    0.2915205607,
-                    0.5508644650,
-                    0.8802250282,
-                    0.5098339187,
-                    0.6131471891,
-                    0.3176350910,
-                    0.1751690171,
-                    0.4660253747,
-                    0.5769342726,
-                    0.8436683688,
-                    0.4333839830,
-                ],
-                1,
-                1,
-                3.1707993554,
-            ),
-            (
-                [
-                    0.3366836981,
-                    0.5643169242,
-                    0.5625418098,
-                    0.4038462174,
-                    0.3593278603,
-                    0.7521677033,
-                    0.6460545301,
-                    0.7051711915,
-                    0.1494688017,
-                    0.8260848760,
-                ],
-                3,
-                3,
-                0.8392253377,
-            ),
-        ],
-    )
-    def test_moment_with_parametrized_data(self, data, alpha, beta, result):
-        """Test Moment-based statistic with precomputed expected values."""
-        stat = MomentBasedBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
-        statistic_value = stat.execute_statistic(data)
-        assert result == pytest.approx(statistic_value, 0.00001)
-
-
-class TestSkewnessKurtosisBetaGofStatistic:
-    """Tests for Skewness-Kurtosis test statistic."""
-
-    def test_code(self):
-        """Test that the Skewness-Kurtosis statistic returns correct code."""
-        assert "SK_BETA_GOODNESS_OF_FIT" == SkewnessKurtosisBetaGofStatistic.code()
-
-    @pytest.mark.parametrize(
-        ("data", "alpha", "beta", "result"),
-        [
-            (
-                [
-                    0.3536766572,
-                    0.2485580661,
-                    0.4159590873,
-                    0.1599675758,
-                    0.5502830781,
-                    0.1109452876,
-                    0.5098966418,
-                    0.1772703795,
-                    0.1982904719,
-                    0.3762367882,
-                ],
-                2,
-                5,
-                0.6914802305,
-            ),
-            (
-                [
-                    0.7087962001,
-                    0.2915205607,
-                    0.5508644650,
-                    0.8802250282,
-                    0.5098339187,
-                    0.6131471891,
-                    0.3176350910,
-                    0.1751690171,
-                    0.4660253747,
-                    0.5769342726,
-                    0.8436683688,
-                    0.4333839830,
-                ],
-                1,
-                1,
-                4.4240979686,
-            ),
-            (
-                [
-                    0.3366836981,
-                    0.5643169242,
-                    0.5625418098,
-                    0.4038462174,
-                    0.3593278603,
-                    0.7521677033,
-                    0.6460545301,
-                    0.7051711915,
-                    0.1494688017,
-                    0.8260848760,
-                ],
-                3,
-                3,
-                0.5711100875,
-            ),
-        ],
-    )
-    def test_sk_with_parametrized_data(self, data, alpha, beta, result):
-        """Test Skewness-Kurtosis statistic with precomputed expected values."""
-        stat = SkewnessKurtosisBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
-        statistic_value = stat.execute_statistic(data)
-        assert result == pytest.approx(statistic_value, 0.00001)
-
-
-class TestRatioBetaGofStatistic:
-    """Tests for Ratio test statistic."""
-
-    def test_code(self):
-        """Test that the Ratio statistic returns correct code."""
-        assert "RT_BETA_GOODNESS_OF_FIT" == RatioBetaGofStatistic.code()
-
-    @pytest.mark.parametrize(
-        ("alpha", "beta", "seed", "n"),
-        [
-            (2, 5, 42, 100),
-            (3, 3, 123, 200),
-        ],
-    )
-    def test_ratio_with_generated_data(self, alpha, beta, seed, n):
-        """Test Ratio statistic with data generated from Beta distribution."""
-        np.random.seed(seed)
-        # Add small noise to avoid exact 0 or 1
-        data = scipy_stats.beta.rvs(alpha, beta, size=n)
-        data = np.clip(data, 0.001, 0.999)
-
-        stat = RatioBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
-        statistic_value = stat.execute_statistic(data)
-
-        # Statistic should be non-negative
-        assert statistic_value >= 0
-        assert np.isfinite(statistic_value)
-
-    @pytest.mark.parametrize(
-        ("data", "alpha", "beta", "result"),
-        [
-            (
-                [
-                    0.3536766572,
-                    0.2485580661,
-                    0.4159590873,
-                    0.1599675758,
-                    0.5502830781,
-                    0.1109452876,
-                    0.5098966418,
-                    0.1772703795,
-                    0.1982904719,
-                    0.3762367882,
-                ],
-                2,
-                5,
-                0.20054649,
-            ),
-            (
-                [
-                    0.7087962001,
-                    0.2915205607,
-                    0.5508644650,
-                    0.8802250282,
-                    0.5098339187,
-                    0.6131471891,
-                    0.3176350910,
-                    0.1751690171,
-                    0.4660253747,
-                    0.5769342726,
-                    0.8436683688,
-                    0.4333839830,
-                ],
-                1,
-                1,
-                0.62062110,
-            ),
-            (
-                [
-                    0.3366836981,
-                    0.5643169242,
-                    0.5625418098,
-                    0.4038462174,
-                    0.3593278603,
-                    0.7521677033,
-                    0.6460545301,
-                    0.7051711915,
-                    0.1494688017,
-                    0.8260848760,
-                ],
-                3,
-                3,
-                0.02561022,
-            ),
-        ],
-    )
-    def test_ratio_with_parametrized_data(self, data, alpha, beta, result):
-        """Test Ratio statistic with precomputed expected values."""
-        stat = RatioBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
-        statistic_value = stat.execute_statistic(data)
-        assert result == pytest.approx(statistic_value, 0.00001)
-
-
-class TestEntropyBetaGofStatistic:
-    """Tests for Entropy-based test statistic."""
-
-    def test_code(self):
-        """Test that the Entropy statistic returns correct code."""
-        assert "ENT_BETA_GOODNESS_OF_FIT" == EntropyBetaGofStatistic.code()
-
-    @pytest.mark.parametrize(
-        ("alpha", "beta", "seed", "n"),
-        [
-            (2, 5, 42, 100),
-            (3, 3, 123, 200),
-        ],
-    )
-    def test_entropy_with_generated_data(self, alpha, beta, seed, n):
-        """Test Entropy statistic with data generated from Beta distribution."""
-        np.random.seed(seed)
-        data = scipy_stats.beta.rvs(alpha, beta, size=n)
-
-        stat = EntropyBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
-        statistic_value = stat.execute_statistic(data)
-
-        # Statistic should be non-negative
-        assert statistic_value >= 0
-        assert np.isfinite(statistic_value)
-
-    @pytest.mark.parametrize(
-        ("data", "alpha", "beta", "result"),
-        [
-            (
-                [
-                    0.3536766572,
-                    0.2485580661,
-                    0.4159590873,
-                    0.1599675758,
-                    0.5502830781,
-                    0.1109452876,
-                    0.5098966418,
-                    0.1772703795,
-                    0.1982904719,
-                    0.3762367882,
-                ],
-                2,
-                5,
-                1.6731857562,
-            ),
-            (
-                [
-                    0.7087962001,
-                    0.2915205607,
-                    0.5508644650,
-                    0.8802250282,
-                    0.5098339187,
-                    0.6131471891,
-                    0.3176350910,
-                    0.1751690171,
-                    0.4660253747,
-                    0.5769342726,
-                    0.8436683688,
-                    0.4333839830,
-                ],
-                1,
-                1,
-                1.6448576978,
-            ),
-            (
-                [
-                    0.3366836981,
-                    0.5643169242,
-                    0.5625418098,
-                    0.4038462174,
-                    0.3593278603,
-                    0.7521677033,
-                    0.6460545301,
-                    0.7051711915,
-                    0.1494688017,
-                    0.8260848760,
-                ],
-                3,
-                3,
-                1.0212145394,
-            ),
-        ],
-    )
-    def test_entropy_with_parametrized_data(self, data, alpha, beta, result):
-        """Test Entropy statistic with precomputed expected values."""
-        stat = EntropyBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
-        statistic_value = stat.execute_statistic(data)
-        assert result == pytest.approx(statistic_value, 0.00001)
-
-
-class TestModeBetaGofStatistic:
-    """Tests for Mode-based test statistic."""
-
-    def test_code(self):
-        """Test that the Mode statistic returns correct code."""
-        assert "MODE_BETA_GOODNESS_OF_FIT" == ModeBetaGofStatistic.code()
-
-    def test_mode_parameters_validation(self):
-        """Test that Mode statistic validates alpha and beta > 1."""
-        # Valid parameters
-        stat = ModeBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 2}))
-        assert stat.alpha == 2
-        assert stat.beta == 2
-
-        # Invalid alpha
-        with pytest.raises(ValueError, match="alpha must be greater than 1"):
-            ModeBetaGofStatistic(Beta.DEFAULT.parse({"a": 1, "b": 2}))
-
-        # Invalid beta
-        with pytest.raises(ValueError, match="beta must be greater than 1"):
-            ModeBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 1}))
-
-    @pytest.mark.parametrize(
-        ("alpha", "beta", "seed", "n"),
-        [
-            (2, 5, 42, 200),
-            (3, 3, 123, 300),
-        ],
-    )
-    def test_mode_with_generated_data(self, alpha, beta, seed, n):
-        """Test Mode statistic with data generated from Beta distribution."""
-        np.random.seed(seed)
-        data = scipy_stats.beta.rvs(alpha, beta, size=n)
-
-        stat = ModeBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
-        statistic_value = stat.execute_statistic(data)
-
-        # Statistic should be non-negative
-        assert statistic_value >= 0
-        assert np.isfinite(statistic_value)
-
-    @pytest.mark.parametrize(
-        ("data", "alpha", "beta", "result"),
-        [
-            (
-                [
-                    0.3536766572,
-                    0.2485580661,
-                    0.4159590873,
-                    0.1599675758,
-                    0.5502830781,
-                    0.1109452876,
-                    0.5098966418,
-                    0.1772703795,
-                    0.1982904719,
-                    0.3762367882,
-                ],
-                2,
-                5,
-                0.0326584311,
-            ),
-            (
-                [
-                    0.3366836981,
-                    0.5643169242,
-                    0.5625418098,
-                    0.4038462174,
-                    0.3593278603,
-                    0.7521677033,
-                    0.6460545301,
-                    0.7051711915,
-                    0.1494688017,
-                    0.8260848760,
-                ],
-                3,
-                3,
-                0.3924417760,
-            ),
-        ],
-    )
-    def test_mode_with_parametrized_data(self, data, alpha, beta, result):
-        """Test Mode statistic with precomputed expected values."""
-        stat = ModeBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
-        statistic_value = stat.execute_statistic(data)
-        assert result == pytest.approx(statistic_value, 0.00001)
-
-
 # Integration tests
 class TestBetaIntegration:
     """Integration tests for Beta distribution statistics."""
@@ -1003,8 +583,6 @@ class TestBetaIntegration:
         """Test that all statistics can be computed without errors."""
         np.random.seed(42)
         data = scipy_stats.beta.rvs(2, 5, size=100)
-        # Clip for tests that need open interval
-        data_clipped = np.clip(data, 0.001, 0.999)
 
         statistics = [
             KolmogorovSmirnovBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
@@ -1013,20 +591,8 @@ class TestBetaIntegration:
             Chi2PearsonBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
             WatsonBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
             KuiperBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
-            MomentBasedBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
-            SkewnessKurtosisBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
-            EntropyBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
-            ModeBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),
         ]
 
         for stat in statistics:
-            if isinstance(stat, RatioBetaGofStatistic):
-                value = stat.execute_statistic(data_clipped)
-            else:
-                value = stat.execute_statistic(data)
+            value = stat.execute_statistic(data)
             assert np.isfinite(value), f"Statistic {stat.code()} returned non-finite value"
-
-        # Also test Ratio with clipped data
-        ratio_stat = RatioBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}))
-        ratio_value = ratio_stat.execute_statistic(data_clipped)
-        assert np.isfinite(ratio_value)

@@ -1,6 +1,10 @@
 # Cramer-von Mises test for uniformity
 
 ## Description
+
+`CrammerVonMisesUniformGofStatistic` has algorithm code
+`CVM_UNIFORM_GOODNESS_OF_FIT`. See the [uniformity catalog](index.md).
+
 Performs the Cramer-von Mises goodness-of-fit test for the hypothesis of uniformity on the interval $[a, b]$.
 The statistic accumulates squared differences between the empirical distribution function and the theoretical uniform cumulative distribution function.
 
@@ -12,8 +16,8 @@ The observations are sorted, transformed by the reference uniform cumulative dis
 
 ## Usage
 ```python
-from pysatl_criterion.distribution.distributions import UniformDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import UniformDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.continuous import (
     CrammerVonMisesUniformGofStatistic,
 )
 
@@ -24,9 +28,9 @@ print(statistic_result)
 ```
 
 ## Arguments
-`a` - left boundary of the uniform distribution. Default value is `0`.
+`a` - explicitly fixed left boundary of the uniform distribution.
 
-`b` - right boundary of the uniform distribution. Default value is `1`.
+`b` - explicitly fixed right boundary of the uniform distribution.
 
 `rvs` - array-like sample data passed to `execute_statistic`.
 
@@ -42,9 +46,12 @@ Large values indicate stronger deviation from the uniform model.
 Aleksandr Podmarev, Alexey Mironov
 
 ## References
-Cramer, H. (1928): On the composition of elementary errors. - Skandinavisk Aktuarietidskrift, vol. 11, pp. 141-180.
 
-von Mises, R. (1931): Wahrscheinlichkeitsrechnung und ihre Anwendung in der Statistik und theoretischen Physik. - Leipzig: Deuticke.
+Cramer, H. (1928): On the composition of elementary errors. *Skandinavisk Aktuarietidskrift*, 11, 141–180.
+
+von Mises, R. (1931): *Wahrscheinlichkeitsrechnung und ihre Anwendung in der Statistik und theoretischen Physik*. Leipzig: Deuticke.
+
+Zhang, J. (2002). [Powerful goodness-of-fit tests based on the likelihood ratio](https://doi.org/10.1111/1467-9868.00337). *Journal of the Royal Statistical Society: Series B*, 64(2), 281–294.
 
 ## Examples
 
@@ -56,8 +63,8 @@ parameter set. Omitted bounds are not filled in:
 a partial mapping such as `{"a": 0}` raises `ValueError` in the constructor.
 
 ```python
-from pysatl_criterion.distribution.distributions import UniformDistributionDescriptor as Uniform
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import UniformDistributionDescriptor as Uniform
+from pysatl_criterion.statistics.goodness_of_fit.continuous import (
     CrammerVonMisesUniformGofStatistic,
 )
 

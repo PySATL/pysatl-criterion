@@ -1,57 +1,61 @@
-# Baringhaus–Henze empirical Laplace transform exponential goodness-of-fit test
+# Baringhaus–Henze empirical Laplace transform exponentiality criterion
 
-## Hypothesis and statistic
+`BaringhausHenzeELTExponentialityGofStatistic` — short code `BH_ELT`; right tail.
 
-Category: ELT / differential characterization. Parameters: Unknown rate; a fixed before seeing data, default 1; implemented 0<a<=100, theory a>0.
-The origin is known to be zero. The null is Exp(rate=lambda), lambda>0;
-for specified parameters it is Exp(lambda0). Scale theta=1/lambda.
-Write n for sample size, x_(i) for ordered observations,
-y_i=x_i/mean(x), and u_i=1-exp(-lambda*x_(i)). In fitted EDF mode
-lambda=1/mean(x); otherwise it is the specified rate.
+[All exponential criteria](index.md) · [Mathematical verification](mathematical-validation.md)
+
+## Hypothesis and formula
+
+The model is $F(x)=1-\exp(-\lambda x)$ for $x\ge0$, with known origin zero and $\lambda>0$.
+Unknown rate only: pass `E.DEFAULT.parse({})`.
+Omitted parameters remain unknown. Where fitting is needed, $\widehat\lambda=1/\bar x$
+is recomputed for each sample; no fitted state is retained.
+
+Write $y_i=x_i/\bar x$, $u_i=1-\exp(-\lambda x_{(i)})$ with the specified or
+fitted rate, $D^+=\max_i(i/n-u_i)$ and $D^-=\max_i(u_i-(i-1)/n)$.
+For spacing statistics, $d_i=(n-i+1)(x_{(i)}-x_{(i-1)})$ and $x_{(0)}=0$.
+For frequency statistics, $O_j$ and $E_j=np_j>0$ are aligned counts.
 
 $$
-T_{n,a}=n\int_0^\infty[(1+t)L_n\prime(t)+L_n(t)]^2 e^{-at}\,dt,\quad L_n(t)=n^{-1}\sum_i e^{-t y_i}
+n\int_0^\infty[(1+t)L_n^\prime(t)+L_n(t)]^2e^{-at}\,dt,\quad L_n(t)=n^{-1}\sum_i e^{-ty_i}
 $$
 
-Omnibus: Yes, under the conditions below.
-Universally consistent: Against nonexponential alternatives with positive finite mean. Rejection: Right tail.
+Right tail; constructor 0<a<=100, default 1. The upper bound is numerical, not a theoretical restriction. The pair-sum kernel was checked against independent quadrature of this defining integral; tuning must be fixed before seeing the sample.
 
-## Calibration and limitations
+## Input and calibration
 
-Weighted infinite sum of independent chi-square(1) variables, weights depend on a; not a single chi-square. Table 2 gives c=.303 for n=20, a=1, alpha=.05.
+Observations must be finite, real, nonnegative and one-dimensional. Masked
+observations are rejected. Fixed-rate generated criteria accept $n\ge1$;
+unknown-rate EDF/frequency criteria require $n\ge2$ and positive total.
+Specialized criteria may require more observations, distinct spacings or a
+nonconstant sample, as stated above and in the class contract. Ties are not
+silently jittered. Infinite mathematical boundary penalties are retained.
 
-Finite-sample critical values and p-values are obtained by
-`monte_carlo_exponential(statistic, sample, random_state=..., n_resamples=...)`.
-Every simulated sample repeats all fitting and transformations, with the same n
-and tuning settings. Known rate uses scale=1/rate; fitted mode can use Exp(1)
-by scale invariance. Simple-hypothesis EDF tables are not used after fitting.
-The p-value uses corrected ranks (b+1)/(B+1); two-tail tests double the smaller
-corrected tail. The decision uses p<=alpha. Empirical critical quantiles are
-summaries and can differ from the rank decision at finite B. No exact finite-n
-closed-form CDF is implemented for this criterion.
+`execute_statistic` returns a statistic, not a p-value. Use
+`monte_carlo_exponential` with the same sample size and constructor settings.
+It refits each simulated sample for a composite hypothesis. Rescaling to
+Exp(1) is justified only for a scale-invariant statistic. A continuous-null
+calibration does not model rounding, censoring or dependence.
 
-Uses the analytically integrated pair kernel in the primary paper, O(n²) time and O(n) auxiliary memory. Extremely small a with zero data may exceed floating-point range and raise ValueError. Nondefault a bypasses stored calibration.
+## Runnable example
 
-Observations must be real, finite, nonnegative and one-dimensional. Masked
-observations, negative values, NaN, infinity and empty samples are rejected.
-Fitted mode requires n>=2 and positive total; known-rate EDF accepts n>=1,
-including all zeros. Positive constant samples are allowed. Scale normalization
-uses a power of two to prevent overflow; unrepresentable dynamic ranges raise
-ValueError. Independent continuous uncensored data are assumed; rounding,
-truncation and censoring require their own calibration.
+```python
+from pysatl_criterion.distribution import ExponentialDistributionDescriptor as E
+from pysatl_criterion.statistics.goodness_of_fit.continuous.exponent import (
+    BaringhausHenzeELTExponentialityGofStatistic,
+)
 
-## Implementation and verification
+sample = [0.12, 0.30, 0.55, 0.90, 1.40, 2.10, 3.20, 4.80]
+criterion = BaringhausHenzeELTExponentialityGofStatistic(E.DEFAULT.parse({}))
+value = criterion.execute_statistic(sample)
+print(value)
+```
 
-[Implementation](https://github.com/PySATL/pysatl-criterion/blob/main/src/pysatl_criterion/statistics/goodness_of_fit/exponent.py):
-`BaringhausHenzeELTExponentialityGofStatistic`, short code `BH_ELT`.
-EDF adapters reuse common kernels; no new distribution-specific EDF formula is introduced.
-[Unit tests](https://github.com/PySATL/pysatl-criterion/blob/main/tests/distributions/test_exponential_verification.py)
-include independent integral/analytic references and numerical boundaries.
-[Statistical validation](https://github.com/PySATL/pysatl-criterion/blob/main/tests/statistical/test_exponential_validation.py)
-and [recorded results](../../../exponential-monte-carlo.json) use disjoint
-calibration and validation samples and fixed seeds.
-See [audit](../../../exponential-verification.md) for the provenance limits.
+## Scientific references and verification status
 
-## References
+[Baringhaus and Henze (1991), A class of consistent tests for exponentiality based on the empirical Laplace transform](https://www.ism.ac.jp/editsec/aism/pdf/043_3_0551.pdf), pp. 552–553.
 
-Baringhaus, L. and Henze, N. (1991). A class of consistent tests for exponentiality based on the empirical Laplace transform. Ann. Inst. Statist. Math. 43, 551–564. DOI: https://doi.org/10.1007/BF00053372. [Primary full text](https://www.ism.ac.jp/editsec/aism/pdf/043_3_0551.pdf), pp.552–553, Theorem 2.1, Table 2.
+The formula and input behavior are tested independently; that does not by
+itself certify a historical name, an asymptotic approximation or published
+critical values. Source qualifications above are part of this criterion's
+contract. See the [audit](mathematical-validation.md) for evidence and open items.

@@ -4,13 +4,14 @@ import numpy as np
 import pytest
 import scipy.stats as scipy_stats
 
-from pysatl_criterion.distribution.distributions import ParetoDistributionDescriptor
-from pysatl_criterion.statistics.alternative import AlternativeType
-from pysatl_criterion.statistics.goodness_of_fit.pareto import (
+from pysatl_criterion.distribution import ParetoDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.continuous.pareto import (
     AbstractParetoGofStatistic,
     AndersonDarlingParetoGofStatistic,
     CramerVonMisesParetoGofStatistic,
     GreenwoodParetoGofStatistic,
+    KolmogorovSmirnovDMinusParetoGofStatistic,
+    KolmogorovSmirnovDPlusParetoGofStatistic,
     KolmogorovSmirnovParetoGofStatistic,
     LequesneKlParetoGofStatistic,
     MinToshiyukiParetoGofStatistic,
@@ -90,15 +91,12 @@ def test_ks_pareto_alternatives():
 
     stat_two = KolmogorovSmirnovParetoGofStatistic(
         ParetoDistributionDescriptor.DEFAULT.parse({"shape": 2.0, "scale": 1.0}),
-        alternative_type=AlternativeType.TWO_TAILED,
     )
-    stat_left = KolmogorovSmirnovParetoGofStatistic(
+    stat_left = KolmogorovSmirnovDMinusParetoGofStatistic(
         ParetoDistributionDescriptor.DEFAULT.parse({"shape": 2.0, "scale": 1.0}),
-        alternative_type=AlternativeType.LEFT,
     )
-    stat_right = KolmogorovSmirnovParetoGofStatistic(
+    stat_right = KolmogorovSmirnovDPlusParetoGofStatistic(
         ParetoDistributionDescriptor.DEFAULT.parse({"shape": 2.0, "scale": 1.0}),
-        alternative_type=AlternativeType.RIGHT,
     )
 
     result_two = stat_two.execute_statistic(data)

@@ -2,11 +2,11 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
-from pysatl_criterion.distribution.distributions import (
+from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
+from pysatl_criterion.distribution import (
     ExponentiatedWeibullDistributionDescriptor as ExponentiatedWeibull,
 )
-from pysatl_criterion.distribution.distributions import (
+from pysatl_criterion.distribution import (
     GammaDistributionDescriptor,
     UniformDistributionDescriptor,
 )
@@ -14,20 +14,47 @@ from pysatl_criterion.hypothesis_testing.alternative_factory.alternative_factori
     AbstractAlternativeFactory,
 )
 from pysatl_criterion.statistics.alternative import AlternativeType
-from pysatl_criterion.statistics.goodness_of_fit.beta import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous.beta import (
     Chi2PearsonBetaGofStatistic,
     EbnerLiebenbergBetaGofStatistic,
     KolmogorovSmirnovBetaGofStatistic,
 )
-from pysatl_criterion.statistics.goodness_of_fit.common import Chi2Statistic
-from pysatl_criterion.statistics.goodness_of_fit.exponentiated_weibull import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous.edf import (
+    AbstractChi2Statistic,
+    AbstractKSDMinusStatistic,
+    AbstractKSDPlusStatistic,
+    AbstractKSStatistic,
+)
+from pysatl_criterion.statistics.goodness_of_fit.continuous.exponentiated_weibull import (
     Chi2PearsonExponentiatedWeibullGofStatistic,
 )
-from pysatl_criterion.statistics.goodness_of_fit.gamma import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous.gamma import (
     CressieReadGammaGofStatistic,
     MinToshiyukiGammaGofStatistic,
 )
-from pysatl_criterion.statistics.goodness_of_fit.uniform import Chi2PearsonUniformGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.uniform import (
+    Chi2PearsonUniformGofStatistic,
+)
+
+
+@pytest.mark.parametrize(
+    ("statistic_class", "scipy_direction"),
+    [
+        (AbstractKSDPlusStatistic, "greater"),
+        (AbstractKSDMinusStatistic, "less"),
+        (AbstractKSStatistic, "two-sided"),
+    ],
+)
+@pytest.mark.parametrize(
+    "sample", [[0.1, 0.15, 0.3, 0.65], [0.35, 0.7, 0.85, 0.9], [0.4], [0, 0.5, 0.5, 1]]
+)
+def test_compiled_ks_matches_scipy(statistic_class, scipy_direction, sample):
+    sample = np.asarray(sample)
+    actual = statistic_class.do_execute_statistic(sample, stats.uniform.cdf(sample))
+    reference = stats.kstest(sample, stats.uniform.cdf, alternative=scipy_direction)
+    assert actual == pytest.approx(reference.statistic)
+    assert statistic_class.alternative(object()).type() == AlternativeType.RIGHT
+    assert statistic_class.do_execute_statistic.nopython_signatures
 
 
 @pytest.mark.parametrize(
@@ -44,6 +71,9 @@ def test_ks_direction_selects_deviation_but_always_uses_right_tail(direction, sc
         Beta.DEFAULT.parse({"a": 1, "b": 1}), alternative_type=direction
     )
     reference = stats.kstest(sample, stats.uniform.cdf, alternative=scipy_direction)
+    assert AbstractKSStatistic.do_execute_statistic(
+        sample, stats.uniform.cdf(sample), direction
+    ) == pytest.approx(reference.statistic)
     assert statistic.execute_statistic(sample) == pytest.approx(reference.statistic)
     assert statistic.alternative().type() == AlternativeType.RIGHT
 
@@ -75,7 +105,7 @@ def test_distance_statistics_use_upper_tail_p_values(statistic):
 @pytest.mark.parametrize("power", [1, 0, -1, -2, -0.5, 2 / 3, 2])
 def test_power_divergence_matches_scipy_for_positive_counts(power):
     observed, expected = [2, 7, 11], [5, 6, 9]
-    actual = Chi2Statistic.do_execute_statistic(object(), observed, expected, power)
+    actual = AbstractChi2Statistic.do_execute_statistic(object(), observed, expected, power)
     reference = stats.power_divergence(observed, expected, lambda_=power).statistic
     assert actual == pytest.approx(reference)
 
@@ -94,7 +124,7 @@ def test_power_divergence_matches_scipy_for_positive_counts(power):
 )
 def test_zero_observations_use_limits_without_invalid_operations(power, expected):
     with np.errstate(divide="raise", invalid="raise"):
-        actual = Chi2Statistic.do_execute_statistic(object(), [0, 10], [5, 5], power)
+        actual = AbstractChi2Statistic.do_execute_statistic(object(), [0, 10], [5, 5], power)
     assert actual == pytest.approx(expected)
 
 
@@ -116,17 +146,17 @@ def test_zero_observations_use_limits_without_invalid_operations(power, expected
 )
 def test_invalid_frequencies_are_rejected(observed, expected, message):
     with pytest.raises(ValueError, match=message):
-        Chi2Statistic.do_execute_statistic(object(), observed, expected, 1)
+        AbstractChi2Statistic.do_execute_statistic(object(), observed, expected, 1)
 
 
 @pytest.mark.parametrize("power", [np.nan, np.inf, -np.inf, [1, 2]])
 def test_invalid_power_is_rejected(power):
     with pytest.raises(ValueError, match="finite scalar"):
-        Chi2Statistic.do_execute_statistic(object(), [1, 1], [1, 1], power)
+        AbstractChi2Statistic.do_execute_statistic(object(), [1, 1], [1, 1], power)
 
 
 def test_frequency_total_tolerance_allows_roundoff():
-    actual = Chi2Statistic.do_execute_statistic(object(), [2, 3], [2, 3 + 1e-12], 1)
+    actual = AbstractChi2Statistic.do_execute_statistic(object(), [2, 3], [2, 3 + 1e-12], 1)
     assert actual == pytest.approx(0, abs=1e-20)
 
 

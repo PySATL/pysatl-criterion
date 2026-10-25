@@ -1,5 +1,9 @@
 # Shapiro-Wilk test for normality
 
+**Class:** `ShapiroWilkNormalityGofStatistic`
+
+**Code:** `SW_NORMALITY_GOODNESS_OF_FIT`
+
 Shapiro-Wilk ``W`` statistic for the normal location-scale family.
 
 ## Methods
@@ -40,14 +44,14 @@ weight approximation to Shapiro-Wilk, not exact covariance inversion.
 ## Examples
 
 ```python
-from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
+from pysatl_criterion.distribution import NormalDistributionDescriptor
 import numpy as np
-from pysatl_criterion.statistics.goodness_of_fit.normal import ShapiroWilkNormalityGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import ShapiroWilkNormalityGofStatistic
 
 statistic = ShapiroWilkNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({}))
 sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
 value = statistic.execute_statistic(sample)
-bool(np.isfinite(value))
+assert np.isfinite(value)
 ```
 
-See [review and calibration changes](../../../normal-statistics-review.md).
+See the [complete catalog](index.md) and [mathematical verification](mathematical-validation.md).

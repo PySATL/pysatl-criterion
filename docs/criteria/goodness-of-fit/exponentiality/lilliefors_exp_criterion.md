@@ -1,53 +1,61 @@
-# Lilliefors test for exponentiality (1969)
+# Lilliefors exponential exponentiality criterion
 
-## Description
+`LillieforsExponentialityGofStatistic` — short code `LILLIE`; right tail.
 
-The null hypothesis is an exponential distribution with unknown positive mean
-and known origin zero. Estimate the mean by the sample mean on each call.
-For sorted observations, define
+[All exponential criteria](index.md) · [Mathematical verification](mathematical-validation.md)
+
+## Hypothesis and formula
+
+The model is $F(x)=1-\exp(-\lambda x)$ for $x\ge0$, with known origin zero and $\lambda>0$.
+Unknown rate only: pass `E.DEFAULT.parse({})`.
+Omitted parameters remain unknown. Where fitting is needed, $\widehat\lambda=1/\bar x$
+is recomputed for each sample; no fitted state is retained.
+
+Write $y_i=x_i/\bar x$, $u_i=1-\exp(-\lambda x_{(i)})$ with the specified or
+fitted rate, $D^+=\max_i(i/n-u_i)$ and $D^-=\max_i(u_i-(i-1)/n)$.
+For spacing statistics, $d_i=(n-i+1)(x_{(i)}-x_{(i-1)})$ and $x_{(0)}=0$.
+For frequency statistics, $O_j$ and $E_j=np_j>0$ are aligned counts.
 
 $$
-F_i=1-\exp(-x_{(i)}/\bar x),\qquad
-D=\max_{1\le i\le n}\left\{\frac{i}{n}-F_i,\;F_i-\frac{i-1}{n}\right\}.
+D=\max(D^+,D^-),\quad u_i=1-e^{-x_{(i)}/\bar x}
 $$
 
-Large values reject the null. The implementation returns this unscaled
-statistic, without a p-value or a test decision.
+The rate is unknown and fitted. Fixed-null KS tables are invalid here.
 
-## Usage
+## Input and calibration
+
+Observations must be finite, real, nonnegative and one-dimensional. Masked
+observations are rejected. Fixed-rate generated criteria accept $n\ge1$;
+unknown-rate EDF/frequency criteria require $n\ge2$ and positive total.
+Specialized criteria may require more observations, distinct spacings or a
+nonconstant sample, as stated above and in the class contract. Ties are not
+silently jittered. Infinite mathematical boundary penalties are retained.
+
+`execute_statistic` returns a statistic, not a p-value. Use
+`monte_carlo_exponential` with the same sample size and constructor settings.
+It refits each simulated sample for a composite hypothesis. Rescaling to
+Exp(1) is justified only for a scale-invariant statistic. A continuous-null
+calibration does not model rounding, censoring or dependence.
+
+## Runnable example
 
 ```python
-from pysatl_criterion.distribution.distributions import ExponentialDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit import LillieforsExponentialityGofStatistic
+from pysatl_criterion.distribution import ExponentialDistributionDescriptor as E
+from pysatl_criterion.statistics.goodness_of_fit.continuous.exponent import (
+    LillieforsExponentialityGofStatistic,
+)
 
-parameters = ExponentialDistributionDescriptor.DEFAULT.parse({})
-statistic = LillieforsExponentialityGofStatistic(parameters)
-value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
+sample = [0.12, 0.30, 0.55, 0.90, 1.40, 2.10, 3.20, 4.80]
+criterion = LillieforsExponentialityGofStatistic(E.DEFAULT.parse({}))
+value = criterion.execute_statistic(sample)
 print(value)
 ```
 
-`parameters` must leave the rate unknown. `rvs` must be a one-dimensional
-sample of at least two finite, real, nonnegative observations with positive
-mean. Zero observations and positive constant samples are accepted. Negative,
-masked, nonfinite and all-zero samples raise `ValueError`. Extra keyword
-arguments raise `TypeError`.
+## Scientific references and verification status
 
-The short code is `LILLIE`, the full code is
-`LILLIE_EXPONENTIALITY_GOODNESS_OF_FIT`, and the rejection tail is right.
-The input is not modified and fitted parameters are not retained.
+[Lilliefors (1969), On the Kolmogorov–Smirnov test for the exponential distribution with mean unknown](https://doi.org/10.1080/01621459.1969.10500983).
 
-## Calibration
-
-Dividing by the estimated mean makes the statistic invariant under positive
-rescaling. Monte Carlo calibration can use samples from Exp(1), provided
-`execute_statistic` is called on every replicate to estimate its own mean.
-Use critical values for this fitted exponential statistic, not the ordinary
-fixed-CDF Kolmogorov–Smirnov tables or the normal Lilliefors tables.
-
-For a specified rate, use `KolmogorovSmirnovExponentialityGofStatistic` instead.
-
-## Reference
-
-H. W. Lilliefors (1969),
-[On the Kolmogorov-Smirnov Test for the Exponential Distribution with Mean Unknown](https://doi.org/10.1080/01621459.1969.10500983),
-Journal of the American Statistical Association 64(325), 387–389.
+The formula and input behavior are tested independently; that does not by
+itself certify a historical name, an asymptotic approximation or published
+critical values. Source qualifications above are part of this criterion's
+contract. See the [audit](mathematical-validation.md) for evidence and open items.

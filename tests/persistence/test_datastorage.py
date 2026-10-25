@@ -24,6 +24,7 @@ def test_limit_distribution_keys(database):
     assert primary_key["constrained_columns"] == [
         "criterion_code_hash",
         "criterion_parameters_hash",
+        "criterion_configuration_hash",
         "sample_size",
     ]
     indexes = inspector.get_indexes("limit_distributions")

@@ -1,88 +1,61 @@
-# Hollander-Proshan test for exponentiality
+# Hollander–Proschan exponentiality criterion
 
-HollanderProshan statistic for zero-origin exponential observations.
+`HollanderProshanExponentialityGofStatistic` — short code `HP`; left tail.
 
-## Hypothesis, formula and calibration
+[All exponential criteria](index.md) · [Mathematical verification](mathematical-validation.md)
 
-H0 is Exp(lam), lam > 0 unknown, with known origin zero.
-``hypothesis().parameters()`` is empty. Positive rescaling leaves
-the statistic unchanged, so Exp(1) simulation is valid.
-Write n for sample size, x_(i) for sorted observations, and
-y=x/mean(x). The implemented formula is:
+## Hypothesis and formula
 
-    2*sum_{i,j<k; i!=j,k} 1{x_i > x_j+x_k}
-    / (n*(n-1)*(n-2)). This is the raw U-statistic, with null
-    expectation 1/4, not a standardized normal statistic.
+The model is $F(x)=1-\exp(-\lambda x)$ for $x\ge0$, with known origin zero and $\lambda>0$.
+Unknown rate only: pass `E.DEFAULT.parse({})`.
+Omitted parameters remain unknown. Where fitting is needed, $\widehat\lambda=1/\bar x$
+is recomputed for each sample; no fitted state is retained.
 
-Reject in the upper tail. This is a directional test; it is not
-claimed consistent against every nonexponential alternative.
-Use independent continuous, uncensored observations. Rounded or tied
-data require calibration of the observation process. No parameters
-are retained from a previous call. Rescaling uses a power of two
-to preserve exact binary ties; unrepresentable positive ratios raise
-ValueError. Strict comparisons near floating-point boundaries can
-still depend on roundoff.
-A primary source establishing this exact implemented convention
-was not verified in the review; no published tables or asymptotic
-law are endorsed unless derived explicitly above. See the audit.
+Write $y_i=x_i/\bar x$, $u_i=1-\exp(-\lambda x_{(i)})$ with the specified or
+fitted rate, $D^+=\max_i(i/n-u_i)$ and $D^-=\max_i(u_i-(i-1)/n)$.
+For spacing statistics, $d_i=(n-i+1)(x_{(i)}-x_{(i-1)})$ and $x_{(0)}=0$.
+For frequency statistics, $O_j$ and $E_j=np_j>0$ are aligned counts.
 
-The constructor has no arguments; `lam` is unknown and is not accepted.
+$$
+\frac{\sum_{i,j,k\ \mathrm{distinct}}\mathbf1\{x_i>x_j+x_k\}}{n(n-1)(n-2)}
+$$
 
-## Sample and result
+Raw probability U-statistic with null mean 1/4. For NBU alternatives P(X>Y+Z)<=1/4, so the criterion rejects in the left tail. Name spelling Proshan is retained for API compatibility.
 
-```text
-Compute the HollanderProshan scalar statistic.
+## Input and calibration
 
-Parameters
-----------
-rvs : array_like, shape (n,)
-    Finite nonnegative observations; n >= 3. The total must be positive.
-    A copy is used. Ties and positive constants are allowed except
-    where they make the formula undefined (see Notes on the class).
-**kwargs : dict
-    No execution settings are supported; configure the constructor.
+Observations must be finite, real, nonnegative and one-dimensional. Masked
+observations are rejected. Fixed-rate generated criteria accept $n\ge1$;
+unknown-rate EDF/frequency criteria require $n\ge2$ and positive total.
+Specialized criteria may require more observations, distinct spacings or a
+nonconstant sample, as stated above and in the class contract. Ties are not
+silently jittered. Infinite mathematical boundary penalties are retained.
 
-Returns
--------
-statistic : float
-    Value in the convention documented on the class. Infinite
-    boundary values are retained where the formula has that limit.
+`execute_statistic` returns a statistic, not a p-value. Use
+`monte_carlo_exponential` with the same sample size and constructor settings.
+It refits each simulated sample for a composite hypothesis. Rescaling to
+Exp(1) is justified only for a scale-invariant statistic. A continuous-null
+calibration does not model rounding, censoring or dependence.
 
-Raises
-------
-ValueError
-    Invalid sample, insufficient observations, invalid sample-dependent
-    setting, undefined ratio, or rescaling underflow of positive data.
-TypeError
-    Unsupported execution keyword arguments.
-```
-
-## Example
+## Runnable example
 
 ```python
-from pysatl_criterion.distribution.distributions import ExponentialDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.exponent import (
+from pysatl_criterion.distribution import ExponentialDistributionDescriptor as E
+from pysatl_criterion.statistics.goodness_of_fit.continuous.exponent import (
     HollanderProshanExponentialityGofStatistic,
 )
 
-statistic = HollanderProshanExponentialityGofStatistic(ExponentialDistributionDescriptor.DEFAULT.parse({}))
-value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
+sample = [0.12, 0.30, 0.55, 0.90, 1.40, 2.10, 3.20, 4.80]
+criterion = HollanderProshanExponentialityGofStatistic(E.DEFAULT.parse({}))
+value = criterion.execute_statistic(sample)
 print(value)
 ```
 
-## Author(s)
+## Scientific references and verification status
 
-Lev Golofastov
+[Hollander and Proschan (1972), Testing whether new is better than used](https://doi.org/10.1214/aoms/1177692466).
 
-See the [current audit and migration notes](../../../exponent-statistics-audit.md).
-
-## Scope and verification (2026-10-08)
-
-The original Hollander–Proschan (1972), *Testing Whether New is Better than
-Used*, targets the **NBU** reliability class. The implemented contrast estimates
-P(X1>X2+X3), whose increase corresponds to the opposite, NWU direction:
-under NBU, integrating S(y+z)<=S(y)S(z) against dF(y)dF(z) gives a value <=1/4.
-The current right-tail implementation must not be presented as the original
-NBU test or an omnibus test. Its author convention remains unverified.
-
-[Independent audit and outstanding checks](../../../exponential-verification.md).
+The formula and input behavior are tested independently; that does not by
+itself certify a historical name, an asymptotic approximation or published
+critical values. Source qualifications above are part of this criterion's
+contract. See the [audit](mathematical-validation.md) for evidence and open items.

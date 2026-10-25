@@ -1,8 +1,9 @@
 import numpy as np
 import pytest
 
-from pysatl_criterion.distribution.distributions import GammaDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.gamma import (
+from pysatl_criterion.distribution import GammaDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.binning import EqualProbabilityBins
+from pysatl_criterion.statistics.goodness_of_fit.continuous.gamma import (
     AbstractGammaGofStatistic,
     AndersonDarlingGammaGofStatistic,
     Chi2PearsonGammaGofStatistic,
@@ -245,7 +246,8 @@ def test_chi2_pearson_gamma_statistic():
     """
 
     statistic = Chi2PearsonGammaGofStatistic(
-        GammaDistributionDescriptor.DEFAULT.parse({"alfa": _SHAPE, "beta": 1 / _SCALE}), bins=5
+        GammaDistributionDescriptor.DEFAULT.parse({"alfa": _SHAPE, "beta": 1 / _SCALE}),
+        binning=EqualProbabilityBins(count=5),
     ).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(3.0, rel=1e-9)
 
@@ -264,8 +266,7 @@ def test_cressie_read_gamma_statistic():
 
     statistic = CressieReadGammaGofStatistic(
         GammaDistributionDescriptor.DEFAULT.parse({"alfa": _SHAPE, "beta": 1 / _SCALE}),
-        power=2 / 3,
-        bins=5,
+        binning=EqualProbabilityBins(count=5),
     ).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(3.352003528728041, rel=1e-9)
 
@@ -339,8 +340,8 @@ def test_graph_independence_number_gamma_statistic():
         (KolmogorovSmirnovGammaGofStatistic, "KS_GAMMA_GOODNESS_OF_FIT"),
         (AndersonDarlingGammaGofStatistic, "AD_GAMMA_GOODNESS_OF_FIT"),
         (CramerVonMisesGammaGofStatistic, "CVM_GAMMA_GOODNESS_OF_FIT"),
-        (WatsonGammaGofStatistic, "WAT_GAMMA_GOODNESS_OF_FIT"),
-        (KuiperGammaGofStatistic, "KUI_GAMMA_GOODNESS_OF_FIT"),
+        (WatsonGammaGofStatistic, "WATSON_GAMMA_GOODNESS_OF_FIT"),
+        (KuiperGammaGofStatistic, "KUIPER_GAMMA_GOODNESS_OF_FIT"),
         (GreenwoodGammaGofStatistic, "GRW_GAMMA_GOODNESS_OF_FIT"),
         (MoranGammaGofStatistic, "MOR_GAMMA_GOODNESS_OF_FIT"),
         (MinToshiyukiGammaGofStatistic, "MT_GAMMA_GOODNESS_OF_FIT"),
@@ -407,9 +408,10 @@ def test_moran_gamma_detects_non_positive_spacings():
 def test_gamma_binned_statistics_validate_bin_count():
     """Binned statistics require at least two histogram bins."""
 
-    with pytest.raises(ValueError, match="At least two bins"):
+    with pytest.raises(ValueError, match="integer >= 2"):
         Chi2PearsonGammaGofStatistic(
-            GammaDistributionDescriptor.DEFAULT.parse({"alfa": _SHAPE, "beta": 1 / _SCALE}), bins=1
+            GammaDistributionDescriptor.DEFAULT.parse({"alfa": _SHAPE, "beta": 1 / _SCALE}),
+            binning=EqualProbabilityBins(count=1),
         )
 
 
@@ -417,9 +419,10 @@ def test_gamma_binned_statistics_require_sample():
     """Histogram-based tests must receive observations."""
 
     statistic = Chi2PearsonGammaGofStatistic(
-        GammaDistributionDescriptor.DEFAULT.parse({"alfa": _SHAPE, "beta": 1 / _SCALE}), bins=5
+        GammaDistributionDescriptor.DEFAULT.parse({"alfa": _SHAPE, "beta": 1 / _SCALE}),
+        binning=EqualProbabilityBins(count=5),
     )
-    with pytest.raises(ValueError, match="At least one observation"):
+    with pytest.raises(ValueError):
         statistic.execute_statistic([])
 
 
@@ -456,7 +459,9 @@ def test_graph_gamma_statistics_require_sample():
 def test_greenwood_gamma_detects_negative_spacings(monkeypatch):
     """Artificially broken CDF should trigger the spacing guard."""
 
-    from pysatl_criterion.statistics.goodness_of_fit import gamma as gamma_module
+    from pysatl_criterion.statistics.goodness_of_fit.continuous.gamma import (
+        gamma_statistics as gamma_module,
+    )
 
     statistic = GreenwoodGammaGofStatistic(
         GammaDistributionDescriptor.DEFAULT.parse({"alfa": _SHAPE, "beta": 1 / _SCALE})

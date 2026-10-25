@@ -1,45 +1,56 @@
-# Kuiper V for a specified Student t CDF.
+# Kuiper for a specified Student distribution
+
+[All Student criteria](index.md) · [Mathematical verification](mathematical-validation.md)
+
+Class: `KuiperStudentGofStatistic`. Code: `KUIPER_STUDENT_GOODNESS_OF_FIT`.
 
 ## Hypothesis and formula
 
-The null fixes df, loc and scale on the whole real line. Write
-u_i = t_df.cdf((x_(i)-loc)/scale) for sorted observations, i=1,...,n.
-V = max(i/n-u_i) + max(u_i-(i-1)/n).
-This is the unscaled sum of the two one-sided EDF distances.
-Large values reject. The probability integral transform removes all
-distribution parameters from the null law, not from the hypothesis.
-The reference describes a general statistic, applied here through the
-specified Student CDF, not a separately derived Student-specific test.
+Fix all three parameters: `df > 0`, finite `loc`, and `scale > 0`.
+Use `StudentDistributionDescriptor.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1})`.
+Omitted parameters remain unknown and are not supported by this criterion.
+Write $u_i=F_{\nu,\mu,s}(X_{(i)})$ for the CDF values of sorted observations.
 
-## Parameters
+$$
+V=D^++D^-,\quad D^+=\max_i(i/n-u_i),\quad D^-=\max_i(u_i-(i-1)/n)
+$$
 
-```text
-parameters : ParameterValues
-    Values with df, loc, scale fixed; omitted parameters are unknown.
-```
+This class returns the unscaled sum of the two EDF distances.
 
-## Input and result
+## Input, result and calibration
 
-`execute_statistic(rvs, **kwargs)` accepts a finite, real, one-dimensional sample,
-with at least one observation; ties and constants are allowed. It returns one scalar, leaves the input unchanged,
-and ignores extra keyword arguments. Invalid samples and unrepresentable numerical
-transformations raise `ValueError`. No preliminary fit or bootstrap is required.
+`execute_statistic(rvs, **kwargs)` accepts a nonempty, finite, one-dimensional
+real sample. Ties and constants are allowed. It returns one scalar without
+changing the input or retaining fitted state. Large values reject
+(`RightAlternative`). Extra execution keywords are ignored.
+
+The Student implementation evaluates log-CDF and log-survival separately.
+AD, Liao–Shimokawa and Zhang kernels consume these logarithms directly;
+other EDF kernels reconstruct the CDF. Unrepresentable standardization or
+underflow of a required tail probability raises `ValueError`.
+
+For a continuous fully specified null, the probability integral transform
+removes the null parameters from the EDF law. Calibrate the same statistic at
+the same sample size; no parameter estimation is performed. The source below
+identifies the general discrepancy, not a separate Student-specific derivation.
 
 ## Example
 
 ```python
-from pysatl_criterion.distribution.distributions import StudentDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.student import KuiperStudentGofStatistic
+from pysatl_criterion.distribution import StudentDistributionDescriptor as Student
+from pysatl_criterion.statistics.goodness_of_fit.continuous.student import (
+    KuiperStudentGofStatistic,
+)
 
-statistic = KuiperStudentGofStatistic(StudentDistributionDescriptor.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1}))
-value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
+parameters = Student.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1})
+statistic = KuiperStudentGofStatistic(parameters)
+value = statistic.execute_statistic([-3.2, -1.1, -0.3, 0.2, 0.7, 1.8, 4.1])
 print(value)
 ```
 
 ## Scientific source
 
-M. A. Stephens (1974), EDF Statistics for Goodness of Fit and Some
-Comparisons, JASA 69, 730-737, https://doi.org/10.1080/01621459.1974.10480196.
+[Lemeshko et al. (2014), Using the Kuiper and Watson tests of goodness-of-fit for composite hypotheses](https://doi.org/10.3103/S875669901401004X), equations (1)–(3).
 
 ## Author(s)
 

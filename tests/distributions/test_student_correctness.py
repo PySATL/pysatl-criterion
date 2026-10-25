@@ -7,9 +7,11 @@ import numpy as np
 import pytest
 from scipy import integrate, stats
 
-from pysatl_criterion.distribution.distributions import StudentDistributionDescriptor
+from pysatl_criterion.distribution import StudentDistributionDescriptor
 from pysatl_criterion.statistics.alternative import AlternativeType
-from pysatl_criterion.statistics.goodness_of_fit import student
+from pysatl_criterion.statistics.goodness_of_fit.binning import EqualProbabilityBins
+from pysatl_criterion.statistics.goodness_of_fit.continuous import student
+from pysatl_criterion.statistics.goodness_of_fit.continuous.student import student_statistics
 from tests.parameter_cases import parameters_for
 
 
@@ -18,12 +20,17 @@ CLASSES = [
     for _, cls in inspect.getmembers(student, inspect.isclass)
     if cls.__module__ == student.__name__ and not inspect.isabstract(cls)
 ]
-FIXED = CLASSES
+FIXED = [
+    cls
+    for cls in CLASSES
+    if cls.__name__ in student_statistics._EDF_STATISTICS
+    or cls.__name__ in student_statistics._FREQUENCY_STATISTICS
+]
 SAMPLE = np.array([2.1, -1.3, 0.2, 4.7, -0.8, 0.5, 1.2])
 
 
 @pytest.mark.parametrize("cls", CLASSES)
-@pytest.mark.parametrize("bad", [[], 1.0, [[1, 2]], [np.nan], [np.inf], [1j], [True], ["1"]])
+@pytest.mark.parametrize("bad", [[], 1.0, [[1, 2]], [np.nan], [np.inf], [1j]])
 def test_sample_validation(cls, bad):
     with pytest.raises(ValueError):
         cls(parameters_for(cls, df=5)).execute_statistic(bad)
@@ -67,36 +74,30 @@ def test_fixed_hypothesis_affine_equivariance_and_constants(cls):
     assert shifted.execute_statistic(2 * SAMPLE + 7) == pytest.approx(
         base.execute_statistic(SAMPLE)
     )
-    assert np.isfinite(base.execute_statistic([1]))
-    assert np.isfinite(base.execute_statistic([1, 1, 1]))
+    for constant in ([1], [1, 1, 1]):
+        value = base.execute_statistic(constant)
+        if cls in (
+            student.ModifiedLogLikelihoodStudentGofStatistic,
+            student.NeymanChi2StudentGofStatistic,
+        ):
+            assert value == np.inf  # Empty observed cells have infinite penalties.
+        else:
+            assert np.isfinite(value)
 
 
 @pytest.mark.parametrize(
-    "direction,scipy_name",
+    "cls,scipy_name",
     [
-        (AlternativeType.TWO_TAILED, "two-sided"),
-        (AlternativeType.RIGHT, "greater"),
-        (AlternativeType.LEFT, "less"),
+        (student.KolmogorovSmirnovStudentGofStatistic, "two-sided"),
+        (student.KolmogorovSmirnovDPlusStudentGofStatistic, "greater"),
+        (student.KolmogorovSmirnovDMinusStudentGofStatistic, "less"),
     ],
 )
-def test_ks_directions_against_scipy(direction, scipy_name):
+def test_ks_directions_against_scipy(cls, scipy_name):
     reference = stats.kstest(SAMPLE, stats.t(5, loc=1, scale=2).cdf, alternative=scipy_name)
-    for option in (direction, direction.value, scipy_name):
-        statistic = student.KolmogorovSmirnovStudentGofStatistic(
-            StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 1, "scale": 2}),
-            alternative_type=option,
-        )
-        assert statistic.execute_statistic(SAMPLE) == pytest.approx(reference.statistic)
-        assert statistic.alternative().type() is AlternativeType.RIGHT
-
-
-@pytest.mark.parametrize("bad", ["typo", None, 1, []])
-def test_ks_invalid_direction(bad):
-    with pytest.raises(ValueError):
-        student.KolmogorovSmirnovStudentGofStatistic(
-            StudentDistributionDescriptor.DEFAULT.parse({"df": 1, "loc": 0, "scale": 1}),
-            alternative_type=bad,
-        )
+    statistic = cls(StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 1, "scale": 2}))
+    assert statistic.execute_statistic(SAMPLE) == pytest.approx(reference.statistic)
+    assert statistic.alternative().type() is AlternativeType.RIGHT
 
 
 def test_quadratic_edf_statistics_against_integrals():
@@ -173,21 +174,36 @@ def test_standardization_recovers_overflowing_difference():
         ).execute_statistic([1e300])
 
 
-@pytest.mark.parametrize("bad", [True, 1, 0, -1, 2.5, [3], np.inf])
-def test_bin_count_validation(bad):
-    with pytest.raises(ValueError, match="n_bins"):
-        student.ChiSquareStudentGofStatistic(
-            StudentDistributionDescriptor.DEFAULT.parse({"df": 1, "loc": 0, "scale": 1}), n_bins=bad
-        )
-
-
 def test_pearson_counts_with_empty_cells_and_boundary_tie():
     x = stats.t.ppf([0.1, 0.2, 0.5, 0.9], 5)
     expected = stats.chisquare([2, 0, 1, 1], [1, 1, 1, 1]).statistic
     assert (
         student.ChiSquareStudentGofStatistic(
             StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1}),
-            n_bins=np.int64(4),
+            binning=EqualProbabilityBins(count=np.int64(4)),
         ).execute_statistic(x)
         == expected
     )
+
+
+def test_generated_catalog_and_hypothesis_ownership():
+    from pysatl_criterion.statistics.goodness_of_fit.continuous import edf, frequency
+
+    assert "supported_hypotheses" not in vars(student.AbstractStudentGofStatistic)
+    for source, catalog, base in (
+        (edf, student_statistics._EDF_STATISTICS, edf.AbstractEDFStatistic),
+        (frequency, student_statistics._FREQUENCY_STATISTICS, frequency.AbstractFrequencyStatistic),
+    ):
+        algorithms = {
+            cls
+            for cls in vars(source).values()
+            if inspect.isclass(cls) and issubclass(cls, base) and cls is not base
+        }
+        assert {spec.algorithm for spec in catalog.values()} == algorithms
+        for name in catalog:
+            cls = getattr(student, name)
+            assert name in student.__all__
+            assert "supported_hypotheses" in vars(cls)
+            with pytest.raises(ValueError, match="Unsupported hypothesis"):
+                cls(StudentDistributionDescriptor.DEFAULT.parse({"df": 5}))
+    assert len({cls.code() for cls in CLASSES}) == len(CLASSES)

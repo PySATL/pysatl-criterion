@@ -1,57 +1,71 @@
-# Pearson chi-square exponential goodness-of-fit test
+# Pearson chi-square exponentiality criterion
 
-## Hypothesis and statistic
+`Chi2PearsonExponentialityGofStatistic` — short code `CHI2_PEARSON`; right tail.
 
-Category: Binned EDF. Parameters: Both known and fitted rate; bins=k>=2 integer, default 5.
-The origin is known to be zero. The null is Exp(rate=lambda), lambda>0;
-for specified parameters it is Exp(lambda0). Scale theta=1/lambda.
-Write n for sample size, x_(i) for ordered observations,
-y_i=x_i/mean(x), and u_i=1-exp(-lambda*x_(i)). In fitted EDF mode
-lambda=1/mean(x); otherwise it is the specified rate.
+[All exponential criteria](index.md) · [Mathematical verification](mathematical-validation.md)
+
+## Hypothesis and formula
+
+The model is $F(x)=1-\exp(-\lambda x)$ for $x\ge0$, with known origin zero and $\lambda>0$.
+Fixed or unknown rate: pass `E.DEFAULT.parse({"lam": rate})` or `E.DEFAULT.parse({})`, respectively.
+Omitted parameters remain unknown. Where fitting is needed, $\widehat\lambda=1/\bar x$
+is recomputed for each sample; no fitted state is retained.
+
+Write $y_i=x_i/\bar x$, $u_i=1-\exp(-\lambda x_{(i)})$ with the specified or
+fitted rate, $D^+=\max_i(i/n-u_i)$ and $D^-=\max_i(u_i-(i-1)/n)$.
+For spacing statistics, $d_i=(n-i+1)(x_{(i)}-x_{(i-1)})$ and $x_{(0)}=0$.
+For frequency statistics, $O_j$ and $E_j=np_j>0$ are aligned counts.
 
 $$
-X^2=\sum_{j=1}^k\frac{(N_j-n/k)^2}{n/k}
+\sum_j(O_j-E_j)^2/E_j
 $$
 
-Omnibus: Binned test; limited by fixed bins.
-Universally consistent: No with fixed k. Rejection: Right tail.
+Power-divergence parameter 1. Code CHI2_PEARSON replaces CHI2. Use binning=EqualProbabilityBins(count=5) to reproduce the old five-cell setting.
 
-## Calibration and limitations
+## Input and calibration
 
-Known rate: asymptotic chi-square(k-1). With ungrouped MLE and fitted bin boundaries, chi-square(k-2) is NOT assumed.
+Observations must be finite, real, nonnegative and one-dimensional. Masked
+observations are rejected. Fixed-rate generated criteria accept $n\ge1$;
+unknown-rate EDF/frequency criteria require $n\ge2$ and positive total.
+Specialized criteria may require more observations, distinct spacings or a
+nonconstant sample, as stated above and in the class contract. Ties are not
+silently jittered. Infinite mathematical boundary penalties are retained.
 
-Finite-sample critical values and p-values are obtained by
-`monte_carlo_exponential(statistic, sample, random_state=..., n_resamples=...)`.
-Every simulated sample repeats all fitting and transformations, with the same n
-and tuning settings. Known rate uses scale=1/rate; fitted mode can use Exp(1)
-by scale invariance. Simple-hypothesis EDF tables are not used after fitting.
-The p-value uses corrected ranks (b+1)/(B+1); two-tail tests double the smaller
-corrected tail. The decision uses p<=alpha. Empirical critical quantiles are
-summaries and can differ from the rank decision at finite B. No exact finite-n
-closed-form CDF is implemented for this criterion.
+`execute_statistic` returns a statistic, not a p-value. Use
+`monte_carlo_exponential` with the same sample size and constructor settings.
+It refits each simulated sample for a composite hypothesis. Rescaling to
+Exp(1) is justified only for a scale-invariant statistic. A continuous-null
+calibration does not model rounding, censoring or dependence.
 
-Bins have boundaries -log(1-j/k)/lambda, j=1,...,k-1, plus 0 and infinity. Boundary ties enter the right bin. Sparse counts need simulation; alternatives with identical bin probabilities cannot be detected.
+The `binning` keyword accepts a `BinningStrategy`. Default
+`EqualProbabilityBins()` chooses the count from sample size; it is not fixed
+at five. With unknown rate, built-in Monte Carlo requires this strategy;
+other bins need external calibration at an explicit rate. Known-rate Pearson
+has an asymptotic chi-square(k-1) law with suitable expected counts. After
+fitting from ungrouped observations and moving bins, chi-square(k-2) is not
+asserted. Empty-cell infinities are valid outcomes for Neyman and modified
+log-likelihood; ties at infinity make rank calibration conservative.
 
-Observations must be real, finite, nonnegative and one-dimensional. Masked
-observations, negative values, NaN, infinity and empty samples are rejected.
-Fitted mode requires n>=2 and positive total; known-rate EDF accepts n>=1,
-including all zeros. Positive constant samples are allowed. Scale normalization
-uses a power of two to prevent overflow; unrepresentable dynamic ranges raise
-ValueError. Independent continuous uncensored data are assumed; rounding,
-truncation and censoring require their own calibration.
+## Runnable example
 
-## Implementation and verification
+```python
+from pysatl_criterion.distribution import ExponentialDistributionDescriptor as E
+from pysatl_criterion.statistics.goodness_of_fit.binning import EqualProbabilityBins
+from pysatl_criterion.statistics.goodness_of_fit.continuous.exponent import (
+    Chi2PearsonExponentialityGofStatistic,
+)
 
-[Implementation](https://github.com/PySATL/pysatl-criterion/blob/main/src/pysatl_criterion/statistics/goodness_of_fit/exponent.py):
-`Chi2PearsonExponentialityGofStatistic`, short code `CHI2`.
-EDF adapters reuse common kernels; no new distribution-specific EDF formula is introduced.
-[Unit tests](https://github.com/PySATL/pysatl-criterion/blob/main/tests/distributions/test_exponential_verification.py)
-include independent integral/analytic references and numerical boundaries.
-[Statistical validation](https://github.com/PySATL/pysatl-criterion/blob/main/tests/statistical/test_exponential_validation.py)
-and [recorded results](../../../exponential-monte-carlo.json) use disjoint
-calibration and validation samples and fixed seeds.
-See [audit](../../../exponential-verification.md) for the provenance limits.
+sample = [0.12, 0.30, 0.55, 0.90, 1.40, 2.10, 3.20, 4.80]
+criterion = Chi2PearsonExponentialityGofStatistic(E.DEFAULT.parse({}), binning=EqualProbabilityBins(count=4))
+value = criterion.execute_statistic(sample)
+print(value)
+```
 
-## References
+## Scientific references and verification status
 
-Pearson, K. (1900). On the criterion that a given system of deviations ... DOI: https://doi.org/10.1080/14786440009463897
+[Cressie and Read (1984), Multinomial goodness-of-fit tests](https://doi.org/10.1111/j.2517-6161.1984.tb01318.x).
+
+The formula and input behavior are tested independently; that does not by
+itself certify a historical name, an asymptotic approximation or published
+critical values. Source qualifications above are part of this criterion's
+contract. See the [audit](mathematical-validation.md) for evidence and open items.

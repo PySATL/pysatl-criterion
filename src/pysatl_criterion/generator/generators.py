@@ -100,11 +100,11 @@ from pysatl_criterion.core.distributions.continues.truncnormal import generate_t
 from pysatl_criterion.core.distributions.continues.tukey import generate_tukey
 from pysatl_criterion.core.distributions.continues.uniform import generate_uniform
 from pysatl_criterion.core.distributions.continues.weibull import generate_weibull
-from pysatl_criterion.distribution.distributions import (
+from pysatl_criterion.distribution import (
     ExponentiatedWeibullDistributionDescriptor,
     WeibullDistributionDescriptor,
 )
-from pysatl_criterion.distribution.distributions import StudentDistributionDescriptor as Student
+from pysatl_criterion.distribution import StudentDistributionDescriptor as Student
 from pysatl_criterion.distribution.parameters import ParameterValues
 from pysatl_criterion.generator.model import AbstractRVSGenerator
 

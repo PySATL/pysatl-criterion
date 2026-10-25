@@ -1,44 +1,35 @@
-# Sum of squared Gamma probability spacings.
+# Greenwood for Gamma
 
-G = sum(D_j**2), j=1,...,n+1, where D_j=u_j-u_(j-1),
-u_0=0 and u_(n+1)=1. Both endpoint spacings are included.
-Repeated observations give zero spacings and are permitted.
-The selected right tail detects unusually large squared spacings;
-it does not test against exceptionally regular spacing.
+`GreenwoodGammaGofStatistic`
 
-For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
-where Gamma has shape alpha, rate beta and known origin zero.
-Parameters are fixed, not fitted. Samples must be finite, real,
-one-dimensional and nonempty, in the closed support [0, infinity).
-Zero is accepted as a boundary value. Ties and constant samples are
-allowed except where stated. Inputs and instance state are unchanged.
-Continuous-null calibration assumes iid observations; rounded data
-require calibration of the observation process.
+Use fixed positive shape `alfa` and **rate** `beta` (SciPy scale is `1/beta`), with origin zero. Both parameters must be supplied; no fitting occurs. Samples must be finite, real, nonempty, one-dimensional and nonnegative. Zero is accepted as a support boundary. Ties are allowed unless they make the statistic infinite or degenerate.
 
-## Parameters
+## Definition
 
-```text
-parameters : ParameterValues
-    Values with alfa, beta fixed; omitted parameters are unknown.
-```
+Write $u_i=F_{\alpha,\beta}(x_{(i)})$, $i=1,\ldots,n$. Define $D^+=\max_i(i/n-u_i)$ and $D^-=\max_i(u_i-(i-1)/n)$.
+
+$$
+G=\sum_{j=1}^{n+1}(u_j-u_{j-1})^2,\quad u_0=0,\ u_{n+1}=1
+$$
+
+Includes both endpoint spacings. The right-tail convention detects unusually large squared spacings; it does not reject exceptionally regular spacing.
+
+Large values oppose the null (right tail). `execute_statistic` returns a scalar, not a p-value. The sample is not modified.
 
 ## Source
 
-M. Greenwood (1946), "The Statistical Study of Infectious Diseases",
-J. R. Statist. Soc. 109, 85-103.
-https://doi.org/10.1111/j.2397-2335.1946.tb04649.x
-
-The general statistic is applied to Gamma probabilities.
+[Does, Helmers and Klaassen (1988), eqs. (1)–(2)](https://ir.cwi.nl/pub/1694/1694D.pdf).
 
 ## Usage
 
 ```python
-from pysatl_criterion.distribution.distributions import GammaDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.gamma import GreenwoodGammaGofStatistic
+from pysatl_criterion.distribution import GammaDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.continuous.gamma import GreenwoodGammaGofStatistic
 
-statistic = GreenwoodGammaGofStatistic(GammaDistributionDescriptor.DEFAULT.parse({'alfa': 1, 'beta': 1}))
+parameters = GammaDistributionDescriptor.DEFAULT.parse({"alfa": 2.5, "beta": 1.5})
+statistic = GreenwoodGammaGofStatistic(parameters)
 value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
 ```
 
-Returns a scalar; large values oppose the null. Invalid samples raise `ValueError`.
-See the [audit](../../../gamma-statistics-audit.md) for calibration changes.
+See the [Gamma catalog](index.md) and [mathematical verification](mathematical-validation.md)
+for calibration, numerical limits and the scope of scientific attribution.

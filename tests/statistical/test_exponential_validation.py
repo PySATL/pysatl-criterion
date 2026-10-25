@@ -15,9 +15,9 @@ import numpy as np
 import pytest
 from scipy import special, stats
 
-from pysatl_criterion.distribution.distributions import ExponentialDistributionDescriptor as E
+from pysatl_criterion.distribution import ExponentialDistributionDescriptor as E
 from pysatl_criterion.statistics.alternative import AlternativeType
-from pysatl_criterion.statistics.goodness_of_fit import exponent as exp
+from pysatl_criterion.statistics.goodness_of_fit.continuous import exponent as exp
 
 
 pytestmark = pytest.mark.skipif(
@@ -105,7 +105,14 @@ def validate_null():
         (exp.Chi2PearsonExponentialityGofStatistic, stats.chi2.ppf(0.95, 4)),
         (exp.KolmogorovSmirnovExponentialityGofStatistic, stats.kstwo.ppf(0.95, 200)),
     ]:
-        obj = cls(E.DEFAULT.parse({"lam": 3}))
+        from pysatl_criterion.statistics.goodness_of_fit.binning import EqualProbabilityBins
+
+        settings = (
+            {"binning": EqualProbabilityBins(count=5)}
+            if cls is exp.Chi2PearsonExponentialityGofStatistic
+            else {}
+        )
+        obj = cls(E.DEFAULT.parse({"lam": 3}), **settings)
         values = [obj.execute_statistic(rng.exponential(1 / 3, 200)) for _ in range(count)]
         level = float(np.mean(np.array(values) > critical))
         assert 0.035 < level < 0.065
@@ -173,7 +180,12 @@ def validate_legacy_calibration():
             and cls.__module__ == exp.__name__
             and not inspect.isabstract(cls)
             and not issubclass(
-                cls, (exp.AbstractExponentialEDFStatistic, exp.AbstractTunedExponentialStatistic)
+                cls,
+                (
+                    exp.AbstractExponentialEDFStatistic,
+                    exp.AbstractExponentialFrequencyStatistic,
+                    exp.AbstractTunedExponentialStatistic,
+                ),
             )
             and cls is not exp.GreenwoodExponentialityGofStatistic
         ),

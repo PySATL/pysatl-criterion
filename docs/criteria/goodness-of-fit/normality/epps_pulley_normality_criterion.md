@@ -1,5 +1,9 @@
 # Epps-Pulley test for normality
 
+**Class:** `EppsPulleyNormalityGofStatistic`
+
+**Code:** `EP_NORMALITY_GOODNESS_OF_FIT`
+
 Epps-Pulley empirical-characteristic-function statistic for normality.
 
 ## Methods
@@ -16,7 +20,7 @@ alternative()
 H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
 Location and positive scale cancel, allowing N(0,1) null simulation.
 Every simulated sample must go through execute_statistic again.
-The upper tail of the statistic defines rejection. Use at least 2
+Large values of the statistic define rejection. Use at least 2
 finite real observations in one dimension. Nonzero dispersion is required.
 Ties are accepted unless a scale or contrast becomes undefined.
 Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
@@ -38,14 +42,14 @@ distance. The double sum includes its diagonal; computation is O(n**2).
 ## Examples
 
 ```python
-from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
+from pysatl_criterion.distribution import NormalDistributionDescriptor
 import numpy as np
-from pysatl_criterion.statistics.goodness_of_fit.normal import EppsPulleyNormalityGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import EppsPulleyNormalityGofStatistic
 
 statistic = EppsPulleyNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({}))
 sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
 value = statistic.execute_statistic(sample)
-bool(np.isfinite(value))
+assert np.isfinite(value)
 ```
 
-See [review and calibration changes](../../../normal-statistics-review.md).
+See the [complete catalog](index.md) and [mathematical verification](mathematical-validation.md).

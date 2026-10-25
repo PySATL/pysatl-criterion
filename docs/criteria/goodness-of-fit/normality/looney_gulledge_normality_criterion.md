@@ -1,5 +1,9 @@
 # Looney-Gulledge test for normality
 
+**Class:** `LooneyGulledgeNormalityGofStatistic`
+
+**Code:** `LG_NORMALITY_GOODNESS_OF_FIT`
+
 Looney-Gulledge probability-plot correlation statistic for normality.
 
 ## Methods
@@ -36,14 +40,14 @@ The Blom plotting-position version is used without averaging ties.
 ## Examples
 
 ```python
-from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
+from pysatl_criterion.distribution import NormalDistributionDescriptor
 import numpy as np
-from pysatl_criterion.statistics.goodness_of_fit.normal import LooneyGulledgeNormalityGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import LooneyGulledgeNormalityGofStatistic
 
 statistic = LooneyGulledgeNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({}))
 sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
 value = statistic.execute_statistic(sample)
-bool(np.isfinite(value))
+assert np.isfinite(value)
 ```
 
-See [review and calibration changes](../../../normal-statistics-review.md).
+See the [complete catalog](index.md) and [mathematical verification](mathematical-validation.md).

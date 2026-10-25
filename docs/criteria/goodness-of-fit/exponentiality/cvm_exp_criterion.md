@@ -1,92 +1,61 @@
-# Cramer-von Mises test for exponentiality
+# Cramér–von Mises exponentiality criterion
 
-CramerVonMises statistic for zero-origin exponential observations.
+`CramerVonMisesExponentialityGofStatistic` — short code `CVM`; right tail.
 
-## Hypothesis, formula and calibration
+[All exponential criteria](index.md) · [Mathematical verification](mathematical-validation.md)
 
-H0 is Exp(lam) with known origin zero and fixed rate lam.
-Write n for sample size, x_(i) for sorted observations, and
-y=x/mean(x). The implemented formula is:
+## Hypothesis and formula
 
-    1/(12*n) + sum((F(x_(i))-(2*i-1)/(2*n))**2),
-    where F(x) = 1-exp(-lam*x). No parameters are estimated.
+The model is $F(x)=1-\exp(-\lambda x)$ for $x\ge0$, with known origin zero and $\lambda>0$.
+Fixed or unknown rate: pass `E.DEFAULT.parse({"lam": rate})` or `E.DEFAULT.parse({})`, respectively.
+Omitted parameters remain unknown. Where fitting is needed, $\widehat\lambda=1/\bar x$
+is recomputed for each sample; no fitted state is retained.
 
-Reject in the upper tail. Calibrate the exact statistic returned here.
-Use independent continuous, uncensored observations. Rounded or tied
-data require calibration of the observation process. No parameters
-are retained from a previous call. Rescaling uses a power of two
-to preserve exact binary ties; unrepresentable positive ratios raise
-ValueError. Strict comparisons near floating-point boundaries can
-still depend on roundoff.
-This is the general EDF statistic applied through the known
-exponential CDF (probability integral transform); [1] is a general
-source, not a study of a special fitted exponential version.
+Write $y_i=x_i/\bar x$, $u_i=1-\exp(-\lambda x_{(i)})$ with the specified or
+fitted rate, $D^+=\max_i(i/n-u_i)$ and $D^-=\max_i(u_i-(i-1)/n)$.
+For spacing statistics, $d_i=(n-i+1)(x_{(i)}-x_{(i-1)})$ and $x_{(0)}=0$.
+For frequency statistics, $O_j$ and $E_j=np_j>0$ are aligned counts.
 
-## Constructor parameters
+$$
+W^2=\frac1{12n}+\sum_i[u_i-(i-1/2)/n]^2
+$$
 
-```text
-lam : float, optional
-    Fixed, finite positive rate; default 1.
-```
 
-## Sample and result
 
-```text
-Compute the CramerVonMises scalar statistic.
+## Input and calibration
 
-Parameters
-----------
-rvs : array_like, shape (n,)
-    Finite nonnegative observations; n >= 1. All-zero samples are allowed.
-    A copy is used. Ties and positive constants are allowed except
-    where they make the formula undefined (see Notes on the class).
-**kwargs : dict
-    No execution settings are supported; configure the constructor.
+Observations must be finite, real, nonnegative and one-dimensional. Masked
+observations are rejected. Fixed-rate generated criteria accept $n\ge1$;
+unknown-rate EDF/frequency criteria require $n\ge2$ and positive total.
+Specialized criteria may require more observations, distinct spacings or a
+nonconstant sample, as stated above and in the class contract. Ties are not
+silently jittered. Infinite mathematical boundary penalties are retained.
 
-Returns
--------
-statistic : float
-    Value in the convention documented on the class. Infinite
-    boundary values are retained where the formula has that limit.
+`execute_statistic` returns a statistic, not a p-value. Use
+`monte_carlo_exponential` with the same sample size and constructor settings.
+It refits each simulated sample for a composite hypothesis. Rescaling to
+Exp(1) is justified only for a scale-invariant statistic. A continuous-null
+calibration does not model rounding, censoring or dependence.
 
-Raises
-------
-ValueError
-    Invalid sample, insufficient observations, invalid sample-dependent
-    setting, undefined ratio, or rescaling underflow of positive data.
-TypeError
-    Unsupported execution keyword arguments.
-```
-
-## Example
+## Runnable example
 
 ```python
-from pysatl_criterion.distribution.distributions import ExponentialDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.exponent import (
+from pysatl_criterion.distribution import ExponentialDistributionDescriptor as E
+from pysatl_criterion.statistics.goodness_of_fit.continuous.exponent import (
     CramerVonMisesExponentialityGofStatistic,
 )
 
-statistic = CramerVonMisesExponentialityGofStatistic(ExponentialDistributionDescriptor.DEFAULT.parse({'lam': 1}))
-value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
+sample = [0.12, 0.30, 0.55, 0.90, 1.40, 2.10, 3.20, 4.80]
+criterion = CramerVonMisesExponentialityGofStatistic(E.DEFAULT.parse({}))
+value = criterion.execute_statistic(sample)
 print(value)
 ```
 
-## References
+## Scientific references and verification status
 
-1. Durbin, J. (1973). Distribution Theory for Tests Based on the
-   Sample Distribution Function, chapter 1. SIAM.
-   https://doi.org/10.1137/1.9781611970586.ch1
+[Zhang (2002), Powerful goodness-of-fit tests based on the likelihood ratio](https://doi.org/10.1111/1467-9868.00337).
 
-## Author(s)
-
-Lev Golofastov
-
-See the [current audit and migration notes](../../../exponent-statistics-audit.md).
-
-## Parameter modes (2026-10-08)
-
-An empty `ExponentialDistributionDescriptor.DEFAULT.parse({})` now selects the
-composite hypothesis and refits rate=1/mean(x) on every call. A fixed `lam`
-selects the original specified-rate mode. Both reuse the common CvM kernel;
-simple-null critical values must not be used in fitted mode.
-See [independent verification](../../../exponential-verification.md).
+The formula and input behavior are tested independently; that does not by
+itself certify a historical name, an asymptotic approximation or published
+critical values. Source qualifications above are part of this criterion's
+contract. See the [audit](mathematical-validation.md) for evidence and open items.

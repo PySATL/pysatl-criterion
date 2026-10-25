@@ -9,7 +9,9 @@ from pysatl_criterion.generator.model import AbstractRVSGenerator
 
 
 if TYPE_CHECKING:
-    from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
+    from pysatl_criterion.statistics.goodness_of_fit.goodness_of_fit_statistic import (
+        AbstractGoodnessOfFitStatistic,
+    )
 
 
 def get_hypothesis_generator(
@@ -29,24 +31,16 @@ def get_hypothesis_generator(
         DistributionType.EXPONENTIATED_WEIBULL,
     ):
         return _weibull_hypothesis_generator(statistic, hypothesis.parameter_values)
+    if statistic.distribution().type() == DistributionType.LOG_NORMAL:
+        return _lognormal_hypothesis_generator(statistic, hypothesis.parameter_values)
     return _schema_hypothesis_generator(statistic, hypothesis)
 
 
 def _schema_hypothesis_generator(statistic, hypothesis):
     """Choose representatives only for explicitly invariant composite hypotheses."""
-    from pysatl_criterion.distribution.distributions import LogNormalDistributionDescriptor
-    from pysatl_criterion.generator.generators import TRVSGenerator
-
     descriptor = statistic.distribution()
     distribution = descriptor.type()
     values = hypothesis.parameter_values
-    if distribution == DistributionType.LOG_NORMAL:
-        values = descriptor.convert_parameters(
-            values, LogNormalDistributionDescriptor.LOG_LOCATION_SCALE
-        )
-        return get_available_generator(
-            distribution, {"mu": values[descriptor.LOG_LOCATION], "s": values[descriptor.LOG_SCALE]}
-        )
     if values.parameterization != descriptor.default_parameterization():
         raise ValueError("Unsupported sampling parameterization")
     external_calibration = {
@@ -83,16 +77,12 @@ def _schema_hypothesis_generator(statistic, hypothesis):
             "refit with execute_statistic on every simulated sample"
         )
     if distribution == DistributionType.STUDENT:
-        # The fitted Student procedure removes location and scale, retaining df.
-        if not complete:
-            values = descriptor.DEFAULT.parse(
-                {
-                    descriptor.DF: values[descriptor.DF],
-                    descriptor.LOCATION: 0,
-                    descriptor.SCALE: 1,
-                }
-            )
-        return TRVSGenerator.from_parameters(values)
+        return _student_hypothesis_generator(descriptor, values, complete)
+    if distribution == DistributionType.LAPLACE and not complete:
+        calibration = getattr(statistic, "_standard_calibration_parameters", None)
+        if values or calibration is None or not statistic.supports_hypothesis(hypothesis):
+            raise ValueError("Unsupported composite Laplace calibration")
+        values = calibration()
     if distribution == DistributionType.NORMAL:
         parameters = {
             "mean": values.get(descriptor.MEAN, 0),
@@ -116,6 +106,42 @@ def _schema_hypothesis_generator(statistic, hypothesis):
             for name, attribute in fixed_coordinates[distribution]
         }
     return get_available_generator(distribution, parameters)
+
+
+def _lognormal_hypothesis_generator(statistic, values):
+    """Sample a fixed log-normal null or an explicitly invariant family representative."""
+    descriptor = statistic.distribution()
+    if not values:
+        calibration = getattr(statistic, "_standard_calibration_parameters", None)
+        if calibration is None:
+            raise ValueError("This composite log-normal hypothesis requires external calibration")
+        values = calibration()
+    values = descriptor.convert_parameters(values, descriptor.LOG_LOCATION_SCALE)
+    return get_available_generator(
+        descriptor.type(),
+        {"mu": values[descriptor.LOG_LOCATION], "s": values[descriptor.LOG_SCALE]},
+    )
+
+
+def _student_hypothesis_generator(descriptor, values, complete):
+    """Location and scale can be removed, but unknown df needs bootstrap."""
+    from pysatl_criterion.generator.generators import TRVSGenerator
+
+    if descriptor.DF not in values:
+        raise ValueError(
+            "Unknown Student df requires external parametric bootstrap at an explicit "
+            "simulation df, refitting all parameters on every replicate"
+        )
+    # The fitted Student procedure removes location and scale, retaining df.
+    if not complete:
+        values = descriptor.DEFAULT.parse(
+            {
+                descriptor.DF: values[descriptor.DF],
+                descriptor.LOCATION: 0,
+                descriptor.SCALE: 1,
+            }
+        )
+    return TRVSGenerator.from_parameters(values)
 
 
 def _weibull_hypothesis_generator(statistic, values):
@@ -158,7 +184,7 @@ def get_available_generator(
     :return: initialized random value generator for the requested distribution.
     """
     if distribution == DistributionType.STUDENT:
-        from pysatl_criterion.distribution.distributions import StudentDistributionDescriptor
+        from pysatl_criterion.distribution import StudentDistributionDescriptor
         from pysatl_criterion.generator.generators import TRVSGenerator
 
         values = StudentDistributionDescriptor.DEFAULT.parse(params or {}, fill_defaults=True)

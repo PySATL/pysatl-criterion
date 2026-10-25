@@ -5,12 +5,11 @@ import pytest
 import scipy.stats as scipy_stats
 
 from pysatl_criterion import DistributionType
-from pysatl_criterion.distribution.distributions import HyperbolicDistributionDescriptor
+from pysatl_criterion.distribution import HyperbolicDistributionDescriptor
 from pysatl_criterion.statistics.alternative import (
-    AlternativeType,
     RightAlternative,
 )
-from pysatl_criterion.statistics.goodness_of_fit.hyperbolic import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous.hyperbolic import (
     AbstractHyperbolicGofStatistic,
     AndersonDarlingHyperbolicGofStatistic,
     CramerVonMisesHyperbolicGofStatistic,
@@ -182,40 +181,6 @@ def test_anderson_darling_hyperbolic_matches_scipy_reference(alpha, beta, delta,
 
 
 @pytest.mark.parametrize(
-    ("alternative_type", "expected_side"),
-    [
-        (AlternativeType.TWO_TAILED, "two-sided"),
-        (AlternativeType.RIGHT, "right"),
-        (AlternativeType.LEFT, "left"),
-    ],
-)
-def test_kolmogorov_smirnov_hyperbolic_alternatives(
-    alternative_type,
-    expected_side,
-):
-    """KS should calculate the deviation selected by its alternative."""
-    _, cdf_values = _cdf_values(_SAMPLE, 1.5, 0.25, 1.0, 0.0)
-    n = len(cdf_values)
-    positions = np.arange(n, dtype=np.float64)
-    d_plus = np.max((positions + 1.0) / n - cdf_values)
-    d_minus = np.max(cdf_values - positions / n)
-    expected = {
-        "two-sided": max(d_plus, d_minus),
-        "right": d_plus,
-        "left": d_minus,
-    }[expected_side]
-    statistic = KolmogorovSmirnovHyperbolicGofStatistic(
-        HyperbolicDistributionDescriptor.DEFAULT.parse(
-            {"alpha": 1.5, "beta": 0.25, "delta": 1, "mu": 0}
-        ),
-        alternative_type=alternative_type,
-    )
-
-    assert isinstance(statistic.alternative(), RightAlternative)
-    assert statistic.execute_statistic(_SAMPLE) == pytest.approx(expected)
-
-
-@pytest.mark.parametrize(
     ("statistic", "expected_code"),
     [
         (KolmogorovSmirnovHyperbolicGofStatistic, "KS_HYPERBOLIC_GOODNESS_OF_FIT"),
@@ -263,7 +228,20 @@ def test_hyperbolic_statistics_use_right_alternative(statistic):
 def test_hyperbolic_criteria_are_discoverable():
     """The public criterion registry should discover all hyperbolic statistics."""
     codes = get_available_criteria_codes(DistributionType.HYPERBOLIC)
-    assert Counter(codes) == Counter(["KS", "CVM", "AD", "KUI", "WAT"])
+    assert Counter(codes) == Counter(
+        [
+            "KS",
+            "CVM",
+            "AD",
+            "KUI",
+            "WAT",
+            "CHI2_PEARSON",
+            "FREEMAN_TUKEY",
+            "MODIFIED_LOG_LIKELIHOOD",
+            "CHI2_NEYMAN",
+            "CRESSIE_READ",
+        ]
+    )
 
 
 def test_hyperbolic_distribution_descriptor():
@@ -290,21 +268,17 @@ def test_hyperbolic_nan_sample_is_rejected():
         ).execute_statistic([0.0, np.nan, 1.0])
 
 
-def test_kolmogorov_smirnov_requires_precomputed_cdf():
-    """The low-level KS entry point should require its probability array."""
-    with pytest.raises(ValueError, match="CDF values are required"):
-        KolmogorovSmirnovHyperbolicGofStatistic(
-            HyperbolicDistributionDescriptor.DEFAULT.parse(
-                {"alpha": 1, "beta": 0, "delta": 1, "mu": 0}
-            )
-        ).do_execute_statistic(_SAMPLE)
+def test_generated_hyperbolic_kernels():
+    from pysatl_criterion.statistics.goodness_of_fit.continuous import edf, hyperbolic
 
-
-def test_anderson_darling_requires_log_probabilities():
-    """The low-level AD entry point should require both tail arrays."""
-    with pytest.raises(ValueError, match="Log-CDF and log-survival values are required"):
-        AndersonDarlingHyperbolicGofStatistic(
-            HyperbolicDistributionDescriptor.DEFAULT.parse(
-                {"alpha": 1, "beta": 0, "delta": 1, "mu": 0}
-            )
-        ).do_execute_statistic(_SAMPLE)
+    implementation = hyperbolic.hyperbolic_statistics
+    assert set(implementation.__all__) == {"AbstractHyperbolicGofStatistic"} | set(
+        implementation._EDF_STATISTICS
+    ) | set(implementation._FREQUENCY_STATISTICS)
+    for name, spec in implementation._EDF_STATISTICS.items():
+        cls = getattr(hyperbolic, name)
+        assert cls.do_execute_statistic is spec.algorithm.do_execute_statistic
+        assert cls.execute_statistic.__module__.endswith("._edf_factory")
+    assert hyperbolic.AndersonDarlingHyperbolicGofStatistic.do_execute_log_statistic is (
+        edf.AbstractAndersonDarlingStatistic.do_execute_log_statistic
+    )

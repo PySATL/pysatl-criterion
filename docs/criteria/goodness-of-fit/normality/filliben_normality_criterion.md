@@ -1,5 +1,9 @@
 # Filliben test for normality
 
+**Class:** `FilliNormalityGofStatistic`
+
+**Code:** `FILLI_NORMALITY_GOODNESS_OF_FIT`
+
 Filliben probability-plot correlation statistic for normality.
 
 ## Methods
@@ -35,14 +39,14 @@ are (i-0.3175)/(n+0.365); endpoints are 1-0.5**(1/n) and 0.5**(1/n).
 ## Examples
 
 ```python
-from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
+from pysatl_criterion.distribution import NormalDistributionDescriptor
 import numpy as np
-from pysatl_criterion.statistics.goodness_of_fit.normal import FilliNormalityGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import FilliNormalityGofStatistic
 
 statistic = FilliNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({}))
 sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
 value = statistic.execute_statistic(sample)
-bool(np.isfinite(value))
+assert np.isfinite(value)
 ```
 
-See [review and calibration changes](../../../normal-statistics-review.md).
+See the [complete catalog](index.md) and [mathematical verification](mathematical-validation.md).

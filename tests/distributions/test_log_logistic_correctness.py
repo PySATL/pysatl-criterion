@@ -8,30 +8,33 @@ from scipy.optimize import brentq
 from scipy.special import expit, logit
 from scipy.stats import CensoredData, fisk, logistic
 
-from pysatl_criterion.distribution.distributions import LogLogisticDistributionDescriptor
+from pysatl_criterion.distribution import LogLogisticDistributionDescriptor
 from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     MonteCarloLimitDistributionResolver,
     StorageLimitDistributionResolver,
 )
 from pysatl_criterion.statistics.alternative import AlternativeType
-from pysatl_criterion.statistics.goodness_of_fit import log_logistic as module
-from pysatl_criterion.statistics.goodness_of_fit.log_logistic import (
+from pysatl_criterion.statistics.goodness_of_fit.binning import EqualProbabilityBins
+from pysatl_criterion.statistics.goodness_of_fit.continuous.log_logistic import (
     AndersonDarlingLogLogisticGofStatistic as AD,
 )
-from pysatl_criterion.statistics.goodness_of_fit.log_logistic import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous.log_logistic import (
     Chi2PearsonLogLogisticGofStatistic as Pearson,
 )
-from pysatl_criterion.statistics.goodness_of_fit.log_logistic import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous.log_logistic import (
     CramerVonMisesLogLogisticGofStatistic as CVM,
 )
-from pysatl_criterion.statistics.goodness_of_fit.log_logistic import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous.log_logistic import (
     KolmogorovSmirnovLogLogisticGofStatistic as KS,
 )
-from pysatl_criterion.statistics.goodness_of_fit.log_logistic import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous.log_logistic import (
     MirvalievLogLogisticGofStatistic as Mirvaliev,
 )
-from pysatl_criterion.statistics.goodness_of_fit.log_logistic import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous.log_logistic import (
     NikulinLogLogisticGofStatistic as Nikulin,
+)
+from pysatl_criterion.statistics.goodness_of_fit.continuous.log_logistic import (
+    log_logistic_statistics as module,
 )
 from tests.parameter_cases import parameters_for
 
@@ -51,9 +54,7 @@ def test_invalid_parameters(cls, value, name):
         cls(parameters_for(cls, **{name: value}))
 
 
-@pytest.mark.parametrize(
-    "cls,key", [(Pearson, "bins"), (Nikulin, "n_intervals"), (Mirvaliev, "n_intervals")]
-)
+@pytest.mark.parametrize("cls,key", [(Nikulin, "n_intervals"), (Mirvaliev, "n_intervals")])
 @pytest.mark.parametrize("value", [1, 2.5, True, np.nan, np.inf])
 def test_interval_validation(cls, key, value):
     with pytest.raises(ValueError):
@@ -97,7 +98,7 @@ def test_pearson_extreme_parameters_and_empty_bins():
     assert (
         Pearson(
             LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": 1e-250, "beta": 0.001}),
-            bins=4,
+            binning=EqualProbabilityBins(4),
         ).execute_statistic([1e250])
         == 3
     )
@@ -238,7 +239,6 @@ def test_calibration_guards(mocker):
     for stat in [
         Nikulin(LogLogisticDistributionDescriptor.DEFAULT.parse({})),
         Mirvaliev(LogLogisticDistributionDescriptor.DEFAULT.parse({})),
-        Pearson(LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 1})),
         KS(
             LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 1}),
             alternative_type=AlternativeType.LEFT,
@@ -262,4 +262,42 @@ def test_calibration_guards(mocker):
 
 
 def test_examples():
-    assert doctest.testmod(module).failed == 0
+    from pysatl_criterion.statistics.goodness_of_fit.continuous import log_logistic
+
+    result = doctest.testmod(log_logistic, globs=vars(module))
+    assert result.attempted > 0
+    assert result.failed == 0
+
+
+_GENERATED = [
+    getattr(module, name) for name in (*module._EDF_STATISTICS, *module._FREQUENCY_STATISTICS)
+]
+
+
+@pytest.mark.parametrize("cls", _GENERATED)
+def test_generated_hypotheses_and_scale_invariance(cls):
+    descriptor = LogLogisticDistributionDescriptor
+    assert "supported_hypotheses" not in module.AbstractLogLogisticGofStatistic.__dict__
+    assert "supported_hypotheses" in cls.__dict__
+    with pytest.raises(ValueError):
+        cls(descriptor.DEFAULT.parse({}))
+    sample = np.array([0.1, 0.3, 0.7, 1.5, 2.1, 5.0, 9.0])
+    original = sample.copy()
+    statistic = cls(descriptor.DEFAULT.parse({"alpha": 2, "beta": 1.5}))
+    scaled = cls(descriptor.DEFAULT.parse({"alpha": 20, "beta": 1.5}))
+    assert scaled.execute_statistic(10 * sample) == pytest.approx(
+        statistic.execute_statistic(sample)
+    )
+    assert statistic.alternative().type() == AlternativeType.RIGHT
+    np.testing.assert_array_equal(sample, original)
+
+
+@pytest.mark.parametrize("cls", [getattr(module, name) for name in module._FREQUENCY_STATISTICS])
+def test_generated_frequency_configuration(cls):
+    parameters = LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 2})
+    first = cls(parameters, binning=EqualProbabilityBins(4))
+    second = cls(parameters, binning=EqualProbabilityBins(6))
+    assert first.configuration() != second.configuration()
+    first._validate_storage_calibration()
+    with pytest.raises(ValueError):
+        first.execute_statistic([0, 1])

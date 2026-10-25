@@ -1,73 +1,54 @@
-# Kolmogorov-Smirnov test for beta distribution
+# Kolmogorov–Smirnov for a specified Beta distribution
 
-## Description
-Performs Kolmogorov-Smirnov goodness-of-fit test for the hypothesis that the sample comes from a beta distribution.
-The Kolmogorov-Smirnov test compares the empirical distribution function with the theoretical cumulative distribution function of the beta distribution.
+[All Beta criteria](index.md) · [Mathematical verification](mathematical-validation.md)
 
-Hypothesis of Beta Distribution
-The null hypothesis is that the data comes from a beta distribution with positive shape parameters `alpha` and `beta` on the interval $[0, 1]$.
+Class: `KolmogorovSmirnovBetaGofStatistic`. Code: `KS_BETA_GOODNESS_OF_FIT`.
 
-Test Statistic
-The statistic is based on the maximum distance between the empirical distribution function and the beta cumulative distribution function.
+## Hypothesis and formula
 
-## Usage
+Both shape parameters `a > 0` and `b > 0` are finite and fixed independently of
+the sample. Pass `Beta.DEFAULT.parse({"a": 2, "b": 5})`; omitted shapes are
+unknown and are rejected by this class. The support is fixed at $[0,1]$.
+
+For sorted observations, let $u_i=F_{a,b}(X_{(i)})$, $i=1,\ldots,n$,
+$D^+=\max_i(i/n-u_i)$, $D^-=\max_i(u_i-(i-1)/n)$ and
+$W^2=1/(12n)+\sum_i(u_i-(i-1/2)/n)^2$.
+
+$$
+D=\max(D^+,D^-),\quad D^+=\max_i(i/n-u_i),\quad D^-=\max_i(u_i-(i-1)/n)
+$$
+
+
+## Input, result and calibration
+
+`execute_statistic(rvs, **kwargs)` accepts a nonempty, finite, one-dimensional
+real sample in $[0,1]$. Ties and constants are allowed; masked observations and
+complex values are rejected. It returns a scalar and leaves the sample unchanged.
+Large values reject (`RightAlternative`). Extra execution keywords are ignored.
+
+For a continuous fully specified null, the probability integral transform
+makes this EDF statistic's null law independent of both shapes. Calibrate at the
+same sample size. No parameter is fitted, and no p-value is returned.
+AD, Liao–Shimokawa and Zhang use separate log-CDF and log-survival probabilities;
+the other kernels use the CDF. Underflowed interior tails have a hypergeometric
+logarithmic fallback; unrepresentable tail evaluation raises `ValueError`.
+True endpoints give infinity for AD, Liao–Shimokawa and Zhang. Other EDF
+statistics remain finite. The data are never clipped.
+
+## Example
+
 ```python
-from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit import (
-    KolmogorovSmirnovBetaGofStatistic,
-)
+from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
+from pysatl_criterion.statistics.goodness_of_fit.continuous.beta import KolmogorovSmirnovBetaGofStatistic
 
-
-test_statistic = KolmogorovSmirnovBetaGofStatistic(BetaDistributionDescriptor.DEFAULT.parse({'a': 2, 'b': 5}))
-statistic_result = test_statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
-print(statistic_result)
+statistic = KolmogorovSmirnovBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}))
+value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
+print(value)
 ```
 
-## Arguments
-`alpha` - first positive shape parameter of the beta distribution. Default value is `1`.
+## Scientific source
 
-`beta` - second positive shape parameter of the beta distribution. Default value is `1`.
+[Zhang (2002), Powerful goodness-of-fit tests based on the likelihood ratio](https://doi.org/10.1111/1467-9868.00337), §2.1.
 
-`alternative_type` - selects the CDF distance: `TWO_TAILED` computes `max(D+, D-)`, `RIGHT` computes `D+`, and `LEFT` computes `D-`. All three reject in the right tail of the statistic distribution.
-
-`mode` - retained for compatibility, default `auto`; it does not affect the distance or compute a p-value here.
-
-`rvs` - a nonempty one-dimensional sample of finite values in `[0, 1]`, passed to `execute_statistic`. Both shape parameters must be finite. All these statistics reject for large values.
-
-## Details
-The observations are sorted and transformed with the reference beta cumulative distribution function
-
-$$ F_0(x) = I_x(\alpha, \beta), \quad 0 \le x \le 1. $$
-
-The transformed values are passed to the common Kolmogorov-Smirnov statistic implementation.
-
-## Author(s)
-Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
-
-## References
-
-The reference is for the classical continuous-null KS statistic; a specified Beta CDF is substituted here. Both shapes are known. For unknown shapes, the [Ebner–Liebenberg criterion](ebner_liebenberg_beta_criterion.md) tests the composite Beta family.
-
-N. Smirnov (1948), "Table for Estimating the Goodness of Fit
-   of Empirical Distributions", Ann. Math. Statist. 19, 279-281.
-   https://doi.org/10.1214/aoms/1177730256
-
-## Examples
-```python
-from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit import (
-    KolmogorovSmirnovBetaGofStatistic,
-)
-
-
-test_statistic = KolmogorovSmirnovBetaGofStatistic(BetaDistributionDescriptor.DEFAULT.parse({'a': 2, 'b': 5}))
-statistic_result = test_statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
-print(statistic_result)
-```
-
-## Stored calibration
-
-Storage keys omit algorithm options. Stored calibration is allowed only for
-two-sided CDF distance. Other settings raise `ValueError` before storage lookup; use
-`MonteCarloLimitDistributionResolver` instead. Existing stored results generated
-with other options under the same key must be regenerated.
+The source identifies the shared statistical functional; applying it through
+the specified Beta distribution does not constitute a new Beta-specific test.

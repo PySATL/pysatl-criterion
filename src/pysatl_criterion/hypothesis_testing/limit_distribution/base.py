@@ -7,7 +7,9 @@ from typing_extensions import override
 from pysatl_criterion.persistence.models.distribution_key import DistributionKey
 from pysatl_criterion.persistence.models.limit_distribution import LimitDistributionModel
 from pysatl_criterion.persistence.stores.base import IStoreReader
-from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.goodness_of_fit.goodness_of_fit_statistic import (
+    AbstractGoodnessOfFitStatistic,
+)
 from pysatl_criterion.utils.generator import get_hypothesis_generator
 
 
@@ -109,16 +111,8 @@ class StorageLimitDistributionResolver(AbstractLimitDistributionResolver):
         :param sample_size: sample size used for the stored distribution.
         :return: stored statistic values, or None if no distribution is found.
         """
-        validate = getattr(statistic, "_validate_storage_calibration", None)
-        if validate is not None:
-            validate()
-
         limit_distribution = self.limit_distribution_storage.get(
-            DistributionKey(
-                criterion_code=statistic.code(),
-                criterion_parameters=statistic.hypothesis().parameters(),
-                sample_size=sample_size,
-            )
+            DistributionKey.from_statistic(statistic, sample_size)
         )
 
         return (

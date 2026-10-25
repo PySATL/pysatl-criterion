@@ -1,5 +1,7 @@
 # Neyman smooth test for the Beta distribution
 
+[All Beta criteria](index.md) · [Mathematical verification](mathematical-validation.md)
+
 ## Description
 
 Tests the simple hypothesis of iid observations from $\mathrm{Beta}(a,b)$
@@ -10,8 +12,8 @@ integral transform, not a new Beta-specific polynomial construction.
 ## Usage
 
 ```python
-from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
-from pysatl_criterion.statistics.goodness_of_fit import NeymanSmoothBetaGofStatistic
+from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
+from pysatl_criterion.statistics.goodness_of_fit.continuous import NeymanSmoothBetaGofStatistic
 
 statistic = NeymanSmoothBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}), k=4)
 value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
@@ -51,9 +53,9 @@ and must not use the stated simple-null chi-square or uniform calibration.
 
 ## Implementation
 
-[NeymanSmoothBetaGofStatistic](https://github.com/PySATL/pysatl-criterion/blob/main/src/pysatl_criterion/statistics/goodness_of_fit/beta.py)
-delegates to `NeymanSmoothTestUniformGofStatistic`; it does not duplicate the
-Legendre algorithm. Unit references integrate the Beta density and use explicit
+[NeymanSmoothBetaGofStatistic](https://github.com/PySATL/pysatl-criterion/blob/main/src/pysatl_criterion/statistics/goodness_of_fit/continuous/beta/beta_statistics.py)
+uses `NeymanSmoothTestUniformGofStatistic` to validate the order and evaluates
+the shifted Legendre recurrence in its own cached Numba kernel. Unit references integrate the Beta density and use explicit
 polynomials independently of the implementation.
 
 ## References
@@ -64,7 +66,7 @@ DOI: [10.1080/03461238.1937.10404821](https://doi.org/10.1080/03461238.1937.1040
 
 ## Stored calibration
 
-Storage keys omit algorithm options. Stored calibration is allowed only for
+The Beta storage guard currently permits only the default order. Stored calibration is allowed only for
 `k=4`. Other settings raise `ValueError` before storage lookup; use
 `MonteCarloLimitDistributionResolver` instead. Existing stored results generated
 with other options under the same key must be regenerated.

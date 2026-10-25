@@ -7,10 +7,10 @@ import pytest
 from scipy import integrate, stats
 
 from pysatl_criterion import DistributionType
-from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
+from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
 from pysatl_criterion.hypothesis_testing.beta_bootstrap import parametric_bootstrap_beta
 from pysatl_criterion.statistics.alternative import RightAlternative
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous import (
     EbnerLiebenbergBetaGofStatistic,
     NeymanSmoothBetaGofStatistic,
     RaschkeBetaGofStatistic,

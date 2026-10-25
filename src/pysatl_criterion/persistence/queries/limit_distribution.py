@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -11,6 +12,12 @@ class CriterionFilter:
 
     criterion_code: str
     criterion_parameters: dict[str, float] | None = None
+    criterion_configuration: dict[str, Any] | None = None
+    legacy_only: bool = False
+
+    def __post_init__(self):
+        if self.legacy_only and self.criterion_configuration is not None:
+            raise ValueError("legacy_only conflicts with explicit configuration")
 
 
 @dataclass(frozen=True)

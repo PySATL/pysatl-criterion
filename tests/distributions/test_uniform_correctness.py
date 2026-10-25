@@ -6,13 +6,14 @@ import numpy as np
 import pytest
 from scipy import integrate, stats
 
-from pysatl_criterion.distribution.distributions import UniformDistributionDescriptor
-from pysatl_criterion.distribution.distributions import UniformDistributionDescriptor as Uniform
+from pysatl_criterion.distribution import UniformDistributionDescriptor
+from pysatl_criterion.distribution import UniformDistributionDescriptor as Uniform
 from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     MonteCarloLimitDistributionResolver,
 )
-from pysatl_criterion.statistics.alternative import AlternativeType, TwoSidedAlternative
-from pysatl_criterion.statistics.goodness_of_fit import uniform as u
+from pysatl_criterion.statistics.alternative import TwoSidedAlternative
+from pysatl_criterion.statistics.goodness_of_fit.binning import EqualProbabilityBins
+from pysatl_criterion.statistics.goodness_of_fit.continuous import uniform as u
 from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 from tests.parameter_cases import parameters_for
 
@@ -64,19 +65,19 @@ def test_invalid_samples(cls, sample):
 
 
 @pytest.mark.parametrize(
-    ("alternative", "scipy_alternative"),
+    ("cls", "scipy_alternative"),
     [
-        (AlternativeType.TWO_TAILED, "two-sided"),
-        (AlternativeType.RIGHT, "greater"),
-        (AlternativeType.LEFT, "less"),
+        (u.KolmogorovSmirnovUniformGofStatistic, "two-sided"),
+        (u.KolmogorovSmirnovDPlusUniformGofStatistic, "greater"),
+        (u.KolmogorovSmirnovDMinusUniformGofStatistic, "less"),
     ],
 )
-def test_ks_reference_with_ties_and_outside_support(alternative, scipy_alternative):
+def test_ks_reference_with_ties_and_outside_support(cls, scipy_alternative):
     sample = [-4, -1, -1, 2, 4, 8]
     reference = stats.uniform(loc=-3, scale=8)
-    actual = u.KolmogorovSmirnovUniformGofStatistic(
-        UniformDistributionDescriptor.DEFAULT.parse({"a": -3, "b": 5}), alternative_type=alternative
-    ).execute_statistic(sample)
+    actual = cls(UniformDistributionDescriptor.DEFAULT.parse({"a": -3, "b": 5})).execute_statistic(
+        sample
+    )
     assert actual == pytest.approx(
         stats.kstest(sample, reference.cdf, alternative=scipy_alternative).statistic
     )
@@ -115,17 +116,17 @@ def test_edf_statistics_against_integral_definitions():
 
 
 @pytest.mark.parametrize(
-    ("kind", "expected"),
+    ("criterion_class", "expected"),
     [
-        ("A", 3.5389423702359975878),
-        ("C", 4.2917566201014437410),
-        ("K", 0.4851757595712566718),
+        (u.ZhangAUniformGofStatistic, 3.5389423702359975878),
+        (u.ZhangCUniformGofStatistic, 4.2917566201014437410),
+        (u.ZhangKUniformGofStatistic, 0.4851757595712566718),
     ],
 )
-def test_zhang_published_formulas(kind, expected):
+def test_zhang_published_formulas(criterion_class, expected):
     # Zhang (2002), evaluated with 50-digit Decimal arithmetic for the five ordered values.
-    assert u.ZhangTestsUniformGofStatistic(
-        UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1}), test_type=kind
+    assert criterion_class(
+        UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
     ).execute_statistic(SAMPLE) == pytest.approx(expected, rel=1e-13)
 
 
@@ -136,10 +137,14 @@ def test_zhang_published_formulas(kind, expected):
             UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
         ),
         *[
-            u.ZhangTestsUniformGofStatistic(
-                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1}), test_type=t
+            criterion_class(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
             )
-            for t in "ACK"
+            for criterion_class in (
+                u.ZhangAUniformGofStatistic,
+                u.ZhangCUniformGofStatistic,
+                u.ZhangKUniformGofStatistic,
+            )
         ],
     ],
 )
@@ -201,30 +206,40 @@ def test_bickel_rosenblatt_narrow_kernel_and_constant_sample():
         ).execute_statistic([0.5, 0.5])
 
 
-@pytest.mark.parametrize("lambda_", [1, 0, -1, -2, -0.5, 2 / 3])
-def test_chi_square_against_scipy(lambda_):
+@pytest.mark.parametrize(
+    ("cls", "lambda_"),
+    [
+        (u.Chi2PearsonUniformGofStatistic, 1),
+        (u.ModifiedLogLikelihoodUniformGofStatistic, -1),
+        (u.NeymanChi2UniformGofStatistic, -2),
+        (u.FreemanTukeyUniformGofStatistic, -0.5),
+        (u.CressieReadUniformGofStatistic, 2 / 3),
+    ],
+)
+def test_chi_square_against_scipy(cls, lambda_):
     sample = [0.1, 0.1, 0.4, 0.6, 0.8, 0.9]
     expected = stats.power_divergence([2, 1, 1, 2], [1.5] * 4, lambda_=lambda_).statistic
-    actual = u.Chi2PearsonUniformGofStatistic(
-        UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1}), bins=4, lambda_=lambda_
+    actual = cls(
+        UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1}),
+        binning=EqualProbabilityBins(4),
     ).execute_statistic(sample)
     assert actual == pytest.approx(expected)
 
 
 @pytest.mark.parametrize(
-    ("lambda_", "expected"),
+    ("cls", "expected"),
     [
-        (1, 6),
-        (0, 4 * np.log(4)),
-        (-0.5, 8),
-        (-1, np.inf),
-        (-2, np.inf),
+        (u.Chi2PearsonUniformGofStatistic, 6),
+        (u.FreemanTukeyUniformGofStatistic, 8),
+        (u.ModifiedLogLikelihoodUniformGofStatistic, np.inf),
+        (u.NeymanChi2UniformGofStatistic, np.inf),
     ],
 )
-def test_chi_square_empty_bin_limits(lambda_, expected):
+def test_chi_square_empty_bin_limits(cls, expected):
     with np.errstate(divide="ignore"):
-        actual = u.Chi2PearsonUniformGofStatistic(
-            UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1}), bins=4, lambda_=lambda_
+        actual = cls(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1}),
+            binning=EqualProbabilityBins(4),
         ).execute_statistic([0.1, 0.2])
     assert actual == pytest.approx(expected)
 
@@ -235,8 +250,7 @@ def test_chi_square_empty_bin_limits(lambda_, expected):
     + [
         (u.BickelRosenblattUniformGofStatistic, {"bandwidth": h})
         for h in [0, -1, np.nan, np.inf, "bad"]
-    ]
-    + [(u.Chi2PearsonUniformGofStatistic, {"bins": b}) for b in [0, 1, 2.5, True, "bad"]],
+    ],
 )
 def test_invalid_algorithm_options(cls, kwargs):
     with pytest.raises(ValueError):
@@ -314,3 +328,40 @@ def test_monte_carlo_uses_the_declared_hypothesis(mocker, statistic):
         sampler.call_args_list
         == [mocker.call(size=len(sample), random_state=None, **parameters)] * 2
     )
+
+
+@pytest.mark.parametrize("cls", FIXED)
+def test_uniform_criterion_docstring_has_scientific_reference(cls):
+    documentation = inspect.getdoc(cls)
+    assert documentation
+    assert "References" in documentation or "https://doi.org/" in documentation
+    assert "https://" in documentation
+
+
+@pytest.mark.parametrize("sample", [[0.2, 0.8], [0.2, 0.2, 0.7], SAMPLE, [0, 0.5, 1]])
+def test_stein_matches_published_order_statistic_representation(sample):
+    # Kattumannil and Sreedevi (2021), Section 2: an O(n) order-statistic
+    # representation independently checks the pairwise U-statistic and its scaling.
+    ordered = np.sort(sample)
+    n = len(ordered)
+    ranks = np.arange(1, n + 1)
+    reference = np.sum((2 * (ranks - n) + (n - 1) * ordered) * ordered) / (n * (n - 1))
+    statistic = u.SteinUniformGofStatistic(Uniform.DEFAULT.parse({"a": 0, "b": 1}))
+    assert statistic.execute_statistic(sample) == pytest.approx(reference, abs=1e-15)
+
+
+def test_neyman_first_four_components_against_published_polynomials():
+    # Rayner and Rayner (2001), equation (1); no special-function evaluator.
+    x = SAMPLE
+    polynomials = [
+        np.sqrt(3) * (2 * x - 1),
+        np.sqrt(5) * (6 * x**2 - 6 * x + 1),
+        np.sqrt(7) * (20 * x**3 - 30 * x**2 + 12 * x - 1),
+        3 * (70 * x**4 - 140 * x**3 + 90 * x**2 - 20 * x + 1),
+    ]
+    for k in range(1, 5):
+        reference = sum(np.sum(p) ** 2 for p in polynomials[:k]) / len(x)
+        statistic = u.NeymanSmoothTestUniformGofStatistic(
+            Uniform.DEFAULT.parse({"a": 0, "b": 1}), k=k
+        )
+        assert statistic.execute_statistic(x) == pytest.approx(reference, rel=1e-12)

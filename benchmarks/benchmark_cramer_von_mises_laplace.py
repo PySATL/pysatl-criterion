@@ -2,8 +2,10 @@ import numpy as np
 import scipy.stats as scipy_stats
 from benchmark_runner import BenchmarkRunner
 
-from pysatl_criterion.distribution.distributions import LaplaceDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.laplace import CramerVonMisesLaplaceGofStatistic
+from pysatl_criterion.distribution import LaplaceDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.continuous.laplace import (
+    CramerVonMisesLaplaceGofStatistic,
+)
 
 
 def cramer_von_mises_laplace_reference(
@@ -34,7 +36,7 @@ def main() -> None:
         LaplaceDistributionDescriptor.DEFAULT.parse({"t": location, "s": scale})
     )
 
-    optimized_result = statistic.do_execute_statistic(sorted_sample)
+    optimized_result = statistic.execute_statistic(sorted_sample)
     reference_result = cramer_von_mises_laplace_reference(
         sorted_sample,
         location,
@@ -52,7 +54,7 @@ def main() -> None:
             scale,
         ),
         optimized_name="Numba implementation",
-        optimized_function=lambda: statistic.do_execute_statistic(sorted_sample),
+        optimized_function=lambda: statistic.execute_statistic(sorted_sample),
     )
 
 

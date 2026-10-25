@@ -30,9 +30,13 @@ class AlchemyDatabase:
 
     def init(self) -> None:
         # Register all tables before create_all, regardless of store import order.
-        from pysatl_criterion.persistence.sqlalchemy.models import critical_value  # noqa: F401
-        from pysatl_criterion.persistence.sqlalchemy.models import limit_distribution  # noqa: F401
+        from pysatl_criterion.persistence.sqlalchemy.models import (
+            critical_value,  # noqa: F401
+            limit_distribution,  # noqa: F401
+        )
+        from pysatl_criterion.persistence.sqlalchemy.schema import require_configuration_schema
 
+        require_configuration_schema(self.engine)
         Base.metadata.create_all(self.engine)
 
     def dispose(self) -> None:

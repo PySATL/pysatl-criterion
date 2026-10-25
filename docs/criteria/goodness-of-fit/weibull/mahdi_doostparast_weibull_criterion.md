@@ -68,8 +68,8 @@ The input is never changed and estimated parameters are not retained.
 ## Example
 
 ```python
-from pysatl_criterion.distribution.distributions import WeibullDistributionDescriptor as Distribution
-from pysatl_criterion.statistics.goodness_of_fit.weibull import MahdiDoostparastWeibullGofStatistic
+from pysatl_criterion.distribution import WeibullDistributionDescriptor as Distribution
+from pysatl_criterion.statistics.goodness_of_fit.continuous.weibull import MahdiDoostparastWeibullGofStatistic
 
 test = MahdiDoostparastWeibullGofStatistic(Distribution.DEFAULT.parse({}))
 value = test.execute_statistic([3.0, 1.2, 2.1, 0.4, 0.8, 0.2])

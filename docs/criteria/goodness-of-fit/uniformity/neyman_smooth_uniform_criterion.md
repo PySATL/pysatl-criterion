@@ -9,8 +9,8 @@ The null hypothesis is that the sample comes from a uniform distribution on the 
 
 ## Usage
 ```python
-from pysatl_criterion.distribution.distributions import UniformDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import UniformDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.continuous import (
     NeymanSmoothTestUniformGofStatistic,
 )
 
@@ -54,8 +54,8 @@ a partial mapping such as `{"a": 0}` raises `ValueError` in the constructor.
 Algorithm options (`k` here) are passed separately, outside `ParameterValues`.
 
 ```python
-from pysatl_criterion.distribution.distributions import UniformDistributionDescriptor as Uniform
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import UniformDistributionDescriptor as Uniform
+from pysatl_criterion.statistics.goodness_of_fit.continuous import (
     NeymanSmoothTestUniformGofStatistic,
 )
 

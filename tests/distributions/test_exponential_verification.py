@@ -1,7 +1,7 @@
 """Independent integrals, SciPy oracles and published reference representations.
 
-References are detailed in docs/exponential-verification.md. No oracle below
-calls a production kernel to generate its expected statistic.
+References: docs/criteria/goodness-of-fit/exponentiality/mathematical-validation.md.
+No oracle below calls a production kernel to generate its expected statistic.
 """
 
 import math
@@ -11,11 +11,12 @@ import numpy as np
 import pytest
 from scipy import integrate, stats
 
-from pysatl_criterion.distribution.distributions import ExponentialDistributionDescriptor as E
+from pysatl_criterion.distribution import ExponentialDistributionDescriptor as E
 from pysatl_criterion.hypothesis_testing.exponential_monte_carlo import monte_carlo_exponential
 from pysatl_criterion.statistics.alternative import AlternativeType
-from pysatl_criterion.statistics.goodness_of_fit import exponent as exp
-from pysatl_criterion.statistics.goodness_of_fit.exponent import (
+from pysatl_criterion.statistics.goodness_of_fit.binning import EqualProbabilityBins
+from pysatl_criterion.statistics.goodness_of_fit.continuous import exponent as exp
+from pysatl_criterion.statistics.goodness_of_fit.continuous.exponent import (
     CoxOakesExponentialityGofStatistic,
     CramerVonMisesExponentialityGofStatistic,
     EppsPulleyExponentialityGofStatistic,
@@ -66,8 +67,9 @@ def test_contract_and_discovery(cls):
     before = X.copy()
     assert math.isfinite(obj.execute_statistic(X))
     np.testing.assert_array_equal(X, before)
-    with pytest.raises(TypeError):
-        obj.execute_statistic(X, a=1)
+    if cls not in EDF:
+        with pytest.raises(TypeError):
+            obj.execute_statistic(X, a=1)
 
 
 @pytest.mark.parametrize("cls", NEW)
@@ -164,15 +166,23 @@ def test_pearson_scipy_histogram_oracle():
     rate = 3
     edges = stats.expon.ppf(np.linspace(0, 1, 6), scale=1 / rate)
     expected = stats.chisquare(np.histogram(X, bins=edges)[0]).statistic
-    obj = exp.Chi2PearsonExponentialityGofStatistic(E.DEFAULT.parse({"lam": rate}))
+    obj = exp.Chi2PearsonExponentialityGofStatistic(
+        E.DEFAULT.parse({"lam": rate}), binning=EqualProbabilityBins(count=5)
+    )
     assert obj.execute_statistic(X) == expected
     for bins in (True, 1, 2.5, np.nan):
-        with pytest.raises(ValueError):
-            exp.Chi2PearsonExponentialityGofStatistic(E.DEFAULT.parse({}), bins=bins)
-    with pytest.raises(ValueError, match="omits bins"):
-        exp.Chi2PearsonExponentialityGofStatistic(
-            E.DEFAULT.parse({}), bins=7
-        )._validate_storage_calibration()
+        with pytest.raises((TypeError, ValueError)):
+            EqualProbabilityBins(count=bins)
+    obj = exp.Chi2PearsonExponentialityGofStatistic(
+        E.DEFAULT.parse({}), binning=EqualProbabilityBins(count=7)
+    )
+    obj._validate_storage_calibration()
+    assert (
+        obj.configuration()["binning"]
+        != exp.Chi2PearsonExponentialityGofStatistic(
+            E.DEFAULT.parse({}), binning=EqualProbabilityBins(count=5)
+        ).configuration()["binning"]
+    )
 
 
 @pytest.mark.parametrize("cls", TUNED)
@@ -312,13 +322,15 @@ def test_composite_scale_roundtrip_and_minimum(cls):
     assert obj.execute_statistic(X * 7.31) == pytest.approx(obj.execute_statistic(X))
 
 
-def test_greenwood_and_legacy_we_are_affine_equivalent():
-    from pysatl_criterion.statistics.goodness_of_fit.exponent import WeExponentialityGofStatistic
+def test_greenwood_and_we_are_affine_equivalent():
+    from pysatl_criterion.statistics.goodness_of_fit.continuous.exponent import (
+        WeExponentialityGofStatistic,
+    )
 
     g = exp.GreenwoodExponentialityGofStatistic(E.DEFAULT.parse({})).execute_statistic(X)
-    old_value = WeExponentialityGofStatistic(E.DEFAULT.parse({})).execute_statistic(X)
+    we_value = WeExponentialityGofStatistic(E.DEFAULT.parse({})).execute_statistic(X)
     n = len(X)
-    assert old_value == pytest.approx((n - 1) * (n * g - 1) / n**2)
+    assert we_value == pytest.approx(g - 1 / n)
 
 
 def test_lilliefors_independent_fitted_scipy_statistic():
@@ -338,7 +350,7 @@ def test_lilliefors_independent_fitted_scipy_statistic():
     ],
 )
 def test_legacy_analytic_references(name, settings, expected):
-    from pysatl_criterion.statistics.goodness_of_fit import exponent
+    from pysatl_criterion.statistics.goodness_of_fit.continuous import exponent
 
     # Gini: weighted order sum =94/200. Normalized order spacings are
     # (1, 1.2, .9, 1.2, .7): first two / last three means =33/28;

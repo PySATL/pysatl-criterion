@@ -1,47 +1,35 @@
-# KS distance to a fixed Gamma CDF.
+# Kolmogorov–Smirnov for Gamma
 
-D+ = max(i/n-u_i), D- = max(u_i-(i-1)/n), i=1,...,n.
-Return max(D+,D-), D+, or D- for TWO_TAILED, RIGHT, or LEFT.
-All three reject for large values. No parameters are fitted.
-Stored calibration supports only the default two-sided CDF distance.
+`KolmogorovSmirnovGammaGofStatistic`
 
-For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
-where Gamma has shape alpha, rate beta and known origin zero.
-Parameters are fixed, not fitted. Samples must be finite, real,
-one-dimensional and nonempty, in the closed support [0, infinity).
-Zero is accepted as a boundary value. Ties and constant samples are
-allowed except where stated. Inputs and instance state are unchanged.
-Continuous-null calibration assumes iid observations; rounded data
-require calibration of the observation process.
+Use fixed positive shape `alfa` and **rate** `beta` (SciPy scale is `1/beta`), with origin zero. Both parameters must be supplied; no fitting occurs. Samples must be finite, real, nonempty, one-dimensional and nonnegative. Zero is accepted as a support boundary. Ties are allowed unless they make the statistic infinite or degenerate.
 
-## Parameters
+## Definition
 
-```text
-parameters : ParameterValues
-    Values with alfa, beta fixed; omitted parameters are unknown.
-alternative_type : AlternativeType, optional
-    TWO_TAILED (default), RIGHT or LEFT selects D, D+ or D-.
-mode : {"auto", "exact", "asymp", "approx"}, optional
-    Compatibility setting; no effect on the scalar statistic.
-```
+Write $u_i=F_{\alpha,\beta}(x_{(i)})$, $i=1,\ldots,n$. Define $D^+=\max_i(i/n-u_i)$ and $D^-=\max_i(u_i-(i-1)/n)$.
+
+$$
+D=\max(D^+,D^-)
+$$
+
+The default is the two-sided CDF discrepancy. Legacy `alternative_type=RIGHT` selects D+ and `LEFT` selects D−; each statistic rejects for large values. `mode` does not change the statistic. Nondefault directions cannot use stored calibration.
+
+Large values oppose the null (right tail). `execute_statistic` returns a scalar, not a p-value. The sample is not modified.
 
 ## Source
 
-N. Smirnov (1948), "Table for Estimating the Goodness of Fit of Empirical
-Distributions", Ann. Math. Statist. 19, 279-281.
-https://doi.org/10.1214/aoms/1177730256
-
-The general statistic is applied to Gamma probabilities.
+[Zhang (2002), §§2–3](https://doi.org/10.1111/1467-9868.00337).
 
 ## Usage
 
 ```python
-from pysatl_criterion.distribution.distributions import GammaDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.gamma import KolmogorovSmirnovGammaGofStatistic
+from pysatl_criterion.distribution import GammaDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.continuous.gamma import KolmogorovSmirnovGammaGofStatistic
 
-statistic = KolmogorovSmirnovGammaGofStatistic(GammaDistributionDescriptor.DEFAULT.parse({'alfa': 1, 'beta': 1}))
+parameters = GammaDistributionDescriptor.DEFAULT.parse({"alfa": 2.5, "beta": 1.5})
+statistic = KolmogorovSmirnovGammaGofStatistic(parameters)
 value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
 ```
 
-Returns a scalar; large values oppose the null. Invalid samples raise `ValueError`.
-See the [audit](../../../gamma-statistics-audit.md) for calibration changes.
+See the [Gamma catalog](index.md) and [mathematical verification](mathematical-validation.md)
+for calibration, numerical limits and the scope of scientific attribution.

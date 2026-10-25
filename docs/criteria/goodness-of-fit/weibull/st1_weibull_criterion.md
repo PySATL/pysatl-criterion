@@ -1,83 +1,93 @@
-# Delta-method moment discrepancy for negative log Weibull observations.
+# Best–Rayner–Thas skewness component for Weibull fit
 
-`ST1WeibullGofStatistic`
+`BestRaynerThasSkewnessWeibullGofStatistic` is also available as `ST1WeibullGofStatistic`.
+The alias refers to the same class; its code remains `ST1_WEIBULL_GOODNESS_OF_FIT`.
 
-## Constructor
+## Definition
 
-```text
-parameters : ParameterValues
-    An empty distribution schema; all distribution parameters are unknown.
-```
+For a zero-location Weibull sample with unknown shape $k$ and scale $\eta$,
+use $Y_i=-\log X_i$. Under the null, $Y$ is maximum Gumbel with
+location $-\log\eta$ and scale $1/k$. Define
 
-## Hypothesis, formula and calibration
+$$
+m_j=\frac1n\sum_i(Y_i-\bar Y)^j,\qquad
+ g_n=\frac{m_3}{m_2^{3/2}},\qquad b_n=\frac{m_4}{m_2^2}.
+$$
 
-```text
-F(x)=1-exp(-(x/eta)**k), x > 0, with location fixed at zero
-and unknown positive scale eta and shape k.
-Pass Distribution.DEFAULT.parse({}) to declare both parameters unknown.
-Logarithmic location and scale are eliminated within every call.
+All moments use divisor $n$; $b_n$ denotes Pearson kurtosis (not excess).
+The implementation returns
 
-Let Z be the standardized maximum Gumbel. Set g=E(Z**3), b=E(Z**4).
-For sample standardized -log(x), let g_n and b_n use divisor n.
-Influence functions are P3(z)=z**3-3*z-1.5*g*z**2+g/2 and
-P4(z)=z**4-4*g*z-2*b*z**2+b. Put V_ij=E(Pi(Z)*Pj(Z)).
-Return n*(g_n-g)**2/V_33.
+$$
+V_3^2=\frac{n(g_n-1.139547)^2}{20}.
+$$
 
-Reject for right tail values.
-Calibrate with repeated execute_statistic calls on ordinary Weibull
-samples. Affine invariance in log(x) permits eta=k=1 for simulation.
-Ordinary fixed-parameter KS tables do not apply to fitted CDFs.
-Previously stored unversioned Weibull calibrations must be regenerated.
-These are locally defined moment statistics under the historical
-ST names. Exact cumulants (j-1)!*zeta(j), j>=2, determine moments
-through order eight. The delta method gives an asymptotic chi-square(1)
-limit under the null, not an exact finite-sample law or the published
-smooth-test normalization. Use simulation for finite samples.
-A primary source establishing this exact implemented formula was not
-verified in the literature search. Treat it as the specified local
-discrepancy; no named-test tables or chi-square limit are asserted.
-```
+These are the rounded coefficients used by [EWGoF 2.2.2 source](https://github.com/cran/EWGoF/blob/51ef071b72a340b31807dacfa0e8f1d4a5a5eeb1/R/WPP.test.R)
+and reproduced in [Krit (2014), §3.2.5, (3.33)–(3.36)](https://theses.hal.science/tel-01126901/document).
+The fourth component includes a correction for skewness. No maximum-likelihood
+fit is used in either component.
 
-## Calling execute_statistic
+## Names and compatibility
 
-```text
-Compute the statistic described in the class Notes.
+EWGoF's executable code defines **ST1 as skewness** and **ST2 as kurtosis**.
+Its [help page](https://search.r-project.org/CRAN/refmans/EWGoF/html/WPP.test.html)
+reverses these labels. The descriptive Python names remove this ambiguity;
+the historical aliases follow the executable source.
 
-Parameters
-----------
-rvs : array_like
-    One-dimensional finite strictly positive observations, n >= 2.
-    Constant samples are invalid; ties are allowed unless stated below.
-**kwargs : dict
-    Unused common-interface keywords.
+The previous local delta-method discrepancies have been replaced. In particular,
+ST1 no longer divides by the asymptotic variance of sample skewness, and ST2
+no longer uses a covariance-based regression correction. Old critical values
+must be regenerated despite the preserved short codes.
 
-Returns
--------
-statistic : float
-    Scalar discrepancy. Infinite boundary penalties are preserved.
-
-Raises
-------
-ValueError
-    Invalid sample, unsupported settings, or unrepresentable fit.
-
-Notes
------
-The input is never changed and estimated parameters are not retained.
-```
-
-## Example
+## Usage
 
 ```python
-from pysatl_criterion.distribution.distributions import WeibullDistributionDescriptor as Distribution
-from pysatl_criterion.statistics.goodness_of_fit.weibull import ST1WeibullGofStatistic
+from pysatl_criterion.distribution import WeibullDistributionDescriptor as Weibull
+from pysatl_criterion.statistics.goodness_of_fit.continuous.weibull import (
+    BestRaynerThasSkewnessWeibullGofStatistic,
+)
 
-test = ST1WeibullGofStatistic(Distribution.DEFAULT.parse({}))
-value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
-print(value)
+criterion = BestRaynerThasSkewnessWeibullGofStatistic(Weibull.DEFAULT.parse({}))
+value = criterion.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
 ```
 
+Both parameters must be unknown. Input must be one-dimensional, finite,
+strictly positive and nonconstant, with at least two observations. Ties are
+accepted. Invalid input raises `ValueError`; input arrays are not modified.
 
-See [the Weibull audit](../../../weibull-statistics-audit.md) for migration details,
-source verification limits and calibration changes. Ordinary and exponentiated Weibull have separate distribution and criterion identities;
-old critical values must not be reused after a formula or family change.
+## Calibration
+
+Large values reject. At fixed sample size, invariance under $X\mapsto aX^b$
+for $a,b>0$ permits simulation with Weibull shape = scale = 1. Every replicate
+must undergo the same negative-log transformation and moment standardization.
+At $n=2$ the statistic is constant and cannot discriminate alternatives.
+Rounded or censored observations require calibration for that observation scheme.
+
+The return value is a statistic, not a p-value. The denominators are smooth
+polynomial normalizations, not delta-method variances after estimating location
+and scale. An unqualified $\chi^2_1$ approximation is not justified for these
+rounded implementations. Use finite-sample Monte Carlo calibration.
+Unversioned stored Weibull calibrations remain blocked.
+
+## Scientific reference and verification scope
+
+Best, D. J., Rayner, J. C. W., & Thas, O. (2007).
+[Comparison of Five Tests of Fit for the Extreme Value Distribution](https://doi.org/10.1080/15598608.2007.10411826).
+*Journal of Statistical Theory and Practice*, **1**(1), 89–99.
+[Author-uploaded copy](https://www.researchgate.net/publication/266965257_Comparison_of_Five_Tests_of_Fit_for_the_Extreme_Value_Distribution).
+
+The accessible author PDF contains printed pages 89–91 and 96–97 only;
+pages 92–95 and the appendices needed for direct formula verification are missing.
+Exact implementation coefficients were checked against EWGoF and Krit, not
+against the missing pages. Agreement with every example in the original article
+has therefore not been established.
+
+See the [mathematical validation](mathematical-validation.md#st1-and-st2-follow-up-verification)
+for reproducible numerical checks and the unresolved Port Pirie discrepancy.
+
+For the 65 observations in the article's Table 1 (Port Pirie), treating them as
+$Y$ and passing $X=\exp(-Y)$ gives $g_n=0.7110707539472332$ and
+$V_3^2=0.5966736536522815$. Section 4 reports $V_3^2=0.71$.
+The reported number is close to the sample skewness, but this alone does not
+establish a typographical error. Replacing the statistic by sample skewness or
+changing its denominator merely to reproduce 0.71 would change the test without
+scientific justification. The discrepancy remains unresolved.

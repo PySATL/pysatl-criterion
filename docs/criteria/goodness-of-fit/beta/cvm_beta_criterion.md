@@ -1,62 +1,54 @@
-# Cramer-von Mises test for beta distribution
+# Cramér–von Mises for a specified Beta distribution
 
-## Description
-Performs Cramer-von Mises goodness-of-fit test for the hypothesis that the sample comes from a beta distribution.
-The statistic accumulates squared differences between the empirical distribution function and the theoretical beta cumulative distribution function.
+[All Beta criteria](index.md) · [Mathematical verification](mathematical-validation.md)
 
-Hypothesis of Beta Distribution
-The null hypothesis is that the data comes from a beta distribution with positive shape parameters `alpha` and `beta` on the interval $[0, 1]$.
+Class: `CrammerVonMisesBetaGofStatistic`. Code: `CVM_BETA_GOODNESS_OF_FIT`.
 
-Test Statistic
-The observations are sorted, transformed by the reference beta cumulative distribution function, and compared with expected uniform plotting positions.
+## Hypothesis and formula
 
-## Usage
+Both shape parameters `a > 0` and `b > 0` are finite and fixed independently of
+the sample. Pass `Beta.DEFAULT.parse({"a": 2, "b": 5})`; omitted shapes are
+unknown and are rejected by this class. The support is fixed at $[0,1]$.
+
+For sorted observations, let $u_i=F_{a,b}(X_{(i)})$, $i=1,\ldots,n$,
+$D^+=\max_i(i/n-u_i)$, $D^-=\max_i(u_i-(i-1)/n)$ and
+$W^2=1/(12n)+\sum_i(u_i-(i-1/2)/n)^2$.
+
+$$
+W^2=\frac{1}{12n}+\sum_{i=1}^n\left(u_i-\frac{i-1/2}{n}\right)^2
+$$
+
+
+## Input, result and calibration
+
+`execute_statistic(rvs, **kwargs)` accepts a nonempty, finite, one-dimensional
+real sample in $[0,1]$. Ties and constants are allowed; masked observations and
+complex values are rejected. It returns a scalar and leaves the sample unchanged.
+Large values reject (`RightAlternative`). Extra execution keywords are ignored.
+
+For a continuous fully specified null, the probability integral transform
+makes this EDF statistic's null law independent of both shapes. Calibrate at the
+same sample size. No parameter is fitted, and no p-value is returned.
+AD, Liao–Shimokawa and Zhang use separate log-CDF and log-survival probabilities;
+the other kernels use the CDF. Underflowed interior tails have a hypergeometric
+logarithmic fallback; unrepresentable tail evaluation raises `ValueError`.
+True endpoints give infinity for AD, Liao–Shimokawa and Zhang. Other EDF
+statistics remain finite. The data are never clipped.
+
+## Example
+
 ```python
-from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit import (
-    CrammerVonMisesBetaGofStatistic,
-)
+from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
+from pysatl_criterion.statistics.goodness_of_fit.continuous.beta import CrammerVonMisesBetaGofStatistic
 
-
-test_statistic = CrammerVonMisesBetaGofStatistic(BetaDistributionDescriptor.DEFAULT.parse({'a': 2, 'b': 5}))
-statistic_result = test_statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
-print(statistic_result)
+statistic = CrammerVonMisesBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}))
+value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
+print(value)
 ```
 
-## Arguments
-`alpha` - first positive shape parameter of the beta distribution. Default value is `1`.
+## Scientific source
 
-`beta` - second positive shape parameter of the beta distribution. Default value is `1`.
+[Zhang (2002), Powerful goodness-of-fit tests based on the likelihood ratio](https://doi.org/10.1111/1467-9868.00337), §2.3.
 
-`rvs` - a nonempty one-dimensional sample of finite values in `[0, 1]`, passed to `execute_statistic`. Both shape parameters must be finite. All these statistics reject for large values.
-
-## Details
-The Cramer-von Mises statistic is
-
-$$ W_n^2 = \frac{1}{12n} + \sum_{i=1}^{n} \left(F_0(X_{(i)}) - \frac{2i - 1}{2n}\right)^2 $$
-
-where $F_0$ is the reference beta cumulative distribution function.
-
-## Author(s)
-Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
-
-## References
-
-The reference studies the one-sample continuous-null W-squared statistic. This class applies it to a specified Beta CDF; neither shape is estimated.
-
-S. Csorgo and J. J. Faraway (1996), "The Exact and Asymptotic
-   Distributions of Cramer-von Mises Statistics", JRSS B 58, 221-234.
-   https://doi.org/10.1111/j.2517-6161.1996.tb02077.x
-
-## Examples
-```python
-from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit import (
-    CrammerVonMisesBetaGofStatistic,
-)
-
-
-test_statistic = CrammerVonMisesBetaGofStatistic(BetaDistributionDescriptor.DEFAULT.parse({'a': 2, 'b': 5}))
-statistic_result = test_statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
-print(statistic_result)
-```
+The source identifies the shared statistical functional; applying it through
+the specified Beta distribution does not constitute a new Beta-specific test.

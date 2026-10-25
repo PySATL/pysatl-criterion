@@ -1,63 +1,86 @@
-# Bonett-Seier test for log-normal distribution
+# Bonett-Seier test for log-normal data
 
-## Description
-Performs Bonett-Seier goodness-of-fit test for the hypothesis that the sample comes from a log-normal distribution.
-The implementation uses positive observations and either evaluates the log-normal model directly or applies a normality statistic to standardized logarithms.
+**Class:** `BonettSeierLogNormalGofStatistic`
 
-Hypothesis of Log-Normal Distribution
-The null hypothesis is that the data comes from a log-normal distribution with positive shape parameter `s` and positive scale parameter `scale`.
-Observations passed to `execute_statistic` should be positive; tests that receive non-positive observations may return `inf`.
+**Code:** `BS_LOGNORMAL_GOODNESS_OF_FIT`
 
-Test Statistic
-The statistic is based on the wrapped Bonett-Seier normality statistic applied to standardized log observations.
+## Hypothesis and inputs
 
-## Usage
-```python
-from pysatl_criterion.distribution.distributions import LogNormalDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit import (
-    BonettSeierLogNormalGofStatistic,
-)
+This is a **log-normal family/shape** statistic: log(X) is normal with unknown
+location and positive scale. Use `LogNormalDistributionDescriptor.DEFAULT.parse({})`.
+An empty `SHAPE_SCALE` schema is also accepted. All observations must be finite,
+real, strictly positive and one-dimensional. Active masks and undefined
+constant-sample contrasts raise `ValueError`; minimum sizes are specified below.
+
+For compatibility, fully specified `mu, s` or `s, scale` coordinates are also
+accepted and preserved by `hypothesis()`. They do **not** enter this shape
+statistic: it cannot detect a wrong location/scale within the log-normal family.
+Use a fixed-CDF EDF or frequency criterion when those particular values are
+part of the hypothesis. Partial parameter sets are rejected.
+
+## Logarithmic reduction
+
+The implementation computes `BonettSeierNormalityGofStatistic` on `y = log(rvs)` with an empty
+normal-family hypothesis. Thus its formula, sample-size limits, normalization
+and rejection tail are exactly those of the normality statistic at its default
+settings. Constructor-specific normality options are not exposed by this wrapper.
+The identity was checked on normal, nonnormal and tied logarithmic samples and
+under transformations `X -> exp(a) * X**b`, b > 0.
+
+## Underlying normality definition
+
+**In this section, x denotes y = log(X), not the original positive sample.**
+The normal-family hypothesis and dispersion conventions below concern these
+log observations. See also the [normality source page](../normality/bonett_seier_normality_criterion.md).
 
 
-test_statistic = BonettSeierLogNormalGofStatistic(LogNormalDistributionDescriptor.SHAPE_SCALE.parse({'s': 1, 'scale': 1}))
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.58, 0.76, 0.93, 1.12, 1.35, 1.61, 1.92, 2.28, 2.71, 3.23, 3.84]
-)
-print(statistic_result)
-```
+H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+Location and positive scale cancel, allowing N(0,1) null simulation.
+Every simulated sample must go through execute_statistic again.
+Both tails of the statistic define rejection. Use at least 4
+finite real observations in one dimension. Nonzero dispersion is required.
+Ties are accepted unless a scale or contrast becomes undefined.
+Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+the standard normal CDF and density, s0=std(x,ddof=0), and
+s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-## Arguments
-`parameters` - required `ParameterValues` with both parameters fixed.
-Use `LogNormalDistributionDescriptor.SHAPE_SCALE.parse({"s": ..., "scale": ...})`
-or `LogNormalDistributionDescriptor.LOG_LOCATION_SCALE.parse({"mu": ..., "s": ...})`.
-Here `scale = exp(mu)`; omitted values are not filled automatically.
+The factor sqrt(n+2), the population sample variance (ddof=0), and the
+two-sided rejection rule agree with equations (5)–(6) of the [original
+article](https://sci2s.ugr.es/keel/pdf/specific/articulo/Normalidad4.pdf).
 
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-For dynamically generated log-normal tests, the implementation transforms observations with
-
-$$ Z_i = \frac{\log X_i - \log(scale)}{s} $$
-
-and applies the corresponding normality statistic to the standardized values. Explicit EDF and KL-based implementations use the formulas in `pysatl_criterion.statistics.goodness_of_fit.log_normal`.
-
-## Author(s)
-Anton Dorosev, Alexey Mironov
+Let d=mean(abs(x-mean(x))) and omega=13.29*log(s0/d).
+Return sqrt(n+2)*(omega-3)/3.54, a signed kurtosis transform.
+The constants are rounded approximations; use finite-sample simulation.
 
 ## References
-The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.log_normal`.
+
+[1] Bonett, D. G. and Seier, E. (2002).
+   A test of normality with high uniform power.
+   Computational Statistics & Data Analysis, 40(3), 435-445.
+   https://doi.org/10.1016/S0167-9473(02)00074-9
+
+
+## Rejection and calibration
+
+Rejection tail: **two_tailed**. A statistic value alone is not a p-value.
+For the composite null, simulation can use log-normal mu=0, s=1 because
+log-location and log-scale are removed by the statistic. Every replicate must
+call `execute_statistic` again. This does not make every directed shape test
+omnibus. Signed two-tail tests require both null quantiles, without assuming
+symmetry. Legacy attribution qualifications carry over from normality.
 
 ## Examples
+
 ```python
-from pysatl_criterion.distribution.distributions import LogNormalDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit import (
-    BonettSeierLogNormalGofStatistic,
-)
+import numpy as np
+from pysatl_criterion.distribution import LogNormalDistributionDescriptor as LogNormal
+from pysatl_criterion.statistics.goodness_of_fit.continuous.log_normal import BonettSeierLogNormalGofStatistic
 
-
-test_statistic = BonettSeierLogNormalGofStatistic(LogNormalDistributionDescriptor.SHAPE_SCALE.parse({'s': 1, 'scale': 1}))
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.58, 0.76, 0.93, 1.12, 1.35, 1.61, 1.92, 2.28, 2.71, 3.23, 3.84]
-)
-print(statistic_result)
+parameters = LogNormal.DEFAULT.parse({})
+statistic = BonettSeierLogNormalGofStatistic(parameters)
+sample = np.exp([-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1])
+value = statistic.execute_statistic(sample)
+assert np.isfinite(value)
 ```
+
+See the [complete catalog](index.md) and [mathematical verification](mathematical-validation.md).

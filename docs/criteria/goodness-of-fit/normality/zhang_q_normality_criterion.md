@@ -1,5 +1,9 @@
 # Zhang Q test for normality
 
+**Class:** `ZhangQNormalityGofStatistic`
+
+**Code:** `ZQ_NORMALITY_GOODNESS_OF_FIT`
+
 Zhang normality statistic based on a ratio of ordered-sample contrasts.
 
 ## Methods
@@ -16,7 +20,7 @@ alternative()
 H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
 Location and positive scale cancel, allowing N(0,1) null simulation.
 Every simulated sample must go through execute_statistic again.
-Both tails of the statistic defines rejection. Use at least 8
+Both tails of the statistic define rejection. Use at least 8
 finite real observations in one dimension. Nonzero dispersion is required.
 Ties are accepted unless a scale or contrast becomes undefined.
 Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
@@ -44,14 +48,14 @@ this is the Q component, not a combined Q/Q* p-value procedure.
 ## Examples
 
 ```python
-from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
+from pysatl_criterion.distribution import NormalDistributionDescriptor
 import numpy as np
-from pysatl_criterion.statistics.goodness_of_fit.normal import ZhangQNormalityGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import ZhangQNormalityGofStatistic
 
 statistic = ZhangQNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({}))
 sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
 value = statistic.execute_statistic(sample)
-bool(np.isfinite(value))
+assert np.isfinite(value)
 ```
 
-See [review and calibration changes](../../../normal-statistics-review.md).
+See the [complete catalog](index.md) and [mathematical verification](mathematical-validation.md).

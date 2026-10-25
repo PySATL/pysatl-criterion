@@ -1,38 +1,35 @@
-# Locally defined tail-weighted Gamma EDF discrepancy.
+# Min–Toshiyuki (legacy name) for Gamma
 
-T = sum(max(i/n-u_i, u_i-(i-1)/n)/sqrt(u_i*(1-u_i)))/sqrt(n).
-Weights use log-CDF and log-survival values for tail accuracy.
-Zero observations yield positive infinity; extreme weights may overflow.
-The public name is retained. No primary source establishing this exact
-formula as a Gamma test was found. Liao and Shimokawa (1999) studied
-other families and do not establish this Gamma calibration.
-Use simulation of this formula under the specified Gamma null.
+`MinToshiyukiGammaGofStatistic`
 
-For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
-where Gamma has shape alpha, rate beta and known origin zero.
-Parameters are fixed, not fitted. Samples must be finite, real,
-one-dimensional and nonempty, in the closed support [0, infinity).
-Zero is accepted as a boundary value. Ties and constant samples are
-allowed except where stated. Inputs and instance state are unchanged.
-Continuous-null calibration assumes iid observations; rounded data
-require calibration of the observation process.
+Use fixed positive shape `alfa` and **rate** `beta` (SciPy scale is `1/beta`), with origin zero. Both parameters must be supplied; no fitting occurs. Samples must be finite, real, nonempty, one-dimensional and nonnegative. Zero is accepted as a support boundary. Ties are allowed unless they make the statistic infinite or degenerate.
 
-## Parameters
+## Definition
 
-```text
-parameters : ParameterValues
-    Values with alfa, beta fixed; omitted parameters are unknown.
-```
+Write $u_i=F_{\alpha,\beta}(x_{(i)})$, $i=1,\ldots,n$. Define $D^+=\max_i(i/n-u_i)$ and $D^-=\max_i(u_i-(i-1)/n)$.
+
+$$
+L_n=\frac1{\sqrt n}\sum_{i=1}^n\frac{\max(i/n-u_i,u_i-(i-1)/n)}{\sqrt{u_i(1-u_i)}}
+$$
+
+This is mathematically the same discrepancy as Liao–Shimokawa. The public name is retained for compatibility, not presented as a separate published Gamma test. Logarithmic tail probabilities are used. A zero observation gives infinity. The original fitted Weibull/extreme-value critical values do not apply to the fixed Gamma null.
+
+Large values oppose the null (right tail). `execute_statistic` returns a scalar, not a p-value. The sample is not modified.
+
+## Source
+
+[Liao and Shimokawa (1999)](https://doi.org/10.1080/00949659908811965).
 
 ## Usage
 
 ```python
-from pysatl_criterion.distribution.distributions import GammaDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.gamma import MinToshiyukiGammaGofStatistic
+from pysatl_criterion.distribution import GammaDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.continuous.gamma import MinToshiyukiGammaGofStatistic
 
-statistic = MinToshiyukiGammaGofStatistic(GammaDistributionDescriptor.DEFAULT.parse({'alfa': 1, 'beta': 1}))
+parameters = GammaDistributionDescriptor.DEFAULT.parse({"alfa": 2.5, "beta": 1.5})
+statistic = MinToshiyukiGammaGofStatistic(parameters)
 value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
 ```
 
-Returns a scalar; large values oppose the null. Invalid samples raise `ValueError`.
-See the [audit](../../../gamma-statistics-audit.md) for calibration changes.
+See the [Gamma catalog](index.md) and [mathematical verification](mathematical-validation.md)
+for calibration, numerical limits and the scope of scientific attribution.

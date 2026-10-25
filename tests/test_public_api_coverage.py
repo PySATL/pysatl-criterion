@@ -3,6 +3,7 @@ import inspect
 import numpy as np
 import pytest
 
+import pysatl_criterion.distribution as distributions
 from pysatl_criterion import DistributionType
 from pysatl_criterion.api import distributions as distributions_api
 from pysatl_criterion.api import testing as testing_api
@@ -30,11 +31,10 @@ from pysatl_criterion.core.distributions.continues import (
     uniform,
     weibull,
 )
-from pysatl_criterion.distribution import distributions
+from pysatl_criterion.distribution import NormalDistributionDescriptor
 from pysatl_criterion.distribution.distribution_parameter_descriptor import (
     DistributionParameterDescriptor,
 )
-from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
 from pysatl_criterion.distribution.validator import (
     NonNegativeNumberValidator,
     PositiveNumberValidator,
@@ -43,11 +43,11 @@ from pysatl_criterion.distribution.validator import (
 )
 from pysatl_criterion.generator import generators
 from pysatl_criterion.generator.model import AbstractRVSGenerator
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous import (
     exponentiated_weibull as exponentiated_weibull_statistics,
 )
-from pysatl_criterion.statistics.goodness_of_fit import normal as normal_statistics
-from pysatl_criterion.statistics.goodness_of_fit import weibull as weibull_statistics
+from pysatl_criterion.statistics.goodness_of_fit.continuous import normal as normal_statistics
+from pysatl_criterion.statistics.goodness_of_fit.continuous import weibull as weibull_statistics
 from tests.parameter_cases import parameters_for
 
 
@@ -70,8 +70,8 @@ def test_all_distribution_descriptors_expose_complete_metadata():
         if issubclass(cls, distributions.DistributionDescriptor) and not inspect.isabstract(cls)
     ]
 
-    assert len(descriptor_classes) == 26
-    assert {cls.type() for cls in descriptor_classes} <= set(DistributionType)
+    assert len(descriptor_classes) == len(DistributionType)
+    assert {cls.type() for cls in descriptor_classes} == set(DistributionType)
     for descriptor_class in descriptor_classes:
         for parameter in descriptor_class.parameters():
             assert parameter.display_name

@@ -11,8 +11,10 @@ from hyperbolic_benchmark_utils import (
     create_sorted_sample,
 )
 
-from pysatl_criterion.distribution.distributions import HyperbolicDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.hyperbolic import KuiperHyperbolicGofStatistic
+from pysatl_criterion.distribution import HyperbolicDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.continuous.hyperbolic import (
+    KuiperHyperbolicGofStatistic,
+)
 
 
 def reference(cdf: np.ndarray) -> float:

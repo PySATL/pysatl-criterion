@@ -1,5 +1,7 @@
 # Ebner–Liebenberg test for the Beta distribution
 
+[All Beta criteria](index.md) · [Mathematical verification](mathematical-validation.md)
+
 ## Description
 
 The criterion tests the composite null hypothesis
@@ -21,8 +23,8 @@ not the fitted Kolmogorov–Smirnov statistic used there as a competitor.
 ## Usage
 
 ```python
-from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
-from pysatl_criterion.statistics.goodness_of_fit import EbnerLiebenbergBetaGofStatistic
+from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
+from pysatl_criterion.statistics.goodness_of_fit.continuous import EbnerLiebenbergBetaGofStatistic
 
 statistic = EbnerLiebenbergBetaGofStatistic(Beta.DEFAULT.parse({}))
 sample = [0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57]
@@ -104,7 +106,11 @@ The hypothesis-testing layer implements this procedure with reproducible RNG:
 
 ```python
 from pysatl_criterion.hypothesis_testing.beta_bootstrap import parametric_bootstrap_beta
+from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
+from pysatl_criterion.statistics.goodness_of_fit.continuous.beta import EbnerLiebenbergBetaGofStatistic
 
+statistic = EbnerLiebenbergBetaGofStatistic(Beta.DEFAULT.parse({}))
+sample = [0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57]
 result = parametric_bootstrap_beta(
     statistic, sample, significance_level=0.05, n_resamples=1999, random_state=2026
 )
@@ -134,7 +140,7 @@ finite positive limits, as assumed in equation (6). This is an omnibus
 characterization under those conditions, not an unconditional assertion for
 all possible samples or endpoint-contaminated distributions.
 
-[Statistic implementation](https://github.com/PySATL/pysatl-criterion/blob/main/src/pysatl_criterion/statistics/goodness_of_fit/beta.py)
+[Statistic implementation](https://github.com/PySATL/pysatl-criterion/blob/main/src/pysatl_criterion/statistics/goodness_of_fit/continuous/beta/beta_statistics.py)
 and [bootstrap implementation](https://github.com/PySATL/pysatl-criterion/blob/main/src/pysatl_criterion/hypothesis_testing/beta_bootstrap.py).
 The full identifier is `EL_BETA_GOODNESS_OF_FIT`.
 

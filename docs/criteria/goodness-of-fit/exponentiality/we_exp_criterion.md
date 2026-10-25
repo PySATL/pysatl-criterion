@@ -1,86 +1,78 @@
-# WE test for exponentiality
+# WE exponentiality criterion
 
-We statistic for zero-origin exponential observations.
+`WeExponentialityGofStatistic` — short code `WE`; right tail.
 
-## Hypothesis, formula and calibration
+[All exponential criteria](index.md) · [Mathematical verification](mathematical-validation.md)
 
-H0 is Exp(lam), lam > 0 unknown, with known origin zero.
-``hypothesis().parameters()`` is empty. Positive rescaling leaves
-the statistic unchanged, so Exp(1) simulation is valid.
-Write n for sample size, x_(i) for sorted observations, and
-y=x/mean(x). The implemented formula is:
+## Hypothesis and formula
 
-    (n-1)*var(y, ddof=0)/n**2. This retained local CV-squared
-    functional is not the Shapiro-Wilk W statistic. Its historical class
-    name does not establish equivalence to a published WE test.
+The model is $F(x)=1-\exp(-\lambda x)$ for $x\ge0$, with known origin zero and $\lambda>0$.
+Unknown rate only: pass `E.DEFAULT.parse({})`.
+Omitted parameters remain unknown. Where fitting is needed, $\widehat\lambda=1/\bar x$
+is recomputed for each sample; no fitted state is retained.
 
-Reject in the upper tail. This is a directional test; it is not
-claimed consistent against every nonexponential alternative.
-Use independent continuous, uncensored observations. Rounded or tied
-data require calibration of the observation process. No parameters
-are retained from a previous call. Rescaling uses a power of two
-to preserve exact binary ties; unrepresentable positive ratios raise
-ValueError. Strict comparisons near floating-point boundaries can
-still depend on roundoff.
-A primary source establishing this exact implemented convention
-was not verified in the review; no published tables or asymptotic
-law are endorsed unless derived explicitly above. See the audit.
+Write $y_i=x_i/\bar x$, $u_i=1-\exp(-\lambda x_{(i)})$ with the specified or
+fitted rate, $D^+=\max_i(i/n-u_i)$ and $D^-=\max_i(u_i-(i-1)/n)$.
+For spacing statistics, $d_i=(n-i+1)(x_{(i)}-x_{(i-1)})$ and $x_{(0)}=0$.
+For frequency statistics, $O_j$ and $E_j=np_j>0$ are aligned counts.
 
-The constructor has no arguments; `lam` is unknown and is not accepted.
+$$
+\frac{\sum_i(x_i-\bar x)^2}{(\sum_i x_i)^2}
+$$
 
-## Sample and result
+WE is a published test name associated with Ascher (1990), not an invented local name.
+The later rounding study cited below gives the definition
 
-```text
-Compute the We scalar statistic.
+$$
+WE_{\mathrm{published}}=\frac{\sum_i(x_i-\bar x)^2}{(\sum_i x_i)^2}=G-\frac1n.
+$$
 
-Parameters
-----------
-rvs : array_like, shape (n,)
-    Finite nonnegative observations; n >= 2. The total must be positive.
-    A copy is used. Ties and positive constants are allowed except
-    where they make the formula undefined (see Notes on the class).
-**kwargs : dict
-    No execution settings are supported; configure the constructor.
+The implementation now returns this published formula. The former extra
+factor $(n-1)/n$ has been removed. WE is an increasing affine function of
+Greenwood for fixed sample size, but this
+class currently uses the right tail while Greenwood uses both tails.
+The full text of Ascher was not accessible during this follow-up; the formula
+comparison uses the later article, which explicitly cites Ascher for WE.
+The historical rejection-tail convention has not been verified here.
 
-Returns
--------
-statistic : float
-    Value in the convention documented on the class. Infinite
-    boundary values are retained where the formula has that limit.
+## Input and calibration
 
-Raises
-------
-ValueError
-    Invalid sample, insufficient observations, invalid sample-dependent
-    setting, undefined ratio, or rescaling underflow of positive data.
-TypeError
-    Unsupported execution keyword arguments.
-```
+Observations must be finite, real, nonnegative and one-dimensional. Masked
+observations are rejected. Fixed-rate generated criteria accept $n\ge1$;
+unknown-rate EDF/frequency criteria require $n\ge2$ and positive total.
+Specialized criteria may require more observations, distinct spacings or a
+nonconstant sample, as stated above and in the class contract. Ties are not
+silently jittered. Infinite mathematical boundary penalties are retained.
 
-## Example
+`execute_statistic` returns a statistic, not a p-value. Use
+`monte_carlo_exponential` with the same sample size and constructor settings.
+It refits each simulated sample for a composite hypothesis. Rescaling to
+Exp(1) is justified only for a scale-invariant statistic. A continuous-null
+calibration does not model rounding, censoring or dependence.
+
+## Runnable example
 
 ```python
-from pysatl_criterion.distribution.distributions import ExponentialDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.exponent import (
+from pysatl_criterion.distribution import ExponentialDistributionDescriptor as E
+from pysatl_criterion.statistics.goodness_of_fit.continuous.exponent import (
     WeExponentialityGofStatistic,
 )
 
-statistic = WeExponentialityGofStatistic(ExponentialDistributionDescriptor.DEFAULT.parse({}))
-value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
+sample = [0.12, 0.30, 0.55, 0.90, 1.40, 2.10, 3.20, 4.80]
+criterion = WeExponentialityGofStatistic(E.DEFAULT.parse({}))
+value = criterion.execute_statistic(sample)
 print(value)
 ```
 
-## Author(s)
+## Scientific references and verification status
 
-Lev Golofastov
+[Ascher (1990), A survey of tests for exponentiality, 19(5), 1811–1825](https://doi.org/10.1080/03610929008830292).
 
-See the [current audit and migration notes](../../../exponent-statistics-audit.md).
+[On sensitivity of exponentiality tests to data rounding: a Monte Carlo simulation study](https://doi.org/10.1080/03610918.2021.2009868).
 
-## Scope and verification (2026-10-08)
+[Arendarczyk, Kozubowski and Panorska (2022), The Greenwood statistic, stochastic dominance, clustering and heavy tails](https://doi.org/10.1111/sjos.12520).
 
-This statistic is an affine transform of Greenwood at each fixed n:
-WE=(n-1)*(n*G-1)/n². The historic WE class retains its right-tail decision;
-Greenwood uses both tails. They must not be counted as two independent
-statistical families. WE detects excess variation only, not all alternatives.
-
-[Independent audit and outstanding checks](../../../exponential-verification.md).
+The formula and input behavior are tested independently; that does not by
+itself certify a historical name, an asymptotic approximation or published
+critical values. Source qualifications above are part of this criterion's
+contract. See the [audit](mathematical-validation.md) for evidence and open items.

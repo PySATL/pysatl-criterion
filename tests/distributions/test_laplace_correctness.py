@@ -9,13 +9,13 @@ import pytest
 from scipy.integrate import quad
 from scipy.stats import laplace
 
-from pysatl_criterion.distribution.distributions import LaplaceDistributionDescriptor
+from pysatl_criterion.distribution import LaplaceDistributionDescriptor
 from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     MonteCarloLimitDistributionResolver,
     StorageLimitDistributionResolver,
 )
 from pysatl_criterion.statistics.alternative import AlternativeType
-from pysatl_criterion.statistics.goodness_of_fit import laplace as module
+from pysatl_criterion.statistics.goodness_of_fit.continuous import laplace as module
 from tests.parameter_cases import parameters_for
 
 

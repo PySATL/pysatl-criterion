@@ -15,6 +15,7 @@ from pysatl_criterion.persistence.sqlalchemy.stores._filters import distribution
 from pysatl_criterion.persistence.sqlalchemy.stores.base import AlchemyStorage
 from pysatl_criterion.persistence.sqlalchemy.upsert import save_if_newer
 from pysatl_criterion.persistence.stores.limit_distribution import ILimitDistributionStorage
+from pysatl_criterion.statistics.configuration import configuration_hash
 
 
 class AlchemyLimitDistributionStorage(AlchemyStorage, ILimitDistributionStorage):
@@ -29,12 +30,13 @@ class AlchemyLimitDistributionStorage(AlchemyStorage, ILimitDistributionStorage)
         )
 
     def bulk_insert(self, models: Sequence[LimitDistributionModel]) -> list[LimitDistributionModel]:
-        best: dict[tuple[str, str, int], LimitDistributionModel] = {}
+        best: dict[tuple[str, str, str, int], LimitDistributionModel] = {}
         for model in models:
             self._validate(model)
             identity = (
                 criterion_code_hash(model.criterion_code),
                 criterion_parameters_hash(model.criterion_parameters),
+                configuration_hash(model.criterion_configuration),
                 model.sample_size,
             )
             if identity not in best or model.monte_carlo_count > best[identity].monte_carlo_count:
@@ -50,6 +52,8 @@ class AlchemyLimitDistributionStorage(AlchemyStorage, ILimitDistributionStorage)
                 == criterion_code_hash(query.criterion_code),
                 LimitDistributionORM.criterion_parameters_hash
                 == criterion_parameters_hash(query.criterion_parameters),
+                LimitDistributionORM.criterion_configuration_hash
+                == configuration_hash(query.criterion_configuration),
                 LimitDistributionORM.sample_size == query.sample_size,
             )
             .execution_options(populate_existing=True)
@@ -69,27 +73,34 @@ class AlchemyLimitDistributionStorage(AlchemyStorage, ILimitDistributionStorage)
             *distribution_filter_conditions(LimitDistributionORM, query)
         )
         if after is not None:
-            code_hash = criterion_code_hash(after.criterion_code)
-            parameters_hash = criterion_parameters_hash(after.criterion_parameters)
-            # Expand the composite comparison for dialects without row-value comparisons.
+            cursor = [
+                (
+                    LimitDistributionORM.criterion_code_hash,
+                    criterion_code_hash(after.criterion_code),
+                ),
+                (
+                    LimitDistributionORM.criterion_parameters_hash,
+                    criterion_parameters_hash(after.criterion_parameters),
+                ),
+                (
+                    LimitDistributionORM.criterion_configuration_hash,
+                    configuration_hash(after.criterion_configuration),
+                ),
+                (LimitDistributionORM.sample_size, after.sample_size),
+            ]
             statement = statement.where(
                 or_(
-                    LimitDistributionORM.criterion_code_hash > code_hash,
-                    and_(
-                        LimitDistributionORM.criterion_code_hash == code_hash,
-                        LimitDistributionORM.criterion_parameters_hash > parameters_hash,
-                    ),
-                    and_(
-                        LimitDistributionORM.criterion_code_hash == code_hash,
-                        LimitDistributionORM.criterion_parameters_hash == parameters_hash,
-                        LimitDistributionORM.sample_size > after.sample_size,
-                    ),
+                    *(
+                        and_(*(column == value for column, value in cursor[:index]), column > value)
+                        for index, (column, value) in enumerate(cursor)
+                    )
                 )
             )
         with self._session.execute(
             statement.order_by(
                 LimitDistributionORM.criterion_code_hash,
                 LimitDistributionORM.criterion_parameters_hash,
+                LimitDistributionORM.criterion_configuration_hash,
                 LimitDistributionORM.sample_size,
             )
             .limit(batch_size)

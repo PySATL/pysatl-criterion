@@ -1,16 +1,18 @@
 import pytest
 
 from pysatl_criterion import DistributionKind, DistributionType
-from pysatl_criterion.distribution.distributions import (
+from pysatl_criterion.distribution import (
     InverseGammaDistributionDescriptor,
     LogLogisticDistributionDescriptor,
     ParetoDistributionDescriptor,
 )
-from pysatl_criterion.statistics.goodness_of_fit.inverse_gamma import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous.inverse_gamma import (
     AbstractInverseGammaGofStatistic,
 )
-from pysatl_criterion.statistics.goodness_of_fit.log_logistic import AbstractLogLogisticGofStatistic
-from pysatl_criterion.statistics.goodness_of_fit.pareto import AbstractParetoGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.log_logistic import (
+    AbstractLogLogisticGofStatistic,
+)
+from pysatl_criterion.statistics.goodness_of_fit.continuous.pareto import AbstractParetoGofStatistic
 from pysatl_criterion.utils.distribution import get_available_distribution_descriptor
 from pysatl_criterion.utils.statistic import get_available_criteria
 

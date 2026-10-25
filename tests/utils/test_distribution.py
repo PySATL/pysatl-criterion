@@ -1,7 +1,7 @@
 import pytest
 
 from pysatl_criterion import DistributionType
-from pysatl_criterion.distribution.distributions import (
+from pysatl_criterion.distribution import (
     BetaDistributionDescriptor,
     ExponentialDistributionDescriptor,
     GammaDistributionDescriptor,

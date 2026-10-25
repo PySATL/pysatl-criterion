@@ -3,8 +3,9 @@ import pytest
 from scipy import stats
 
 from pysatl_criterion import DistributionType
-from pysatl_criterion.distribution.distributions import InverseGammaDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.inverse_gamma import (
+from pysatl_criterion.distribution import InverseGammaDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.binning import EqualProbabilityBins
+from pysatl_criterion.statistics.goodness_of_fit.continuous.inverse_gamma import (
     AbstractInverseGammaGofStatistic,
     AndersonDarlingInverseGammaGofStatistic,
     Chi2PearsonInverseGammaGofStatistic,
@@ -12,7 +13,7 @@ from pysatl_criterion.statistics.goodness_of_fit.inverse_gamma import (
     GreenwoodInverseGammaGofStatistic,
     KolmogorovSmirnovInverseGammaGofStatistic,
     KuiperInverseGammaGofStatistic,
-    MinToshiyukiInverseGammaGofStatistic,
+    LiaoShimokawaInverseGammaGofStatistic,
     WatsonInverseGammaGofStatistic,
     ZhangAInverseGammaGofStatistic,
     ZhangCInverseGammaGofStatistic,
@@ -50,7 +51,7 @@ def _reference_statistics(sample, alpha, beta):
     return {
         "kuiper": max(dplus) + max(dminus),
         "greenwood": np.dot(gaps, gaps),
-        "min_toshiyuki": sum(np.maximum(dplus, dminus) / np.sqrt(u * (1 - u))) / np.sqrt(n),
+        "liao_shimokawa": sum(np.maximum(dplus, dminus) / np.sqrt(u * (1 - u))) / np.sqrt(n),
         "watson": w2 - n * (u.mean() - 0.5) ** 2,
         "chi2_pearson": stats.chisquare(counts).statistic,
         "zhang_a": -sum(np.log(u) / (n - i + 0.5) + np.log1p(-u) / (i - 0.5)),
@@ -127,13 +128,13 @@ def test_greenwood_inverse_gamma_statistic():
     )
 
 
-def test_min_toshiyuki_inverse_gamma_statistic():
-    """Min–Toshiyuki tail-weighted EDF statistic under Inverse Gamma reference."""
-    statistic = MinToshiyukiInverseGammaGofStatistic(
+def test_liao_shimokawa_inverse_gamma_statistic():
+    """Liao–Shimokawa tail-weighted EDF statistic under Inverse Gamma reference."""
+    statistic = LiaoShimokawaInverseGammaGofStatistic(
         InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA})
     ).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(
-        _reference_statistics(_SAMPLE, _ALPHA, _BETA)["min_toshiyuki"], rel=1e-9
+        _reference_statistics(_SAMPLE, _ALPHA, _BETA)["liao_shimokawa"], rel=1e-9
     )
 
 
@@ -150,7 +151,8 @@ def test_watson_inverse_gamma_statistic():
 def test_chi2_pearson_inverse_gamma_statistic():
     """Pearson chi-square statistic using equiprobable Inverse Gamma bins."""
     statistic = Chi2PearsonInverseGammaGofStatistic(
-        InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA}), bins=5
+        InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA}),
+        binning=EqualProbabilityBins(5),
     ).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(
         _reference_statistics(_SAMPLE, _ALPHA, _BETA)["chi2_pearson"], rel=1e-9
@@ -196,7 +198,7 @@ def test_zhang_k_inverse_gamma_statistic():
         (WatsonInverseGammaGofStatistic, "WAT_INV_GAMMA_GOODNESS_OF_FIT"),
         (KuiperInverseGammaGofStatistic, "KUI_INVGAMMA_INV_GAMMA_GOODNESS_OF_FIT"),
         (GreenwoodInverseGammaGofStatistic, "GRW_INV_GAMMA_GOODNESS_OF_FIT"),
-        (MinToshiyukiInverseGammaGofStatistic, "MT_INVGAMMA_INV_GAMMA_GOODNESS_OF_FIT"),
+        (LiaoShimokawaInverseGammaGofStatistic, "LIAO_SHIMOKAWA_INV_GAMMA_GOODNESS_OF_FIT"),
         (Chi2PearsonInverseGammaGofStatistic, "CHI2_PEARSON_INV_GAMMA_GOODNESS_OF_FIT"),
         (ZhangAInverseGammaGofStatistic, "ZAA_INV_GAMMA_GOODNESS_OF_FIT"),
         (ZhangCInverseGammaGofStatistic, "ZAC_INV_GAMMA_GOODNESS_OF_FIT"),
@@ -241,26 +243,28 @@ def test_inverse_gamma_requires_positive_observations():
 
 def test_inverse_gamma_binned_statistics_validate_bin_count():
     """Binned statistics require at least two histogram bins."""
-    with pytest.raises(ValueError, match="At least two bins"):
+    with pytest.raises(ValueError, match="integer >= 2"):
         Chi2PearsonInverseGammaGofStatistic(
             InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA}),
-            bins=1,
+            binning=EqualProbabilityBins(1),
         )
 
 
 def test_inverse_gamma_binned_statistics_require_sample():
     """Histogram-based tests must receive observations."""
     statistic = Chi2PearsonInverseGammaGofStatistic(
-        InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA}), bins=5
+        InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA}),
+        binning=EqualProbabilityBins(5),
     )
-    with pytest.raises(ValueError, match="At least"):
+    with pytest.raises(ValueError, match="nonempty"):
         statistic.execute_statistic([])
 
 
 def test_inverse_gamma_binned_statistics_require_positive_observations():
     """Binned Inverse Gamma statistics require positive observations."""
     statistic = Chi2PearsonInverseGammaGofStatistic(
-        InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA}), bins=5
+        InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA}),
+        binning=EqualProbabilityBins(5),
     )
     with pytest.raises(ValueError, match="strictly positive"):
         statistic.execute_statistic([0.0, 1.0, 2.0])
@@ -280,7 +284,9 @@ def test_greenwood_inverse_gamma_detects_non_positive_observations():
 
 def test_greenwood_inverse_gamma_detects_negative_spacings(monkeypatch):
     """Artificially broken CDF should trigger the spacing guard."""
-    from pysatl_criterion.statistics.goodness_of_fit import inverse_gamma as invgamma_module
+    from pysatl_criterion.statistics.goodness_of_fit.continuous.inverse_gamma import (
+        inverse_gamma_statistics as invgamma_module,
+    )
 
     statistic = GreenwoodInverseGammaGofStatistic(
         InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA})
@@ -325,18 +331,6 @@ def test_inverse_gamma_distribution():
         assert str(distribution) == "INVERSE_GAMMA" or distribution == "INVERSE_GAMMA"
 
 
-def test_abstract_binned_inverse_gamma_lambda_value():
-    """Test that lambda_value can be overridden in subclasses."""
-
-    class CustomChi2InverseGamma(Chi2PearsonInverseGammaGofStatistic):
-        lambda_value = 0.5
-
-    statistic = CustomChi2InverseGamma(
-        InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA}), bins=5
-    )
-    assert statistic.lambda_value == 0.5
-
-
 def test_inverse_gamma_ks_alternative_type():
     from pysatl_criterion.statistics.alternative import AlternativeType
 
@@ -371,9 +365,9 @@ def test_kuiper_inverse_gamma_requires_positive_observations():
         statistic.execute_statistic([-1.0, 1.0, 2.0])
 
 
-def test_min_toshiyuki_inverse_gamma_requires_positive_observations():
-    """Min-Toshiyuki statistic requires positive observations."""
-    statistic = MinToshiyukiInverseGammaGofStatistic(
+def test_liao_shimokawa_inverse_gamma_requires_positive_observations():
+    """Liao-Shimokawa statistic requires positive observations."""
+    statistic = LiaoShimokawaInverseGammaGofStatistic(
         InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA})
     )
     with pytest.raises(ValueError, match="strictly positive"):

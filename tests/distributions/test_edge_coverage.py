@@ -3,8 +3,8 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
-from pysatl_criterion.distribution.distributions import (
+from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
+from pysatl_criterion.distribution import (
     InverseGammaDistributionDescriptor,
     LogLogisticDistributionDescriptor,
     LogNormalDistributionDescriptor,
@@ -12,8 +12,8 @@ from pysatl_criterion.distribution.distributions import (
     ParetoDistributionDescriptor,
     UniformDistributionDescriptor,
 )
-from pysatl_criterion.distribution.distributions import WeibullDistributionDescriptor as Weibull
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import WeibullDistributionDescriptor as Weibull
+from pysatl_criterion.statistics.goodness_of_fit.continuous import (
     beta,
     inverse_gamma,
     log_logistic,
@@ -65,35 +65,28 @@ def test_distribution_hypotheses_and_parameter_validation():
                 LogNormalDistributionDescriptor.SHAPE_SCALE.parse({"s": 1, "scale": 1, **kwargs})
             )
     with pytest.raises(ValueError, match="observations are required"):
-        inverse_gamma.MinToshiyukiInverseGammaGofStatistic(
+        inverse_gamma.LiaoShimokawaInverseGammaGofStatistic(
             InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": 1, "beta": 1})
         ).execute_statistic([])
-
-
-def test_beta_ratio_zero_mean_is_rejected():
-    with pytest.raises(ValueError, match="Arithmetic mean"):
-        beta.RatioBetaGofStatistic(Beta.DEFAULT.parse({"a": 1, "b": 1})).execute_statistic(
-            [0.0, 0.0]
-        )
 
 
 def test_log_logistic_censoring_and_failed_optimization(monkeypatch):
     statistic = log_logistic.NikulinLogLogisticGofStatistic(
         LogLogisticDistributionDescriptor.DEFAULT.parse({})
     )
-    times, events = log_logistic._survival_data([1.0, 2.0, 3.0])
+    times, events = log_logistic.AbstractLogLogisticGofStatistic._survival_data([1.0, 2.0, 3.0])
     np.testing.assert_array_equal(events, np.ones_like(times))
     with pytest.raises(ValueError, match="three events"):
         statistic.execute_statistic((times, [1, 0, 1]))
     monkeypatch.setattr(
-        log_logistic,
+        log_logistic.log_logistic_statistics,
         "minimize",
         lambda *_args, **_kwargs: SimpleNamespace(fun=np.inf, x=[0, 0], jac=[np.inf, np.inf]),
     )
     with pytest.raises(RuntimeError, match="did not converge"):
         statistic.execute_statistic(times)
     with pytest.raises(ValueError, match="Singular"):
-        log_logistic._solve_positive(np.zeros((2, 2)), np.ones(2))
+        log_logistic.AbstractLogLogisticGofStatistic._solve_positive(np.zeros((2, 2)), np.ones(2))
 
 
 @pytest.mark.parametrize("roundoff", [1e-12, 1e-3])
@@ -103,7 +96,7 @@ def test_mirvaliev_only_clamps_numerical_roundoff(monkeypatch, roundoff):
     )
     sample = np.exp(np.random.default_rng(123).logistic(size=100))
     baseline = statistic.execute_statistic(sample)
-    solve = log_logistic._solve_positive
+    solve = log_logistic.AbstractLogLogisticGofStatistic._solve_positive
     calls = 0
 
     def perturbed_solve(matrix, rhs):
@@ -115,7 +108,11 @@ def test_mirvaliev_only_clamps_numerical_roundoff(monkeypatch, roundoff):
             result = result + (baseline + roundoff) * rhs / (rhs @ rhs)
         return result
 
-    monkeypatch.setattr(log_logistic, "_solve_positive", perturbed_solve)
+    monkeypatch.setattr(
+        log_logistic.AbstractLogLogisticGofStatistic,
+        "_solve_positive",
+        staticmethod(perturbed_solve),
+    )
     if roundoff < 1e-10:
         assert statistic.execute_statistic(sample) == 0
     else:

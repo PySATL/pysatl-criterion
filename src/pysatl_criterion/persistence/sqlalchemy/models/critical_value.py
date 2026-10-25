@@ -22,6 +22,10 @@ from pysatl_criterion.persistence.sqlalchemy.models.limit_distribution import (
     serialize_criterion_parameters,
 )
 from pysatl_criterion.statistics.alternative import AlternativeType
+from pysatl_criterion.statistics.configuration import (
+    configuration_hash,
+    serialize_configuration,
+)
 
 
 class CriticalValueORM(Base):
@@ -31,6 +35,8 @@ class CriticalValueORM(Base):
     criterion_parameters_hash: Mapped[str] = mapped_column(String(64))
     criterion_code: Mapped[str] = mapped_column(UnicodeText)
     criterion_parameters: Mapped[str] = mapped_column(UnicodeText)
+    criterion_configuration: Mapped[str] = mapped_column(UnicodeText)
+    criterion_configuration_hash: Mapped[str] = mapped_column(String(64))
     sample_size: Mapped[int]
     monte_carlo_count: Mapped[int]
     significance_level: Mapped[Decimal] = mapped_column(Numeric(12, 10))
@@ -50,16 +56,23 @@ class CriticalValueORM(Base):
         PrimaryKeyConstraint(
             "criterion_code_hash",
             "criterion_parameters_hash",
+            "criterion_configuration_hash",
             "sample_size",
             "significance_level",
             "alternative_type",
             name="pk_critical_values",
         ),
         ForeignKeyConstraint(
-            ["criterion_code_hash", "criterion_parameters_hash", "sample_size"],
+            [
+                "criterion_code_hash",
+                "criterion_parameters_hash",
+                "criterion_configuration_hash",
+                "sample_size",
+            ],
             [
                 "limit_distributions.criterion_code_hash",
                 "limit_distributions.criterion_parameters_hash",
+                "limit_distributions.criterion_configuration_hash",
                 "limit_distributions.sample_size",
             ],
             ondelete="CASCADE",
@@ -85,6 +98,7 @@ class CriticalValueORM(Base):
                 self.criterion_code,
                 normalize_criterion_parameters(json.loads(self.criterion_parameters)),
                 self.sample_size,
+                json.loads(self.criterion_configuration),
             ),
             monte_carlo_count=self.monte_carlo_count,
             significance_level=self.significance_level,
@@ -102,6 +116,8 @@ class CriticalValueORM(Base):
             criterion_code=key.criterion_code,
             criterion_parameters=serialize_criterion_parameters(key.criterion_parameters),
             sample_size=key.sample_size,
+            criterion_configuration=serialize_configuration(key.criterion_configuration),
+            criterion_configuration_hash=configuration_hash(key.criterion_configuration),
             monte_carlo_count=model.monte_carlo_count,
             significance_level=model.significance_level,
             alternative_type=model.alternative_type,

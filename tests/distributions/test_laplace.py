@@ -3,9 +3,9 @@ import pytest
 import scipy.stats as scipy_stats
 
 from pysatl_criterion import DistributionType
-from pysatl_criterion.distribution.distributions import LaplaceDistributionDescriptor
+from pysatl_criterion.distribution import LaplaceDistributionDescriptor
 from pysatl_criterion.statistics.alternative import RightAlternative
-from pysatl_criterion.statistics.goodness_of_fit.laplace import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous.laplace import (
     AbstractLaplaceGofStatistic,
     AndersonDarlingLaplaceGofStatistic,
     CramerVonMisesLaplaceGofStatistic,

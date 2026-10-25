@@ -1,91 +1,61 @@
-# Atkinson test for exponentiality
+# Atkinson exponentiality criterion
 
-Atkinson statistic for zero-origin exponential observations.
+`AtkinsonExponentialityGofStatistic` — short code `ATK`; right tail.
 
-## Hypothesis, formula and calibration
+[All exponential criteria](index.md) · [Mathematical verification](mathematical-validation.md)
 
-H0 is Exp(lam), lam > 0 unknown, with known origin zero.
-``hypothesis().parameters()`` is empty. Positive rescaling leaves
-the statistic unchanged, so Exp(1) simulation is valid.
-Write n for sample size, x_(i) for sorted observations, and
-y=x/mean(x). The implemented formula is:
+## Hypothesis and formula
 
-    sqrt(n) * abs(mean(y**p)**(1/p) - Gamma(1+p)**(1/p)).
+The model is $F(x)=1-\exp(-\lambda x)$ for $x\ge0$, with known origin zero and $\lambda>0$.
+Unknown rate only: pass `E.DEFAULT.parse({})`.
+Omitted parameters remain unknown. Where fitting is needed, $\widehat\lambda=1/\bar x$
+is recomputed for each sample; no fitted state is retained.
 
-This is an unstandardized absolute moment contrast. No universal
-normal or chi-square calibration is claimed. Negative powers at zero
-use the limiting power mean zero. Near p=0 a log-gamma series is used.
-For abs(p) < 1e-100 and strictly positive observations, the geometric
-mean limit is used: the power correction is below float64 precision.
-Near p=1 the contrast can lose relative precision through subtraction.
+Write $y_i=x_i/\bar x$, $u_i=1-\exp(-\lambda x_{(i)})$ with the specified or
+fitted rate, $D^+=\max_i(i/n-u_i)$ and $D^-=\max_i(u_i-(i-1)/n)$.
+For spacing statistics, $d_i=(n-i+1)(x_{(i)}-x_{(i-1)})$ and $x_{(0)}=0$.
+For frequency statistics, $O_j$ and $E_j=np_j>0$ are aligned counts.
 
-Reject in the upper tail. Calibrate the exact statistic returned here.
-Use independent continuous, uncensored observations. Rounded or tied
-data require calibration of the observation process. No parameters
-are retained from a previous call. Rescaling uses a power of two
-to preserve exact binary ties; unrepresentable positive ratios raise
-ValueError. Strict comparisons near floating-point boundaries can
-still depend on roundoff.
-A primary source establishing this exact implemented convention
-was not verified in the review; no published tables or asymptotic
-law are endorsed unless derived explicitly above. See the audit.
-Settings belong in the constructor. The current storage key omits
-these settings; use fresh Monte Carlo calibration for this object,
-not StorageLimitDistributionResolver shared across settings.
+$$
+\sqrt n\left|\left(n^{-1}\sum_i y_i^p\right)^{1/p}-\Gamma(1+p)^{1/p}\right|
+$$
 
-## Constructor parameters
+Unstandardized absolute contrast. Constructor p=0.99; p>-1, p not in {0,1}. Negative powers at zero use the limiting power mean zero. The usual finite-variance asymptotics require p>-1/2; accepted values below this threshold still require their own Monte Carlo calibration. No unit-normal calibration is claimed.
 
-```text
-p : float, optional
-    Finite power greater than -1, excluding 0 and 1; default 0.99.
-    The reference gamma expression must be representable in float64.
-    The exclusions avoid divergent moments and degenerate contrasts.
-```
+## Input and calibration
 
-## Sample and result
+Observations must be finite, real, nonnegative and one-dimensional. Masked
+observations are rejected. Fixed-rate generated criteria accept $n\ge1$;
+unknown-rate EDF/frequency criteria require $n\ge2$ and positive total.
+Specialized criteria may require more observations, distinct spacings or a
+nonconstant sample, as stated above and in the class contract. Ties are not
+silently jittered. Infinite mathematical boundary penalties are retained.
 
-```text
-Compute the Atkinson scalar statistic.
+`execute_statistic` returns a statistic, not a p-value. Use
+`monte_carlo_exponential` with the same sample size and constructor settings.
+It refits each simulated sample for a composite hypothesis. Rescaling to
+Exp(1) is justified only for a scale-invariant statistic. A continuous-null
+calibration does not model rounding, censoring or dependence.
 
-Parameters
-----------
-rvs : array_like, shape (n,)
-    Finite nonnegative observations; n >= 2. The total must be positive.
-    A copy is used. Ties and positive constants are allowed except
-    where they make the formula undefined (see Notes on the class).
-**kwargs : dict
-    No execution settings are supported; configure the constructor.
-
-Returns
--------
-statistic : float
-    Value in the convention documented on the class. Infinite
-    boundary values are retained where the formula has that limit.
-
-Raises
-------
-ValueError
-    Invalid sample, insufficient observations, invalid sample-dependent
-    setting, undefined ratio, or rescaling underflow of positive data.
-TypeError
-    Unsupported execution keyword arguments.
-```
-
-## Example
+## Runnable example
 
 ```python
-from pysatl_criterion.distribution.distributions import ExponentialDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.exponent import (
+from pysatl_criterion.distribution import ExponentialDistributionDescriptor as E
+from pysatl_criterion.statistics.goodness_of_fit.continuous.exponent import (
     AtkinsonExponentialityGofStatistic,
 )
 
-statistic = AtkinsonExponentialityGofStatistic(ExponentialDistributionDescriptor.DEFAULT.parse({}))
-value = statistic.execute_statistic([0.2, 0.5, 1.0, 2.0])
+sample = [0.12, 0.30, 0.55, 0.90, 1.40, 2.10, 3.20, 4.80]
+criterion = AtkinsonExponentialityGofStatistic(E.DEFAULT.parse({}))
+value = criterion.execute_statistic(sample)
 print(value)
 ```
 
-## Author(s)
+## Scientific references and verification status
 
-Lev Golofastov
+[Mimoto and Zitikis (2008), The Atkinson index, the Moran statistic, and testing exponentiality](https://doi.org/10.14490/jjss.38.187).
 
-See the [current audit and migration notes](../../../exponent-statistics-audit.md).
+The formula and input behavior are tested independently; that does not by
+itself certify a historical name, an asymptotic approximation or published
+critical values. Source qualifications above are part of this criterion's
+contract. See the [audit](mathematical-validation.md) for evidence and open items.

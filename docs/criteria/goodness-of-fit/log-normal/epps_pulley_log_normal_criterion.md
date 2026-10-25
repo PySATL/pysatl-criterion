@@ -1,63 +1,83 @@
-# Epps-Pulley test for log-normal distribution
+# Epps-Pulley test for log-normal data
 
-## Description
-Performs Epps-Pulley goodness-of-fit test for the hypothesis that the sample comes from a log-normal distribution.
-The implementation uses positive observations and either evaluates the log-normal model directly or applies a normality statistic to standardized logarithms.
+**Class:** `EppsPulleyLogNormalGofStatistic`
 
-Hypothesis of Log-Normal Distribution
-The null hypothesis is that the data comes from a log-normal distribution with positive shape parameter `s` and positive scale parameter `scale`.
-Observations passed to `execute_statistic` should be positive; tests that receive non-positive observations may return `inf`.
+**Code:** `EP_LOGNORMAL_GOODNESS_OF_FIT`
 
-Test Statistic
-The statistic is based on the wrapped Epps-Pulley normality statistic applied to standardized log observations.
+## Hypothesis and inputs
 
-## Usage
-```python
-from pysatl_criterion.distribution.distributions import LogNormalDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit import (
-    EppsPulleyLogNormalGofStatistic,
-)
+This is a **log-normal family/shape** statistic: log(X) is normal with unknown
+location and positive scale. Use `LogNormalDistributionDescriptor.DEFAULT.parse({})`.
+An empty `SHAPE_SCALE` schema is also accepted. All observations must be finite,
+real, strictly positive and one-dimensional. Active masks and undefined
+constant-sample contrasts raise `ValueError`; minimum sizes are specified below.
+
+For compatibility, fully specified `mu, s` or `s, scale` coordinates are also
+accepted and preserved by `hypothesis()`. They do **not** enter this shape
+statistic: it cannot detect a wrong location/scale within the log-normal family.
+Use a fixed-CDF EDF or frequency criterion when those particular values are
+part of the hypothesis. Partial parameter sets are rejected.
+
+## Logarithmic reduction
+
+The implementation computes `EppsPulleyNormalityGofStatistic` on `y = log(rvs)` with an empty
+normal-family hypothesis. Thus its formula, sample-size limits, normalization
+and rejection tail are exactly those of the normality statistic at its default
+settings. Constructor-specific normality options are not exposed by this wrapper.
+The identity was checked on normal, nonnormal and tied logarithmic samples and
+under transformations `X -> exp(a) * X**b`, b > 0.
+
+## Underlying normality definition
+
+**In this section, x denotes y = log(X), not the original positive sample.**
+The normal-family hypothesis and dispersion conventions below concern these
+log observations. See also the [normality source page](../normality/epps_pulley_normality_criterion.md).
 
 
-test_statistic = EppsPulleyLogNormalGofStatistic(LogNormalDistributionDescriptor.SHAPE_SCALE.parse({'s': 1, 'scale': 1}))
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.58, 0.76, 0.93, 1.12, 1.35, 1.61, 1.92, 2.28, 2.71, 3.23, 3.84]
-)
-print(statistic_result)
-```
+H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+Location and positive scale cancel, allowing N(0,1) null simulation.
+Every simulated sample must go through execute_statistic again.
+Large values of the statistic define rejection. Use at least 2
+finite real observations in one dimension. Nonzero dispersion is required.
+Ties are accepted unless a scale or contrast becomes undefined.
+Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+the standard normal CDF and density, s0=std(x,ddof=0), and
+s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-## Arguments
-`parameters` - required `ParameterValues` with both parameters fixed.
-Use `LogNormalDistributionDescriptor.SHAPE_SCALE.parse({"s": ..., "scale": ...})`
-or `LogNormalDistributionDescriptor.LOG_LOCATION_SCALE.parse({"mu": ..., "s": ...})`.
-Here `scale = exp(mu)`; omitted values are not filled automatically.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-For dynamically generated log-normal tests, the implementation transforms observations with
-
-$$ Z_i = \frac{\log X_i - \log(scale)}{s} $$
-
-and applies the corresponding normality statistic to the standardized values. Explicit EDF and KL-based implementations use the formulas in `pysatl_criterion.statistics.goodness_of_fit.log_normal`.
-
-## Author(s)
-Anton Dorosev, Alexey Mironov
+For z=(x-mean(x))/s0, return
+n/sqrt(3) + sum_ij(exp(-(z_i-z_j)**2/2))/n
+- sqrt(2)*sum_i(exp(-z_i**2/4)).
+This equals n times a Gaussian-weighted squared characteristic-function
+distance. The double sum includes its diagonal; computation is O(n**2).
 
 ## References
-The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.log_normal`.
+
+[1] Epps, T. W. and Pulley, L. B. (1983). A test for normality based
+   on the empirical characteristic function. Biometrika, 70(3), 723-726.
+   https://doi.org/10.1093/biomet/70.3.723
+
+
+## Rejection and calibration
+
+Rejection tail: **right**. A statistic value alone is not a p-value.
+For the composite null, simulation can use log-normal mu=0, s=1 because
+log-location and log-scale are removed by the statistic. Every replicate must
+call `execute_statistic` again. This does not make every directed shape test
+omnibus. Signed two-tail tests require both null quantiles, without assuming
+symmetry. Legacy attribution qualifications carry over from normality.
 
 ## Examples
+
 ```python
-from pysatl_criterion.distribution.distributions import LogNormalDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit import (
-    EppsPulleyLogNormalGofStatistic,
-)
+import numpy as np
+from pysatl_criterion.distribution import LogNormalDistributionDescriptor as LogNormal
+from pysatl_criterion.statistics.goodness_of_fit.continuous.log_normal import EppsPulleyLogNormalGofStatistic
 
-
-test_statistic = EppsPulleyLogNormalGofStatistic(LogNormalDistributionDescriptor.SHAPE_SCALE.parse({'s': 1, 'scale': 1}))
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.58, 0.76, 0.93, 1.12, 1.35, 1.61, 1.92, 2.28, 2.71, 3.23, 3.84]
-)
-print(statistic_result)
+parameters = LogNormal.DEFAULT.parse({})
+statistic = EppsPulleyLogNormalGofStatistic(parameters)
+sample = np.exp([-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1])
+value = statistic.execute_statistic(sample)
+assert np.isfinite(value)
 ```
+
+See the [complete catalog](index.md) and [mathematical verification](mathematical-validation.md).

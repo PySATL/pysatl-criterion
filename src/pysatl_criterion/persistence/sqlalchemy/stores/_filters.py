@@ -8,6 +8,7 @@ from pysatl_criterion.persistence.sqlalchemy.models.limit_distribution import (
     criterion_code_hash,
     criterion_parameters_hash,
 )
+from pysatl_criterion.statistics.configuration import configuration_hash
 
 
 def distribution_filter_conditions(
@@ -24,6 +25,12 @@ def distribution_filter_conditions(
                     condition,
                     model.criterion_parameters_hash
                     == criterion_parameters_hash(criterion.criterion_parameters),
+                )
+            if criterion.criterion_configuration is not None or criterion.legacy_only:
+                condition = and_(
+                    condition,
+                    model.criterion_configuration_hash
+                    == configuration_hash(criterion.criterion_configuration),
                 )
             criteria.append(condition)
         conditions.append(or_(false(), *criteria))

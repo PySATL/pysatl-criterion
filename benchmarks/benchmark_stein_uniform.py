@@ -1,8 +1,8 @@
 import numpy as np
 from benchmark_runner import BenchmarkRunner
 
-from pysatl_criterion.distribution.distributions import UniformDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.uniform import SteinUniformGofStatistic
+from pysatl_criterion.distribution import UniformDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.continuous.uniform import SteinUniformGofStatistic
 
 
 def stein_uniform_reference(sample: np.ndarray) -> float:

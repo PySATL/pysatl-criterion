@@ -8,6 +8,10 @@ from sqlalchemy.orm import Mapped, mapped_column
 from pysatl_criterion.persistence.models.limit_distribution import LimitDistributionModel
 from pysatl_criterion.persistence.sqlalchemy.base import Base
 from pysatl_criterion.persistence.sqlalchemy.types import CompressedFloatArray
+from pysatl_criterion.statistics.configuration import (
+    configuration_hash,
+    serialize_configuration,
+)
 
 
 def normalize_criterion_parameters(parameters: Any) -> dict[str, float]:
@@ -51,6 +55,8 @@ class LimitDistributionORM(Base):
     criterion_parameters_hash: Mapped[str] = mapped_column(String(64))
     criterion_code: Mapped[str] = mapped_column(UnicodeText)
     criterion_parameters: Mapped[str] = mapped_column(UnicodeText)
+    criterion_configuration: Mapped[str] = mapped_column(UnicodeText)
+    criterion_configuration_hash: Mapped[str] = mapped_column(String(64))
     sample_size: Mapped[int]
     monte_carlo_count: Mapped[int]
     results_statistics: Mapped[list[float]] = mapped_column(CompressedFloatArray(use_float32=True))
@@ -59,6 +65,7 @@ class LimitDistributionORM(Base):
         PrimaryKeyConstraint(
             "criterion_code_hash",
             "criterion_parameters_hash",
+            "criterion_configuration_hash",
             "sample_size",
             name="uix_limit_distribution",
         ),
@@ -77,6 +84,7 @@ class LimitDistributionORM(Base):
                 json.loads(self.criterion_parameters)
             ),
             sample_size=self.sample_size,
+            criterion_configuration=json.loads(self.criterion_configuration),
             monte_carlo_count=self.monte_carlo_count,
             results_statistics=self.results_statistics,
         )
@@ -96,6 +104,8 @@ class LimitDistributionORM(Base):
             criterion_code=model.criterion_code,
             criterion_parameters=serialize_criterion_parameters(model.criterion_parameters),
             sample_size=model.sample_size,
+            criterion_configuration=serialize_configuration(model.criterion_configuration),
+            criterion_configuration_hash=configuration_hash(model.criterion_configuration),
             monte_carlo_count=model.monte_carlo_count,
             results_statistics=model.results_statistics,
         )

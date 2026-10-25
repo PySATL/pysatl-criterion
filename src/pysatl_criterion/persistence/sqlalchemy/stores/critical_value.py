@@ -21,6 +21,7 @@ from pysatl_criterion.persistence.sqlalchemy.stores._filters import distribution
 from pysatl_criterion.persistence.sqlalchemy.stores.base import AlchemyStorage
 from pysatl_criterion.persistence.sqlalchemy.upsert import matched_rows, save_if_newer
 from pysatl_criterion.persistence.stores.critical_value import ICriticalValueStorage
+from pysatl_criterion.statistics.configuration import configuration_hash
 
 
 class AlchemyCriticalValueStorage(AlchemyStorage, ICriticalValueStorage):
@@ -34,6 +35,8 @@ class AlchemyCriticalValueStorage(AlchemyStorage, ICriticalValueStorage):
                 CriticalValueORM.criterion_code_hash == criterion_code_hash(key.criterion_code),
                 CriticalValueORM.criterion_parameters_hash
                 == criterion_parameters_hash(key.criterion_parameters),
+                CriticalValueORM.criterion_configuration_hash
+                == configuration_hash(key.criterion_configuration),
                 CriticalValueORM.sample_size == key.sample_size,
                 CriticalValueORM.significance_level == query.significance_level,
                 CriticalValueORM.alternative_type == query.alternative_type,
@@ -53,12 +56,13 @@ class AlchemyCriticalValueStorage(AlchemyStorage, ICriticalValueStorage):
         return self._save_if_current(model) is True
 
     def bulk_insert(self, models: Sequence[CriticalValueModel]) -> list[CriticalValueModel]:
-        best: dict[tuple[str, str, int, Decimal, str], CriticalValueModel] = {}
+        best: dict[tuple[str, str, str, int, Decimal, str], CriticalValueModel] = {}
         for model in models:
             key = model.distribution_key
             identity = (
                 criterion_code_hash(key.criterion_code),
                 criterion_parameters_hash(key.criterion_parameters),
+                configuration_hash(key.criterion_configuration),
                 key.sample_size,
                 model.significance_level,
                 model.alternative_type.value,
@@ -98,6 +102,7 @@ class AlchemyCriticalValueStorage(AlchemyStorage, ICriticalValueStorage):
             statement.order_by(
                 CriticalValueORM.criterion_code_hash,
                 CriticalValueORM.criterion_parameters_hash,
+                CriticalValueORM.criterion_configuration_hash,
                 CriticalValueORM.sample_size,
                 CriticalValueORM.significance_level,
                 CriticalValueORM.alternative_type,
@@ -115,6 +120,10 @@ class AlchemyCriticalValueStorage(AlchemyStorage, ICriticalValueStorage):
             (
                 CriticalValueORM.criterion_parameters_hash,
                 criterion_parameters_hash(key.criterion_parameters),
+            ),
+            (
+                CriticalValueORM.criterion_configuration_hash,
+                configuration_hash(key.criterion_configuration),
             ),
             (CriticalValueORM.sample_size, key.sample_size),
             (CriticalValueORM.significance_level, after.significance_level),
@@ -143,6 +152,8 @@ class AlchemyCriticalValueStorage(AlchemyStorage, ICriticalValueStorage):
                 source.c.criterion_code_hash == criterion_code_hash(key.criterion_code),
                 source.c.criterion_parameters_hash
                 == criterion_parameters_hash(key.criterion_parameters),
+                source.c.criterion_configuration_hash
+                == configuration_hash(key.criterion_configuration),
                 source.c.sample_size == key.sample_size,
                 source.c.monte_carlo_count == data.monte_carlo_count,
             )
@@ -166,6 +177,8 @@ class AlchemyCriticalValueStorage(AlchemyStorage, ICriticalValueStorage):
                 CriticalValueORM.criterion_code_hash == criterion_code_hash(key.criterion_code),
                 CriticalValueORM.criterion_parameters_hash
                 == criterion_parameters_hash(key.criterion_parameters),
+                CriticalValueORM.criterion_configuration_hash
+                == configuration_hash(key.criterion_configuration),
                 CriticalValueORM.sample_size == key.sample_size,
             )
         )

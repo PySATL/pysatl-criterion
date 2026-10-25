@@ -8,8 +8,8 @@ import numpy as np
 import pytest
 
 from pysatl_criterion import DistributionType
-from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
-from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor as Normal
+from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
+from pysatl_criterion.distribution import NormalDistributionDescriptor as Normal
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 from pysatl_criterion.utils.statistic import get_available_criteria

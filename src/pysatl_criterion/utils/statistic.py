@@ -3,7 +3,9 @@ from importlib import import_module
 from typing import Any
 
 from pysatl_criterion import DistributionType
-from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.goodness_of_fit.goodness_of_fit_statistic import (
+    AbstractGoodnessOfFitStatistic,
+)
 
 
 def get_available_criteria(
@@ -65,7 +67,7 @@ def __load_goodness_of_fit_statistics() -> None:
     """
     Load goodness-of-fit statistic modules so subclasses are registered in Python runtime.
     """
-    import_module("pysatl_criterion.statistics.goodness_of_fit")
+    import_module("pysatl_criterion.statistics.goodness_of_fit.continuous")
 
 
 def __get_all_subclasses(cls: type[Any]) -> set[type[AbstractGoodnessOfFitStatistic]]:

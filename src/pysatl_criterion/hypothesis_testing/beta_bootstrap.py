@@ -5,14 +5,21 @@ from numbers import Integral, Real
 import numpy as np
 
 from pysatl_criterion.hypothesis_testing.model import TestResult
-from pysatl_criterion.statistics.goodness_of_fit.beta import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous.beta import (
     EbnerLiebenbergBetaGofStatistic,
+    KullbackLeiblerBetaGofStatistic,
     RaschkeBetaGofStatistic,
+    RiadAbdElMaboodBetaGofStatistic,
 )
 
 
 def parametric_bootstrap_beta(
-    statistic: EbnerLiebenbergBetaGofStatistic | RaschkeBetaGofStatistic,
+    statistic: (
+        EbnerLiebenbergBetaGofStatistic
+        | RaschkeBetaGofStatistic
+        | RiadAbdElMaboodBetaGofStatistic
+        | KullbackLeiblerBetaGofStatistic
+    ),
     rvs,
     *,
     significance_level: float = 0.05,
@@ -24,6 +31,10 @@ def parametric_bootstrap_beta(
     Implements Section 2 of Ebner and Liebenberg (2021),
     https://doi.org/10.1002/sta4.341. Also calibrates the Raschke statistic,
     replacing that paper's approximate normal tables with Beta bootstrap.
+    Supports the Laplace and Vasicek/KL statistics with the object's weight
+    or entropy window preserved in every replicate. See their class docstrings
+    for formulas and scientific references. This calibration does not reuse
+    historical tables or assert exact reproduction of either article.
 
     Both shapes are unknown; location and scale remain 0 and 1. Returns the
     empirical upper quantile (inverse empirical CDF), an upper-tail p-value
@@ -37,8 +48,16 @@ def parametric_bootstrap_beta(
     no replicates are silently discarded or clipped. Cost is B+1 statistic
     evaluations plus one initial fit, with O(B+n) auxiliary memory.
     """
-    if not isinstance(statistic, (EbnerLiebenbergBetaGofStatistic, RaschkeBetaGofStatistic)):
-        raise TypeError("Expected an Ebner-Liebenberg or Raschke Beta statistic")
+    if not isinstance(
+        statistic,
+        (
+            EbnerLiebenbergBetaGofStatistic,
+            RaschkeBetaGofStatistic,
+            RiadAbdElMaboodBetaGofStatistic,
+            KullbackLeiblerBetaGofStatistic,
+        ),
+    ):
+        raise TypeError("Expected a supported fitted-Beta statistic")
     if isinstance(n_resamples, bool) or not isinstance(n_resamples, Integral) or n_resamples < 1:
         raise ValueError("n_resamples must be a positive integer")
     if (

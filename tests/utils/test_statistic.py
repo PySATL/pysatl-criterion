@@ -5,7 +5,9 @@ import pytest
 
 from pysatl_criterion import DistributionType
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
-from pysatl_criterion.statistics.goodness_of_fit.beta import KolmogorovSmirnovBetaGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.beta import (
+    KolmogorovSmirnovBetaGofStatistic,
+)
 from pysatl_criterion.utils.statistic import (
     get_available_criteria,
     get_available_criteria_codes,

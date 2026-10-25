@@ -13,8 +13,8 @@ Invalid inputs raise `ValueError`. The sample and model are not modified.
 `execute_statistic(rvs, **kwargs)` returns a scalar; extra keywords are ignored.
 
 ```python
-from pysatl_criterion.distribution.distributions import LaplaceDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.laplace import WatsonLaplaceGofStatistic
+from pysatl_criterion.distribution import LaplaceDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.continuous.laplace import WatsonLaplaceGofStatistic
 
 statistic = WatsonLaplaceGofStatistic(LaplaceDistributionDescriptor.DEFAULT.parse({'t': 0.0, 's': 1.0}))
 value = statistic.execute_statistic([-1.0, 0.0, 0.5, 2.0])
@@ -62,5 +62,5 @@ Laplace CDF, not to a model fitted to the observations.
 
 ## Review status
 
-See the [Laplace audit](../../../laplace-statistics-audit.md) for corrections,
+See the [Laplace audit](mathematical-validation.md) for corrections,
 calibration compatibility, and verification limits.

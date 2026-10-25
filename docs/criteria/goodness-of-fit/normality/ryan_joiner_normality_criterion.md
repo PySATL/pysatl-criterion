@@ -1,5 +1,9 @@
 # Ryan-Joiner test for normality
 
+**Class:** `RyanJoinerNormalityGofStatistic`
+
+**Code:** `RJ_NORMALITY_GOODNESS_OF_FIT`
+
 Ryan-Joiner probability-plot correlation statistic for normality.
 
 ## Parameters
@@ -54,14 +58,14 @@ separate calibration; they are not fixed distribution parameters.
 ## Examples
 
 ```python
-from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
+from pysatl_criterion.distribution import NormalDistributionDescriptor
 import numpy as np
-from pysatl_criterion.statistics.goodness_of_fit.normal import RyanJoinerNormalityGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import RyanJoinerNormalityGofStatistic
 
 statistic = RyanJoinerNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({}))
 sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
 value = statistic.execute_statistic(sample)
-bool(np.isfinite(value))
+assert np.isfinite(value)
 ```
 
-See [review and calibration changes](../../../normal-statistics-review.md).
+See the [complete catalog](index.md) and [mathematical verification](mathematical-validation.md).

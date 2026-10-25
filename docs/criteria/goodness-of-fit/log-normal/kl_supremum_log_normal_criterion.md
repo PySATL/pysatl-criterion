@@ -1,63 +1,85 @@
 # KL supremum test for log-normal distribution
 
-## Description
-Performs KL supremum goodness-of-fit test for the hypothesis that the sample comes from a log-normal distribution.
-The implementation uses positive observations and either evaluates the log-normal model directly or applies a normality statistic to standardized logarithms.
+**Class:** `KLSupremumLogNormalGoFStatistic`
 
-Hypothesis of Log-Normal Distribution
-The null hypothesis is that the data comes from a log-normal distribution with positive shape parameter `s` and positive scale parameter `scale`.
-Observations passed to `execute_statistic` should be positive; tests that receive non-positive observations may return `inf`.
+**Code:** `KL_SUP_LOGNORMAL_GOODNESS_OF_FIT`
 
-Test Statistic
-The statistic is based on the supremum of standardized Kullback-Leibler divergence components over a fixed grid.
+## Hypothesis and inputs
 
-## Usage
-```python
-from pysatl_criterion.distribution.distributions import LogNormalDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit import (
-    KLSupremumLogNormalGoFStatistic,
-)
+This is a **log-normal family/shape** statistic: log(X) is normal with unknown
+location and positive scale. Use `LogNormalDistributionDescriptor.DEFAULT.parse({})`.
+An empty `SHAPE_SCALE` schema is also accepted. All observations must be finite,
+real, strictly positive and one-dimensional. Active masks and undefined
+constant-sample contrasts raise `ValueError`; minimum sizes are specified below.
 
+For compatibility, fully specified `mu, s` or `s, scale` coordinates are also
+accepted and preserved by `hypothesis()`. They do **not** enter this shape
+statistic: it cannot detect a wrong location/scale within the log-normal family.
+Use a fixed-CDF EDF or frequency criterion when those particular values are
+part of the hypothesis. Partial parameter sets are rejected.
 
-test_statistic = KLSupremumLogNormalGoFStatistic(LogNormalDistributionDescriptor.SHAPE_SCALE.parse({'s': 1, 'scale': 1}))
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.58, 0.76, 0.93, 1.12, 1.35, 1.61, 1.92, 2.28, 2.71, 3.23, 3.84]
-)
-print(statistic_result)
-```
+## Statistic
 
-## Arguments
-`parameters` - required `ParameterValues` with both parameters fixed.
-Use `LogNormalDistributionDescriptor.SHAPE_SCALE.parse({"s": ..., "scale": ...})`
-or `LogNormalDistributionDescriptor.LOG_LOCATION_SCALE.parse({"mu": ..., "s": ...})`.
-Here `scale = exp(mu)`; omitted values are not filled automatically.
+At least two positive, nonconstant observations are required. Set
+$y_i=\log x_i$, $z_i=(y_i-\bar y)/s_0$ with
+$s_0^2=n^{-1}\sum_i(y_i-\bar y)^2$. Define
 
-`rvs` - array-like sample data passed to `execute_statistic`.
+$$K(r)=\log\left(n^{-1}\sum_i e^{r z_i}\right),\qquad
+D(r)=2K(r)-rK'(r),$$
+$$\sigma^2(r)=e^{r^2}(r^4-3r^2+4)-(4+r^2),\qquad R(r)=D(r)/\sigma(r).$$
 
-## Details
-For dynamically generated log-normal tests, the implementation transforms observations with
+The returned value is $\sqrt n\max_{r\in G}|R(r)|$, where G has 1000
+equally spaced points including -5 and 5. This is a grid maximum, **not**
+a continuous supremum, nor a supremum over the whole real line.
 
-$$ Z_i = \frac{\log X_i - \log(scale)}{s} $$
+Centering cancels from D exactly. The implementation avoids forming powers
+of X and uses log-sum-exp. Near zero it uses cumulants through order 10 and
+a positive-coefficient variance series. If m3 = mean(z**3),
+$\lim_{r\downarrow0}R(r)=-m_3/\sqrt6$ and
+$\lim_{r\to0}R(r)^2=m_3^2/6$. This removes the spurious 0/0 singularity.
 
-and applies the corresponding normality statistic to the standardized values. Explicit EDF and KL-based implementations use the formulas in `pysatl_criterion.statistics.goodness_of_fit.log_normal`.
+## Critical values and source limitations
 
-## Author(s)
-Anton Dorosev, Alexey Mironov
+`calculate_critical_value(n, alpha)` retains the historical numerical
+regressions at alpha=0.01 and 0.05. These are **not verified finite-sample
+quantiles**. Their published validity range and compatibility with this
+truncated implementation have not been established from accessible full text.
+Do not use them as a certified significance rule. Invalid n/alpha and
+nonpositive or nonfinite regression outputs are rejected;
+other significance levels raise `NotImplementedError`, because the old generic
+formula could produce negative critical values. Prefer Monte Carlo simulation
+of this exact implementation at the actual sample size.
 
 ## References
-The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.log_normal`.
+
+[Batsidis, Economou and Tzavelas (2016), Tests of fit for a lognormal distribution,
+Journal of Statistical Computation and Simulation 86(2), 215–235](https://doi.org/10.1080/00949655.2014.1003138).
+The publisher abstract verifies the KL size-bias symmetry motivation; full text
+was inaccessible. The formulas above were checked independently with 70-digit
+arithmetic and quadrature, not certified as an exact reproduction of every
+normalization and integration domain in that paper.
+
+## Rejection and calibration
+
+Rejection tail: **right**. A statistic value alone is not a p-value.
+For the composite null, simulation can use log-normal mu=0, s=1 because
+log-location and log-scale are removed by the statistic. Every replicate must
+call `execute_statistic` again. This does not make every directed shape test
+omnibus. Signed two-tail tests require both null quantiles, without assuming
+symmetry. Legacy attribution qualifications carry over from normality.
 
 ## Examples
+
 ```python
-from pysatl_criterion.distribution.distributions import LogNormalDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit import (
-    KLSupremumLogNormalGoFStatistic,
-)
+import numpy as np
+from pysatl_criterion.distribution import LogNormalDistributionDescriptor as LogNormal
+from pysatl_criterion.statistics.goodness_of_fit.continuous.log_normal import KLSupremumLogNormalGoFStatistic
 
-
-test_statistic = KLSupremumLogNormalGoFStatistic(LogNormalDistributionDescriptor.SHAPE_SCALE.parse({'s': 1, 'scale': 1}))
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.58, 0.76, 0.93, 1.12, 1.35, 1.61, 1.92, 2.28, 2.71, 3.23, 3.84]
-)
-print(statistic_result)
+parameters = LogNormal.DEFAULT.parse({})
+statistic = KLSupremumLogNormalGoFStatistic(parameters)
+sample = np.exp([-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1])
+value = statistic.execute_statistic(sample)
+assert np.isfinite(value)
 ```
+
+See the [complete catalog](index.md) and [mathematical verification](mathematical-validation.md).

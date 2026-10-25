@@ -1,63 +1,58 @@
 # Quesenberry-Miller test for log-normal distribution
 
-## Description
-Performs Quesenberry-Miller goodness-of-fit test for the hypothesis that the sample comes from a log-normal distribution.
-The implementation uses positive observations and either evaluates the log-normal model directly or applies a normality statistic to standardized logarithms.
+**Class:** `QuesenberryMillerLogNormalGofStatistic`
 
-Hypothesis of Log-Normal Distribution
-The null hypothesis is that the data comes from a log-normal distribution with positive shape parameter `s` and positive scale parameter `scale`.
-Observations passed to `execute_statistic` should be positive; tests that receive non-positive observations may return `inf`.
+**Code:** `QUESENBERRY_MILLER_LOGNORMAL_GOODNESS_OF_FIT`
 
-Test Statistic
-The statistic is based on squared spacings and products of consecutive spacings after the log-normal probability integral transform.
+## Hypothesis and inputs
 
-## Usage
-```python
-from pysatl_criterion.distribution.distributions import LogNormalDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit import (
-    QuesenberryMillerLogNormalGofStatistic,
-)
+Both parameters must be supplied before observing the sample: `mu` is the
+mean of log(X), `s > 0` is its standard deviation. The alternative coordinates
+are `s` and `scale = exp(mu)`, the **median**, not the mean of X.
+Use `LOG_LOCATION_SCALE.parse({"mu": ..., "s": ...})` or
+`SHAPE_SCALE.parse({"s": ..., "scale": ...})`. Partial and empty hypotheses
+are rejected. No parameters are fitted to the sample.
 
+The sample must be nonempty, finite, real and one-dimensional; masked values
+are rejected. Ties are permitted. EDF/spacing formulas use the null CDF, which
+is zero at nonpositive observations; finite penalties are possible. This is
+not the same policy as logarithmic family statistics, which reject such input.
 
-test_statistic = QuesenberryMillerLogNormalGofStatistic(LogNormalDistributionDescriptor.SHAPE_SCALE.parse({'s': 1, 'scale': 1}))
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.58, 0.76, 0.93, 1.12, 1.35, 1.61, 1.92, 2.28, 2.71, 3.23, 3.84]
-)
-print(statistic_result)
-```
+## Statistic
 
-## Arguments
-`parameters` - required `ParameterValues` with both parameters fixed.
-Use `LogNormalDistributionDescriptor.SHAPE_SCALE.parse({"s": ..., "scale": ...})`
-or `LogNormalDistributionDescriptor.LOG_LOCATION_SCALE.parse({"mu": ..., "s": ...})`.
-Here `scale = exp(mu)`; omitted values are not filled automatically.
+Set $u_i=F_{\mu,s}(x_{(i)})$, $u_0=0$, $u_{n+1}=1$ and
+$D_i=u_i-u_{i-1}$ for $i=1,\ldots,n+1$. Then
 
-`rvs` - array-like sample data passed to `execute_statistic`.
+$$Q=\sum_{i=1}^{n+1}D_i^2+\sum_{i=1}^{n}D_iD_{i+1}.$$
 
-## Details
-For dynamically generated log-normal tests, the implementation transforms observations with
-
-$$ Z_i = \frac{\log X_i - \log(scale)}{s} $$
-
-and applies the corresponding normality statistic to the standardized values. Explicit EDF and KL-based implementations use the formulas in `pysatl_criterion.statistics.goodness_of_fit.log_normal`.
-
-## Author(s)
-Anton Dorosev, Alexey Mironov
+There is no cyclic term $D_{n+1}D_1$. All n+1 spacings, including both
+boundary gaps, are present. Uniform quantile samples provide an exact
+hand-calculated reference. The null CDF must be specified in advance.
 
 ## References
-The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.log_normal`.
+
+- [Quesenberry and Miller (1977), Power studies of some tests for uniformity](https://doi.org/10.1080/00949657708810150).
+- The explicit noncyclic formula is also given in the authors' comparative study,
+  [Sreedevi and Kattumannil, §4.1](https://arxiv.org/html/2106.06368v1#S4.SS1).
+
+## Rejection and calibration
+
+Rejection tail: **right**. A statistic value alone is not a p-value.
+Use the fixed null and the same sample size, settings and binning for calibration.
+Do not substitute fitted-normality tables.
 
 ## Examples
+
 ```python
-from pysatl_criterion.distribution.distributions import LogNormalDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit import (
-    QuesenberryMillerLogNormalGofStatistic,
-)
+import numpy as np
+from pysatl_criterion.distribution import LogNormalDistributionDescriptor as LogNormal
+from pysatl_criterion.statistics.goodness_of_fit.continuous.log_normal import QuesenberryMillerLogNormalGofStatistic
 
-
-test_statistic = QuesenberryMillerLogNormalGofStatistic(LogNormalDistributionDescriptor.SHAPE_SCALE.parse({'s': 1, 'scale': 1}))
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.58, 0.76, 0.93, 1.12, 1.35, 1.61, 1.92, 2.28, 2.71, 3.23, 3.84]
-)
-print(statistic_result)
+parameters = LogNormal.DEFAULT.parse({'mu': 0.4, 's': 0.8})
+statistic = QuesenberryMillerLogNormalGofStatistic(parameters)
+sample = np.exp([-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1])
+value = statistic.execute_statistic(sample)
+assert np.isfinite(value)
 ```
+
+See the [complete catalog](index.md) and [mathematical verification](mathematical-validation.md).

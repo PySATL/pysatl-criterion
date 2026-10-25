@@ -1,6 +1,10 @@
 # Kolmogorov-Smirnov test for uniformity
 
 ## Description
+
+`KolmogorovSmirnovUniformGofStatistic` has algorithm code
+`KS_UNIFORM_GOODNESS_OF_FIT`. See the [uniformity catalog](index.md).
+
 Performs the Kolmogorov-Smirnov goodness-of-fit test for the hypothesis of uniformity on the interval $[a, b]$.
 The statistic measures the largest discrepancy between the empirical distribution function and the cumulative distribution function of the reference uniform distribution.
 
@@ -14,8 +18,8 @@ The statistic is based on the maximum vertical distance between the empirical cu
 
 ## Usage
 ```python
-from pysatl_criterion.distribution.distributions import UniformDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import UniformDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.continuous import (
     KolmogorovSmirnovUniformGofStatistic,
 )
 
@@ -26,13 +30,9 @@ print(statistic_result)
 ```
 
 ## Arguments
-`a` - left boundary of the uniform distribution. Default value is `0`.
+`a` - explicitly fixed left boundary of the uniform distribution.
 
-`b` - right boundary of the uniform distribution. Default value is `1`.
-
-`alternative_type` - alternative hypothesis type used by the Kolmogorov-Smirnov statistic.
-
-`mode` - calculation mode passed to the Kolmogorov-Smirnov statistic. Default value is `auto`.
+`b` - explicitly fixed right boundary of the uniform distribution.
 
 `rvs` - array-like sample data passed to `execute_statistic`.
 
@@ -41,16 +41,17 @@ For ordered observations $X_{(i)}$, the implementation evaluates
 
 $$ F_0(X_{(i)}) = \min\left(1,\max\left(0,\frac{X_{(i)} - a}{b - a}\right)\right). $$
 
-and passes these values to the common Kolmogorov-Smirnov statistic implementation.
+The result is the unscaled $D_n=\max(D_n^+,D_n^-)$. Directional variants have separate classes: [D+](kolmogorov_smirnov_d_plus_uniform_criterion.md) and [D−](kolmogorov_smirnov_d_minus_uniform_criterion.md). The constructor takes `parameters` only.
 Large values indicate stronger deviation from the uniform model.
 
 ## Author(s)
 Aleksandr Podmarev, Alexey Mironov
 
 ## References
-Kolmogorov, A.N. (1933): Sulla determinazione empirica di una legge di distribuzione. - Giornale dell'Istituto Italiano degli Attuari, vol. 4, pp. 83-91.
 
-Smirnov, N.V. (1948): Table for estimating the goodness of fit of empirical distributions. - Annals of Mathematical Statistics, vol. 19, pp. 279-281.
+Kolmogorov, A. N. (1933): Sulla determinazione empirica di una legge di distribuzione. *Giornale dell'Istituto Italiano degli Attuari*, 4, 83–91.
+
+Smirnov, N. (1948). [Table for Estimating the Goodness of Fit of Empirical Distributions](https://doi.org/10.1214/aoms/1177730256). *Annals of Mathematical Statistics*, 19(2), 279–281.
 
 ## Examples
 
@@ -62,8 +63,8 @@ parameter set. Omitted bounds are not filled in:
 a partial mapping such as `{"a": 0}` raises `ValueError` in the constructor.
 
 ```python
-from pysatl_criterion.distribution.distributions import UniformDistributionDescriptor as Uniform
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import UniformDistributionDescriptor as Uniform
+from pysatl_criterion.statistics.goodness_of_fit.continuous import (
     KolmogorovSmirnovUniformGofStatistic,
 )
 

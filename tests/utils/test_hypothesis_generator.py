@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
-from pysatl_criterion.distribution.distributions import (
+from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
+from pysatl_criterion.distribution import (
     ExponentialDistributionDescriptor,
     GammaDistributionDescriptor,
     LaplaceDistributionDescriptor,
@@ -14,29 +14,39 @@ from pysatl_criterion.distribution.distributions import (
     StudentDistributionDescriptor,
     UniformDistributionDescriptor,
 )
-from pysatl_criterion.distribution.distributions import (
+from pysatl_criterion.distribution import (
     ExponentiatedWeibullDistributionDescriptor as ExponentiatedWeibull,
 )
 from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     MonteCarloLimitDistributionResolver,
 )
-from pysatl_criterion.statistics.goodness_of_fit.beta import KolmogorovSmirnovBetaGofStatistic
-from pysatl_criterion.statistics.goodness_of_fit.exponent import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous.beta import (
+    KolmogorovSmirnovBetaGofStatistic,
+)
+from pysatl_criterion.statistics.goodness_of_fit.continuous.exponent import (
     KolmogorovSmirnovExponentialityGofStatistic,
 )
-from pysatl_criterion.statistics.goodness_of_fit.exponentiated_weibull import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous.exponentiated_weibull import (
     KolmogorovSmirnovExponentiatedWeibullGofStatistic,
 )
-from pysatl_criterion.statistics.goodness_of_fit.gamma import KolmogorovSmirnovGammaGofStatistic
-from pysatl_criterion.statistics.goodness_of_fit.laplace import KolmogorovSmirnovLaplaceGofStatistic
-from pysatl_criterion.statistics.goodness_of_fit.log_normal import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous.gamma import (
+    KolmogorovSmirnovGammaGofStatistic,
+)
+from pysatl_criterion.statistics.goodness_of_fit.continuous.laplace import (
+    KolmogorovSmirnovLaplaceGofStatistic,
+)
+from pysatl_criterion.statistics.goodness_of_fit.continuous.log_normal import (
     KolmogorovSmirnovLogNormalGofStatistic,
 )
-from pysatl_criterion.statistics.goodness_of_fit.normal import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import (
     KolmogorovSmirnovNormalityGofStatistic,
 )
-from pysatl_criterion.statistics.goodness_of_fit.student import KolmogorovSmirnovStudentGofStatistic
-from pysatl_criterion.statistics.goodness_of_fit.uniform import KolmogorovSmirnovUniformGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.student import (
+    KolmogorovSmirnovStudentGofStatistic,
+)
+from pysatl_criterion.statistics.goodness_of_fit.continuous.uniform import (
+    KolmogorovSmirnovUniformGofStatistic,
+)
 from pysatl_criterion.utils.generator import get_hypothesis_generator
 
 

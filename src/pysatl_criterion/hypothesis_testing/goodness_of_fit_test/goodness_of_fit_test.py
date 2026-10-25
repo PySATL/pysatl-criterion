@@ -8,7 +8,9 @@ from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     MonteCarloLimitDistributionResolver,
 )
 from pysatl_criterion.hypothesis_testing.model import DecisionMethod, TestResult
-from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.goodness_of_fit.goodness_of_fit_statistic import (
+    AbstractGoodnessOfFitStatistic,
+)
 
 
 class PValueDecisionMethod(DecisionMethod):

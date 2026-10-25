@@ -1,57 +1,61 @@
-# Greenwood exponential goodness-of-fit test
+# Greenwood exponentiality criterion
 
-## Hypothesis and statistic
+`GreenwoodExponentialityGofStatistic` — short code `GREENWOOD`; both tails.
 
-Category: Normalized observations / uniform-spacings distribution. Parameters: Unknown rate.
-The origin is known to be zero. The null is Exp(rate=lambda), lambda>0;
-for specified parameters it is Exp(lambda0). Scale theta=1/lambda.
-Write n for sample size, x_(i) for ordered observations,
-y_i=x_i/mean(x), and u_i=1-exp(-lambda*x_(i)). In fitted EDF mode
-lambda=1/mean(x); otherwise it is the specified rate.
+[All exponential criteria](index.md) · [Mathematical verification](mathematical-validation.md)
+
+## Hypothesis and formula
+
+The model is $F(x)=1-\exp(-\lambda x)$ for $x\ge0$, with known origin zero and $\lambda>0$.
+Unknown rate only: pass `E.DEFAULT.parse({})`.
+Omitted parameters remain unknown. Where fitting is needed, $\widehat\lambda=1/\bar x$
+is recomputed for each sample; no fitted state is retained.
+
+Write $y_i=x_i/\bar x$, $u_i=1-\exp(-\lambda x_{(i)})$ with the specified or
+fitted rate, $D^+=\max_i(i/n-u_i)$ and $D^-=\max_i(u_i-(i-1)/n)$.
+For spacing statistics, $d_i=(n-i+1)(x_{(i)}-x_{(i-1)})$ and $x_{(0)}=0$.
+For frequency statistics, $O_j$ and $E_j=np_j>0$ are aligned counts.
 
 $$
 G=\frac{\sum_i x_i^2}{(\sum_i x_i)^2}
 $$
 
-Omnibus: No: a moment contrast, not universally consistent.
-Universally consistent: No. Rejection: Both tails.
+Both tails. Normalized raw observations, not ordered spacings. Under the null, E(G)=2/(n+1), Var(G)=4(n-1)/[(n+1)^2(n+2)(n+3)]. This moment statistic is not universally consistent.
 
-## Calibration and limitations
+## Input and calibration
 
-Exact moments: E(G)=2/(n+1), Var(G)=4(n-1)/((n+1)^2(n+2)(n+3)). sqrt(n)*(n*G-2)/2 tends to N(0,1), slowly.
+Observations must be finite, real, nonnegative and one-dimensional. Masked
+observations are rejected. Fixed-rate generated criteria accept $n\ge1$;
+unknown-rate EDF/frequency criteria require $n\ge2$ and positive total.
+Specialized criteria may require more observations, distinct spacings or a
+nonconstant sample, as stated above and in the class contract. Ties are not
+silently jittered. Infinite mathematical boundary penalties are retained.
 
-Finite-sample critical values and p-values are obtained by
-`monte_carlo_exponential(statistic, sample, random_state=..., n_resamples=...)`.
-Every simulated sample repeats all fitting and transformations, with the same n
-and tuning settings. Known rate uses scale=1/rate; fitted mode can use Exp(1)
-by scale invariance. Simple-hypothesis EDF tables are not used after fitting.
-The p-value uses corrected ranks (b+1)/(B+1); two-tail tests double the smaller
-corrected tail. The decision uses p<=alpha. Empirical critical quantiles are
-summaries and can differ from the rank decision at finite B. No exact finite-n
-closed-form CDF is implemented for this criterion.
+`execute_statistic` returns a statistic, not a p-value. Use
+`monte_carlo_exponential` with the same sample size and constructor settings.
+It refits each simulated sample for a composite hypothesis. Rescaling to
+Exp(1) is justified only for a scale-invariant statistic. A continuous-null
+calibration does not model rounding, censoring or dependence.
 
-Use original observations, not ordered exponential spacings. Their normalized shares are Dirichlet(1,...,1). Existing WE is an affine transform: WE=(n-1)*(n*G-1)/n². It is not an independent statistical family. Both tails are necessary.
+## Runnable example
 
-Observations must be real, finite, nonnegative and one-dimensional. Masked
-observations, negative values, NaN, infinity and empty samples are rejected.
-Fitted mode requires n>=2 and positive total; known-rate EDF accepts n>=1,
-including all zeros. Positive constant samples are allowed. Scale normalization
-uses a power of two to prevent overflow; unrepresentable dynamic ranges raise
-ValueError. Independent continuous uncensored data are assumed; rounding,
-truncation and censoring require their own calibration.
+```python
+from pysatl_criterion.distribution import ExponentialDistributionDescriptor as E
+from pysatl_criterion.statistics.goodness_of_fit.continuous.exponent import (
+    GreenwoodExponentialityGofStatistic,
+)
 
-## Implementation and verification
+sample = [0.12, 0.30, 0.55, 0.90, 1.40, 2.10, 3.20, 4.80]
+criterion = GreenwoodExponentialityGofStatistic(E.DEFAULT.parse({}))
+value = criterion.execute_statistic(sample)
+print(value)
+```
 
-[Implementation](https://github.com/PySATL/pysatl-criterion/blob/main/src/pysatl_criterion/statistics/goodness_of_fit/exponent.py):
-`GreenwoodExponentialityGofStatistic`, short code `GREENWOOD`.
-EDF adapters reuse common kernels; no new distribution-specific EDF formula is introduced.
-[Unit tests](https://github.com/PySATL/pysatl-criterion/blob/main/tests/distributions/test_exponential_verification.py)
-include independent integral/analytic references and numerical boundaries.
-[Statistical validation](https://github.com/PySATL/pysatl-criterion/blob/main/tests/statistical/test_exponential_validation.py)
-and [recorded results](../../../exponential-monte-carlo.json) use disjoint
-calibration and validation samples and fixed seeds.
-See [audit](../../../exponential-verification.md) for the provenance limits.
+## Scientific references and verification status
 
-## References
+[Arendarczyk, Kozubowski and Panorska (2022), The Greenwood statistic, stochastic dominance, clustering and heavy tails](https://doi.org/10.1111/sjos.12520).
 
-Greenwood, M. (1946). The Statistical Study of Infectious Diseases. HMSO (no DOI). Moran, P. A. P. (1947). The random division of an interval. DOI: https://doi.org/10.2307/2983572. Accessible formula and CV identity: Arendarczyk, Kozubowski and Panorska (2023), (1.4)-(1.5), https://doi.org/10.57805/revstat.v21i3.357
+The formula and input behavior are tested independently; that does not by
+itself certify a historical name, an asymptotic approximation or published
+critical values. Source qualifications above are part of this criterion's
+contract. See the [audit](mathematical-validation.md) for evidence and open items.

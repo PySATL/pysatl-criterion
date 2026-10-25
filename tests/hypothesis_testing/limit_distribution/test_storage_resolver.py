@@ -21,6 +21,9 @@ class FakeStatistic:
     def code(self):
         return self._code
 
+    def configuration(self):
+        return {"schema_version": 1, "statistic_version": 1}
+
     def hypothesis(self):
         return self._hypothesis
 
@@ -55,6 +58,7 @@ def test_resolve_returns_storage_results_as_list():
             criterion_code="ks",
             criterion_parameters={"alpha": 0.5, "beta": 1.5},
             sample_size=25,
+            criterion_configuration=statistic.configuration(),
         )
     ]
 
@@ -72,5 +76,6 @@ def test_resolve_returns_none_when_storage_has_no_distribution():
             criterion_code="ad",
             criterion_parameters={},
             sample_size=50,
+            criterion_configuration=statistic.configuration(),
         )
     ]

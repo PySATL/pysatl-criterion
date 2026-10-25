@@ -1,45 +1,56 @@
-# Cramer-von Mises W-squared for a specified Student t CDF.
+# Cramér–von Mises for a specified Student distribution
+
+[All Student criteria](index.md) · [Mathematical verification](mathematical-validation.md)
+
+Class: `CramerVonMisesStudentGofStatistic`. Code: `CVM_STUDENT_GOODNESS_OF_FIT`.
 
 ## Hypothesis and formula
 
-The null fixes df, loc and scale on the whole real line. Write
-u_i = t_df.cdf((x_(i)-loc)/scale) for sorted observations, i=1,...,n.
-W2 = 1/(12*n) + sum((u_i-(i-0.5)/n)**2).
-No finite-sample correction is applied.
-Large values reject. The probability integral transform removes all
-distribution parameters from the null law, not from the hypothesis.
-The reference describes a general statistic, applied here through the
-specified Student CDF, not a separately derived Student-specific test.
+Fix all three parameters: `df > 0`, finite `loc`, and `scale > 0`.
+Use `StudentDistributionDescriptor.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1})`.
+Omitted parameters remain unknown and are not supported by this criterion.
+Write $u_i=F_{\nu,\mu,s}(X_{(i)})$ for the CDF values of sorted observations.
 
-## Parameters
+$$
+W^2=\frac{1}{12n}+\sum_{i=1}^n\left(u_i-\frac{i-1/2}{n}\right)^2
+$$
 
-```text
-parameters : ParameterValues
-    Values with df, loc, scale fixed; omitted parameters are unknown.
-```
+The public spelling is `CramerVonMisesStudentGofStatistic`. No finite-sample correction is applied.
 
-## Input and result
+## Input, result and calibration
 
-`execute_statistic(rvs, **kwargs)` accepts a finite, real, one-dimensional sample,
-with at least one observation; ties and constants are allowed. It returns one scalar, leaves the input unchanged,
-and ignores extra keyword arguments. Invalid samples and unrepresentable numerical
-transformations raise `ValueError`. No preliminary fit or bootstrap is required.
+`execute_statistic(rvs, **kwargs)` accepts a nonempty, finite, one-dimensional
+real sample. Ties and constants are allowed. It returns one scalar without
+changing the input or retaining fitted state. Large values reject
+(`RightAlternative`). Extra execution keywords are ignored.
+
+The Student implementation evaluates log-CDF and log-survival separately.
+AD, Liao–Shimokawa and Zhang kernels consume these logarithms directly;
+other EDF kernels reconstruct the CDF. Unrepresentable standardization or
+underflow of a required tail probability raises `ValueError`.
+
+For a continuous fully specified null, the probability integral transform
+removes the null parameters from the EDF law. Calibrate the same statistic at
+the same sample size; no parameter estimation is performed. The source below
+identifies the general discrepancy, not a separate Student-specific derivation.
 
 ## Example
 
 ```python
-from pysatl_criterion.distribution.distributions import StudentDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.student import CramerVonMisesStudentGofStatistic
+from pysatl_criterion.distribution import StudentDistributionDescriptor as Student
+from pysatl_criterion.statistics.goodness_of_fit.continuous.student import (
+    CramerVonMisesStudentGofStatistic,
+)
 
-statistic = CramerVonMisesStudentGofStatistic(StudentDistributionDescriptor.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1}))
-value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
+parameters = Student.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1})
+statistic = CramerVonMisesStudentGofStatistic(parameters)
+value = statistic.execute_statistic([-3.2, -1.1, -0.3, 0.2, 0.7, 1.8, 4.1])
 print(value)
 ```
 
 ## Scientific source
 
-J. Zhang (2002), Powerful goodness-of-fit tests based on the likelihood
-ratio, JRSS B 64, 281-294, https://doi.org/10.1111/1467-9868.00337. Section 2.3.
+[Zhang (2002), Powerful goodness-of-fit tests based on the likelihood ratio](https://doi.org/10.1111/1467-9868.00337), §2.3.
 
 ## Author(s)
 

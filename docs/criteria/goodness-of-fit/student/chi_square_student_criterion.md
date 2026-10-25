@@ -1,51 +1,65 @@
-# Pearson chi-squared for equiprobable Student t bins.
+# Pearson chi-squared for a specified Student distribution
+
+[All Student criteria](index.md) · [Mathematical verification](mathematical-validation.md)
+
+Class: `ChiSquareStudentGofStatistic`. Code: `CHI2_PEARSON_STUDENT_GOODNESS_OF_FIT`.
 
 ## Hypothesis and formula
 
-The null fixes df, loc and scale on the whole real line. Write
-u_i = t_df.cdf((x_(i)-loc)/scale) for sorted observations, i=1,...,n.
-For k=n_bins, use edges t_df.ppf(j/k), j=0,...,k on standardized
-data, with infinite outer edges. Internal boundary ties enter the right
-bin. Return sum((O_j-n/k)**2/(n/k)), where O_j are observed counts.
-Empty cells contribute n/k. Under the null, counts are multinomial with
-probabilities 1/k. The chi-squared(k-1) law is only asymptotic and needs
-sufficiently large expected counts. Monte Carlo must retain n_bins.
-Large values reject. The probability integral transform removes all
-distribution parameters from the null law, not from the hypothesis.
-The reference describes a general statistic, applied here through the
-specified Student CDF, not a separately derived Student-specific test.
+Fix all three parameters: `df > 0`, finite `loc`, and `scale > 0`.
+Use `StudentDistributionDescriptor.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1})`.
+Omitted parameters remain unknown and are not supported by this criterion.
+Write $O_j$ for observed bin counts and $E_j=np_j>0$ for expected counts under the specified Student model.
 
-## Parameters
+$$
+X^2=\sum_j\frac{(O_j-E_j)^2}{E_j}
+$$
 
-```text
-parameters : ParameterValues
-    Values with df, loc, scale fixed; omitted parameters are unknown.
-n_bins : int, default: 10
-    Fixed number of equiprobable bins, at least 2; booleans are rejected.
-```
+An empty observed bin contributes $E_j$.
 
-## Input and result
+The keyword-only `binning` accepts a [BinningStrategy](../binning/index.md).
+The default `EqualProbabilityBins()` selects its count from the sample size.
+Use `EqualProbabilityBins(count=4)` for four cells of probability 1/4.
+Its CDF-space intervals are left-closed/right-open, except that the last cell
+also includes 1. `n_bins` is not a constructor argument.
 
-`execute_statistic(rvs, **kwargs)` accepts a finite, real, one-dimensional sample,
-with at least one observation; ties and constants are allowed. It returns one scalar, leaves the input unchanged,
-and ignores extra keyword arguments. Invalid samples and unrepresentable numerical
-transformations raise `ValueError`. No preliminary fit or bootstrap is required.
+## Input, result and calibration
+
+`execute_statistic(rvs, **kwargs)` accepts a nonempty, finite, one-dimensional
+real sample. Ties and constants are allowed. It returns one scalar without
+changing the input or retaining fitted state. Large values reject
+(`RightAlternative`). Extra execution keywords are ignored.
+
+The shared binning pipeline constructs observed and expected counts on every
+call. Infinite empty-cell penalties are valid statistic values, not invalid
+samples. Additional binning constraints, such as `min_expected`, can reject
+small samples. See the formula's zero-count convention above.
+
+Preserve both sample size and binning strategy in Monte Carlo calibration.
+For fixed equiprobable cells the null counts are multinomial; the usual
+chi-square limit with number-of-cells minus one degrees of freedom is only
+asymptotic. No automatic p-value or exact chi-square calibration is provided.
+Other binning rules need their matching calibration. The source describes a
+general count discrepancy applied here to Student probabilities.
 
 ## Example
 
 ```python
-from pysatl_criterion.distribution.distributions import StudentDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.student import ChiSquareStudentGofStatistic
+from pysatl_criterion.distribution import StudentDistributionDescriptor as Student
+from pysatl_criterion.statistics.goodness_of_fit.binning import EqualProbabilityBins
+from pysatl_criterion.statistics.goodness_of_fit.continuous.student import (
+    ChiSquareStudentGofStatistic,
+)
 
-statistic = ChiSquareStudentGofStatistic(StudentDistributionDescriptor.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1}))
-value = statistic.execute_statistic([-2., -0.7, 0., 0.4, 1.8])
+parameters = Student.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1})
+statistic = ChiSquareStudentGofStatistic(parameters, binning=EqualProbabilityBins(count=4))
+value = statistic.execute_statistic([-3.2, -1.1, -0.3, 0.2, 0.7, 1.8, 4.1])
 print(value)
 ```
 
 ## Scientific source
 
-K. Pearson (1900), On the criterion that a given system of deviations
-from the probable ... , https://doi.org/10.1080/14786440009463897.
+[Pearson (1900), On the criterion that a given system of deviations from the probable …](https://doi.org/10.1080/14786440009463897); [Cressie and Read (1984), Multinomial Goodness-of-Fit Tests](https://doi.org/10.1111/j.2517-6161.1984.tb01318.x).
 
 ## Author(s)
 

@@ -9,12 +9,15 @@ import numpy as np
 import pytest
 import scipy.stats as scipy_stats
 
-from pysatl_criterion.distribution.distributions import StudentDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.student import (
+from pysatl_criterion.distribution import StudentDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.binning import EqualProbabilityBins
+from pysatl_criterion.statistics.goodness_of_fit.continuous.student import (
     AbstractStudentGofStatistic,
     AndersonDarlingStudentGofStatistic,
     ChiSquareStudentGofStatistic,
     CramerVonMisesStudentGofStatistic,
+    KolmogorovSmirnovDMinusStudentGofStatistic,
+    KolmogorovSmirnovDPlusStudentGofStatistic,
     KolmogorovSmirnovStudentGofStatistic,
     KuiperStudentGofStatistic,
     WatsonStudentGofStatistic,
@@ -117,15 +120,12 @@ class TestKolmogorovSmirnovStudent:
 
         stat_two = KolmogorovSmirnovStudentGofStatistic(
             StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1}),
-            alternative_type="two-sided",
         )
-        stat_less = KolmogorovSmirnovStudentGofStatistic(
+        stat_less = KolmogorovSmirnovDMinusStudentGofStatistic(
             StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1}),
-            alternative_type="less",
         )
-        stat_greater = KolmogorovSmirnovStudentGofStatistic(
+        stat_greater = KolmogorovSmirnovDPlusStudentGofStatistic(
             StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1}),
-            alternative_type="greater",
         )
 
         result_two = stat_two.execute_statistic(data)
@@ -339,12 +339,13 @@ class TestChiSquareStudent:
 
     def test_chi2_code(self):
         """Test that Chi-Square statistic returns correct code."""
-        assert "CHI2_STUDENT_GOODNESS_OF_FIT" == ChiSquareStudentGofStatistic.code()
+        assert "CHI2_PEARSON_STUDENT_GOODNESS_OF_FIT" == ChiSquareStudentGofStatistic.code()
 
     def test_chi2_positive(self, t_sample_df5):
         """Test that Chi-Square statistic is always non-negative."""
         stat = ChiSquareStudentGofStatistic(
-            StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1}), n_bins=5
+            StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1}),
+            binning=EqualProbabilityBins(count=5),
         )
         result = stat.execute_statistic(t_sample_df5)
         assert result >= 0
@@ -354,7 +355,7 @@ class TestChiSquareStudent:
         """Test Chi-Square with different number of bins."""
         stat = ChiSquareStudentGofStatistic(
             StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1}),
-            n_bins=n_bins,
+            binning=EqualProbabilityBins(count=n_bins),
         )
         result = stat.execute_statistic(t_sample_df5)
         assert result >= 0
@@ -391,7 +392,7 @@ class TestStudentStatisticsIntegration:
             ),
             ChiSquareStudentGofStatistic(
                 StudentDistributionDescriptor.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1}),
-                n_bins=5,
+                binning=EqualProbabilityBins(count=5),
             ),
         ]
 

@@ -6,7 +6,7 @@ from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     MonteCarloLimitDistributionResolver,
 )
 from pysatl_criterion.statistics.alternative import AlternativeType
-from pysatl_criterion.statistics.goodness_of_fit.normal import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import (
     CramerVonMiseNormalityGofStatistic,
     KolmogorovSmirnovNormalityGofStatistic,
 )

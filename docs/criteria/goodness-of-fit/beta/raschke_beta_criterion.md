@@ -1,5 +1,7 @@
 # Raschke biased-transformation test for Beta
 
+[All Beta criteria](index.md) · [Mathematical verification](mathematical-validation.md)
+
 ## Description
 
 Tests the composite hypothesis of iid $\mathrm{Beta}(a,b)$ observations,
@@ -10,8 +12,8 @@ quantiles, normal maximum likelihood and corrected Anderson–Darling.
 ## Usage
 
 ```python
-from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
-from pysatl_criterion.statistics.goodness_of_fit import RaschkeBetaGofStatistic
+from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
+from pysatl_criterion.statistics.goodness_of_fit.continuous import RaschkeBetaGofStatistic
 from pysatl_criterion.hypothesis_testing.beta_bootstrap import parametric_bootstrap_beta
 
 statistic = RaschkeBetaGofStatistic(Beta.DEFAULT.parse({}))
@@ -78,8 +80,8 @@ machine-rounded endpoints in simulated samples.
 
 ## Implementation
 
-[RaschkeBetaGofStatistic](https://github.com/PySATL/pysatl-criterion/blob/main/src/pysatl_criterion/statistics/goodness_of_fit/beta.py)
-reuses the shared `ADStatistic` kernel.
+[RaschkeBetaGofStatistic](https://github.com/PySATL/pysatl-criterion/blob/main/src/pysatl_criterion/statistics/goodness_of_fit/continuous/beta/beta_statistics.py)
+reuses the shared `AbstractAndersonDarlingStatistic` kernel.
 [Bootstrap calibration](https://github.com/PySATL/pysatl-criterion/blob/main/src/pysatl_criterion/hypothesis_testing/beta_bootstrap.py)
 lives in the hypothesis-testing layer and requires the observed sample.
 

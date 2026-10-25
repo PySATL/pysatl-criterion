@@ -1,59 +1,54 @@
-# Kuiper test for beta distribution
+# Kuiper for a specified Beta distribution
 
-## Description
-Performs Kuiper goodness-of-fit test for the hypothesis that the sample comes from a beta distribution.
-The statistic combines the largest positive and negative empirical distribution deviations.
+[All Beta criteria](index.md) · [Mathematical verification](mathematical-validation.md)
 
-Hypothesis of Beta Distribution
-The null hypothesis is that the data comes from a beta distribution with positive shape parameters `alpha` and `beta` on the interval $[0, 1]$.
+Class: `KuiperBetaGofStatistic`. Code: `KUIPER_BETA_GOODNESS_OF_FIT`.
 
-## Usage
+## Hypothesis and formula
+
+Both shape parameters `a > 0` and `b > 0` are finite and fixed independently of
+the sample. Pass `Beta.DEFAULT.parse({"a": 2, "b": 5})`; omitted shapes are
+unknown and are rejected by this class. The support is fixed at $[0,1]$.
+
+For sorted observations, let $u_i=F_{a,b}(X_{(i)})$, $i=1,\ldots,n$,
+$D^+=\max_i(i/n-u_i)$, $D^-=\max_i(u_i-(i-1)/n)$ and
+$W^2=1/(12n)+\sum_i(u_i-(i-1/2)/n)^2$.
+
+$$
+V=D^++D^-,\quad D^+=\max_i(i/n-u_i),\quad D^-=\max_i(u_i-(i-1)/n)
+$$
+
+
+## Input, result and calibration
+
+`execute_statistic(rvs, **kwargs)` accepts a nonempty, finite, one-dimensional
+real sample in $[0,1]$. Ties and constants are allowed; masked observations and
+complex values are rejected. It returns a scalar and leaves the sample unchanged.
+Large values reject (`RightAlternative`). Extra execution keywords are ignored.
+
+For a continuous fully specified null, the probability integral transform
+makes this EDF statistic's null law independent of both shapes. Calibrate at the
+same sample size. No parameter is fitted, and no p-value is returned.
+AD, Liao–Shimokawa and Zhang use separate log-CDF and log-survival probabilities;
+the other kernels use the CDF. Underflowed interior tails have a hypergeometric
+logarithmic fallback; unrepresentable tail evaluation raises `ValueError`.
+True endpoints give infinity for AD, Liao–Shimokawa and Zhang. Other EDF
+statistics remain finite. The data are never clipped.
+
+## Example
+
 ```python
-from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit import (
-    KuiperBetaGofStatistic,
-)
+from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
+from pysatl_criterion.statistics.goodness_of_fit.continuous.beta import KuiperBetaGofStatistic
 
-
-test_statistic = KuiperBetaGofStatistic(BetaDistributionDescriptor.DEFAULT.parse({'a': 2, 'b': 5}))
-statistic_result = test_statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
-print(statistic_result)
+statistic = KuiperBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}))
+value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
+print(value)
 ```
 
-## Arguments
-`alpha` - first positive shape parameter of the beta distribution. Default value is `1`.
+## Scientific source
 
-`beta` - second positive shape parameter of the beta distribution. Default value is `1`.
+[Lemeshko et al. (2014), Using the Kuiper and Watson tests of goodness-of-fit for composite hypotheses](https://doi.org/10.3103/S875669901401004X), equations (1)–(3).
 
-`rvs` - a nonempty one-dimensional sample of finite values in `[0, 1]`, passed to `execute_statistic`. Both shape parameters must be finite. All these statistics reject for large values.
-
-## Details
-The implementation computes
-
-$$ V = D^+ + D^- $$
-
-where $D^+$ and $D^-$ are the one-sided deviations between empirical plotting positions and beta CDF values.
-
-## Author(s)
-Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
-
-## References
-
-The cited paper studies circular uniformity. Here its unscaled V = D+ + D- statistic is applied after the specified Beta CDF transform. No estimated-shape calibration or finite-sample scaling correction is implied.
-
-N. H. Kuiper (1960), "Tests concerning random points on a
-   circle", Proc. K. Ned. Akad. Wet. A 63, 38-47.
-   https://doi.org/10.1016/S1385-7258(60)50006-0
-
-## Examples
-```python
-from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit import (
-    KuiperBetaGofStatistic,
-)
-
-
-test_statistic = KuiperBetaGofStatistic(BetaDistributionDescriptor.DEFAULT.parse({'a': 2, 'b': 5}))
-statistic_result = test_statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
-print(statistic_result)
-```
+The source identifies the shared statistical functional; applying it through
+the specified Beta distribution does not constitute a new Beta-specific test.

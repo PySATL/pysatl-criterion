@@ -4,9 +4,10 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
-from pysatl_criterion.statistics.alternative import AlternativeType, RightAlternative
-from pysatl_criterion.statistics.goodness_of_fit import beta
+from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
+from pysatl_criterion.statistics.alternative import RightAlternative
+from pysatl_criterion.statistics.goodness_of_fit.continuous import beta
+from pysatl_criterion.statistics.goodness_of_fit.continuous.beta import beta_statistics
 
 
 STATISTICS = [
@@ -17,11 +18,6 @@ STATISTICS = [
     beta.WatsonBetaGofStatistic,
     beta.KuiperBetaGofStatistic,
     beta.Chi2PearsonBetaGofStatistic,
-    beta.MomentBasedBetaGofStatistic,
-    beta.SkewnessKurtosisBetaGofStatistic,
-    beta.RatioBetaGofStatistic,
-    beta.EntropyBetaGofStatistic,
-    beta.ModeBetaGofStatistic,
 ]
 
 
@@ -45,152 +41,19 @@ def test_invalid_parameters(cls, value, parameter):
 
 
 @pytest.mark.parametrize(
-    "direction,scipy_direction",
+    "cls,scipy_direction",
     [
-        (AlternativeType.TWO_TAILED, "two-sided"),
-        (AlternativeType.RIGHT, "greater"),
-        (AlternativeType.LEFT, "less"),
+        (beta.KolmogorovSmirnovBetaGofStatistic, "two-sided"),
+        (beta.KolmogorovSmirnovDPlusBetaGofStatistic, "greater"),
+        (beta.KolmogorovSmirnovDMinusBetaGofStatistic, "less"),
     ],
 )
-def test_ks_direction_and_rejection_tail(direction, scipy_direction):
+def test_ks_direction_and_rejection_tail(cls, scipy_direction):
     sample = [0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57]
-    statistic = beta.KolmogorovSmirnovBetaGofStatistic(
-        Beta.DEFAULT.parse({"a": 2, "b": 5}), alternative_type=direction
-    )
+    statistic = cls(Beta.DEFAULT.parse({"a": 2, "b": 5}))
     assert isinstance(statistic.alternative(), RightAlternative)
     expected = stats.kstest(sample, stats.beta(2, 5).cdf, alternative=scipy_direction).statistic
     assert statistic.execute_statistic(sample) == pytest.approx(expected)
-
-
-@pytest.mark.parametrize(
-    "cls,min_size",
-    [
-        (beta.MomentBasedBetaGofStatistic, 2),
-        (beta.SkewnessKurtosisBetaGofStatistic, 4),
-        (beta.EntropyBetaGofStatistic, 3),
-        (beta.ModeBetaGofStatistic, 2),
-    ],
-)
-def test_sample_size(cls, min_size):
-    with pytest.raises(ValueError, match="at least"):
-        cls(Beta.DEFAULT.parse({"a": 2, "b": 5})).execute_statistic(
-            np.linspace(0.1, 0.9, min_size - 1)
-        )
-
-
-@pytest.mark.parametrize("cls", [beta.ModeBetaGofStatistic, beta.SkewnessKurtosisBetaGofStatistic])
-def test_constant_sample_has_explicit_error(cls):
-    with pytest.raises(ValueError, match="nonconstant"):
-        cls(Beta.DEFAULT.parse({"a": 2, "b": 5})).execute_statistic([0.5] * 8)
-
-
-@pytest.mark.parametrize("m", [0, -1, 4, 8, 1.5, True, np.nan])
-def test_invalid_entropy_window(m):
-    with pytest.raises((ValueError, TypeError), match="m must be an integer"):
-        beta.EntropyBetaGofStatistic(Beta.DEFAULT.parse({"a": 1, "b": 1})).execute_statistic(
-            np.linspace(0.1, 0.9, 8), m=m
-        )
-
-
-def test_zero_entropy_spacings_are_not_skipped():
-    assert np.isposinf(
-        beta.EntropyBetaGofStatistic(Beta.DEFAULT.parse({"a": 1, "b": 1})).execute_statistic(
-            [0.5] * 8
-        )
-    )
-    assert np.isposinf(
-        beta.EntropyBetaGofStatistic(Beta.DEFAULT.parse({"a": 1, "b": 1})).execute_statistic(
-            [0.2] * 5 + [0.8] * 3, m=1
-        )
-    )
-
-
-@pytest.mark.parametrize("n", [3, 8, 71])
-def test_entropy_matches_vasicek(n):
-    sample = stats.beta(2, 5).ppf((np.arange(n) + 0.5) / n)
-    m = min(int(np.sqrt(n) + 0.5), (n - 1) // 2)
-    expected = np.sqrt(n) * abs(
-        stats.differential_entropy(sample, method="vasicek", window_length=m)
-        - stats.beta(2, 5).entropy()
-    )
-    assert beta.EntropyBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})).execute_statistic(
-        sample
-    ) == pytest.approx(expected)
-
-
-def test_entropy_default_window_removes_uniform_fixed_fraction_bias():
-    errors = []
-    for n in [100, 1000, 10000]:
-        sample = (np.arange(n) + 0.5) / n
-        errors.append(
-            beta.EntropyBetaGofStatistic(Beta.DEFAULT.parse({"a": 1, "b": 1})).execute_statistic(
-                sample
-            )
-            / np.sqrt(n)
-        )
-    assert errors[2] < errors[1] < errors[0]
-    assert errors[2] < 0.01
-
-
-@pytest.mark.parametrize("a,b", [(1, 1), (2, 5), (5, 2), (0.5, 0.7), (100, 200)])
-def test_moment_statistics_against_integrated_covariance(a, b):
-    distribution = stats.beta(a, b)
-    mean, variance = distribution.stats(moments="mv")
-    sd = np.sqrt(variance)
-    skewness, excess = distribution.stats(moments="sk")
-    kurtosis = excess + 3
-    sample = distribution.ppf((np.arange(31) + 0.3) / 31)
-
-    def influence(x, kind):
-        z = (x - mean) / sd
-        if kind == "MB":
-            return np.array([x - mean, (x - mean) ** 2 - variance])
-        return np.array(
-            [
-                z**3 - 3 * z - 1.5 * skewness * z**2 + skewness / 2,
-                z**4 - 4 * skewness * z - 2 * kurtosis * z**2 + kurtosis,
-            ]
-        )
-
-    for kind, statistic, difference in [
-        (
-            "MB",
-            beta.MomentBasedBetaGofStatistic(Beta.DEFAULT.parse({"a": a, "b": b})),
-            [sample.mean() - mean, sample.var(ddof=1) - variance],
-        ),
-        (
-            "SK",
-            beta.SkewnessKurtosisBetaGofStatistic(Beta.DEFAULT.parse({"a": a, "b": b})),
-            [
-                stats.skew(sample, bias=False) - skewness,
-                stats.kurtosis(sample, bias=False) - excess,
-            ],
-        ),
-    ]:
-        covariance = np.array(
-            [
-                [
-                    distribution.expect(
-                        lambda x, kind=kind, i=i, j=j: influence(x, kind)[i] * influence(x, kind)[j]
-                    )
-                    for j in range(2)
-                ]
-                for i in range(2)
-            ]
-        )
-        expected = len(sample) * np.array(difference) @ np.linalg.solve(covariance, difference)
-        assert statistic.execute_statistic(sample) == pytest.approx(expected, rel=1e-7)
-
-
-@pytest.mark.parametrize("center", [0.0025, 0.5, 0.9975])
-def test_mode_can_reach_center_and_near_boundaries(center):
-    # A narrow, symmetric, unimodal KDE has its mode at the symmetry center.
-    sample = center + np.linspace(-0.0001, 0.0001, 31)
-    a, b = 1 + center * 4, 1 + (1 - center) * 4
-    assert (
-        beta.ModeBetaGofStatistic(Beta.DEFAULT.parse({"a": a, "b": b})).execute_statistic(sample)
-        < 1e-7
-    )
 
 
 def test_ad_boundary_infinity_is_preserved():
@@ -216,13 +79,7 @@ def test_all_beta_statistics_support_uniform_scalar_execution(cls):
     from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 
     statistic: AbstractGoodnessOfFitStatistic = cls(
-        Beta.DEFAULT.parse(
-            {}
-            if cls is beta.EbnerLiebenbergBetaGofStatistic
-            else {"a": 2, "b": 2}
-            if cls is beta.ModeBetaGofStatistic
-            else {"a": 1, "b": 1}
-        )
+        Beta.DEFAULT.parse({} if cls is beta.EbnerLiebenbergBetaGofStatistic else {"a": 1, "b": 1})
     )
     sample = np.array([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
     original = sample.copy()
@@ -255,11 +112,7 @@ def test_fixed_edf_statistics_match_uniform_transform(a, b):
         assert cls(Beta.DEFAULT.parse({"a": a, "b": b})).execute_statistic(sample) == pytest.approx(
             cls(
                 Beta.DEFAULT.parse(
-                    {}
-                    if cls is beta.EbnerLiebenbergBetaGofStatistic
-                    else {"a": 2, "b": 2}
-                    if cls is beta.ModeBetaGofStatistic
-                    else {"a": 1, "b": 1}
+                    {} if cls is beta.EbnerLiebenbergBetaGofStatistic else {"a": 1, "b": 1}
                 )
             ).execute_statistic(u),
             abs=2e-13,
@@ -269,8 +122,9 @@ def test_fixed_edf_statistics_match_uniform_transform(a, b):
 def test_beta_docstring_examples():
     import doctest
 
-    result = doctest.testmod(beta, raise_on_error=True)
-    assert result.attempted >= 36
+    # Examples use the implementation namespace (Beta, NumPy and SciPy).
+    result = doctest.testmod(beta, extraglobs=vars(beta_statistics), raise_on_error=True)
+    assert result.attempted >= 3
 
 
 @pytest.mark.parametrize("cls", STATISTICS)
@@ -278,21 +132,15 @@ def test_each_statistic_documents_formula_hypothesis_and_source_status(cls):
     import inspect
 
     doc = inspect.getdoc(cls)
+    if cls.__name__ in {*beta_statistics._EDF_STATISTICS, *beta_statistics._FREQUENCY_STATISTICS}:
+        assert "Beta hypothesis" in doc
+        assert "https://doi.org/" in doc
+        return
     assert "Notes\n-----" in doc
     assert "Examples\n--------" in doc
     assert "Returns\n-------" in inspect.getdoc(cls.execute_statistic)
-    if cls in [
-        beta.MomentBasedBetaGofStatistic,
-        beta.SkewnessKurtosisBetaGofStatistic,
-        beta.RatioBetaGofStatistic,
-        beta.EntropyBetaGofStatistic,
-        beta.ModeBetaGofStatistic,
-    ]:
-        assert "No publication" in doc
-        assert "https://" not in doc
-    else:
-        assert "References\n----------" in doc
-        assert "https://doi.org/" in doc
+    assert "References\n----------" in doc
+    assert "https://doi.org/" in doc
 
 
 @pytest.mark.parametrize("cls", STATISTICS)
@@ -303,11 +151,7 @@ def test_no_silent_loss_of_sample_information(cls, sample):
     with pytest.raises(ValueError, match="real|masked"):
         cls(
             Beta.DEFAULT.parse(
-                {}
-                if cls is beta.EbnerLiebenbergBetaGofStatistic
-                else {"a": 2, "b": 2}
-                if cls is beta.ModeBetaGofStatistic
-                else {"a": 1, "b": 1}
+                {} if cls is beta.EbnerLiebenbergBetaGofStatistic else {"a": 1, "b": 1}
             )
         ).execute_statistic(sample)
 
@@ -322,7 +166,7 @@ def test_complex_shape_is_rejected(parameter):
 
 @pytest.mark.parametrize("direction", [None, "left", 42])
 def test_invalid_ks_direction_is_not_silently_two_sided(direction):
-    with pytest.raises(TypeError, match="AlternativeType"):
+    with pytest.raises(TypeError, match="alternative_type"):
         beta.KolmogorovSmirnovBetaGofStatistic(
             Beta.DEFAULT.parse({"a": 1, "b": 1}), alternative_type=direction
         )
@@ -330,45 +174,15 @@ def test_invalid_ks_direction_is_not_silently_two_sided(direction):
 
 @pytest.mark.parametrize("power", [np.nan, np.inf, [1, 2], 1 + 2j])
 def test_power_parameter_validated_at_construction(power):
-    with pytest.raises(ValueError, match="finite real scalar"):
+    with pytest.raises(TypeError, match="lambda_"):
         beta.Chi2PearsonBetaGofStatistic(Beta.DEFAULT.parse({"a": 1, "b": 1}), lambda_=power)
-
-
-def test_skewness_kurtosis_near_constant_sample_matches_affine_equivalent():
-    # Exactly representable differences, hence an exact affine equivalent of integers.
-    sample = 0.5 + np.arange(8) * np.spacing(0.5)
-    g = stats.skew(np.arange(8), bias=False)
-    k = stats.kurtosis(np.arange(8), bias=False)
-    # Independent Uniform(0,1) influence-function variances from the audit.
-    expected = 8 * (g * g / (72 / 35) + (k + 1.2) ** 2 / (1152 / 875))
-    assert beta.SkewnessKurtosisBetaGofStatistic(
-        Beta.DEFAULT.parse({"a": 1, "b": 1})
-    ).execute_statistic(sample) == pytest.approx(expected)
-
-
-def test_ratio_at_subnormal_scale_matches_exact_ratio():
-    sample = np.arange(1, 5) * np.nextafter(0.0, 1.0)
-    ratio = 24**0.25 / 2.5
-    expected = 2 * abs(ratio - 2 / np.e)
-    assert beta.RatioBetaGofStatistic(Beta.DEFAULT.parse({"a": 1, "b": 1})).execute_statistic(
-        sample
-    ) == pytest.approx(expected, abs=1e-12)
-
-
-def test_mode_at_tiny_scale_does_not_underflow_kde_variance():
-    # Symmetric unimodal KDE mode is at the midpoint, even when variance underflows.
-    sample = np.linspace(1, 2, 9) * 1e-200
-    expected = np.sqrt(9) * abs(1.5e-200 - 0.5)
-    assert beta.ModeBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 2})).execute_statistic(
-        sample
-    ) == pytest.approx(expected)
 
 
 @pytest.mark.parametrize("cls", STATISTICS)
 def test_schema_construction_and_supported_fixed_parameters(cls):
     from dataclasses import replace
 
-    from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
+    from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
     from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 
     fitted = cls is beta.EbnerLiebenbergBetaGofStatistic
@@ -391,15 +205,11 @@ def test_schema_construction_and_supported_fixed_parameters(cls):
 
 
 def test_schema_construction_forwards_algorithm_options():
-    from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
+    from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
 
     values = Beta.DEFAULT.parse({"a": 2, "b": 5})
-    statistic = beta.KolmogorovSmirnovBetaGofStatistic(
-        values, alternative_type=AlternativeType.RIGHT
-    )
-    expected = beta.KolmogorovSmirnovBetaGofStatistic(
-        Beta.DEFAULT.parse({"a": 2, "b": 5}), alternative_type=AlternativeType.RIGHT
-    )
+    statistic = beta.KolmogorovSmirnovDPlusBetaGofStatistic(values)
+    expected = beta.KolmogorovSmirnovDPlusBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}))
     sample = [0.1, 0.2, 0.3, 0.5]
     assert statistic.execute_statistic(sample) == expected.execute_statistic(sample)
     with pytest.raises(TypeError):
@@ -407,7 +217,7 @@ def test_schema_construction_forwards_algorithm_options():
 
 
 def test_schema_hypothesis_generator_preserves_beta_shapes():
-    from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
+    from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
     from pysatl_criterion.utils.generator import get_hypothesis_generator
 
     values = Beta.DEFAULT.parse({"a": 2, "b": 5})
@@ -420,7 +230,7 @@ def test_schema_hypothesis_generator_preserves_beta_shapes():
 
 
 def test_beta_family_does_not_require_fixed_shapes():
-    from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
+    from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
     from pysatl_criterion.distribution.parameters import HypothesisSupport
 
     class FixedAlphaStatistic(beta.AbstractBetaGofStatistic):

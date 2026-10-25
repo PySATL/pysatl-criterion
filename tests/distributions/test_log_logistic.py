@@ -1,8 +1,9 @@
 import numpy as np
 import pytest
 
-from pysatl_criterion.distribution.distributions import LogLogisticDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.log_logistic import (
+from pysatl_criterion.distribution import LogLogisticDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.binning import EqualProbabilityBins
+from pysatl_criterion.statistics.goodness_of_fit.continuous.log_logistic import (
     AbstractLogLogisticGofStatistic,
     AndersonDarlingLogLogisticGofStatistic,
     Chi2PearsonLogLogisticGofStatistic,
@@ -77,7 +78,8 @@ def test_cramervonmises_loglogistic_statistic():
 def test_chi2_pearson_loglogistic_statistic():
     """Chi-square statistic for LogLogistic(alpha=1.5, beta=2.0)."""
     statistic = Chi2PearsonLogLogisticGofStatistic(
-        LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA}), bins=5
+        LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA}),
+        binning=EqualProbabilityBins(5),
     ).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(2.0, rel=1e-9)
 
@@ -218,19 +220,20 @@ def test_loglogistic_zero_data_handling():
 
 def test_loglogistic_binned_statistics_validate_bin_count():
     """Binned statistics require at least two histogram bins."""
-    with pytest.raises(ValueError, match="At least two bins"):
+    with pytest.raises(ValueError, match="integer >= 2"):
         Chi2PearsonLogLogisticGofStatistic(
             LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA}),
-            bins=1,
+            binning=EqualProbabilityBins(1),
         )
 
 
 def test_loglogistic_binned_statistics_require_sample():
     """Histogram-based tests must receive observations."""
     statistic = Chi2PearsonLogLogisticGofStatistic(
-        LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA}), bins=5
+        LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": _ALPHA, "beta": _BETA}),
+        binning=EqualProbabilityBins(5),
     )
-    with pytest.raises(ValueError, match="At least one observation"):
+    with pytest.raises(ValueError, match="nonempty"):
         statistic.execute_statistic([])
 
 
@@ -318,6 +321,7 @@ def test_loglogistic_chi2_single_observation():
     """Chi2 statistic for single observation."""
     data = [1.0]
     stat = Chi2PearsonLogLogisticGofStatistic(
-        LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": 1.0, "beta": 1.0}), bins=5
+        LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": 1.0, "beta": 1.0}),
+        binning=EqualProbabilityBins(5),
     ).execute_statistic(data)
     assert stat >= 0

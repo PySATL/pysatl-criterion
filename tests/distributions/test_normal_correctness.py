@@ -10,13 +10,14 @@ import numpy as np
 import pytest
 from scipy import integrate, optimize, special, stats
 
-from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
+from pysatl_criterion.distribution import NormalDistributionDescriptor
 from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     MonteCarloLimitDistributionResolver,
     StorageLimitDistributionResolver,
 )
 from pysatl_criterion.statistics.alternative import AlternativeType
-from pysatl_criterion.statistics.goodness_of_fit import normal
+from pysatl_criterion.statistics.goodness_of_fit.continuous import normal
+from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import normal_statistics
 from tests.parameter_cases import parameters_for
 
 
@@ -421,7 +422,7 @@ def test_unkeyed_options_cannot_use_stored_calibration(statistic, mocker):
 
 
 def test_docstring_and_markdown_examples():
-    assert doctest.testmod(normal).failed == 0
+    assert doctest.testmod(normal, extraglobs=vars(normal_statistics)).failed == 0
     folder = Path(__file__).parents[2] / "docs/criteria/goodness-of-fit/normality"
     for page in folder.glob("*.md"):
         for section in page.read_text().split("```python\n")[1:]:

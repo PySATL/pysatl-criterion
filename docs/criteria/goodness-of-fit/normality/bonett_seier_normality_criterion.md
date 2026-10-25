@@ -1,5 +1,9 @@
 # Bonett-Seier test for normality
 
+**Class:** `BonettSeierNormalityGofStatistic`
+
+**Code:** `BS_NORMALITY_GOODNESS_OF_FIT`
+
 Bonett-Seier statistic based on a modified Geary kurtosis measure.
 
 ## Methods
@@ -16,15 +20,16 @@ alternative()
 H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
 Location and positive scale cancel, allowing N(0,1) null simulation.
 Every simulated sample must go through execute_statistic again.
-Both tails of the statistic defines rejection. Use at least 4
+Both tails of the statistic define rejection. Use at least 4
 finite real observations in one dimension. Nonzero dispersion is required.
 Ties are accepted unless a scale or contrast becomes undefined.
 Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
 the standard normal CDF and density, s0=std(x,ddof=0), and
 s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-The publication was identified, but the exact finite-sample
-implementation is not fully certified against its primary text.
+The factor sqrt(n+2), the population sample variance (ddof=0), and the
+two-sided rejection rule agree with equations (5)–(6) of the [original
+article](https://sci2s.ugr.es/keel/pdf/specific/articulo/Normalidad4.pdf).
 
 Let d=mean(abs(x-mean(x))) and omega=13.29*log(s0/d).
 Return sqrt(n+2)*(omega-3)/3.54, a signed kurtosis transform.
@@ -40,14 +45,14 @@ The constants are rounded approximations; use finite-sample simulation.
 ## Examples
 
 ```python
-from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
+from pysatl_criterion.distribution import NormalDistributionDescriptor
 import numpy as np
-from pysatl_criterion.statistics.goodness_of_fit.normal import BonettSeierNormalityGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import BonettSeierNormalityGofStatistic
 
 statistic = BonettSeierNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({}))
 sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
 value = statistic.execute_statistic(sample)
-bool(np.isfinite(value))
+assert np.isfinite(value)
 ```
 
-See [review and calibration changes](../../../normal-statistics-review.md).
+See the [complete catalog](index.md) and [mathematical verification](mathematical-validation.md).

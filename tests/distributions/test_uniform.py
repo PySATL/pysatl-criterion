@@ -2,9 +2,15 @@ import numpy as np
 import pytest
 import scipy.stats as scipy_stats
 
-from pysatl_criterion.distribution.distributions import UniformDistributionDescriptor
+from pysatl_criterion.distribution import UniformDistributionDescriptor
 from pysatl_criterion.statistics.alternative import TwoSidedAlternative
-from pysatl_criterion.statistics.goodness_of_fit.uniform import (
+from pysatl_criterion.statistics.goodness_of_fit.binning import (
+    EqualProbabilityBins,
+    PowerCount,
+    SqrtCount,
+    SturgesCount,
+)
+from pysatl_criterion.statistics.goodness_of_fit.continuous.uniform import (
     AbstractUniformGofStatistic,
     AndersonDarlingUniformGofStatistic,
     BickelRosenblattUniformGofStatistic,
@@ -19,7 +25,9 @@ from pysatl_criterion.statistics.goodness_of_fit.uniform import (
     ShermanUniformGofStatistic,
     SteinUniformGofStatistic,
     WatsonUniformGofStatistic,
-    ZhangTestsUniformGofStatistic,
+    ZhangAUniformGofStatistic,
+    ZhangCUniformGofStatistic,
+    ZhangKUniformGofStatistic,
 )
 
 
@@ -212,8 +220,8 @@ class TestChi2PearsonUniformGofStatistic:
     @pytest.mark.parametrize(
         ("a", "b", "bins", "seed", "n"),
         [
-            (0, 1, "sturges", 42, 100),
-            (0, 10, "sqrt", 123, 200),
+            (0, 1, SturgesCount(), 42, 100),
+            (0, 10, SqrtCount(), 123, 200),
             (2, 5, 5, 456, 150),
         ],
     )
@@ -223,7 +231,8 @@ class TestChi2PearsonUniformGofStatistic:
         data = np.random.uniform(a, b, n)
 
         stat = Chi2PearsonUniformGofStatistic(
-            UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b}), bins=bins
+            UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b}),
+            binning=EqualProbabilityBins(count=bins),
         )
         statistic_value = stat.execute_statistic(data)
 
@@ -235,9 +244,10 @@ class TestChi2PearsonUniformGofStatistic:
         np.random.seed(42)
         data = np.random.uniform(0, 1, 100)
 
-        for bins in ["sturges", "sqrt", "auto", 10]:
+        for bins in [SturgesCount(), SqrtCount(), PowerCount(), 10]:
             stat = Chi2PearsonUniformGofStatistic(
-                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1}), bins=bins
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1}),
+                binning=EqualProbabilityBins(count=bins),
             )
             statistic_value = stat.execute_statistic(data)
             assert statistic_value >= 0
@@ -363,39 +373,25 @@ class TestBickelRosenblattUniformGofStatistic:
         assert statistic_value < 1
 
 
-class TestZhangTestsUniformGofStatistic:
-    """Tests for Zhang tests statistic."""
+@pytest.mark.parametrize(
+    ("criterion_class", "code"),
+    [
+        (ZhangAUniformGofStatistic, "ZHANG_ZA"),
+        (ZhangCUniformGofStatistic, "ZHANG_ZC"),
+        (ZhangKUniformGofStatistic, "ZHANG_ZK"),
+    ],
+)
+class TestZhangUniformGofStatistics:
+    def test_code(self, criterion_class, code):
+        assert criterion_class.code() == f"{code}_UNIFORM_GOODNESS_OF_FIT"
 
-    def test_code(self):
-        """Test that the Zhang statistic returns correct code."""
-        assert "ZHANG_UNIFORM_GOODNESS_OF_FIT" == ZhangTestsUniformGofStatistic.code()
-
-    @pytest.mark.parametrize(
-        ("test_type", "a", "b", "seed", "n"),
-        [
-            ("A", 0, 1, 42, 50),
-            ("C", 0, 10, 123, 100),
-            ("K", 2, 5, 456, 75),
-        ],
-    )
-    def test_zhang_with_generated_data(self, test_type, a, b, seed, n):
-        """Test Zhang statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
-
-        stat = ZhangTestsUniformGofStatistic(
-            UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b}), test_type=test_type
+    @pytest.mark.parametrize("a,b,seed,n", [(0, 1, 42, 50), (0, 10, 123, 100), (2, 5, 456, 75)])
+    def test_zhang_with_generated_data(self, criterion_class, code, a, b, seed, n):
+        data = np.random.default_rng(seed).uniform(a, b, n)
+        statistic = criterion_class(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b})
         )
-        statistic_value = stat.execute_statistic(data)
-
-        assert np.isfinite(statistic_value)
-
-    def test_zhang_invalid_test_type(self):
-        """Test that Zhang statistic validates test_type parameter."""
-        with pytest.raises(ValueError, match="test_type must be 'A', 'C', or 'K'"):
-            ZhangTestsUniformGofStatistic(
-                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1}), test_type="X"
-            )
+        assert np.isfinite(statistic.execute_statistic(data))
 
 
 class TestSteinUniformGofStatistic:
@@ -620,14 +616,14 @@ class TestUniformIntegration:
             BickelRosenblattUniformGofStatistic(
                 UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
             ),
-            ZhangTestsUniformGofStatistic(
-                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1}), test_type="A"
+            ZhangAUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
             ),
-            ZhangTestsUniformGofStatistic(
-                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1}), test_type="C"
+            ZhangCUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
             ),
-            ZhangTestsUniformGofStatistic(
-                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1}), test_type="K"
+            ZhangKUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
             ),
             SteinUniformGofStatistic(UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})),
             CensoredSteinUniformGofStatistic(
@@ -679,7 +675,8 @@ class TestUniformIntegration:
                 UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
             ),
             Chi2PearsonUniformGofStatistic(
-                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1}), bins=2
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1}),
+                binning=EqualProbabilityBins(count=2),
             ),
             SteinUniformGofStatistic(UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})),
         ]

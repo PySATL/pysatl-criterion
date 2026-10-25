@@ -26,7 +26,7 @@ You're all set! You can now import and use the statistical tests in your Python 
 
 Statistic calculation example:
 ```python
-from pysatl_criterion.distribution.distributions import NormalDistributionDescriptor
+from pysatl_criterion.distribution import NormalDistributionDescriptor
 # import needed criterion from pysatl_criterion
 from pysatl_criterion.statistics import KolmogorovSmirnovNormalityGofStatistic
 

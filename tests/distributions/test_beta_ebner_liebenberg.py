@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 from scipy import integrate, special, stats
 
-from pysatl_criterion.distribution.distributions import BetaDistributionDescriptor as Beta
+from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
 from pysatl_criterion.statistics.alternative import RightAlternative
-from pysatl_criterion.statistics.goodness_of_fit import EbnerLiebenbergBetaGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous import EbnerLiebenbergBetaGofStatistic
 
 
 @pytest.fixture
