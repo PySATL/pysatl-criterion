@@ -7,7 +7,7 @@ import pytest
 from scipy.stats import power_divergence
 
 from pysatl_criterion.statistics.alternative import AlternativeType
-from pysatl_criterion.statistics.goodness_of_fit.continuous import frequency
+from pysatl_criterion.statistics.goodness_of_fit import frequency
 
 
 CRITERIA = [

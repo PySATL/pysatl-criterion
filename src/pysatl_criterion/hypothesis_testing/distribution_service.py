@@ -59,7 +59,7 @@ class DistributionService:
         """Read or compute bounds, retrying if their source changed during calculation."""
         level = normalize_significance_level(significance_level)
         if not isinstance(alternative_type, AlternativeType):
-            raise ValueError("alternative_type must be an AlternativeType")
+            raise TypeError("alternative_type must be an AlternativeType")
         for _ in range(self._max_attempts):
             with self._uow_factory() as uow:
                 distribution = uow.limit_distributions.get(key)

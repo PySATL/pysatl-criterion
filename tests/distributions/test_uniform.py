@@ -99,8 +99,8 @@ class TestKolmogorovSmirnovUniformGofStatistic:
     )
     def test_ks_with_generated_data(self, a, b, seed, n):
         """Test KS statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
         stat = KolmogorovSmirnovUniformGofStatistic(
             UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b})
@@ -113,8 +113,8 @@ class TestKolmogorovSmirnovUniformGofStatistic:
 
     def test_ks_with_wrong_distribution(self):
         """Test KS statistic with data from wrong distribution."""
-        np.random.seed(42)
-        data = scipy_stats.expon.rvs(size=100)
+        rng = np.random.RandomState(42)
+        data = scipy_stats.expon.rvs(size=100, random_state=rng)
         data_normalized = data / np.max(data)
 
         stat = KolmogorovSmirnovUniformGofStatistic(
@@ -152,8 +152,8 @@ class TestAndersonDarlingUniformGofStatistic:
     )
     def test_ad_with_generated_data(self, a, b, seed, n):
         """Test AD statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
         stat = AndersonDarlingUniformGofStatistic(
             UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b})
@@ -190,8 +190,8 @@ class TestCrammerVonMisesUniformGofStatistic:
     )
     def test_cvm_with_generated_data(self, a, b, seed, n):
         """Test CVM statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
         stat = CrammerVonMisesUniformGofStatistic(
             UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b})
@@ -227,8 +227,8 @@ class TestChi2PearsonUniformGofStatistic:
     )
     def test_chi2_with_generated_data(self, a, b, bins, seed, n):
         """Test Chi-squared statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
         stat = Chi2PearsonUniformGofStatistic(
             UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b}),
@@ -241,8 +241,8 @@ class TestChi2PearsonUniformGofStatistic:
 
     def test_chi2_bin_selection(self):
         """Test different bin selection methods."""
-        np.random.seed(42)
-        data = np.random.uniform(0, 1, 100)
+        rng = np.random.RandomState(42)
+        data = rng.uniform(0, 1, 100)
 
         for bins in [SturgesCount(), SqrtCount(), PowerCount(), 10]:
             stat = Chi2PearsonUniformGofStatistic(
@@ -270,8 +270,8 @@ class TestWatsonUniformGofStatistic:
     )
     def test_watson_with_generated_data(self, a, b, seed, n):
         """Test Watson statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
         stat = WatsonUniformGofStatistic(
             UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b})
@@ -298,8 +298,8 @@ class TestKuiperUniformGofStatistic:
     )
     def test_kuiper_with_generated_data(self, a, b, seed, n):
         """Test Kuiper statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
         stat = KuiperUniformGofStatistic(
             UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b})
@@ -326,8 +326,8 @@ class TestGreenwoodTestUniformGofStatistic:
     )
     def test_greenwood_with_generated_data(self, a, b, seed, n):
         """Test Greenwood statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
         stat = GreenwoodTestUniformGofStatistic(
             UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b})
@@ -359,8 +359,8 @@ class TestBickelRosenblattUniformGofStatistic:
     )
     def test_bickel_rosenblatt_with_generated_data(self, a, b, bandwidth, seed, n):
         """Test Bickel-Rosenblatt statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
         stat = BickelRosenblattUniformGofStatistic(
             UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b}), bandwidth=bandwidth
@@ -388,9 +388,7 @@ class TestZhangUniformGofStatistics:
     @pytest.mark.parametrize("a,b,seed,n", [(0, 1, 42, 50), (0, 10, 123, 100), (2, 5, 456, 75)])
     def test_zhang_with_generated_data(self, criterion_class, code, a, b, seed, n):
         data = np.random.default_rng(seed).uniform(a, b, n)
-        statistic = criterion_class(
-            UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b})
-        )
+        statistic = criterion_class(UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b}))
         assert np.isfinite(statistic.execute_statistic(data))
 
 
@@ -419,8 +417,8 @@ class TestSteinUniformGofStatistic:
     )
     def test_stein_with_generated_data(self, a, b, seed, n):
         """Test Stein statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
         stat = SteinUniformGofStatistic(
             UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b})
@@ -458,8 +456,8 @@ class TestCensoredSteinUniformGofStatistic:
 
     def test_censored_stein_without_censoring(self):
         """Test censored Stein statistic without censoring."""
-        np.random.seed(42)
-        data = np.random.uniform(0, 1, 100)
+        rng = np.random.RandomState(42)
+        data = rng.uniform(0, 1, 100)
 
         stat = CensoredSteinUniformGofStatistic(
             UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
@@ -470,10 +468,10 @@ class TestCensoredSteinUniformGofStatistic:
 
     def test_censored_stein_with_censoring(self):
         """Test censored Stein statistic with censoring."""
-        np.random.seed(42)
+        rng = np.random.RandomState(42)
         n = 100
-        data = np.random.uniform(0, 1, n)
-        censoring = np.random.binomial(1, 0.2, n)
+        data = rng.uniform(0, 1, n)
+        censoring = rng.binomial(1, 0.2, n)
 
         stat = CensoredSteinUniformGofStatistic(
             UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
@@ -510,8 +508,8 @@ class TestNeymanSmoothTestUniformGofStatistic:
     )
     def test_neyman_with_generated_data(self, k, a, b, seed, n):
         """Test Neyman statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
         stat = NeymanSmoothTestUniformGofStatistic(
             UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b}), k=k
@@ -538,8 +536,8 @@ class TestShermanUniformGofStatistic:
     )
     def test_sherman_with_generated_data(self, a, b, seed, n):
         """Test Sherman statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
         stat = ShermanUniformGofStatistic(
             UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b})
@@ -571,8 +569,8 @@ class TestQuesenberryMillerUniformGofStatistic:
     )
     def test_quesenberry_miller_with_generated_data(self, a, b, seed, n):
         """Test Quesenberry-Miller statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
         stat = QuesenberryMillerUniformGofStatistic(
             UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b})
@@ -588,8 +586,8 @@ class TestUniformIntegration:
 
     def test_all_statistics_run(self):
         """Test that all statistics can be computed without errors."""
-        np.random.seed(42)
-        data = np.random.uniform(0, 1, 100)
+        rng = np.random.RandomState(42)
+        data = rng.uniform(0, 1, 100)
 
         statistics = [
             KolmogorovSmirnovUniformGofStatistic(
@@ -646,8 +644,8 @@ class TestUniformIntegration:
 
     def test_different_bounds(self):
         """Test that statistics work with different distribution bounds."""
-        np.random.seed(42)
-        data = np.random.uniform(2, 5, 100)
+        rng = np.random.RandomState(42)
+        data = rng.uniform(2, 5, 100)
 
         statistics = [
             KolmogorovSmirnovUniformGofStatistic(
@@ -668,7 +666,7 @@ class TestUniformIntegration:
 
     def test_edge_cases(self):
         """Test edge cases for the statistics."""
-        small_data = np.random.uniform(0, 1, 5)
+        small_data = np.random.default_rng(42).uniform(0, 1, 5)
 
         stats_to_test = [
             KolmogorovSmirnovUniformGofStatistic(
@@ -693,8 +691,8 @@ class TestUniformIntegration:
 
     def test_consistency_across_runs(self):
         """Test that statistics give consistent results across multiple runs."""
-        np.random.seed(42)
-        data = np.random.uniform(0, 1, 100)
+        rng = np.random.RandomState(42)
+        data = rng.uniform(0, 1, 100)
 
         stat = KolmogorovSmirnovUniformGofStatistic(
             UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
@@ -704,7 +702,7 @@ class TestUniformIntegration:
 
         assert value1 == value2
 
-        data = np.random.exponential(0.5, 100)
+        data = rng.exponential(0.5, 100)
         data = data / max(data)
 
         value1 = stat.execute_statistic(data)

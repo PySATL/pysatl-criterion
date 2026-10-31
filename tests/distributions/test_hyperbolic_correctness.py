@@ -184,7 +184,7 @@ def test_exports_pickle_and_explicit_hypotheses(cls):
 
 
 def test_public_execution_calls_nopython_kernels(monkeypatch):
-    from pysatl_criterion.statistics.goodness_of_fit.continuous import edf
+    from pysatl_criterion.statistics.goodness_of_fit import edf
 
     kernels = [
         edf.AbstractKSStatistic,
@@ -306,3 +306,16 @@ def test_affine_and_reflection_invariance(cls):
 def test_singleton_circular_statistics_are_constant(value):
     for cls, expected in [(CLASSES[3], 1.0), (CLASSES[4], 1 / 12)]:
         assert cls(parameters_for(cls)).execute_statistic([value]) == pytest.approx(expected)
+
+
+def test_liao_shimokawa_against_independent_scipy_formula():
+    from scipy import stats
+
+    cls = hyperbolic.LiaoShimokawaHyperbolicGofStatistic
+    criterion = cls(parameters_for(cls, alpha=2, beta=0.3, delta=1.5, mu=-0.5))
+    sample = np.array([-2, -0.5, 0, 0.7, 2])
+    u = stats.genhyperbolic.cdf(sample, p=1, a=3, b=0.45, loc=-0.5, scale=1.5)
+    n = len(u)
+    i = np.arange(1, n + 1)
+    expected = sum(np.maximum(i / n - u, u - (i - 1) / n) / np.sqrt(u * (1 - u))) / np.sqrt(n)
+    assert criterion.execute_statistic(sample[::-1]) == pytest.approx(expected, rel=1e-9)

@@ -1,30 +1,28 @@
 from collections.abc import Iterator
 from contextlib import contextmanager
-from functools import partial
 
-from pysatl_criterion.hypothesis_testing.distribution_service import DistributionService
 from pysatl_criterion.loader.critical_value_loader import CriticalValueLoader
 from pysatl_criterion.loader.limit_distribution_loader import LimitDistributionLoader
 from pysatl_criterion.loader.models import DistributionLoadResult
-from pysatl_criterion.loader.store_adapters import (
-    CriticalValueReader,
-    CriticalValueWriter,
-    LimitDistributionReader,
-    LimitDistributionWriter,
-)
 from pysatl_criterion.persistence.queries.critical_value import CriticalValueFilter
 from pysatl_criterion.persistence.queries.limit_distribution import LimitDistributionFilter
+from pysatl_criterion.persistence.sqlalchemy.config import StorageConfig
 from pysatl_criterion.persistence.sqlalchemy.database import AlchemyDatabase
-from pysatl_criterion.persistence.sqlalchemy.unit_of_work import AlchemyUnitOfWork
+from pysatl_criterion.persistence.sqlalchemy.storage import (
+    CriticalValueStorage,
+    DistributionStorage,
+)
 from pysatl_criterion.utils import constants
 
 
 @contextmanager
-def _open_database(connection: str | AlchemyDatabase) -> Iterator[AlchemyDatabase]:
+def _open_database(
+    connection: str | AlchemyDatabase, config: StorageConfig
+) -> Iterator[AlchemyDatabase]:
     if isinstance(connection, AlchemyDatabase):
         yield connection
         return
-    database = AlchemyDatabase(connection)
+    database = AlchemyDatabase(connection, config=config)
     try:
         yield database
     finally:
@@ -45,11 +43,14 @@ class DistributionLoader:
         self,
         remote: str | AlchemyDatabase | None = None,
         local: str | AlchemyDatabase | None = None,
+        *,
+        config: StorageConfig | None = None,
     ):
         if local is None:
             raise TypeError("local is required")
         self._remote = constants.REMOTE_PYSATL_URL if remote is None else remote
         self._local = local
+        self._config = config or StorageConfig()
 
     def load(
         self, query: LimitDistributionFilter | None = None, *, batch_size: int = 100
@@ -74,18 +75,19 @@ class DistributionLoader:
                 min_monte_carlo_count=query.min_monte_carlo_count,
             )
         )
-        with _open_database(self._remote) as remote, _open_database(self._local) as local:
+        with (
+            _open_database(self._remote, self._config) as remote,
+            _open_database(self._local, self._config) as local,
+        ):
             local.init()
-            remote_uow = partial(AlchemyUnitOfWork, remote.session_factory)
-            local_uow = partial(AlchemyUnitOfWork, local.session_factory)
             limit_distribution_loader = LimitDistributionLoader(
-                source=LimitDistributionReader(remote_uow),
-                destination=LimitDistributionWriter(DistributionService(local_uow)),
+                source=DistributionStorage(remote),
+                destination=DistributionStorage(local),
                 print_summary=False,
             )
             critical_value_loader = CriticalValueLoader(
-                source=CriticalValueReader(remote_uow),
-                destination=CriticalValueWriter(local_uow),
+                source=CriticalValueStorage(remote),
+                destination=CriticalValueStorage(local),
                 print_summary=False,
             )
             distributions = limit_distribution_loader.load(query, batch_size=batch_size)

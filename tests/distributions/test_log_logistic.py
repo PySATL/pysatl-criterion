@@ -103,11 +103,11 @@ def test_nikulin_loglogistic_statistic():
 
 def test_nikulin_loglogistic_with_censored_data():
     """Nikulin test with right-censored data."""
-    np.random.seed(42)
+    rng = np.random.RandomState(42)
     n = 50
     alpha_true, beta_true = 2.0, 1.5
 
-    u = np.random.uniform(0, 1, n)
+    u = rng.uniform(0, 1, n)
     times = alpha_true * (u / (1 - u)) ** (1 / beta_true)
 
     censoring_time = np.percentile(times, 70)
@@ -143,11 +143,11 @@ def test_mirvaliev_loglogistic_statistic():
 
 def test_mirvaliev_with_censored_data():
     """Mirvaliev test with right-censored data."""
-    np.random.seed(42)
+    rng = np.random.RandomState(42)
     n = 50
     alpha_true, beta_true = 2.0, 1.5
 
-    u = np.random.uniform(0, 1, n)
+    u = rng.uniform(0, 1, n)
     times = alpha_true * (u / (1 - u)) ** (1 / beta_true)
 
     censoring_time = np.percentile(times, 70)
@@ -239,11 +239,11 @@ def test_loglogistic_binned_statistics_require_sample():
 
 def test_mirvaliev_statistic_non_negative():
     """Mirvaliev statistic must be non-negative."""
-    np.random.seed(42)
+    rng = np.random.RandomState(42)
     n = 100
     alpha_true, beta_true = 2.0, 1.5
 
-    u = np.random.uniform(0, 1, n)
+    u = rng.uniform(0, 1, n)
     times = alpha_true * (u / (1 - u)) ** (1 / beta_true)
     censored = np.ones_like(times)
 
@@ -258,11 +258,11 @@ def test_mirvaliev_statistic_non_negative():
 
 def test_nikulin_statistic_non_negative():
     """Nikulin statistic must be non-negative."""
-    np.random.seed(42)
+    rng = np.random.RandomState(42)
     n = 100
     alpha_true, beta_true = 2.0, 1.5
 
-    u = np.random.uniform(0, 1, n)
+    u = rng.uniform(0, 1, n)
     times = alpha_true * (u / (1 - u)) ** (1 / beta_true)
     censored = np.ones_like(times)
 

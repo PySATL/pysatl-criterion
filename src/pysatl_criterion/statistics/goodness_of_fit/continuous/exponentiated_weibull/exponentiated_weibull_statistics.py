@@ -12,7 +12,7 @@ from pysatl_criterion.distribution import (
     ExponentiatedWeibullDistributionDescriptor as Distribution,
 )
 from pysatl_criterion.distribution.parameters import HypothesisSupport
-from pysatl_criterion.statistics.goodness_of_fit.continuous import edf, frequency
+from pysatl_criterion.statistics.goodness_of_fit import edf, frequency
 from pysatl_criterion.statistics.goodness_of_fit.continuous._edf_factory import (
     EDFSpec,
     export_edf_statistics,
@@ -195,9 +195,9 @@ _EDF_STATISTICS = {
             HypothesisSupport(Distribution.DEFAULT, frozenset(Distribution.DEFAULT.parameters)),
         ),
     ),
-    "MinToshiyukiExponentiatedWeibullGofStatistic": EDFSpec(
+    "LiaoShimokawaExponentiatedWeibullGofStatistic": EDFSpec(
         edf.AbstractLiaoShimokawaStatistic,
-        short_code="MT",
+        short_code="LS",
         supported_hypotheses=(
             HypothesisSupport(Distribution.DEFAULT, frozenset(Distribution.DEFAULT.parameters)),
         ),

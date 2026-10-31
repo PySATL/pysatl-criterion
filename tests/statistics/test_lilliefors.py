@@ -9,10 +9,10 @@ from pysatl_criterion.distribution import (
 )
 from pysatl_criterion.distribution import NormalDistributionDescriptor as Normal
 from pysatl_criterion.statistics.alternative import RightAlternative
+from pysatl_criterion.statistics.goodness_of_fit import edf
 from pysatl_criterion.statistics.goodness_of_fit.continuous import (
     LillieforsExponentialityGofStatistic,
     LillieforsNormalityGofStatistic,
-    edf,
     log_normal,
 )
 from pysatl_criterion.utils.generator import get_hypothesis_generator

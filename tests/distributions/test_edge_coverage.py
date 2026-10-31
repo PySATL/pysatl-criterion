@@ -128,25 +128,28 @@ def test_log_normal_critical_value_edges():
         LogNormalDistributionDescriptor.SHAPE_SCALE.parse({"s": 1, "scale": 1})
     )
     assert np.isfinite(supremum.calculate_critical_value(20, 0.01))
-    assert np.isfinite(supremum.calculate_critical_value(20, 0.02))
+    assert np.isfinite(supremum.calculate_critical_value(20, 0.05))
     assert np.isfinite(integral.calculate_critical_value(20, 0.01))
-    assert np.isfinite(integral.calculate_critical_value(20, 0.02))
-    with pytest.raises(ValueError):
-        supremum.calculate_critical_value(20, 0.5)
-    with pytest.raises(ValueError):
-        integral.calculate_critical_value(20, 0.5)
+    assert np.isfinite(integral.calculate_critical_value(20, 0.05))
+    with pytest.raises(NotImplementedError, match="Monte Carlo"):
+        supremum.calculate_critical_value(20, 0.02)
+    with pytest.raises(NotImplementedError, match="Monte Carlo"):
+        integral.calculate_critical_value(20, 0.02)
 
 
-def test_log_normal_small_r_and_empty_grid_fallbacks(monkeypatch):
+def test_log_normal_small_r_matches_continuous_limit():
     statistic = log_normal.KLSupremumLogNormalGoFStatistic(
         LogNormalDistributionDescriptor.SHAPE_SCALE.parse({"s": 1, "scale": 1})
     )
-    original_linspace = log_normal.np.linspace
-    monkeypatch.setattr(log_normal.np, "linspace", lambda *_args, **_kwargs: np.array([0.0, 1e-7]))
-    assert np.isfinite(statistic.execute_statistic([1.0, 1.2, 1.5, 2.0]))
-    monkeypatch.setattr(log_normal.np, "linspace", lambda *_args, **_kwargs: np.array([]))
-    assert statistic.execute_statistic([1.0, 1.2, 1.5, 2.0]) == np.inf
-    monkeypatch.setattr(log_normal.np, "linspace", original_linspace)
+    z = statistic._standardized_logs([1.0, 1.2, 1.5, 2.0])
+    coefficients = statistic._kl_coefficients(z)
+    bound = np.max(abs(z))
+    # D(r)/sigma(r) has magnitude |third standardized moment| / sqrt(6) at zero.
+    expected = abs(np.mean(z**3)) / np.sqrt(6)
+    for r in (0, -1e-7, 1e-7):
+        assert abs(statistic._kl_ratio(r, z, coefficients, bound)) == pytest.approx(
+            expected, abs=1e-6
+        )
 
 
 def test_normality_validation_and_helper_branches():
@@ -220,7 +223,7 @@ def test_normality_validation_and_helper_branches():
 def test_bhs_small_sample_and_helper_paths(monkeypatch):
     statistic = normal.BHSNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({}))
     monkeypatch.setattr(statistic, "mc_c_d", lambda *_args: 0.0)
-    assert np.isfinite(statistic.stat16([1, 2, 3, 4, 5]))
+    assert np.isfinite(statistic.execute_statistic([1, 2, 3, 4, 5]))
     monkeypatch.undo()
 
     # Exact medcouple values, including the antisymmetric median-tie convention.
@@ -266,7 +269,7 @@ def test_weibull_family_base_paths():
 
 def test_uniform_constant_sample_bins_and_fully_censored_sample():
     chi = uniform.Chi2PearsonUniformGofStatistic(
-        UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1}), bins="auto"
+        UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
     )
     assert np.isfinite(chi.execute_statistic(np.full(10, 0.5)))
     statistic = uniform.CensoredSteinUniformGofStatistic(

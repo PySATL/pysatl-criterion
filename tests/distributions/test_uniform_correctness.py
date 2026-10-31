@@ -137,9 +137,7 @@ def test_zhang_published_formulas(criterion_class, expected):
             UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
         ),
         *[
-            criterion_class(
-                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
-            )
+            criterion_class(UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1}))
             for criterion_class in (
                 u.ZhangAUniformGofStatistic,
                 u.ZhangCUniformGofStatistic,

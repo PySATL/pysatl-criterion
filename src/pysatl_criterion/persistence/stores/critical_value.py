@@ -15,7 +15,8 @@ class ICriticalValueStorage(
     """Write cached bounds only for matching local distributions and source versions.
 
     insert and bulk_insert report actual changes; existing equal-version bounds are retained.
-    The caller owns the transaction for each operation.
+    The caller owns the transaction for each operation. A store obtained from a unit of
+    work must not be used after that unit of work exits.
     """
 
     @abstractmethod

@@ -53,6 +53,7 @@ nav:
                 - Kolmogorov Smirnov: criteria/goodness-of-fit/hyperbolic/kolmogorov_smirnov_hyperbolic_criterion.md
                 - Kuiper: criteria/goodness-of-fit/hyperbolic/kuiper_hyperbolic_criterion.md
                 - Watson: criteria/goodness-of-fit/hyperbolic/watson_hyperbolic_criterion.md
+                - Liao–Shimokawa: criteria/goodness-of-fit/hyperbolic/liao_shimokawa_hyperbolic_criterion.md
                 - Pearson χ²: criteria/goodness-of-fit/hyperbolic/chi2_pearson_hyperbolic_criterion.md
                 - Freeman–Tukey: criteria/goodness-of-fit/hyperbolic/freeman_tukey_hyperbolic_criterion.md
                 - Modified Log Likelihood: criteria/goodness-of-fit/hyperbolic/modified_log_likelihood_hyperbolic_criterion.md
@@ -173,7 +174,7 @@ nav:
                 - Kolmogorov–Smirnov D−: criteria/goodness-of-fit/pareto/kolmogorov_smirnov_d_minus_pareto_criterion.md
                 - Anderson–Darling: criteria/goodness-of-fit/pareto/anderson_darling_pareto_criterion.md
                 - Cramér–von Mises: criteria/goodness-of-fit/pareto/cramer_von_mises_pareto_criterion.md
-                - Liao–Shimokawa functional (legacy MinToshiyuki name): criteria/goodness-of-fit/pareto/min_toshiyuki_pareto_criterion.md
+                - Liao–Shimokawa: criteria/goodness-of-fit/pareto/liao_shimokawa_pareto_criterion.md
                 - Watson: criteria/goodness-of-fit/pareto/watson_pareto_criterion.md
                 - Kuiper: criteria/goodness-of-fit/pareto/kuiper_pareto_criterion.md
                 - Scaled Kuiper: criteria/goodness-of-fit/pareto/kuiper_scaled_pareto_criterion.md
@@ -210,7 +211,6 @@ nav:
                 - Kuiper: criteria/goodness-of-fit/gamma/kuiper_gamma_criterion.md
                 - Greenwood: criteria/goodness-of-fit/gamma/greenwood_gamma_criterion.md
                 - Moran: criteria/goodness-of-fit/gamma/moran_gamma_criterion.md
-                - Min-Toshiyuki: criteria/goodness-of-fit/gamma/min_toshiyuki_gamma_criterion.md
                 - Pearson chi-squared: criteria/goodness-of-fit/gamma/chi2_pearson_gamma_criterion.md
                 - Likelihood-ratio: criteria/goodness-of-fit/gamma/likelihood_ratio_gamma_criterion.md
                 - Cressie-Read: criteria/goodness-of-fit/gamma/cressie_read_gamma_criterion.md
@@ -317,7 +317,7 @@ nav:
                 - Kolmogorov–Smirnov: criteria/goodness-of-fit/exponentiated-weibull/kolmogorov_smirnov_exponentiated_weibull_criterion.md
                 - Anderson–Darling: criteria/goodness-of-fit/exponentiated-weibull/anderson_darling_exponentiated_weibull_criterion.md
                 - Cramér–von Mises: criteria/goodness-of-fit/exponentiated-weibull/cvm_exponentiated_weibull_criterion.md
-                - Liao–Shimokawa (historical Min–Toshiyuki): criteria/goodness-of-fit/exponentiated-weibull/min_toshiyuki_exponentiated_weibull_criterion.md
+                - Liao–Shimokawa: criteria/goodness-of-fit/exponentiated-weibull/liao_shimokawa_exponentiated_weibull_criterion.md
                 - Watson: criteria/goodness-of-fit/exponentiated-weibull/watson_exponentiated_weibull_criterion.md
                 - Kuiper: criteria/goodness-of-fit/exponentiated-weibull/kuiper_exponentiated_weibull_criterion.md
                 - Scaled Kuiper: criteria/goodness-of-fit/exponentiated-weibull/kuiper_scaled_exponentiated_weibull_criterion.md

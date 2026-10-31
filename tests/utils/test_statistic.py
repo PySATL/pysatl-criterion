@@ -1,5 +1,6 @@
 import inspect
 from collections import Counter
+from importlib import import_module
 
 import pytest
 
@@ -16,176 +17,33 @@ from pysatl_criterion.utils.statistic import (
 
 
 @pytest.mark.parametrize(
-    ("distribution", "result"),
+    "family,module_name",
     [
-        (
-            "normal",
-            [
-                "GLB",
-                "LG",
-                "BS",
-                "HOSKING1",
-                "INDEPENDENCENUMBER",
-                "AD",
-                "ZQ",
-                "SKEW",
-                "GMG",
-                "HOSKING3",
-                "DH",
-                "EDGESNUMBER",
-                "RJ",
-                "MI",
-                "SW",
-                "COIN",
-                "AVGDEGREE",
-                "HOSKING4",
-                "KURTOSIS",
-                "BHS",
-                "RJB",
-                "MAXDEGREE",
-                "SF",
-                "CC1",
-                "CVM",
-                "D",
-                "ZWC",
-                "DAP",
-                "SH",
-                "BM1",
-                "EP",
-                "CONNECTEDCOMPONENTS",
-                "CC2",
-                "LILLIE",
-                "ZQS",
-                "ZWA",
-                "FILLI",
-                "DLDMZEPD",
-                "BM2",
-                "HOSKING2",
-                "CLIQUENUMBER",
-                "KS",
-                "CS",
-                "JB",
-                "SWRG",
-            ],
-        ),
-        (
-            "exponential",
-            [
-                "AD",
-                "W",
-                "KUIPER",
-                "CHI2",
-                "GREENWOOD",
-                "BH_ELT",
-                "BH_BHC",
-                "LILLIE",
-                "INDEPENDENCENUMBER",
-                "HM",
-                "WE",
-                "AHS",
-                "LZ",
-                "MAXDEGREE",
-                "EPS",
-                "HG1",
-                "WW",
-                "ATK",
-                "MN",
-                "AVGDEGREE",
-                "FZ",
-                "HP",
-                "HG2",
-                "CO",
-                "PT",
-                "CONNECTEDCOMPONENTS",
-                "GINI",
-                "SW",
-                "EP",
-                "KM",
-                "CVM",
-                "CLIQUENUMBER",
-                "GD",
-                "RS",
-                "KS",
-                "KC",
-                "EDGESNUMBER",
-                "DSP",
-            ],
-        ),
-        (
-            "weibull",
-            [
-                "ST1",
-                "MSF",
-                "SPP",
-                "AD",
-                "RSB",
-                "MD",
-                "LT2",
-                "OK",
-                "LT3",
-                "SB",
-                "TS",
-                "LS",
-                "SB",
-                "CQ*",
-                "ST2",
-                "LOS",
-                "KL",
-                "REJG",
-            ],
-        ),
-        ("exponentiated_weibull", ["MT", "CHI2_PEARSON", "CVM", "KS", "W"]),
-        (
-            "uniform",
-            [
-                "STEIN_U",
-                "AD",
-                "KUIPER",
-                "CENSORED_STEIN_U",
-                "CVM",
-                "GREENWOOD",
-                "NEYMAN",
-                "BICKEL_ROSENBLATT",
-                "SHERMAN",
-                "CHI2_PEARSON",
-                "ZHANG",
-                "KS",
-                "QUESENBERRY_MILLER",
-                "WATSON",
-            ],
-        ),
-        (
-            "student",
-            ["KUIPER", "CHI2", "WATSON", "KS", "ZHANG_ZC", "AD", "ZHANG_ZA", "CVM"],
-        ),
-        (
-            "gamma",
-            [
-                "G_TEST",
-                "MAXDEGREE",
-                "MOR",
-                "CRESSIE_READ",
-                "CVM",
-                "AVGDEGREE",
-                "MT",
-                "PPCC",
-                "AD",
-                "CONNECTEDCOMPONENTS",
-                "WAT",
-                "CLIQUENUMBER",
-                "KUI",
-                "CHI2_PEARSON",
-                "EDGESNUMBER",
-                "INDEPENDENCENUMBER",
-                "GRW",
-                "KS",
-            ],
-        ),
+        (DistributionType.NORMAL, "normal"),
+        (DistributionType.EXPONENTIAL, "exponent"),
+        (DistributionType.WEIBULL, "weibull"),
+        (DistributionType.EXPONENTIATED_WEIBULL, "exponentiated_weibull"),
+        (DistributionType.UNIFORM, "uniform"),
+        (DistributionType.STUDENT, "student"),
+        (DistributionType.GAMMA, "gamma"),
     ],
 )
-def test_get_available_criteria_all_criteria(distribution, result):
-    criteria = get_available_criteria_codes(DistributionType(distribution))
-    assert Counter(criteria) == Counter(result)
+def test_get_available_criteria_matches_public_exports(family, module_name):
+    module = import_module(f"pysatl_criterion.statistics.goodness_of_fit.continuous.{module_name}")
+    expected = {
+        getattr(module, name)
+        for name in module.__all__
+        if inspect.isclass(getattr(module, name))
+        and issubclass(getattr(module, name), AbstractGoodnessOfFitStatistic)
+        and not inspect.isabstract(getattr(module, name))
+    }
+    actual = get_available_criteria(family)
+    assert expected
+    assert set(actual) == expected
+    assert len(actual) == len(expected)
+    assert Counter(get_available_criteria_codes(family)) == Counter(
+        c.short_code() for c in expected
+    )
 
 
 @pytest.mark.parametrize(

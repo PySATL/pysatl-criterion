@@ -20,7 +20,7 @@ class IUnitOfWork(ABC):
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
-        """Roll back uncommitted work and release resources."""
+        """Roll back uncommitted work and release resources, retiring this scope's stores."""
 
     @abstractmethod
     def commit(self) -> None:

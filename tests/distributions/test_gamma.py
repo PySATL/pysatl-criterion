@@ -18,8 +18,8 @@ from pysatl_criterion.statistics.goodness_of_fit.continuous.gamma import (
     GreenwoodGammaGofStatistic,
     KolmogorovSmirnovGammaGofStatistic,
     KuiperGammaGofStatistic,
+    LiaoShimokawaGammaGofStatistic,
     LikelihoodRatioGammaGofStatistic,
-    MinToshiyukiGammaGofStatistic,
     MoranGammaGofStatistic,
     ProbabilityPlotCorrelationGammaGofStatistic,
     WatsonGammaGofStatistic,
@@ -169,8 +169,8 @@ def test_greenwood_gamma_statistic():
     assert statistic == pytest.approx(0.14183310386065612, rel=1e-9)
 
 
-def test_min_toshiyuki_gamma_statistic():
-    """Min–Toshiyuki tail-weighted EDF statistic under Gamma reference.
+def test_liao_shimokawa_gamma_statistic():
+    """Liao–Shimokawa tail-weighted EDF statistic under Gamma reference.
 
     Parameters
     ----------
@@ -184,7 +184,7 @@ def test_min_toshiyuki_gamma_statistic():
         of the documented local formula.
     """
 
-    statistic = MinToshiyukiGammaGofStatistic(
+    statistic = LiaoShimokawaGammaGofStatistic(
         GammaDistributionDescriptor.DEFAULT.parse({"alfa": _SHAPE, "beta": 1 / _SCALE})
     ).execute_statistic(_SAMPLE)
     assert statistic == pytest.approx(1.586859983429235, rel=1e-9)
@@ -344,7 +344,7 @@ def test_graph_independence_number_gamma_statistic():
         (KuiperGammaGofStatistic, "KUIPER_GAMMA_GOODNESS_OF_FIT"),
         (GreenwoodGammaGofStatistic, "GRW_GAMMA_GOODNESS_OF_FIT"),
         (MoranGammaGofStatistic, "MOR_GAMMA_GOODNESS_OF_FIT"),
-        (MinToshiyukiGammaGofStatistic, "MT_GAMMA_GOODNESS_OF_FIT"),
+        (LiaoShimokawaGammaGofStatistic, "LS_GAMMA_GOODNESS_OF_FIT"),
         (Chi2PearsonGammaGofStatistic, "CHI2_PEARSON_GAMMA_GOODNESS_OF_FIT"),
         (LikelihoodRatioGammaGofStatistic, "G_TEST_GAMMA_GOODNESS_OF_FIT"),
         (CressieReadGammaGofStatistic, "CRESSIE_READ_GAMMA_GOODNESS_OF_FIT"),

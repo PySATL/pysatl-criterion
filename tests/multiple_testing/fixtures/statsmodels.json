@@ -1,0 +1,4655 @@
+{
+  "source": "statsmodels 0.14.6 multipletests; maxiter=1",
+  "records": [
+    {
+      "method": "bonferroni",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.2,
+        0.005,
+        1.0,
+        0.1,
+        0.1
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.2,
+        0.005,
+        1.0,
+        0.1,
+        0.1
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false,
+        true,
+        false,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.2,
+        0.005,
+        1.0,
+        0.1,
+        0.1
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.03,
+        0.12,
+        0.09
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.03,
+        0.12,
+        0.09
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        false,
+        true
+      ],
+      "adjusted": [
+        0.03,
+        0.12,
+        0.09
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.03,
+        0.03,
+        0.03
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.03,
+        0.03,
+        0.03
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.03,
+        0.03,
+        0.03
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        false,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.005,
+        0.1,
+        0.3,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        false,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.005,
+        0.1,
+        0.3,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "method": "bonferroni",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.005,
+        0.1,
+        0.3,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.18462730240000003,
+        0.004990009995001,
+        0.99757,
+        0.09607920319999999,
+        0.09607920319999999
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.18462730240000003,
+        0.004990009995001,
+        0.99757,
+        0.09607920319999999,
+        0.09607920319999999
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false,
+        true,
+        false,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.18462730240000003,
+        0.004990009995001,
+        0.99757,
+        0.09607920319999999,
+        0.09607920319999999
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.029701,
+        0.115264,
+        0.087327
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.029701,
+        0.115264,
+        0.087327
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        false,
+        true
+      ],
+      "adjusted": [
+        0.029701,
+        0.115264,
+        0.087327
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        0.9375
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        0.9375
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        0.9375
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.029701,
+        0.029701,
+        0.029701
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.029701,
+        0.029701,
+        0.029701
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.029701,
+        0.029701,
+        0.029701
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.999,
+        0.999,
+        0.999
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.999,
+        0.999,
+        0.999
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.999,
+        0.999,
+        0.999
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        false,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.004990009995001,
+        0.09607920319999999,
+        0.2660959776,
+        0.67232,
+        0.99968
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        false,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.004990009995001,
+        0.09607920319999999,
+        0.2660959776,
+        0.67232,
+        0.99968
+      ]
+    },
+    {
+      "method": "sidak",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.004990009995001,
+        0.09607920319999999,
+        0.2660959776,
+        0.67232,
+        0.99968
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.08,
+        0.005,
+        0.7,
+        0.08,
+        0.08
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.08,
+        0.005,
+        0.7,
+        0.08,
+        0.08
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        false,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.08,
+        0.005,
+        0.7,
+        0.08,
+        0.08
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.03,
+        0.06,
+        0.06
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.03,
+        0.06,
+        0.06
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.03,
+        0.06,
+        0.06
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.03,
+        0.03,
+        0.03
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.03,
+        0.03,
+        0.03
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.03,
+        0.03,
+        0.03
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        false,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.005,
+        0.08,
+        0.18,
+        0.4,
+        0.8
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        false,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.005,
+        0.08,
+        0.18,
+        0.4,
+        0.8
+      ]
+    },
+    {
+      "method": "holm",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.005,
+        0.08,
+        0.18,
+        0.4,
+        0.8
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.0784,
+        0.004990009995001,
+        0.7,
+        0.07763184,
+        0.07763184
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.0784,
+        0.004990009995001,
+        0.7,
+        0.07763184,
+        0.07763184
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        false,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.0784,
+        0.004990009995001,
+        0.7,
+        0.07763184,
+        0.07763184
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.029701,
+        0.0591,
+        0.0591
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.029701,
+        0.0591,
+        0.0591
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.029701,
+        0.0591,
+        0.0591
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        0.75
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        0.75
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        0.75
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.029701,
+        0.029701,
+        0.029701
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.029701,
+        0.029701,
+        0.029701
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.029701,
+        0.029701,
+        0.029701
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.999,
+        0.999,
+        0.999
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.999,
+        0.999,
+        0.999
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.999,
+        0.999,
+        0.999
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        false,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.004990009995001,
+        0.07763184,
+        0.16941599999999998,
+        0.36,
+        0.8
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        false,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.004990009995001,
+        0.07763184,
+        0.16941599999999998,
+        0.36,
+        0.8
+      ]
+    },
+    {
+      "method": "holm-sidak",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.004990009995001,
+        0.07763184,
+        0.16941599999999998,
+        0.36,
+        0.8
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.08,
+        0.005,
+        0.7,
+        0.06,
+        0.06
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.08,
+        0.005,
+        0.7,
+        0.06,
+        0.06
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        false,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.08,
+        0.005,
+        0.7,
+        0.06,
+        0.06
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.03,
+        0.04,
+        0.04
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.03,
+        0.04,
+        0.04
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.03,
+        0.04,
+        0.04
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.01,
+        0.01,
+        0.01
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.01,
+        0.01,
+        0.01
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.01,
+        0.01,
+        0.01
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.9,
+        0.9,
+        0.9
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.9,
+        0.9,
+        0.9
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.9,
+        0.9,
+        0.9
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        false,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.005,
+        0.08,
+        0.18,
+        0.4,
+        0.8
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        false,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.005,
+        0.08,
+        0.18,
+        0.4,
+        0.8
+      ]
+    },
+    {
+      "method": "simes-hochberg",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.005,
+        0.08,
+        0.18,
+        0.4,
+        0.8
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.08,
+        0.005,
+        0.7,
+        0.06,
+        0.06
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.08,
+        0.005,
+        0.7,
+        0.06,
+        0.06
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        false,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.08,
+        0.005,
+        0.7,
+        0.06,
+        0.06
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.03,
+        0.04,
+        0.04
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.03,
+        0.04,
+        0.04
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.03,
+        0.04,
+        0.04
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.01,
+        0.01,
+        0.01
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.01,
+        0.01,
+        0.01
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.01,
+        0.01,
+        0.01
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.9,
+        0.9,
+        0.9
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.9,
+        0.9,
+        0.9
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.9,
+        0.9,
+        0.9
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        false,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.005,
+        0.08,
+        0.18,
+        0.4,
+        0.8
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        false,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.005,
+        0.08,
+        0.18,
+        0.4,
+        0.8
+      ]
+    },
+    {
+      "method": "hommel",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.005,
+        0.08,
+        0.18,
+        0.4,
+        0.8
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.049999999999999996,
+        0.005,
+        0.7,
+        0.03333333333333333,
+        0.03333333333333333
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        true,
+        false,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.049999999999999996,
+        0.005,
+        0.7,
+        0.03333333333333333,
+        0.03333333333333333
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        false,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.049999999999999996,
+        0.005,
+        0.7,
+        0.03333333333333333,
+        0.03333333333333333
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.030000000000000002,
+        0.04,
+        0.04
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.030000000000000002,
+        0.04,
+        0.04
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.030000000000000002,
+        0.04,
+        0.04
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        0.6666666666666666
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        0.6666666666666666
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        0.6666666666666666
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.01,
+        0.01,
+        0.01
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.01,
+        0.01,
+        0.01
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.01,
+        0.01,
+        0.01
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.9,
+        0.9,
+        0.9
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.9,
+        0.9,
+        0.9
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.9,
+        0.9,
+        0.9
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        false,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.005,
+        0.049999999999999996,
+        0.1,
+        0.25,
+        0.8
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.005,
+        0.049999999999999996,
+        0.1,
+        0.25,
+        0.8
+      ]
+    },
+    {
+      "method": "fdr_bh",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        true,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.005,
+        0.049999999999999996,
+        0.1,
+        0.25,
+        0.8
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.11416666666666667,
+        0.011416666666666667,
+        1.0,
+        0.07611111111111112,
+        0.07611111111111112
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.11416666666666667,
+        0.011416666666666667,
+        1.0,
+        0.07611111111111112,
+        0.07611111111111112
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false,
+        true,
+        false,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.11416666666666667,
+        0.011416666666666667,
+        1.0,
+        0.07611111111111112,
+        0.07611111111111112
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.055,
+        0.07333333333333332,
+        0.07333333333333332
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.055,
+        0.07333333333333332,
+        0.07333333333333332
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.055,
+        0.07333333333333332,
+        0.07333333333333332
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        1.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.01833333333333333,
+        0.01833333333333333,
+        0.01833333333333333
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.01833333333333333,
+        0.01833333333333333,
+        0.01833333333333333
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.01833333333333333,
+        0.01833333333333333,
+        0.01833333333333333
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.011416666666666667,
+        0.11416666666666667,
+        0.2283333333333333,
+        0.5708333333333333,
+        1.0
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        false,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.011416666666666667,
+        0.11416666666666667,
+        0.2283333333333333,
+        0.5708333333333333,
+        1.0
+      ]
+    },
+    {
+      "method": "fdr_by",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        false,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.011416666666666667,
+        0.11416666666666667,
+        0.2283333333333333,
+        0.5708333333333333,
+        1.0
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.04,
+        0.004,
+        0.5599999999999999,
+        0.02666666666666667,
+        0.02666666666666667
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        true,
+        false,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.01,
+        0.001,
+        0.13999999999999999,
+        0.006666666666666667,
+        0.006666666666666667
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        false,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.01,
+        0.001,
+        0.13999999999999999,
+        0.006666666666666667,
+        0.006666666666666667
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.030000000000000002,
+        0.04,
+        0.04
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.030000000000000002,
+        0.04,
+        0.04
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.030000000000000002,
+        0.04,
+        0.04
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        0.5,
+        0.0,
+        0.3333333333333333
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        0.5,
+        0.0,
+        0.3333333333333333
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        0.5,
+        0.0,
+        0.3333333333333333
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.01,
+        0.01,
+        0.01
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.01,
+        0.01,
+        0.01
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.01,
+        0.01,
+        0.01
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.9,
+        0.9,
+        0.9
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.9,
+        0.9,
+        0.9
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.9,
+        0.9,
+        0.9
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.001
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        false,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.004,
+        0.04,
+        0.08000000000000002,
+        0.2,
+        0.6400000000000001
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.003,
+        0.029999999999999995,
+        0.06,
+        0.15,
+        0.48
+      ]
+    },
+    {
+      "method": "fdr_tsbh",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        true,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.002,
+        0.02,
+        0.04000000000000001,
+        0.1,
+        0.32000000000000006
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.0404,
+        0.00404,
+        0.5656,
+        0.026933333333333337,
+        0.026933333333333337
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        true,
+        false,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.021,
+        0.0021000000000000003,
+        0.294,
+        0.014000000000000002,
+        0.014000000000000002
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        0.04,
+        0.001,
+        0.7,
+        0.02,
+        0.02
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        false,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.011000000000000001,
+        0.0011,
+        0.154,
+        0.007333333333333334,
+        0.007333333333333334
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.030300000000000004,
+        0.0404,
+        0.0404
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.03150000000000001,
+        0.042,
+        0.042
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        0.01,
+        0.04,
+        0.03
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.03300000000000001,
+        0.044000000000000004,
+        0.044000000000000004
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        0.505,
+        0.0,
+        0.33666666666666667
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        0.525,
+        0.0,
+        0.35
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        0.0,
+        1.0,
+        0.0,
+        0.5
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        false,
+        true,
+        false
+      ],
+      "adjusted": [
+        0.0,
+        0.55,
+        0.0,
+        0.3666666666666667
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.0101,
+        0.0101,
+        0.0101
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.0105,
+        0.0105,
+        0.0105
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        0.01,
+        0.01,
+        0.01
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        true
+      ],
+      "adjusted": [
+        0.011000000000000001,
+        0.011000000000000001,
+        0.011000000000000001
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.909,
+        0.909,
+        0.909
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.9450000000000001,
+        0.9450000000000001,
+        0.9450000000000001
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.9900000000000001,
+        0.9900000000000001,
+        0.9900000000000001
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.00101
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.0010500000000000002
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        0.001
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true
+      ],
+      "adjusted": [
+        0.0011
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        1.0
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        false
+      ],
+      "adjusted": [
+        1.0
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.01,
+      "rejected": [
+        true,
+        false,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.00404,
+        0.0404,
+        0.08080000000000001,
+        0.202,
+        0.6464000000000001
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.05,
+      "rejected": [
+        true,
+        true,
+        false,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.004200000000000001,
+        0.042,
+        0.08400000000000002,
+        0.21000000000000002,
+        0.6720000000000002
+      ]
+    },
+    {
+      "method": "fdr_tsbky",
+      "p": [
+        0.001,
+        0.02,
+        0.06,
+        0.2,
+        0.8
+      ],
+      "alpha": 0.1,
+      "rejected": [
+        true,
+        true,
+        true,
+        false,
+        false
+      ],
+      "adjusted": [
+        0.0033000000000000004,
+        0.032999999999999995,
+        0.066,
+        0.165,
+        0.528
+      ]
+    }
+  ]
+}

@@ -52,9 +52,9 @@ def test_ks_lognormal_criterion_code():
 
 
 def test_ks_lognormal_negative_data():
-    np.random.seed(42)
+    rng = np.random.RandomState(42)
     s, scale = 0.8, 1.5
-    data = scipy_stats.lognorm.rvs(s=s, scale=scale, size=50)
+    data = scipy_stats.lognorm.rvs(s=s, scale=scale, size=50, random_state=rng)
     data = np.append(data, -1)
 
     our_stat = KolmogorovSmirnovLogNormalGofStatistic(
@@ -429,10 +429,10 @@ DYNAMIC_CLASSES = get_dynamic_lognormal_classes()
 
 @pytest.mark.parametrize("log_normal_cls, normal_cls", DYNAMIC_CLASSES)
 def test_dynamic_lognormal_equivalence(log_normal_cls, normal_cls):
-    np.random.seed(42)
+    rng = np.random.RandomState(42)
     s = 0.8
     scale = 2.0
-    z_data = np.random.normal(loc=0, scale=1, size=50)
+    z_data = rng.normal(loc=0, scale=1, size=50)
 
     x_data = np.exp(z_data * s + np.log(scale))
 

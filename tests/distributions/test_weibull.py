@@ -196,9 +196,8 @@ def test_mle_and_fitted_edf(sample):
     ) == pytest.approx(expected_ad)
 
 
-
 @pytest.mark.parametrize(
-    "cls", [ew.MinToshiyukiExponentiatedWeibullGofStatistic, w.LiaoShimokawaWeibullGofStatistic]
+    "cls", [ew.LiaoShimokawaExponentiatedWeibullGofStatistic, w.LiaoShimokawaWeibullGofStatistic]
 )
 def test_weighted_edf(cls):
     u = (
@@ -219,11 +218,11 @@ def test_weighted_edf(cls):
 
 def test_boundary_penalties_and_positive_ad_tail():
     assert np.isinf(
-        ew.MinToshiyukiExponentiatedWeibullGofStatistic(
+        ew.LiaoShimokawaExponentiatedWeibullGofStatistic(
             ExponentiatedWeibull.DEFAULT.parse({"exponent": 1, "shape": 1, "scale": 1})
         ).execute_statistic([0, 1])
     )
-    assert ew.MinToshiyukiExponentiatedWeibullGofStatistic(
+    assert ew.LiaoShimokawaExponentiatedWeibullGofStatistic(
         ExponentiatedWeibull.DEFAULT.parse({"exponent": 1, "shape": 1, "scale": 1})
     ).execute_statistic([1000]) == pytest.approx(np.exp(500))
     assert np.isfinite(
@@ -232,7 +231,9 @@ def test_boundary_penalties_and_positive_ad_tail():
         )
     )
     assert np.isinf(
-        w.LockhartOReillyStephensWeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic([1, 1, 2])
+        w.LockhartOReillyStephensWeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(
+            [1, 1, 2]
+        )
     )
 
 
@@ -267,9 +268,9 @@ def test_spacing_functionals_by_quadrature():
         integrate.quad(lambda u, j=j: len(z) * (j / len(z) - u) ** 2 / (u * (1 - u)), lo, hi)[0]
         for j, (lo, hi) in enumerate(pairwise(boundaries))
     )
-    assert w.LockhartOReillyStephensWeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(
-        SAMPLE
-    ) == pytest.approx(expected)
+    assert w.LockhartOReillyStephensWeibullGofStatistic(
+        Weibull.DEFAULT.parse({})
+    ).execute_statistic(SAMPLE) == pytest.approx(expected)
     n = len(y)
     assert w.TikuSinghWeibullGofStatistic(Weibull.DEFAULT.parse({})).execute_statistic(
         SAMPLE
@@ -451,8 +452,8 @@ def test_critical_tails_and_calibration():
 
 def test_documentation_examples_and_class_count():
     assert len(CLASSES) == 51
-    assert doctest.testmod(w).failed == 0
-    assert doctest.testmod(ew).failed == 0
+    assert doctest.testmod(w, extraglobs=vars(w.weibull_statistics)).failed == 0
+    assert doctest.testmod(ew, extraglobs=vars(ew.exponentiated_weibull_statistics)).failed == 0
 
 
 def test_monte_carlo_refits_every_replicate(mocker):

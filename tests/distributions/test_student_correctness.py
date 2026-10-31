@@ -187,7 +187,7 @@ def test_pearson_counts_with_empty_cells_and_boundary_tie():
 
 
 def test_generated_catalog_and_hypothesis_ownership():
-    from pysatl_criterion.statistics.goodness_of_fit.continuous import edf, frequency
+    from pysatl_criterion.statistics.goodness_of_fit import edf, frequency
 
     assert "supported_hypotheses" not in vars(student.AbstractStudentGofStatistic)
     for source, catalog, base in (

@@ -18,7 +18,7 @@ class PValueDecisionMethod(DecisionMethod):
     Decision method that rejects a hypothesis by comparing p-value with significance level.
     """
 
-    def __init__(self, resolver: AbstractLimitDistributionResolver | None = None):
+    def __init__(self, resolver: AbstractLimitDistributionResolver | None = None) -> None:
         """
         Initialize the p-value decision method.
 
@@ -68,7 +68,7 @@ class CriticalValueDecisionMethod(DecisionMethod):
     Decision method that rejects a hypothesis using critical values and a critical area.
     """
 
-    def __init__(self, resolver: AbstractLimitDistributionResolver | None = None):
+    def __init__(self, resolver: AbstractLimitDistributionResolver | None = None) -> None:
         """
         Initialize the critical value decision method.
 
@@ -119,7 +119,7 @@ class GoodnessOfFitTest:
     Goodness-of-fit test runner for a configured statistic.
     """
 
-    def __init__(self, statistic: AbstractGoodnessOfFitStatistic):
+    def __init__(self, statistic: AbstractGoodnessOfFitStatistic) -> None:
         """
         Initialize the goodness-of-fit test.
 

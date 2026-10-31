@@ -12,7 +12,7 @@ from pysatl_criterion.distribution import (
 )
 from pysatl_criterion.distribution.parameters import HypothesisSupport, ParameterValues
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
-from pysatl_criterion.statistics.goodness_of_fit.continuous import edf, frequency
+from pysatl_criterion.statistics.goodness_of_fit import edf, frequency
 from pysatl_criterion.statistics.goodness_of_fit.continuous._edf_factory import (
     EDFSpec,
     export_edf_statistics,
@@ -165,6 +165,12 @@ _EDF_STATISTICS = {
     "KuiperHyperbolicGofStatistic": EDFSpec(
         edf.AbstractKuiperStatistic,
         short_code="KUI",
+        supported_hypotheses=(
+            HypothesisSupport(Distribution.DEFAULT, frozenset(Distribution.DEFAULT.parameters)),
+        ),
+    ),
+    "LiaoShimokawaHyperbolicGofStatistic": EDFSpec(
+        edf.AbstractLiaoShimokawaStatistic,
         supported_hypotheses=(
             HypothesisSupport(Distribution.DEFAULT, frozenset(Distribution.DEFAULT.parameters)),
         ),

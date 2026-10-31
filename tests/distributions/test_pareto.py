@@ -14,7 +14,7 @@ from pysatl_criterion.statistics.goodness_of_fit.continuous.pareto import (
     KolmogorovSmirnovDPlusParetoGofStatistic,
     KolmogorovSmirnovParetoGofStatistic,
     LequesneKlParetoGofStatistic,
-    MinToshiyukiParetoGofStatistic,
+    LiaoShimokawaParetoGofStatistic,
     ObradovicParetoGofStatistic,
 )
 
@@ -107,8 +107,8 @@ def test_ks_pareto_alternatives():
 
 
 def test_ks_pareto_with_scipy():
-    np.random.seed(42)
-    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=100)
+    rng = np.random.RandomState(42)
+    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=100, random_state=rng)
 
     stat = KolmogorovSmirnovParetoGofStatistic(
         ParetoDistributionDescriptor.DEFAULT.parse({"shape": 2.0, "scale": 1.0})
@@ -158,8 +158,8 @@ def test_ad_pareto_criterion_code():
 
 
 def test_ad_pareto_positive():
-    np.random.seed(42)
-    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50)
+    rng = np.random.RandomState(42)
+    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50, random_state=rng)
     stat = AndersonDarlingParetoGofStatistic(
         ParetoDistributionDescriptor.DEFAULT.parse({"shape": 2.0, "scale": 1.0})
     )
@@ -193,8 +193,8 @@ def test_cvm_pareto_criterion_code():
 
 
 def test_cvm_pareto_positive():
-    np.random.seed(42)
-    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50)
+    rng = np.random.RandomState(42)
+    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50, random_state=rng)
     stat = CramerVonMisesParetoGofStatistic(
         ParetoDistributionDescriptor.DEFAULT.parse({"shape": 2.0, "scale": 1.0})
     )
@@ -204,17 +204,17 @@ def test_cvm_pareto_positive():
 
 def test_mt_pareto_criterion_code():
     assert (
-        "MT_PARETO_GOODNESS_OF_FIT"
-        == MinToshiyukiParetoGofStatistic(
+        "LS_PARETO_GOODNESS_OF_FIT"
+        == LiaoShimokawaParetoGofStatistic(
             ParetoDistributionDescriptor.DEFAULT.parse({"shape": 1, "scale": 1})
         ).code()
     )
 
 
 def test_mt_pareto_positive():
-    np.random.seed(42)
-    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50)
-    stat = MinToshiyukiParetoGofStatistic(
+    rng = np.random.RandomState(42)
+    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50, random_state=rng)
+    stat = LiaoShimokawaParetoGofStatistic(
         ParetoDistributionDescriptor.DEFAULT.parse({"shape": 2.0, "scale": 1.0})
     )
     result = stat.execute_statistic(sample)
@@ -222,9 +222,9 @@ def test_mt_pareto_positive():
 
 
 def test_mt_pareto_finite():
-    np.random.seed(42)
-    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50)
-    stat = MinToshiyukiParetoGofStatistic(
+    rng = np.random.RandomState(42)
+    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50, random_state=rng)
+    stat = LiaoShimokawaParetoGofStatistic(
         ParetoDistributionDescriptor.DEFAULT.parse({"shape": 2.0, "scale": 1.0})
     )
     result = stat.execute_statistic(sample)
@@ -240,7 +240,7 @@ def test_mt_pareto_finite():
     ],
 )
 def test_mt_pareto_finite_values(data, shape, scale):
-    stat = MinToshiyukiParetoGofStatistic(
+    stat = LiaoShimokawaParetoGofStatistic(
         ParetoDistributionDescriptor.DEFAULT.parse({"shape": shape, "scale": scale})
     )
     result = stat.execute_statistic(data)
@@ -261,16 +261,16 @@ def test_obradovic_pareto_criterion_code():
 
 
 def test_obradovic_pareto_finite():
-    np.random.seed(42)
-    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50)
+    rng = np.random.RandomState(42)
+    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50, random_state=rng)
     stat = ObradovicParetoGofStatistic(ParetoDistributionDescriptor.DEFAULT.parse({"scale": 1.0}))
     result = stat.execute_statistic(sample)
     assert np.isfinite(result)
 
 
 def test_obradovic_pareto_small_sample():
-    np.random.seed(42)
-    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=5)
+    rng = np.random.RandomState(42)
+    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=5, random_state=rng)
     stat = ObradovicParetoGofStatistic(ParetoDistributionDescriptor.DEFAULT.parse({"scale": 1.0}))
     result = stat.execute_statistic(sample)
     assert np.isfinite(result)
@@ -298,8 +298,8 @@ def test_greenwood_pareto_criterion_code():
 
 
 def test_greenwood_pareto_range():
-    np.random.seed(42)
-    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50)
+    rng = np.random.RandomState(42)
+    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50, random_state=rng)
     stat = GreenwoodParetoGofStatistic(ParetoDistributionDescriptor.DEFAULT.parse({}))
     result = stat.execute_statistic(sample)
     assert 0 <= result <= 1
@@ -333,16 +333,16 @@ def test_lequesne_pareto_criterion_code():
 
 
 def test_lequesne_pareto_non_negative():
-    np.random.seed(42)
-    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50)
+    rng = np.random.RandomState(42)
+    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50, random_state=rng)
     stat = LequesneKlParetoGofStatistic(ParetoDistributionDescriptor.DEFAULT.parse({}))
     result = stat.execute_statistic(sample)
     assert result >= 0
 
 
 def test_lequesne_pareto_custom_window():
-    np.random.seed(42)
-    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50)
+    rng = np.random.RandomState(42)
+    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=50, random_state=rng)
     stat = LequesneKlParetoGofStatistic(ParetoDistributionDescriptor.DEFAULT.parse({}))
 
     result_default = stat.execute_statistic(sample)
@@ -368,8 +368,8 @@ def test_lequesne_pareto_non_positive_values():
 
 
 def test_all_pareto_statistics_run():
-    np.random.seed(42)
-    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=100)
+    rng = np.random.RandomState(42)
+    sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=100, random_state=rng)
 
     statistics = [
         KolmogorovSmirnovParetoGofStatistic(
@@ -381,7 +381,7 @@ def test_all_pareto_statistics_run():
         CramerVonMisesParetoGofStatistic(
             ParetoDistributionDescriptor.DEFAULT.parse({"shape": 2.0, "scale": 1.0})
         ),
-        MinToshiyukiParetoGofStatistic(
+        LiaoShimokawaParetoGofStatistic(
             ParetoDistributionDescriptor.DEFAULT.parse({"shape": 2.0, "scale": 1.0})
         ),
         ObradovicParetoGofStatistic(ParetoDistributionDescriptor.DEFAULT.parse({"scale": 1.0})),
@@ -395,8 +395,8 @@ def test_all_pareto_statistics_run():
 
 
 def test_pareto_statistics_with_different_parameters():
-    np.random.seed(42)
-    sample = scipy_stats.pareto.rvs(b=3.0, scale=2.0, size=100)
+    rng = np.random.RandomState(42)
+    sample = scipy_stats.pareto.rvs(b=3.0, scale=2.0, size=100, random_state=rng)
 
     statistics = [
         KolmogorovSmirnovParetoGofStatistic(
@@ -417,9 +417,9 @@ def test_pareto_statistics_with_different_parameters():
 
 
 def test_pareto_distance_for_one_supported_alternative_sample():
-    np.random.seed(42)
-    pareto_data = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=1000)
-    normal_data = 1 + np.abs(np.random.normal(2, 1, size=1000))
+    rng = np.random.RandomState(42)
+    pareto_data = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=1000, random_state=rng)
+    normal_data = 1 + np.abs(rng.normal(2, 1, size=1000))
 
     stat = KolmogorovSmirnovParetoGofStatistic(
         ParetoDistributionDescriptor.DEFAULT.parse({"shape": 2.0, "scale": 1.0})
@@ -432,8 +432,8 @@ def test_pareto_distance_for_one_supported_alternative_sample():
 
 
 def test_pareto_statistics_with_large_sample():
-    np.random.seed(42)
-    large_sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=10000)
+    rng = np.random.RandomState(42)
+    large_sample = scipy_stats.pareto.rvs(b=2.0, scale=1.0, size=10000, random_state=rng)
 
     stat = KolmogorovSmirnovParetoGofStatistic(
         ParetoDistributionDescriptor.DEFAULT.parse({"shape": 2.0, "scale": 1.0})

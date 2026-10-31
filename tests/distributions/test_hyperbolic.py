@@ -234,6 +234,7 @@ def test_hyperbolic_criteria_are_discoverable():
             "CVM",
             "AD",
             "KUI",
+            "LIAO_SHIMOKAWA",
             "WAT",
             "CHI2_PEARSON",
             "FREEMAN_TUKEY",
@@ -269,7 +270,8 @@ def test_hyperbolic_nan_sample_is_rejected():
 
 
 def test_generated_hyperbolic_kernels():
-    from pysatl_criterion.statistics.goodness_of_fit.continuous import edf, hyperbolic
+    from pysatl_criterion.statistics.goodness_of_fit import edf
+    from pysatl_criterion.statistics.goodness_of_fit.continuous import hyperbolic
 
     implementation = hyperbolic.hyperbolic_statistics
     assert set(implementation.__all__) == {"AbstractHyperbolicGofStatistic"} | set(

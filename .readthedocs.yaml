@@ -5,10 +5,13 @@ build:
   os: "ubuntu-22.04"
   tools:
     python: "3.12"
-
-python:
-  install:
-    - requirements: docs/requirements-docs.txt
+  jobs:
+    post_create_environment:
+      - pip install poetry==2.4.1
+    post_install:
+      - poetry check --lock
+      # Keep Read the Docs' own build tools in its shared environment.
+      - VIRTUAL_ENV=$READTHEDOCS_VIRTUALENV_PATH poetry install --only docs --no-root
 
 mkdocs:
   configuration: mkdocs.yml

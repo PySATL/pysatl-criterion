@@ -30,6 +30,10 @@ from pysatl_criterion.persistence.sqlalchemy.models.limit_distribution import (
     criterion_code_hash,
     criterion_parameters_hash,
 )
+from pysatl_criterion.persistence.sqlalchemy.storage import (
+    CriticalValueStorage,
+    DistributionStorage,
+)
 from pysatl_criterion.persistence.sqlalchemy.unit_of_work import AlchemyUnitOfWork
 from pysatl_criterion.statistics.alternative import AlternativeType
 
@@ -90,6 +94,28 @@ def database(tmp_path, request):
 @pytest.fixture
 def uow_factory(database):
     return lambda: AlchemyUnitOfWork(database.session_factory)
+
+
+def test_public_storages_share_database_across_thirty_workers(database):
+    distributions = DistributionStorage(database)
+    criticals = CriticalValueStorage(database)
+    barrier = Barrier(30)
+
+    def pipeline(index):
+        data = LimitDistributionModel(f"pipeline_{index}", {}, 20, 2, [1.0, 2.0])
+        barrier.wait(timeout=10)
+        assert distributions.insert(data)
+        assert distributions.get(data.key) == data
+        bounds = CriticalValueModel(
+            data.key, 2, Decimal(".05"), AlternativeType.RIGHT, upper_value=2.0
+        )
+        assert criticals.insert(bounds)
+        assert criticals.get(query_for(bounds)) == bounds
+        assert distributions.insert(replace(data, monte_carlo_count=3))
+        assert criticals.get(query_for(bounds)) is None
+
+    with ThreadPoolExecutor(max_workers=30) as executor:
+        list(executor.map(pipeline, range(30)))
 
 
 @pytest.fixture
@@ -396,7 +422,7 @@ def test_read_rejects_cache_from_old_source_version(service, distribution, uow_f
 @pytest.mark.parametrize(
     "changes",
     [
-        {"significance_level": Decimal("0")},
+        {"significance_level": Decimal(0)},
         {"monte_carlo_count": 0},
         {"lower_value": 1.0},
         {"upper_value": None},

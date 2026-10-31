@@ -20,7 +20,7 @@ from pysatl_criterion.statistics.alternative import (
     RightAlternative,
     TwoSidedAlternative,
 )
-from pysatl_criterion.statistics.goodness_of_fit.continuous import edf, frequency
+from pysatl_criterion.statistics.goodness_of_fit import edf, frequency
 from pysatl_criterion.statistics.goodness_of_fit.continuous._edf_factory import (
     EDFSpec,
     export_edf_statistics,
@@ -237,21 +237,6 @@ class AbstractLaplaceGofStatistic(AbstractGoodnessOfFitStatistic, ABC):
             Log-CDF and log-survival arrays in sample order.
         """
         return self._log_probabilities(sample, self.t, self.s)
-
-    def do_execute_statistic(self, sorted_rvs):
-        """Delegate to the public execution method.
-
-        Parameters
-        ----------
-        sorted_rvs : array_like, shape (n,)
-            Observations; unsorted input is also accepted and validated.
-
-        Returns
-        -------
-        float
-            Statistic calculated according to the concrete criterion.
-        """
-        return self.execute_statistic(sorted_rvs)
 
 
 class GreenwoodLaplaceGofStatistic(AbstractLaplaceGofStatistic):

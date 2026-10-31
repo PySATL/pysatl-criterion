@@ -13,6 +13,7 @@ from pysatl_criterion.distribution import NormalDistributionDescriptor as Normal
 from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
 from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 from pysatl_criterion.utils.statistic import get_available_criteria
+from tests.parameter_cases import parameters_for
 
 
 CRITERIA = sorted(
@@ -26,6 +27,27 @@ FITTED = {
     "LequesneKlParetoGofStatistic",
     "NikulinLogLogisticGofStatistic",
     "MirvalievLogLogisticGofStatistic",
+    "KullbackLeiblerBetaGofStatistic",
+    "RiadAbdElMaboodBetaGofStatistic",
+    "AlizadehNoughabiJarrahiferizLaplaceGofStatistic",
+    "AlizadehNoughabiLikelihoodLaplaceGofStatistic",
+    "AlizadehNoughabiParkALaplaceGofStatistic",
+    "AlizadehNoughabiParkELaplaceGofStatistic",
+    "AlizadehNoughabiParkVLaplaceGofStatistic",
+    "AlizadehNoughabiParkYLaplaceGofStatistic",
+    "AlizadehNoughabiParkZLaplaceGofStatistic",
+    "BestRaynerThasV3LaplaceGofStatistic",
+    "BestRaynerThasV4LaplaceGofStatistic",
+    "ChoiKimCLaplaceGofStatistic",
+    "ChoiKimELaplaceGofStatistic",
+    "ChoiKimVLaplaceGofStatistic",
+    "DataDrivenSmoothLaplaceGofStatistic",
+    "DesgagneLafayeDeMicheauxOuimetXLaplaceGofStatistic",
+    "DesgagneLafayeDeMicheauxOuimetZLaplaceGofStatistic",
+    "GelLaplaceGofStatistic",
+    "GonzalezEstradaVillasenorLaplaceGofStatistic",
+    "Meintanis1LaplaceGofStatistic",
+    "Meintanis2LaplaceGofStatistic",
 }
 
 
@@ -35,6 +57,54 @@ EXPONENTIAL_BOTH_MODES = {
     "WatsonExponentialityGofStatistic",
     "KuiperExponentialityGofStatistic",
     "Chi2PearsonExponentialityGofStatistic",
+    "CressieReadExponentialityGofStatistic",
+    "FreemanTukeyExponentialityGofStatistic",
+    "KuiperCorrectedExponentialityGofStatistic",
+    "KuiperScaledExponentialityGofStatistic",
+    "LiaoShimokawaExponentialityGofStatistic",
+    "ModifiedLogLikelihoodExponentialityGofStatistic",
+    "NeymanChi2ExponentialityGofStatistic",
+    "ZhangAExponentialityGofStatistic",
+    "ZhangCExponentialityGofStatistic",
+    "ZhangKExponentialityGofStatistic",
+}
+
+
+LOG_NORMAL_BOTH_MODES = {
+    "BonettSeier",
+    "BontempsMeddahi1",
+    "BontempsMeddahi2",
+    "CabanaCabana1",
+    "CabanaCabana2",
+    "ChenShapiro",
+    "Coin",
+    "DAP",
+    "Dagostino",
+    "DesgagneLafaye",
+    "DoornikHansen",
+    "EppsPulley",
+    "Filli",
+    "GMG",
+    "GlenLeemisBarr",
+    "Hosking1",
+    "Hosking2",
+    "Hosking3",
+    "Hosking4",
+    "JB",
+    "KLIntegral",
+    "KLSupremum",
+    "Kurtosis",
+    "LooneyGulledge",
+    "MartinezIglewicz",
+    "RobustJarqueBera",
+    "RyanJoiner",
+    "SF",
+    "SWRG",
+    "ShapiroWilk",
+    "Skew",
+    "Spiegelhalter",
+    "ZhangQ",
+    "ZhangQStar",
 }
 
 
@@ -54,9 +124,17 @@ def expected_fixed(criterion):
             return set()
     if family is DistributionType.EXPONENTIAL and name not in {
         "KolmogorovSmirnovExponentialityGofStatistic",
+        "KolmogorovSmirnovDMinusExponentialityGofStatistic",
+        "KolmogorovSmirnovDPlusExponentialityGofStatistic",
         "CramerVonMisesExponentialityGofStatistic",
     }:
         return set()
+    if name in {
+        "CadirciRenyiStudentGofStatistic",
+        "LequesneRenyiStudentGofStatistic",
+        "MeintanisStudentGofStatistic",
+    }:
+        return {"df"}
     if name == "ObradovicParetoGofStatistic":
         return {"scale"}
     return {parameter.name for parameter in criterion.distribution().DEFAULT.parameters}
@@ -70,6 +148,8 @@ def test_shared_constructor_checks_every_fixed_parameter_subset(criterion):
     defaults = {parameter.name: parameter.default for parameter in schema.parameters}
     if descriptor is Beta:
         defaults.update(a=2, b=3)  # Mode requires both shapes to exceed one.
+    if descriptor.type() is DistributionType.STUDENT:
+        defaults["df"] = 5
     expected = expected_fixed(criterion)
     for count in range(len(names) + 1):
         for subset in combinations(names, count):
@@ -77,6 +157,14 @@ def test_shared_constructor_checks_every_fixed_parameter_subset(criterion):
             supported = set(subset) == expected
             if criterion.__name__ in EXPONENTIAL_BOTH_MODES:
                 supported = set(subset) in (set(), {"lam"})
+            if criterion.__name__ == "LequesneRenyiStudentGofStatistic":
+                supported = set(subset) in (set(), {"df"})
+            if criterion.distribution().type() is DistributionType.LOG_NORMAL:
+                prefix = criterion.__name__.replace("LogNormalGofStatistic", "").replace(
+                    "LogNormalGoFStatistic", ""
+                )
+                if prefix in LOG_NORMAL_BOTH_MODES:
+                    supported = set(subset) in (set(), {"mu", "s"})
             assert criterion.supports_hypothesis(GoodnessOfFitHypothesis(values)) is supported
             if supported:
                 statistic = criterion(values)
@@ -91,10 +179,9 @@ def test_shared_constructor_checks_every_fixed_parameter_subset(criterion):
 @pytest.mark.parametrize("criterion", CRITERIA, ids=lambda cls: cls.__name__)
 def test_constructor_requires_values_and_initializes_them_once(criterion, mocker):
     descriptor = criterion.distribution()
-    defaults = {p.name: p.default for p in descriptor.DEFAULT.parameters}
-    if descriptor is Beta:
-        defaults.update(a=2, b=3)
-    values = descriptor.DEFAULT.parse({name: defaults[name] for name in expected_fixed(criterion)})
+    values = parameters_for(
+        criterion, **({"a": 2, "b": 3} if descriptor is Beta and expected_fixed(criterion) else {})
+    )
     spy = mocker.spy(descriptor, "convert_parameters")
     criterion(values)
     assert spy.call_count == 1

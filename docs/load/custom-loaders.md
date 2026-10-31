@@ -9,6 +9,156 @@ batch iteration and result counts.
 See [Usage examples](examples.md) for transfers that use the standard database
 adapters.
 
+## Share a storage across pipeline threads
+
+Use `DistributionStorage` and `CriticalValueStorage` from
+`pysatl_criterion.persistence.sqlalchemy.storage` when pipeline stages need to
+read, calculate, write, and read again. Create one `AlchemyDatabase` per database
+configuration in each process, initialize it before starting workers, and pass
+the same storage objects between stages. Each method creates its own short-lived
+unit of work. Neither storage keeps an active session between calls.
+
+Both storages implement the reader/writer interfaces below and can be passed
+directly to `LimitDistributionLoader` or `CriticalValueLoader` as either source
+or destination. They also expose `get_batch` for cursor-based reads;
+`CriticalValueStorage` exposes `save_if_current` and `delete_for_distribution`.
+
+This example uses illustrative simulated values to demonstrate ownership and
+threading; replace the calculation with your calibration algorithm:
+
+```python
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
+
+from pysatl_criterion.persistence.models.limit_distribution import LimitDistributionModel
+from pysatl_criterion.persistence.sqlalchemy.config import StorageConfig
+from pysatl_criterion.persistence.sqlalchemy.database import AlchemyDatabase
+from pysatl_criterion.persistence.sqlalchemy.storage import CriticalValueStorage, DistributionStorage
+
+
+config = StorageConfig(max_workers=30)
+database = AlchemyDatabase("sqlite:///calibrations.db", config=config)
+try:
+    database.init()
+    distributions = DistributionStorage(database)
+    critical_values = CriticalValueStorage(database)
+    initial = [
+        LimitDistributionModel(f"example_{i}", {}, 20, 2, [1.0, 2.0])
+        for i in range(30)
+    ]
+    distributions.bulk_insert(initial)
+
+    def process(key):
+        source = distributions.get(key)
+        if source is None:
+            raise LookupError(key)
+        # No session or connection is held during this calculation.
+        values = source.results_statistics + [3.0, 4.0]
+        updated = replace(source, monte_carlo_count=len(values), results_statistics=values)
+        distributions.insert(updated)  # Returns after commit and cache invalidation.
+        return distributions.get(key)
+
+    with ThreadPoolExecutor(max_workers=config.max_workers) as executor:
+        results = list(executor.map(process, [item.key for item in initial]))
+finally:
+    database.dispose()  # Wait for accepted public operations and stop the SQLite writer.
+```
+
+`get` returns a plain model, independent of the closed session. Each
+`iter_batches` page releases its transaction and connection **before yielding**;
+the complete iteration does not promise one database snapshot. Do not mutate
+input models, filter dictionaries, or sequences concurrently with an operation,
+and do not advance the same iterator from multiple threads.
+
+`DistributionStorage.insert` and `bulk_insert` save improvements and invalidate
+derived critical values in one transaction through `DistributionService`.
+`CriticalValueStorage` accepts writes only for the matching local source
+version. `save_if_current` returns true for an unchanged but still-current
+entry; `insert` reports actual changes. A read/calculate/write pipeline is not
+one transaction: the source may change during calculation, so a rejected stale
+write must be recomputed from a fresh source when required.
+
+### Configure connection pools and the SQLite writer
+
+`StorageConfig` separates pipeline concurrency from connection limits:
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `max_workers` | `30` | Suggested executor size; pass it to your executor explicitly. Storage does not start a compute pool. |
+| `pool_size` | `None` | Resolves to 5 for file SQLite, or `max_workers` for server databases. |
+| `max_overflow` | `0` | Extra connections above `pool_size`; the pool is bounded by default. |
+| `pool_timeout` | `30` seconds | Maximum wait to check out a connection; exhaustion raises SQLAlchemy `TimeoutError`. |
+| `pool_pre_ping` | `True` | Validate a pooled connection at checkout; does not recover a failed transaction. |
+| `pool_recycle` | `-1` | No age-based recycling; set a nonnegative lifetime when required by the server. |
+| `sqlite_timeout` | `30` seconds | SQLite driver lock timeout. |
+| `write_queue_size` | `30` | Pending SQLite writes, in addition to one running write. |
+| `write_queue_timeout` | `30` seconds | Maximum wait for queue capacity; raises built-in `TimeoutError` before submitting the write. |
+| `retry_attempts` | `3` | Total attempts for recognized lock, deadlock, and serialization failures. |
+| `retry_backoff` | `0.05` seconds | Initial delay between attempts, doubled on each retry. |
+
+For PostgreSQL/MySQL, writes execute in the calling workers using separate
+sessions from the shared pool. For example, pass
+`StorageConfig(max_workers=30, pool_size=10, max_overflow=0)` to allow 30 compute
+workers while limiting that engine to 10 simultaneous database connections.
+Database URLs select the driver; install the corresponding driver separately.
+Existing `AlchemyDatabase(..., **engine_options)` arguments remain supported and
+override configuration-derived engine options. Explicit pool/poolclass options
+retain responsibility for their own concurrency behavior.
+
+For file SQLite, all public storage instances sharing one `AlchemyDatabase`
+submit writes to its single writer thread. The bounded queue applies
+backpressure, and the caller waits for commit or receives the transaction's
+exception. Reads continue in their calling threads with independent sessions.
+The queue limit is a task count, not a byte limit; choose batch sizes with the
+size of compressed arrays in mind. Other database objects or processes have
+their own writers and still contend for SQLite's database-wide write lock.
+WAL is not enabled automatically.
+
+Ordinary in-memory SQLite retains single-thread behavior. Public storages reject
+calls from another thread rather than silently opening a separate empty
+database. Use file SQLite for threaded pipelines. A shared `StaticPool` alone
+does not make simultaneous use of one SQLite connection safe.
+
+Connection pools open connections on demand. A fresh `Session` does not imply a
+new physical connection: completed operations return connections to the pool.
+Inspect `database.engine.pool.status()` and measure checkout waits, transaction
+durations, throughput, and lock/retry rates on representative workloads before
+increasing limits. A larger pool does not provide additional SQLite writers.
+
+### Transactions, retries, and shutdown
+
+Retries reopen the entire operation in a fresh unit of work after rollback.
+Validation/integrity errors, queue/pool exhaustion, and invalidated connections
+are not retried automatically. A disconnected commit may have an uncertain
+outcome and requires application-level handling. Do not add external side
+effects to retryable transaction operations.
+
+Keep the existing `AlchemyLimitDistributionStorage(session)` and
+`AlchemyCriticalValueStorage(session)` for advanced operations requiring an
+explicit shared transaction. The existing Reader/Writer adapters also remain
+available. Direct session/UoW access and those adapters bypass the new public
+storage dispatcher: callers own their retries, concurrency limits, and shutdown.
+
+Stop pipeline workers before `database.dispose()`. Disposal rejects new public
+operations, waits for accepted ones, stops the writer, and releases the engine's
+pool; it is terminal for that database object. Exhausted iterators should be
+discarded, and subsequent calls must use a new database object. Storages do not
+dispose caller-owned databases. Finish direct sessions/UoWs yourself before
+disposing the database.
+
+The default example uses one process. For multiprocessing, create the database,
+pool, storages, and worker threads **inside each process**; never pass them
+through a process pool or reuse them after fork. Public operations detect use
+from a different process and raise an error. Budget the sum of
+`pool_size + max_overflow` across all engines and processes against the server's
+connection limit. The SQLite writer is process-local.
+
+`DistributionLoader(remote=..., local=..., config=config)` uses the public
+storages internally. Its configuration applies to databases created from URLs;
+passed `AlchemyDatabase` instances retain their own settings and remain
+caller-owned. Transfers still finish distributions before critical values and
+commit each batch independently.
+
 ## Choose an extension point
 
 | Task | Extension point |

@@ -20,10 +20,13 @@ from pysatl_criterion.statistics.alternative import AlternativeType
 from pysatl_criterion.statistics.goodness_of_fit.continuous import exponent as exp
 
 
-pytestmark = pytest.mark.skipif(
-    os.environ.get("PYSATL_STATISTICAL") != "1",
-    reason="Set PYSATL_STATISTICAL=1 for statistical validation",
-)
+pytestmark = [
+    pytest.mark.statistical,
+    pytest.mark.skipif(
+        os.environ.get("PYSATL_STATISTICAL") != "1",
+        reason="Set PYSATL_STATISTICAL=1 for statistical validation",
+    ),
+]
 
 
 def make(cls, **kwargs):

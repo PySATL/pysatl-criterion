@@ -81,6 +81,7 @@ def test_documentation_examples_and_links(path):
             assert (path.parent / target.split("#")[0]).exists(), (path, target)
 
 
+@pytest.mark.statistical
 @pytest.mark.skipif(
     os.environ.get("PYSATL_MULTIPLE_TESTING_MONTE_CARLO") != "1",
     reason="Opt-in Monte Carlo validation; see docs/multiple_testing/index.md",

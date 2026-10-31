@@ -24,7 +24,9 @@ from pysatl_criterion.estimation.method_moments.estimators import (
 )
 
 
-RNG = np.random.default_rng(42)
+@pytest.fixture
+def rng():
+    return np.random.default_rng(42)
 
 
 class TestNormalMmEstimator:
@@ -32,8 +34,8 @@ class TestNormalMmEstimator:
         assert NormalMmEstimator.distribution_type() == DistributionType.NORMAL
         assert NormalMmEstimator.method() == EstimationMethod.MM
 
-    def test_estimate_success(self):
-        data = RNG.normal(loc=5.0, scale=2.0, size=10_000)
+    def test_estimate_success(self, rng):
+        data = rng.normal(loc=5.0, scale=2.0, size=10_000)
         res = NormalMmEstimator().estimate(data)
 
         assert res["mean"] == pytest.approx(5.0, abs=0.1)
@@ -50,15 +52,15 @@ class TestNormalMmEstimator:
         assert res["mean"] == 7.0
         assert res["var"] == 0.0
 
-    def test_big_and_small_distribution(self):
-        res_big = NormalMmEstimator().estimate(RNG.normal(1e6, 1e3, 1000))
+    def test_big_and_small_distribution(self, rng):
+        res_big = NormalMmEstimator().estimate(rng.normal(1e6, 1e3, 1000))
         assert res_big["mean"] == pytest.approx(1e6, rel=1e-2)
 
-        res_small = NormalMmEstimator().estimate(RNG.normal(1e-6, 1e-7, 1000))
+        res_small = NormalMmEstimator().estimate(rng.normal(1e-6, 1e-7, 1000))
         assert res_small["mean"] == pytest.approx(1e-6, rel=1e-2)
 
-    def test_a_lot_of_data(self):
-        data = RNG.normal(loc=12.5, scale=np.sqrt(3.2), size=200_000)
+    def test_a_lot_of_data(self, rng):
+        data = rng.normal(loc=12.5, scale=np.sqrt(3.2), size=200_000)
         res = NormalMmEstimator().estimate(data)
         assert res["mean"] == pytest.approx(12.5, rel=1e-2)
         assert res["var"] == pytest.approx(3.2, rel=1e-2)
@@ -69,15 +71,15 @@ class TestUniformMmEstimator:
         assert UniformMmEstimator.distribution_type() == DistributionType.UNIFORM
         assert UniformMmEstimator.method() == EstimationMethod.MM
 
-    def test_estimate_success(self):
-        data = RNG.uniform(low=2.0, high=8.0, size=10_000)
+    def test_estimate_success(self, rng):
+        data = rng.uniform(low=2.0, high=8.0, size=10_000)
         res = UniformMmEstimator().estimate(data)
 
         assert res["a"] == pytest.approx(2.0, abs=0.1)
         assert res["b"] == pytest.approx(8.0, abs=0.1)
 
-    def test_negative_data(self):
-        data = RNG.uniform(low=-10.0, high=-2.0, size=2000)
+    def test_negative_data(self, rng):
+        data = rng.uniform(low=-10.0, high=-2.0, size=2000)
         res = UniformMmEstimator().estimate(data)
         assert res["a"] == pytest.approx(-10.0, abs=0.2)
         assert res["b"] == pytest.approx(-2.0, abs=0.2)
@@ -88,8 +90,8 @@ class TestUniformMmEstimator:
         assert res["a"] == pytest.approx(3.0)
         assert res["b"] == pytest.approx(3.0)
 
-    def test_a_lot_of_data(self):
-        data = RNG.uniform(low=0.0, high=100.0, size=200_000)
+    def test_a_lot_of_data(self, rng):
+        data = rng.uniform(low=0.0, high=100.0, size=200_000)
         res = UniformMmEstimator().estimate(data)
         assert res["a"] == pytest.approx(0.0, abs=0.5)
         assert res["b"] == pytest.approx(100.0, abs=0.5)
@@ -104,8 +106,8 @@ class TestLogNormalMmEstimator:
         assert LogNormalMmEstimator.distribution_type() == DistributionType.LOG_NORMAL
         assert LogNormalMmEstimator.method() == EstimationMethod.MM
 
-    def test_estimate_success(self):
-        data = RNG.lognormal(mean=0.5, sigma=0.5, size=20_000)
+    def test_estimate_success(self, rng):
+        data = rng.lognormal(mean=0.5, sigma=0.5, size=20_000)
         res = LogNormalMmEstimator().estimate(data)
 
         assert res["mean"] == pytest.approx(0.5, abs=0.05)
@@ -120,8 +122,8 @@ class TestLogNormalMmEstimator:
         assert res["mean"] == pytest.approx(np.log(2.0))
         assert res["var"] == pytest.approx(0.0)
 
-    def test_a_lot_of_data(self):
-        data = RNG.lognormal(mean=1.2, sigma=0.4, size=100_000)
+    def test_a_lot_of_data(self, rng):
+        data = rng.lognormal(mean=1.2, sigma=0.4, size=100_000)
         res = LogNormalMmEstimator().estimate(data)
         assert res["mean"] == pytest.approx(1.2, rel=2e-2)
         assert res["var"] == pytest.approx(0.16, rel=2e-2)
@@ -132,8 +134,8 @@ class TestExponentialMmEstimator:
         assert ExponentialMmEstimator.distribution_type() == DistributionType.EXPONENTIAL
         assert ExponentialMmEstimator.method() == EstimationMethod.MM
 
-    def test_estimate_success(self):
-        data = RNG.exponential(scale=0.5, size=20_000)
+    def test_estimate_success(self, rng):
+        data = rng.exponential(scale=0.5, size=20_000)
         res = ExponentialMmEstimator().estimate(data)
 
         assert res["rate"] == pytest.approx(2.0, rel=5e-2)
@@ -152,9 +154,9 @@ class TestWeibullMmEstimator:
         assert WeibullMmEstimator.distribution_type() == DistributionType.WEIBULL
         assert WeibullMmEstimator.method() == EstimationMethod.MM
 
-    def test_estimate_success(self):
+    def test_estimate_success(self, rng):
         shape, scale = 2.0, 3.0
-        data = scale * RNG.weibull(a=shape, size=20_000)
+        data = scale * rng.weibull(a=shape, size=20_000)
         res = WeibullMmEstimator().estimate(data)
 
         assert res["shape"] == pytest.approx(shape, rel=5e-2)
@@ -170,9 +172,9 @@ class TestGammaMmEstimator:
         assert GammaMmEstimator.distribution_type() == DistributionType.GAMMA
         assert GammaMmEstimator.method() == EstimationMethod.MM
 
-    def test_estimate_success(self):
+    def test_estimate_success(self, rng):
         shape, scale = 3.0, 2.0
-        data = RNG.gamma(shape=shape, scale=scale, size=20_000)
+        data = rng.gamma(shape=shape, scale=scale, size=20_000)
         res = GammaMmEstimator().estimate(data)
 
         assert res["shape"] == pytest.approx(shape, rel=5e-2)
@@ -188,9 +190,9 @@ class TestBetaMmEstimator:
         assert BetaMmEstimator.distribution_type() == DistributionType.BETA
         assert BetaMmEstimator.method() == EstimationMethod.MM
 
-    def test_estimate_success(self):
+    def test_estimate_success(self, rng):
         alpha, beta = 2.0, 5.0
-        data = RNG.beta(a=alpha, b=beta, size=20_000)
+        data = rng.beta(a=alpha, b=beta, size=20_000)
         res = BetaMmEstimator().estimate(data)
 
         assert res["alpha"] == pytest.approx(alpha, rel=5e-2)
@@ -206,9 +208,9 @@ class TestChi2MmEstimator:
         assert Chi2MmEstimator.distribution_type() == DistributionType.CHI_2
         assert Chi2MmEstimator.method() == EstimationMethod.MM
 
-    def test_estimate_success(self):
+    def test_estimate_success(self, rng):
         df = 4.0
-        data = RNG.chisquare(df=df, size=20_000)
+        data = rng.chisquare(df=df, size=20_000)
         res = Chi2MmEstimator().estimate(data)
 
         assert res["df"] == pytest.approx(df, rel=5e-2)
@@ -219,9 +221,9 @@ class TestStudentMmEstimator:
         assert StudentMmEstimator.distribution_type() == DistributionType.STUDENT
         assert StudentMmEstimator.method() == EstimationMethod.MM
 
-    def test_estimate_success(self):
+    def test_estimate_success(self, rng):
         df = 6.0
-        data = RNG.standard_t(df=df, size=100_000)
+        data = rng.standard_t(df=df, size=100_000)
         res = StudentMmEstimator().estimate(data)
 
         assert res["df"] == pytest.approx(df, rel=0.15)
@@ -232,9 +234,9 @@ class TestFisherMmEstimator:
         assert FisherMmEstimator.distribution_type() == DistributionType.FISHER
         assert FisherMmEstimator.method() == EstimationMethod.MM
 
-    def test_estimate_success(self):
+    def test_estimate_success(self, rng):
         df1, df2 = 10.0, 8.0
-        data = RNG.f(dfnum=df1, dfden=df2, size=100_000)
+        data = rng.f(dfnum=df1, dfden=df2, size=100_000)
         res = FisherMmEstimator().estimate(data)
 
         assert res["df1"] == pytest.approx(df1, rel=0.15)
@@ -246,9 +248,9 @@ class TestRayleighMmEstimator:
         assert RayleighMmEstimator.distribution_type() == DistributionType.RAYLEIGH
         assert RayleighMmEstimator.method() == EstimationMethod.MM
 
-    def test_estimate_success(self):
+    def test_estimate_success(self, rng):
         scale = 3.0
-        data = RNG.rayleigh(scale=scale, size=20_000)
+        data = rng.rayleigh(scale=scale, size=20_000)
         res = RayleighMmEstimator().estimate(data)
 
         assert res["scale"] == pytest.approx(scale, rel=5e-2)
@@ -259,9 +261,9 @@ class TestWignerMmEstimator:
         assert WignerMmEstimator.distribution_type() == DistributionType.WIGNER
         assert WignerMmEstimator.method() == EstimationMethod.MM
 
-    def test_estimate_success(self):
+    def test_estimate_success(self, rng):
         radius = 4.0
-        data = semicircular.rvs(scale=radius, size=20_000, random_state=RNG)
+        data = semicircular.rvs(scale=radius, size=20_000, random_state=rng)
         res = WignerMmEstimator().estimate(data)
 
         assert res["radius"] == pytest.approx(radius, rel=5e-2)
@@ -272,9 +274,9 @@ class TestParetoMmEstimator:
         assert ParetoMmEstimator.distribution_type() == DistributionType.PARETO
         assert ParetoMmEstimator.method() == EstimationMethod.MM
 
-    def test_estimate_success(self):
+    def test_estimate_success(self, rng):
         alpha, scale = 3.0, 5.0
-        data = scale * (RNG.pareto(a=alpha, size=100_000) + 1.0)
+        data = scale * (rng.pareto(a=alpha, size=100_000) + 1.0)
         res = ParetoMmEstimator().estimate(data)
 
         assert res["shape"] == pytest.approx(alpha, rel=0.1)
@@ -286,9 +288,9 @@ class TestLaplaceMmEstimator:
         assert LaplaceMmEstimator.distribution_type() == DistributionType.LAPLACE
         assert LaplaceMmEstimator.method() == EstimationMethod.MM
 
-    def test_estimate_success(self):
+    def test_estimate_success(self, rng):
         loc, scale = 2.0, 1.5
-        data = RNG.laplace(loc=loc, scale=scale, size=20_000)
+        data = rng.laplace(loc=loc, scale=scale, size=20_000)
         res = LaplaceMmEstimator().estimate(data)
 
         assert res["t"] == pytest.approx(loc, abs=0.1)

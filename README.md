@@ -7,7 +7,7 @@
 This repository contains a collection of Python scripts and modules for performing various statistical tests. These tests are designed to help you analyze data, make inferences, and draw conclusions based on statistical methods. The repository is organized to be easy to use, modular, and extensible.
 
 ## Installation
-To use this repository, you need to have Python 3.9 or later installed on your system. You can install the required dependencies by following these steps:
+To use this repository, you need Python 3.10, 3.11, or 3.12 and Poetry 2.4.1. You can install the required dependencies by following these steps:
 
 Clone the repository:
 
@@ -18,7 +18,8 @@ git clone https://github.com/PySATL/pysatl-criterion.git
 Install dependencies:
 
 ```bash
-poetry install
+cd pysatl-criterion
+poetry sync --only main
 ```
 You're all set! You can now import and use the statistical tests in your Python scripts.
 
@@ -91,18 +92,39 @@ Issues labeled [good first issue](https://github.com/PySATL/pysatl-criterion/lab
 
 
 ## Software requirements
-- [Python >= 3.9](http://docs.python-guide.org/en/latest/starting/installation/)
-- [poetry](https://python-poetry.org/docs/)
+- Python >= 3.10, < 3.13
+- [Poetry 2.4.1](https://python-poetry.org/docs/)
 - [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
-- [virtualenv](https://virtualenv.pypa.io/en/stable/installation.html) (Recommended)
 
 
 ## Development
 
-Install requirements
+Install the locked development environment, including lint, test, and documentation tools:
 
 ```bash
-poetry install --with dev
+poetry check --lock
+poetry sync --with dev
+```
+
+Run checks through Poetry so local development and CI use the same tool versions:
+
+```bash
+poetry run ruff check .
+poetry run ruff format --check .
+poetry run mypy src/pysatl_criterion tests
+poetry run pytest --random-order
+poetry run pytest --random-order --cov=pysatl_criterion --cov-report=term-missing
+```
+
+Dependencies are defined in `pyproject.toml`; commit `poetry.lock` with dependency changes.
+Use `poetry add --group lint`, `--group test`, or `--group docs` for development dependencies.
+The `dev` group includes all three groups. CI checks lockfile consistency before installation.
+
+For documentation only:
+
+```bash
+poetry sync --only docs --no-root
+poetry run mkdocs build
 ```
 
 ## Pre-commit

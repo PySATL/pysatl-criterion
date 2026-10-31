@@ -87,7 +87,11 @@ class ParameterValues(Mapping[ParameterSpec, float]):
         for key, value in values.items():
             parameter = by_id.get(key.id) if isinstance(key, ParameterSpec) else by_name.get(key)
             if parameter is None:
-                raise ValueError(f"Unknown parameter {key!r} for {parameterization.id}")
+                available_parameters = ", ".join(repr(name) for name in by_name)
+                raise ValueError(
+                    f"Unknown parameter {key!r} for {parameterization.id}. "
+                    f"Available parameters (including aliases): {available_parameters}"
+                )
             if parameter in resolved:
                 raise ValueError(f"Duplicate parameter: {parameter.name}")
             resolved[parameter] = value

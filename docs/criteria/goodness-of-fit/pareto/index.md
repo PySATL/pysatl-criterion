@@ -26,7 +26,7 @@ that size and cannot provide useful discrimination.
 | [Kolmogorov–Smirnov D−](kolmogorov_smirnov_d_minus_pareto_criterion.md) | `KolmogorovSmirnovDMinusParetoGofStatistic` | `KS_MINUS` |
 | [Anderson–Darling](anderson_darling_pareto_criterion.md) | `AndersonDarlingParetoGofStatistic` | `AD` |
 | [Cramér–von Mises](cramer_von_mises_pareto_criterion.md) | `CramerVonMisesParetoGofStatistic` | `CVM` |
-| [Liao–Shimokawa functional (legacy MinToshiyuki name)](min_toshiyuki_pareto_criterion.md) | `MinToshiyukiParetoGofStatistic` | `MT` |
+| [Liao–Shimokawa](liao_shimokawa_pareto_criterion.md) | `LiaoShimokawaParetoGofStatistic` | `LS` |
 | [Watson](watson_pareto_criterion.md) | `WatsonParetoGofStatistic` | `WATSON` |
 | [Kuiper](kuiper_pareto_criterion.md) | `KuiperParetoGofStatistic` | `KUIPER` |
 | [Scaled Kuiper](kuiper_scaled_pareto_criterion.md) | `KuiperScaledParetoGofStatistic` | `KUIPER_SCALED` |
@@ -95,7 +95,6 @@ KL retains finite-sample shape dependence and requires refitting with the same w
 on each replicate. Plug-in parametric bootstrap is approximate.
 
 The Greenwood Pareto formula is a library adaptation of the Greenwood concentration
-functional. The legacy `MinToshiyuki` name represents the Liao–Shimokawa functional
-on a fixed CDF. Neither is asserted to reproduce a published fitted-Pareto test
+functional. Liao–Shimokawa uses the shared EDF functional on a fixed CDF. Neither is asserted to reproduce a published fitted-Pareto test
 with supplied critical values. KL implements the raw fixed-window estimate,
 not the adaptive, bias-corrected procedure of `vsgoftest`.

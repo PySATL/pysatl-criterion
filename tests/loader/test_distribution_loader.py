@@ -10,7 +10,6 @@ from pysatl_criterion.loader import (
     CriticalValueLoader,
     CriticalValueReader,
     DistributionLoader,
-    LimitDistributionReader,
 )
 from pysatl_criterion.persistence.queries.critical_value import (
     CriticalValueFilter,
@@ -21,6 +20,10 @@ from pysatl_criterion.persistence.queries.limit_distribution import (
     LimitDistributionFilter,
 )
 from pysatl_criterion.persistence.sqlalchemy.database import AlchemyDatabase
+from pysatl_criterion.persistence.sqlalchemy.storage import (
+    CriticalValueStorage,
+    DistributionStorage,
+)
 from pysatl_criterion.persistence.sqlalchemy.stores.critical_value import (
     AlchemyCriticalValueStorage,
 )
@@ -53,7 +56,7 @@ def test_facade_finishes_distributions_before_reading_critical_values(
     ]
     setup.local_service.save_distribution(replace(model, monte_carlo_count=500))
     setup.local_service.get_critical_value(model.key, Decimal("0.1"), AlternativeType.LEFT)
-    read_values = CriticalValueReader.iter_batches
+    read_values = CriticalValueStorage.iter_batches
     observed_batch_sizes = []
 
     def read_after_distributions(reader, query, *, batch_size):
@@ -62,7 +65,7 @@ def test_facade_finishes_distributions_before_reading_critical_values(
         observed_batch_sizes.append(batch_size)
         return read_values(reader, query, batch_size=batch_size)
 
-    monkeypatch.setattr(CriticalValueReader, "iter_batches", read_after_distributions)
+    monkeypatch.setattr(CriticalValueStorage, "iter_batches", read_after_distributions)
     result = loader.load(LimitDistributionFilter(), batch_size=2)
 
     assert observed_batch_sizes == [2]
@@ -201,7 +204,7 @@ def test_distribution_error_prevents_critical_value_stage(setup, loader, model, 
         yield [model]
         raise ConnectionError("distribution source failed")
 
-    mocker.patch.object(LimitDistributionReader, "iter_batches", source_batches)
+    mocker.patch.object(DistributionStorage, "iter_batches", source_batches)
     critical_load = mocker.spy(CriticalValueLoader, "load")
 
     with pytest.raises(ConnectionError, match="distribution source failed"):

@@ -22,7 +22,7 @@ from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
 from pysatl_criterion.distribution import UniformDistributionDescriptor as Uniform
 from pysatl_criterion.distribution.parameters import HypothesisSupport, ParameterValues
 from pysatl_criterion.statistics.alternative import Alternative, RightAlternative
-from pysatl_criterion.statistics.goodness_of_fit.continuous import edf, frequency
+from pysatl_criterion.statistics.goodness_of_fit import edf, frequency
 from pysatl_criterion.statistics.goodness_of_fit.continuous._edf_factory import (
     EDFSpec,
     export_edf_statistics,

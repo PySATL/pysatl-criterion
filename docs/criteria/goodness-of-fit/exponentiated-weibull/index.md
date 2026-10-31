@@ -27,7 +27,7 @@ See [mathematical verification](mathematical-validation.md) for sources, indepen
 | [Kolmogorov–Smirnov](kolmogorov_smirnov_exponentiated_weibull_criterion.md) | `KolmogorovSmirnovExponentiatedWeibullGofStatistic` | `KS` |
 | [Anderson–Darling](anderson_darling_exponentiated_weibull_criterion.md) | `AndersonDarlingExponentiatedWeibullGofStatistic` | `AD` |
 | [Cramér–von Mises](cvm_exponentiated_weibull_criterion.md) | `CrammerVonMisesExponentiatedWeibullGofStatistic` | `CVM` |
-| [Liao–Shimokawa (historical Min–Toshiyuki)](min_toshiyuki_exponentiated_weibull_criterion.md) | `MinToshiyukiExponentiatedWeibullGofStatistic` | `MT` |
+| [Liao–Shimokawa](liao_shimokawa_exponentiated_weibull_criterion.md) | `LiaoShimokawaExponentiatedWeibullGofStatistic` | `LS` |
 | [Watson](watson_exponentiated_weibull_criterion.md) | `WatsonExponentiatedWeibullGofStatistic` | `WATSON` |
 | [Kuiper](kuiper_exponentiated_weibull_criterion.md) | `KuiperExponentiatedWeibullGofStatistic` | `KUIPER` |
 | [Scaled Kuiper](kuiper_scaled_exponentiated_weibull_criterion.md) | `KuiperScaledExponentiatedWeibullGofStatistic` | `KUIPER_SCALED` |
@@ -46,7 +46,7 @@ See [mathematical verification](mathematical-validation.md) for sources, indepen
 | [Neyman modified chi-squared](neyman_chi2_exponentiated_weibull_criterion.md) | `NeymanChi2ExponentiatedWeibullGofStatistic` | `CHI2_NEYMAN` |
 | [Cressie–Read](cressie_read_exponentiated_weibull_criterion.md) | `CressieReadExponentiatedWeibullGofStatistic` | `CRESSIE_READ` |
 
-All rejection regions are right-tailed, including D+ and D−. The three Kuiper normalizations have different critical values. `MinToshiyuki` is the historical API name for the Liao–Shimokawa expression.
+All rejection regions are right-tailed, including D+ and D−. The three Kuiper normalizations have different critical values. The Liao–Shimokawa criterion uses the shared EDF kernel.
 
 Here $O_j$ and $E_j=np_j>0$ are observed and expected counts in exhaustive,
 mutually exclusive cells, with $\sum_jO_j=\sum_jE_j=n$.

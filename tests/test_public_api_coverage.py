@@ -211,13 +211,13 @@ def test_all_normality_statistics_execute_on_a_representative_sample():
     ]
 
     for statistic_class in classes:
-        assert np.isscalar(
+        assert np.isfinite(
             statistic_class(parameters_for(statistic_class)).execute_statistic(sample_values)
         )
 
     # Four observations exercise the BHS implementation without its expensive
     # large-sample weighted-median search.
-    assert np.isscalar(
+    assert np.isfinite(
         normal_statistics.BHSNormalityGofStatistic(
             NormalDistributionDescriptor.DEFAULT.parse({})
         ).execute_statistic([1.0, 2.0, 3.0, 4.0])
@@ -241,7 +241,7 @@ def test_all_normality_statistics_execute_on_a_representative_sample():
 def test_previously_uncovered_weibull_statistics(statistic_class):
     sample_values = np.linspace(3.0, 0.4, 20)
     result = statistic_class(parameters_for(statistic_class)).execute_statistic(sample_values)
-    assert np.isscalar(result)
+    assert np.isfinite(result)
 
 
 def test_all_weibull_statistics_expose_metadata():
@@ -253,7 +253,7 @@ def test_all_weibull_statistics_expose_metadata():
         and not inspect.isabstract(cls)
     ]
 
-    assert len(classes) == 19
+    assert len(classes) == 35
     for statistic_class in classes:
         statistic = statistic_class(parameters_for(statistic_class))
         assert statistic.code()
@@ -280,4 +280,4 @@ def test_all_concrete_weibull_statistics_execute():
             if "type_" in parameters and parameters["type_"].default is inspect.Parameter.empty
             else statistic.execute_statistic(sample_values)
         )
-        assert np.isscalar(result)
+        assert np.isfinite(result)

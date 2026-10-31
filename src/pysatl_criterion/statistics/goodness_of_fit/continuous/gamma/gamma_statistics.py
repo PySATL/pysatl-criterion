@@ -15,7 +15,7 @@ from pysatl_criterion.statistics.alternative import (
     RightAlternative,
     TwoSidedAlternative,
 )
-from pysatl_criterion.statistics.goodness_of_fit.continuous import edf, frequency
+from pysatl_criterion.statistics.goodness_of_fit import edf, frequency
 from pysatl_criterion.statistics.goodness_of_fit.continuous._edf_factory import (
     EDFSpec,
     export_edf_statistics,
@@ -352,127 +352,6 @@ class MoranGammaGofStatistic(AbstractGammaGofStatistic):
                 return np.inf
             total += high + np.log(-np.expm1(low - high))
         return -total - (n + 1) * np.log(n)
-
-
-class MinToshiyukiGammaGofStatistic(AbstractGammaGofStatistic):
-    """Locally defined tail-weighted Gamma EDF discrepancy.
-
-    Parameters
-    ----------
-    parameters : ParameterValues
-        Values with alfa, beta fixed; omitted parameters are unknown.
-
-    Methods
-    -------
-    execute_statistic(rvs, **kwargs)
-        Compute one scalar statistic without changing the sample.
-    hypothesis()
-        Return fixed null parameters; omitted keys mean unknown parameters.
-
-    Notes
-    -----
-    For ordered observations x_(i), let u_i=F(x_(i); alpha, beta),
-    where Gamma has shape alpha, rate beta and known origin zero.
-    Parameters are fixed, not fitted. Samples must be finite, real,
-    one-dimensional and nonempty, in the closed support [0, infinity).
-    Zero is accepted as a boundary value. Ties and constant samples are
-    allowed except where stated. Inputs and instance state are unchanged.
-    Continuous-null calibration assumes iid observations; rounded data
-    require calibration of the observation process.
-
-    T = sum(max(i/n-u_i, u_i-(i-1)/n)/sqrt(u_i*(1-u_i)))/sqrt(n).
-    Weights use log-CDF and log-survival values for tail accuracy.
-    Zero observations yield positive infinity; extreme weights may overflow.
-    This is the same formula as LiaoShimokawaGammaGofStatistic. The public
-    name is retained for compatibility. Liao and Shimokawa (1999) studied
-    fitted Weibull/extreme-value models; their tables do not calibrate the
-    fully specified Gamma null used here.
-    Use simulation of this formula under the specified Gamma null.
-
-    Reject for large values. No p-value is computed by this class.
-
-    References
-    ----------
-    Liao, M. and Shimokawa, T. (1999). A new goodness-of-fit test for
-    type-I extreme-value and 2-parameter Weibull distributions with
-    estimated parameters.
-    https://doi.org/10.1080/00949659908811965
-    Formula source, not a Gamma-specific calibration.
-
-    Examples
-    --------
-    >>> parameters = Distribution.DEFAULT.parse({'alfa': 1, 'beta': 1})
-    >>> statistic = MinToshiyukiGammaGofStatistic(parameters)
-    >>> value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
-    >>> bool(np.isfinite(value))
-    True
-    """
-
-    @classmethod
-    def supported_hypotheses(cls) -> tuple[HypothesisSupport, ...]:
-        return (
-            HypothesisSupport(
-                Distribution.DEFAULT, frozenset({Distribution.SHAPE, Distribution.RATE})
-            ),
-        )
-
-    def alternative(self):
-        return RightAlternative()
-
-    @staticmethod
-    @override
-    def short_code():
-        """
-        Get short code identifier for this test.
-
-        :return: short code string "MT".
-        """
-        return "MT"
-
-    @override
-    def execute_statistic(self, rvs, **kwargs):
-        """Compute the scalar statistic defined in the class Notes.
-
-        Parameters
-        ----------
-        rvs : array_like, shape (n,)
-            Finite real nonnegative observations. Zero is a support boundary.
-            At least one observation; ties and constant samples are allowed.
-        **kwargs : dict, optional
-            Reserved for interface compatibility; ignored.
-
-        Returns
-        -------
-        statistic : float or numpy.float64
-            The statistic in the class Notes. No p-value is calculated.
-
-        Raises
-        ------
-        ValueError
-            If the sample violates the stated shape, support or size constraints,
-            or the required estimates/quantiles are numerically degenerate.
-
-        Notes
-        -----
-        Zero observations return positive infinity. Extreme tail weights
-        can overflow; no epsilon clipping is applied.
-        """
-
-        sorted_rvs = np.sort(self._validate_input(rvs))
-        cdf_vals = self._cdf(sorted_rvs)
-        log_cdf, log_sf = self._logs(sorted_rvs)
-        return float(self.do_execute_statistic(cdf_vals, log_cdf, log_sf))
-
-    @staticmethod
-    @jit(nopython=True, cache=True)
-    def do_execute_statistic(cdf_vals, log_cdf, log_sf) -> float:
-        """Accumulate weighted deviations without temporary rank arrays."""
-        n = len(cdf_vals)
-        total = 0.0
-        for i in range(n):
-            deviation = max((i + 1) / n - cdf_vals[i], cdf_vals[i] - i / n)
-            total += deviation * np.exp(-0.5 * (log_cdf[i] + log_sf[i]))
-        return total / np.sqrt(n)
 
 
 class AbstractBinnedGammaGofStatistic(AbstractGammaGofStatistic, ABC):
@@ -1507,7 +1386,6 @@ __all__ = [
     "GraphMaxDegreeGammaGofStatistic",
     "GreenwoodGammaGofStatistic",
     "LikelihoodRatioGammaGofStatistic",
-    "MinToshiyukiGammaGofStatistic",
     "MoranGammaGofStatistic",
     "ProbabilityPlotCorrelationGammaGofStatistic",
 ]

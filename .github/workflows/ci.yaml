@@ -29,10 +29,13 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install Poetry
-        run: pip install poetry==2.1.1
+        run: pip install poetry==2.4.1
 
-      - name: Install dynamic versioning plugin
-        run: poetry self add poetry-dynamic-versioning[plugin]
+      - name: Validate locked dependencies
+        run: poetry check --lock
+
+      - name: Install dependencies with Poetry
+        run: poetry sync --only main,lint,test
 
       - name: Build distribution
         run: poetry build
@@ -42,9 +45,6 @@ jobs:
 
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
-
-      - name: Install dependencies with Poetry
-        run: poetry install --with dev
 
       - name: Run Ruff lint
         run: poetry run ruff check --output-format=github
@@ -57,12 +57,22 @@ jobs:
           poetry run mypy src/pysatl_criterion tests
 
       - name: Run tests
-        run: poetry run pytest --random-order
+        if: matrix.python-version != '3.12'
+        run: poetry run pytest --random-order --junitxml=${{ runner.temp }}/pytest-results.xml
 
       - name: Tests with Coveralls
         if: (runner.os == 'Linux' && matrix.python-version == '3.12')
         run: |
-          poetry run pytest --random-order --cov=pysatl_criterion --cov-config=.coveragerc
+          poetry run pytest --random-order --cov=pysatl_criterion --cov-config=.coveragerc --cov-report=term-missing --cov-report=xml --junitxml=${{ runner.temp }}/pytest-results.xml
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-reports-python-${{ matrix.python-version }}
+          path: |
+            ${{ runner.temp }}/pytest-results.xml
+            coverage.xml
 
       - name: Coveralls
         if: (runner.os == 'Linux' && matrix.python-version == '3.12')
@@ -71,9 +81,6 @@ jobs:
         run: |
           # Allow failure for coveralls
           poetry run coveralls || true
-
-      - name: Remove poetry.lock before checking for changes
-        run: rm -f poetry.lock
 
       - name: Check for repository changes
         run: |
@@ -98,7 +105,14 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - uses: pre-commit/action@v3.0.1
+      - name: Install Poetry
+        run: pip install poetry==2.4.1
+      - name: Validate locked dependencies
+        run: poetry check --lock
+      - name: Install dependencies
+        run: poetry sync --only main,lint,test
+      - name: Run pre-commit
+        run: poetry run pre-commit run --all-files --show-diff-on-failure
 
 
   build:
@@ -118,11 +132,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Build distribution
-        run: pip install poetry==2.1.1
+      - name: Install Poetry
+        run: pip install poetry==2.4.1
 
-      - name: Install dynamic versioning plugin
-        run: poetry self add poetry-dynamic-versioning[plugin]
+      - name: Validate locked dependencies
+        run: poetry check --lock
 
       - name: Build distribution
         run: poetry build

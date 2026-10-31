@@ -59,7 +59,7 @@ class LimitDistributionORM(Base):
     criterion_configuration_hash: Mapped[str] = mapped_column(String(64))
     sample_size: Mapped[int]
     monte_carlo_count: Mapped[int]
-    results_statistics: Mapped[list[float]] = mapped_column(CompressedFloatArray(use_float32=True))
+    results_statistics: Mapped[list[float]] = mapped_column(CompressedFloatArray())
 
     __table_args__ = (
         PrimaryKeyConstraint(

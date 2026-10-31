@@ -1,6 +1,7 @@
 from types import TracebackType
 
 from sqlalchemy.orm import Session, sessionmaker
+from typing_extensions import Self
 
 from pysatl_criterion.persistence.sqlalchemy.stores.critical_value import (
     AlchemyCriticalValueStorage,
@@ -16,10 +17,12 @@ class AlchemyUnitOfWork(IUnitOfWork):
         self._session_factory = session_factory
         self._session: Session | None = None
 
-    def __enter__(self) -> "AlchemyUnitOfWork":
+    def __enter__(self) -> Self:
         if self._session is not None:
             raise RuntimeError("Unit of work is already active")
-        self._session = self._session_factory()
+        # Session.close() normally resets a reusable session. A repository retained
+        # outside this UoW must never reopen a transaction on that old session.
+        self._session = self._session_factory(close_resets_only=False)
         self.limit_distributions = AlchemyLimitDistributionStorage(self._session)
         self.critical_values = AlchemyCriticalValueStorage(self._session)
         return self

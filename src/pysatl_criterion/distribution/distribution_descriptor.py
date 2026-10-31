@@ -1,7 +1,7 @@
 """Shared interface for probability distribution descriptors."""
 
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import ClassVar
 
 from numpy.typing import ArrayLike
@@ -28,6 +28,57 @@ class DistributionDescriptor(ABC):
     """
 
     DEFAULT: ClassVar[ParameterizationDescriptor]
+
+    @classmethod
+    def parse_parameters(cls, values: Mapping[str | ParameterSpec, float]) -> ParameterValues:
+        """Infer a schema from keys, then validate values with its parser.
+
+        Partial sets are allowed and defaults are never filled. Every key must
+        belong to the selected schema; names, aliases and stable ParameterSpec
+        identities are accepted. Ambiguous sets require explicit schema.parse().
+        Existing ParameterValues retain their explicit, supported schema.
+        """
+        schemas = cls.parameterizations()
+        if isinstance(values, ParameterValues):
+            if values.parameterization not in schemas:
+                raise ValueError("Unsupported distribution parameterization")
+            schema = next(schema for schema in schemas if schema == values.parameterization)
+            return schema.parse(values)
+
+        candidates = []
+        for schema in schemas:
+            names = {
+                name
+                for parameter in schema.parameters
+                for name in (parameter.name, *parameter.aliases)
+            }
+            parameters = set(schema.parameters)
+            if all(
+                key in parameters if isinstance(key, ParameterSpec) else key in names
+                for key in values
+            ):
+                candidates.append(schema)
+
+        if not candidates:
+            available = "; ".join(
+                f"{schema.id}: "
+                + ", ".join(
+                    name
+                    for parameter in schema.parameters
+                    for name in (parameter.name, *parameter.aliases)
+                )
+                for schema in schemas
+            )
+            raise ValueError(
+                f"No matching parameterization for keys {tuple(values)!r}. "
+                f"Unknown or incompatible parameters. Available parameterizations: {available}"
+            )
+        if len(candidates) > 1:
+            matches = ", ".join(schema.id for schema in candidates)
+            raise ValueError(
+                f"Ambiguous parameterization: {matches}. Select a schema explicitly with parse()."
+            )
+        return candidates[0].parse(values)
 
     @classmethod
     def bind(cls, parameters: ParameterValues) -> BoundDistribution:

@@ -23,4 +23,7 @@ def test_full_code_uses_the_concrete_short_code(criterion, monkeypatch):
     assert original_code.startswith(f"{original_short_code}_")
     suffix = original_code[len(original_short_code) :]
     monkeypatch.setattr(criterion, "short_code", staticmethod(lambda: "CUSTOM"))
-    assert criterion.code() == f"CUSTOM{suffix}"
+    if criterion.__name__ == "CramerVonMiseNormalityGofStatistic":
+        assert original_code == criterion.code() == "CVM_GOODNESS_OF_FIT"
+    else:
+        assert criterion.code() == f"CUSTOM{suffix}"

@@ -104,7 +104,7 @@ def test_edf_independent_uniform_formulas():
         g.KuiperGammaGofStatistic: max(i / n - u) + max(u - (i - 1) / n),
         g.GreenwoodGammaGofStatistic: np.sum(np.diff(np.r_[0, u, 1]) ** 2),
         g.MoranGammaGofStatistic: -np.log(n * np.diff(np.r_[0, u, 1])).sum(),
-        g.MinToshiyukiGammaGofStatistic: np.sum(
+        g.LiaoShimokawaGammaGofStatistic: np.sum(
             np.maximum(i / n - u, u - (i - 1) / n) / np.sqrt(u * (1 - u))
         )
         / np.sqrt(n),
@@ -126,14 +126,14 @@ def test_exponential_tail_log_spacings():
         GammaDistributionDescriptor.DEFAULT.parse({"alfa": 1, "beta": 1})
     ).execute_statistic(x) == pytest.approx(expected)
     assert np.isfinite(
-        g.MinToshiyukiGammaGofStatistic(
+        g.LiaoShimokawaGammaGofStatistic(
             GammaDistributionDescriptor.DEFAULT.parse({"alfa": 1, "beta": 1})
         ).execute_statistic(x)
     )
     for cls in (
         g.AndersonDarlingGammaGofStatistic,
         g.MoranGammaGofStatistic,
-        g.MinToshiyukiGammaGofStatistic,
+        g.LiaoShimokawaGammaGofStatistic,
     ):
         assert cls(parameters_for(cls)).execute_statistic([0, 1]) == np.inf
     assert (
@@ -289,8 +289,8 @@ def test_generated_edf_independent_definitions(shape, rate):
         assert cls(parameters_for(cls, alfa=shape, beta=rate)).execute_statistic(
             x[::-1]
         ) == pytest.approx(expected)
-    assert g.MinToshiyukiGammaGofStatistic(
-        parameters_for(g.MinToshiyukiGammaGofStatistic, alfa=shape, beta=rate)
+    assert g.LiaoShimokawaGammaGofStatistic(
+        parameters_for(g.LiaoShimokawaGammaGofStatistic, alfa=shape, beta=rate)
     ).execute_statistic(x) == pytest.approx(references["LiaoShimokawa"])
 
 
@@ -344,7 +344,7 @@ def test_gamma_documentation_coverage_and_examples():
     index = (directory / "index.md").read_text()
     navigation = (directory.parents[3] / "mkdocs.yml").read_text()
     pages = list(directory.glob("*_criterion.md"))
-    assert len(pages) == len(CLASSES) == 29
+    assert len(pages) == len(CLASSES) == 28
     for cls in CLASSES:
         matches = [page for page in pages if cls.__name__ in page.read_text()]
         assert len(matches) == 1, cls.__name__
@@ -397,9 +397,6 @@ def test_logarithmic_edf_exponential_tail():
     }
     for cls, expected in references.items():
         assert cls(parameters_for(cls)).execute_statistic(x) == pytest.approx(expected)
-    lhs = g.LiaoShimokawaGammaGofStatistic(parameters_for(g.LiaoShimokawaGammaGofStatistic))
-    rhs = g.MinToshiyukiGammaGofStatistic(parameters_for(g.MinToshiyukiGammaGofStatistic))
-    assert lhs.execute_statistic(x) == pytest.approx(rhs.execute_statistic(x))
 
 
 @pytest.mark.parametrize("seed", range(10))

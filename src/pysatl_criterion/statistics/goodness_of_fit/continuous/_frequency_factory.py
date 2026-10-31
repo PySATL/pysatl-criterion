@@ -11,7 +11,7 @@ from pysatl_criterion.statistics.goodness_of_fit.binning import (
     EqualProbabilityBins,
 )
 from pysatl_criterion.statistics.goodness_of_fit.binning.base import FrequencyTable, validate_sample
-from pysatl_criterion.statistics.goodness_of_fit.continuous.frequency import (
+from pysatl_criterion.statistics.goodness_of_fit.frequency import (
     AbstractFrequencyStatistic,
 )
 from pysatl_criterion.statistics.goodness_of_fit.goodness_of_fit_statistic import (

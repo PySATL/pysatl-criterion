@@ -340,7 +340,7 @@ def test_shapiro_wilk_is_two_tailed():
 
 
 def test_documented_examples():
-    failures, count = doctest.testmod(exp)
+    failures, count = doctest.testmod(exp, extraglobs=vars(exp.exponent_statistics))
     assert count == 4 * len(CLASSES)
     assert failures == 0
 

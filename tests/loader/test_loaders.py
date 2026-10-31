@@ -544,16 +544,15 @@ def test_critical_value_readers_reject_nonpositive_batch_size(setup, mocker, bat
     with pytest.raises(ValueError, match="batch_size must be positive"):
         next(CriticalValueReader(factory).iter_batches(query, batch_size=batch_size))
     factory.assert_not_called()
-    with setup.remote_uow() as uow:
-        with pytest.raises(ValueError, match="batch_size must be positive"):
-            uow.critical_values.get_batch(query, batch_size=batch_size)
+    with setup.remote_uow() as uow, pytest.raises(ValueError, match="batch_size must be positive"):
+        uow.critical_values.get_batch(query, batch_size=batch_size)
 
 
 @pytest.mark.parametrize(
     "kwargs",
     [
-        {"significance_levels": [Decimal("0")]},
-        {"significance_levels": [Decimal("1")]},
+        {"significance_levels": [Decimal(0)]},
+        {"significance_levels": [Decimal(1)]},
         {"significance_levels": [Decimal("0.12345678901")]},
         {"alternative_types": ["right"]},
     ],

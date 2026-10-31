@@ -34,7 +34,7 @@ from pysatl_criterion.statistics.alternative import (
     RightAlternative,
     TwoSidedAlternative,
 )
-from pysatl_criterion.statistics.goodness_of_fit.continuous import edf, frequency
+from pysatl_criterion.statistics.goodness_of_fit import edf, frequency
 from pysatl_criterion.statistics.goodness_of_fit.continuous._edf_factory import (
     EDFSpec,
     export_edf_statistics,

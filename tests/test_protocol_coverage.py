@@ -6,13 +6,9 @@ from unittest.mock import Mock
 
 import numpy as np
 import pytest
-from pysatl_criterion.persistence.sqlalchemy.alchemy_decorator import CompressedFloatArray
 
 import pysatl_criterion
 from pysatl_criterion import DistributionType
-from pysatl_criterion.distribution import (
-    BetaDistributionDescriptor as Beta,
-)
 from pysatl_criterion.distribution import (
     DistributionDescriptor,
 )
@@ -26,14 +22,10 @@ from pysatl_criterion.hypothesis_testing.alternative_factory.alternative_factori
     RightAlternativeFactory,
     TwoSidedAlternativeFactory,
 )
-from pysatl_criterion.hypothesis_testing.alternative_factory.model import AlternativeFactory
 from pysatl_criterion.hypothesis_testing.critical_values.calculator.model import (
     CriticalValueCalculator,
 )
 from pysatl_criterion.hypothesis_testing.critical_values.critical_area.model import CriticalArea
-from pysatl_criterion.hypothesis_testing.critical_values.loader.remote_loader import (
-    CriticalValueLoader,
-)
 from pysatl_criterion.hypothesis_testing.goodness_of_fit_test import goodness_of_fit_test
 from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     AbstractLimitDistributionResolver,
@@ -42,15 +34,12 @@ from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
 from pysatl_criterion.hypothesis_testing.model import DecisionMethod
 from pysatl_criterion.hypothesis_testing.p_value.calculator.model import PValueCalculator
 from pysatl_criterion.multiple_testing import (
-    AbstractMultipleTesting,
     BenjaminiYekutieli,
     Holm,
     HolmSidak,
-    PValues,
 )
-from pysatl_criterion.persistence.models.base import IDataStorage, IStorage
-from pysatl_criterion.persistence.models.limit_distribution import ILimitDistributionStorage
-from pysatl_criterion.statistics.alternative import Alternative, AlternativeType
+from pysatl_criterion.persistence.sqlalchemy.types import CompressedFloatArray
+from pysatl_criterion.statistics.alternative import AlternativeType
 from pysatl_criterion.statistics.goodness_of_fit.continuous import (
     beta,
     exponent,
@@ -62,61 +51,46 @@ from pysatl_criterion.statistics.goodness_of_fit.continuous import (
     student,
     uniform,
 )
-from pysatl_criterion.statistics.goodness_of_fit.continuous.edf import (
+from pysatl_criterion.statistics.goodness_of_fit.edf import (
     AbstractAndersonDarlingStatistic,
-    AbstractChi2Statistic,
-    AbstractCrammerVonMisesStatistic,
+    AbstractCramerVonMisesStatistic,
 )
 from pysatl_criterion.statistics.goodness_of_fit.goodness_of_fit_statistic import (
     AbstractGoodnessOfFitStatistic,
 )
-from statistics.independence.independence_statistic import (
+from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
+from pysatl_criterion.statistics.independence.independence_statistic import (
     AbstractIndependenceStatistic,
 )
-from pysatl_criterion.statistics.hypothesis import GoodnessOfFitHypothesis
 from pysatl_criterion.statistics.statistic import (
     AbstractStatistic,
 )
 from tests.parameter_cases import parameters_for
 
 
-def test_abstract_protocol_method_bodies():
-    assert DistributionDescriptor.type() is None
-    assert DistributionDescriptor.parameters() is None
-    assert AlternativeFactory.get_critical_value_calculator(object()) is None
-    assert AlternativeFactory.get_p_value_calculator(object()) is None
-    assert AlternativeFactory.get_critical_area(object(), 1) is None
-    assert CriticalValueCalculator.calculate(object(), [], 0.05) is None
-    assert CriticalArea.contains(object(), 1) is None
-    assert PValueCalculator.calculate(object(), [], 1) is None
-    assert IStorage.init(object()) is None
-    assert IDataStorage.get_data(object(), object()) is None
-    assert IDataStorage.insert_data(object(), object()) is None
-    assert IDataStorage.delete_data(object(), object()) is None
-    assert ILimitDistributionStorage.get_data_for_cv(object(), object()) is None
-    assert ILimitDistributionStorage.get_bulk_data(object(), [], 1) is None
-    assert ILimitDistributionStorage.insert_bulk_data(object(), []) is None
-    assert DecisionMethod.decide(object(), object(), 1, 0.05, 10) is None
-    assert GoodnessOfFitHypothesis(None).parameters() == []
-    assert AbstractStatistic.hypothesis(object()) is None
-    assert AbstractStatistic.alternative(object()) is None
-    assert AbstractGoodnessOfFitStatistic.hypothesis(object()) is None
-    assert AbstractGoodnessOfFitStatistic.distribution() is None
-    assert AbstractIndependenceStatistic.hypothesis(object()) is None
+@pytest.mark.parametrize(
+    "base",
+    [
+        AbstractStatistic,
+        AbstractGoodnessOfFitStatistic,
+        AbstractIndependenceStatistic,
+        DistributionDescriptor,
+        AbstractLimitDistributionResolver,
+        DecisionMethod,
+        CriticalValueCalculator,
+        PValueCalculator,
+        CriticalArea,
+    ],
+)
+def test_abstract_interfaces_cannot_be_instantiated(base):
+    with pytest.raises(TypeError, match="abstract"):
+        base()
+
+
+def test_base_family_identifiers_and_empty_hypothesis():
     assert AbstractGoodnessOfFitStatistic.code() == "GOODNESS_OF_FIT"
     assert AbstractIndependenceStatistic.code() == "INDEPENDENCE"
-
-    for method, args in (
-        (AbstractStatistic.code, ()),
-        (AbstractStatistic.short_code, ()),
-        (AbstractGoodnessOfFitStatistic.execute_statistic, (object(), [])),
-        (AbstractIndependenceStatistic.execute_statistic, (object(), [], [])),
-        (AbstractLimitDistributionResolver.resolve, (object(), object(), 1)),
-        (AbstractMultipleTesting.test, (object(), PValues(np.array([0.1])))),
-        (Alternative.type, ()),
-    ):
-        with pytest.raises(NotImplementedError):
-            method(*args)
+    assert GoodnessOfFitHypothesis(None).parameters() == {}
 
 
 @pytest.mark.parametrize(
@@ -133,40 +107,6 @@ def test_alternative_factories(alternative_type, factory_type, critical_value):
     assert factory.get_critical_value_calculator()
     assert factory.get_p_value_calculator()
     assert factory.get_critical_area(critical_value)
-
-
-def test_remote_loader_single_item_paths():
-    local = Mock()
-    assert not CriticalValueLoader(local, None).load("criterion", 10)
-
-    remote = Mock()
-    remote.get_data_for_cv.return_value = SimpleNamespace(criterion_code="criterion")
-    assert CriticalValueLoader(local, remote).load("criterion", 10)
-
-    remote.get_data_for_cv.side_effect = [None, SimpleNamespace(criterion_code="criterion")]
-    assert CriticalValueLoader(local, remote).load("criterion", 10)
-    local.insert_data.assert_called()
-
-    remote.get_data_for_cv.side_effect = None
-    remote.get_data_for_cv.return_value = None
-    assert not CriticalValueLoader(local, remote).load("missing", 10)
-
-
-def test_remote_loader_bulk_edge_paths():
-    local = Mock()
-    remote = Mock()
-    assert CriticalValueLoader(local, remote).load_bulk([], 10).requested_count == 0
-    assert CriticalValueLoader(local, None).load_bulk(["a"], 10).not_found_codes == ["a"]
-
-    local.get_data_for_cv.return_value = True
-    assert CriticalValueLoader(local, remote).load_bulk(["a"], 10).already_cached_count == 1
-
-    local.get_data_for_cv.side_effect = [True, False]
-    remote.get_bulk_data.return_value = [SimpleNamespace(criterion_code="b")]
-    local.insert_bulk_data.side_effect = RuntimeError("write failed")
-    result = CriticalValueLoader(local, remote).load_bulk(["a", "b"], 10)
-    assert result.newly_cached_count == 1
-    assert result.not_found_codes == []
 
 
 def test_all_goodness_of_fit_classes_expose_the_common_contract():
@@ -189,15 +129,7 @@ def test_all_goodness_of_fit_classes_expose_the_common_contract():
                 and issubclass(statistic_class, AbstractGoodnessOfFitStatistic)
                 and not inspect.isabstract(statistic_class)
             ):
-                if issubclass(statistic_class, beta.AbstractBetaGofStatistic):
-                    fixed = (
-                        {}
-                        if statistic_class is beta.EbnerLiebenbergBetaGofStatistic
-                        else {"a": 2, "b": 5}
-                    )
-                    statistic = statistic_class(Beta.DEFAULT.parse(fixed))
-                else:
-                    statistic = statistic_class(parameters_for(statistic_class))
+                statistic = statistic_class(parameters_for(statistic_class))
                 assert statistic.code()
                 assert statistic.short_code()
                 assert statistic.alternative()
@@ -225,7 +157,7 @@ def test_monte_carlo_resolver_simulates_values(monkeypatch):
     generator = Mock()
     generator.generate.return_value = [2.5]
     monkeypatch.setattr(
-        "pysatl_criterion.hypothesis_testing.limit_distribution.base.get_available_generator",
+        "pysatl_criterion.hypothesis_testing.limit_distribution.base.get_hypothesis_generator",
         lambda *_args: generator,
     )
     assert MonteCarloLimitDistributionResolver(2).resolve(statistic, 1) == [2.5, 2.5]
@@ -246,18 +178,8 @@ def test_decision_method_defaults_and_missing_distribution_errors():
 
 
 def test_common_statistic_helpers_and_empty_multiple_testing_inputs():
-    with pytest.raises(NotImplementedError):
-        AbstractAndersonDarlingStatistic.code()
-    masked = np.ma.array([1.0, 2.0], mask=[False, True])
-    assert AbstractChi2Statistic._m_sum(masked, axis=0, preserve_mask=True, xp=np) == 1
-    assert AbstractChi2Statistic._m_sum(masked, axis=0, preserve_mask=False, xp=np) == 1
-    assert (
-        AbstractChi2Statistic._m_sum(np.array([1.0, 2.0]), axis=0, preserve_mask=False, xp=np) == 3
-    )
-    assert np.isfinite(
-        AbstractChi2Statistic.do_execute_statistic(object(), [2, 3], np.array([1, 4]), -1)
-    )
-    assert AbstractCrammerVonMisesStatistic.code() == "CVM"
+    assert AbstractAndersonDarlingStatistic.short_code() == "AD"
+    assert AbstractCramerVonMisesStatistic.short_code() == "CVM"
     assert Holm().adjust(np.array([])).size == 0
     assert HolmSidak().adjust(np.array([])).size == 0
     assert BenjaminiYekutieli().adjust(np.array([])).size == 0

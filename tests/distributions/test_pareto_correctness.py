@@ -29,7 +29,7 @@ FIXED = [
     pareto.KolmogorovSmirnovParetoGofStatistic,
     pareto.AndersonDarlingParetoGofStatistic,
     pareto.CramerVonMisesParetoGofStatistic,
-    pareto.MinToshiyukiParetoGofStatistic,
+    pareto.LiaoShimokawaParetoGofStatistic,
 ]
 FITTED = [
     pareto.GreenwoodParetoGofStatistic,
@@ -130,7 +130,7 @@ def test_ad_cvm_mt_independent_formulas():
 
 
 @pytest.mark.parametrize(
-    "cls", [pareto.AndersonDarlingParetoGofStatistic, pareto.MinToshiyukiParetoGofStatistic]
+    "cls", [pareto.AndersonDarlingParetoGofStatistic, pareto.LiaoShimokawaParetoGofStatistic]
 )
 def test_true_boundary_infinity_and_large_tail(cls):
     assert cls(parameters_for(cls)).execute_statistic([1, 2]) == np.inf
@@ -277,7 +277,7 @@ def test_mt_underflowing_probability_has_finite_penalty():
     x = np.nextafter(1.0, 2.0)
     # n=1: d=1-u, u approximately shape*log(x); compute in log space.
     expected = np.exp(-0.5 * (np.log(shape) + np.log(np.log1p(x - 1))))
-    value = pareto.MinToshiyukiParetoGofStatistic(
+    value = pareto.LiaoShimokawaParetoGofStatistic(
         ParetoDistributionDescriptor.DEFAULT.parse({"shape": shape, "scale": 1})
     ).execute_statistic([x])
     assert np.isfinite(value)

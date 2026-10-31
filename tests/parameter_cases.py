@@ -13,5 +13,15 @@ def parameters_for(statistic_class, **fixed):
         for parameter in support.parameterization.parameters
         if parameter in support.fixed_parameters
     }
+    if (
+        statistic_class.__name__
+        in {
+            "CadirciRenyiStudentGofStatistic",
+            "LequesneRenyiStudentGofStatistic",
+            "MeintanisStudentGofStatistic",
+        }
+        and "df" in values
+    ):
+        values["df"] = 5  # These moment-based criteria require finite variance.
     values.update(fixed)
     return support.parameterization.parse(values)

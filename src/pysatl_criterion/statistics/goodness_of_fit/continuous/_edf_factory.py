@@ -11,8 +11,8 @@ from numpy.typing import ArrayLike
 from pysatl_criterion.distribution.distribution_kind import DistributionKind
 from pysatl_criterion.distribution.parameters import HypothesisSupport
 from pysatl_criterion.statistics.alternative import AlternativeType
-from pysatl_criterion.statistics.goodness_of_fit.continuous import edf
-from pysatl_criterion.statistics.goodness_of_fit.continuous.edf import AbstractEDFStatistic
+from pysatl_criterion.statistics.goodness_of_fit import edf
+from pysatl_criterion.statistics.goodness_of_fit.edf import AbstractEDFStatistic
 from pysatl_criterion.statistics.goodness_of_fit.goodness_of_fit_statistic import (
     AbstractGoodnessOfFitStatistic,
 )

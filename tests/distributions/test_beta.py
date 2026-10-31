@@ -148,9 +148,9 @@ class TestKolmogorovSmirnovBetaGofStatistic:
 
     def test_ks_with_wrong_distribution(self):
         """Test KS statistic with data from wrong distribution."""
-        np.random.seed(42)
+        rng = np.random.RandomState(42)
         # Generate from Beta(5, 2) but test against Beta(2, 5)
-        data = scipy_stats.beta.rvs(5, 2, size=100)
+        data = scipy_stats.beta.rvs(5, 2, size=100, random_state=rng)
 
         stat = KolmogorovSmirnovBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}))
         statistic_value = stat.execute_statistic(data)
@@ -344,8 +344,8 @@ class TestChi2PearsonBetaGofStatistic:
     )
     def test_chi2_with_generated_data(self, alpha, beta, seed, n):
         """Test Chi-squared statistic with data generated from Beta distribution."""
-        np.random.seed(seed)
-        data = scipy_stats.beta.rvs(alpha, beta, size=n)
+        rng = np.random.RandomState(seed)
+        data = scipy_stats.beta.rvs(alpha, beta, size=n, random_state=rng)
 
         stat = Chi2PearsonBetaGofStatistic(Beta.DEFAULT.parse({"a": alpha, "b": beta}))
         statistic_value = stat.execute_statistic(data)
@@ -569,8 +569,8 @@ class TestBetaIntegration:
 
     def test_uniform_distribution(self):
         """Test that Beta(1,1) equals uniform distribution."""
-        np.random.seed(42)
-        data = np.random.uniform(0, 1, 100)
+        rng = np.random.RandomState(42)
+        data = rng.uniform(0, 1, 100)
 
         # Should fit well to Beta(1, 1)
         ks_stat = KolmogorovSmirnovBetaGofStatistic(Beta.DEFAULT.parse({"a": 1, "b": 1}))
@@ -581,8 +581,8 @@ class TestBetaIntegration:
 
     def test_all_statistics_run(self):
         """Test that all statistics can be computed without errors."""
-        np.random.seed(42)
-        data = scipy_stats.beta.rvs(2, 5, size=100)
+        rng = np.random.RandomState(42)
+        data = scipy_stats.beta.rvs(2, 5, size=100, random_state=rng)
 
         statistics = [
             KolmogorovSmirnovBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5})),

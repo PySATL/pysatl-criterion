@@ -24,8 +24,6 @@ class CompressedFloatArray(TypeDecorator):
         """
         super().__init__()
         self.use_float32 = use_float32
-        self.compressor = zstd.ZstdCompressor()
-        self.decompressor = zstd.ZstdDecompressor()
 
     def process_bind_param(self, value: list[float] | None, dialect):
         """
@@ -41,8 +39,13 @@ class CompressedFloatArray(TypeDecorator):
         dtype = np.float32 if self.use_float32 else np.float64
         dtype_code = self.DTYPE_FLOAT32 if self.use_float32 else self.DTYPE_FLOAT64
 
-        arr = np.asarray(value, dtype=dtype)
-        compressed = self.compressor.compress(arr.tobytes())
+        with np.errstate(over="ignore", invalid="ignore"):
+            arr = np.asarray(value, dtype=dtype)
+        if arr.ndim != 1 or not np.isfinite(arr).all():
+            raise ValueError("Statistics must be a one-dimensional array of finite values")
+        # SQLAlchemy copies column types across sessions; zstd contexts cannot be shared
+        # by concurrent operations. Each bind/result conversion owns its context.
+        compressed = zstd.ZstdCompressor().compress(arr.tobytes())
 
         # header: version(1B), dtype_code(1B), length(4B)
         header = struct.pack("<BBI", self.VERSION, dtype_code, len(arr))
@@ -69,8 +72,12 @@ class CompressedFloatArray(TypeDecorator):
         if version != self.VERSION:
             raise ValueError(f"Unsupported version: {version}")
 
+        if dtype_code not in (self.DTYPE_FLOAT32, self.DTYPE_FLOAT64):
+            raise ValueError(f"Unsupported dtype code: {dtype_code}")
         dtype = np.float32 if dtype_code == self.DTYPE_FLOAT32 else np.float64
 
-        decompressed_bytes = self.decompressor.decompress(compressed)
+        decompressed_bytes = zstd.ZstdDecompressor().decompress(compressed)
+        if len(decompressed_bytes) != length * np.dtype(dtype).itemsize:
+            raise ValueError("Compressed statistics length does not match the header")
         arr = np.frombuffer(decompressed_bytes, dtype=dtype, count=length)
         return arr.tolist()

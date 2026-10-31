@@ -4,19 +4,19 @@ from typing import Generic, TypeVar
 
 
 M = TypeVar("M")
-Q = TypeVar("Q", contravariant=True)
-BQ = TypeVar("BQ", contravariant=True)
+Q_contra = TypeVar("Q_contra", contravariant=True)
+BQ_contra = TypeVar("BQ_contra", contravariant=True)
 
 
-class IStoreReader(ABC, Generic[M, Q]):
+class IStoreReader(ABC, Generic[M, Q_contra]):
     @abstractmethod
-    def get(self, query: Q) -> M | None:
+    def get(self, query: Q_contra) -> M | None:
         """Read one model by its identity."""
 
 
-class IBulkStoreReader(IStoreReader[M, Q], Generic[M, Q, BQ]):
+class IBulkStoreReader(IStoreReader[M, Q_contra], Generic[M, Q_contra, BQ_contra]):
     @abstractmethod
-    def iter_batches(self, query: BQ, *, batch_size: int = 100) -> Iterator[list[M]]:
+    def iter_batches(self, query: BQ_contra, *, batch_size: int = 100) -> Iterator[list[M]]:
         """Yield nonempty batches, releasing source transactions before each yield.
 
         batch_size must be positive. Each batch contains at most batch_size models;
