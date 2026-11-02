@@ -56,7 +56,9 @@ from pysatl_criterion.statistics.goodness_of_fit.continuous.exponent import (
 )
 
 sample = [0.12, 0.30, 0.55, 0.90, 1.40, 2.10, 3.20, 4.80]
-criterion = FreemanTukeyExponentialityGofStatistic(E.DEFAULT.parse({}), binning=EqualProbabilityBins(count=4))
+criterion = FreemanTukeyExponentialityGofStatistic(
+    E.DEFAULT.parse({}), binning=EqualProbabilityBins(count=4)
+)
 value = criterion.execute_statistic(sample)
 print(value)
 ```

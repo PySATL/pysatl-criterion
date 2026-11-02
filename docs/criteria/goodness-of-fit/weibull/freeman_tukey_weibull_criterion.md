@@ -22,7 +22,9 @@ from pysatl_criterion.statistics.goodness_of_fit.continuous.weibull import (
     FreemanTukeyWeibullGofStatistic,
 )
 
-criterion = FreemanTukeyWeibullGofStatistic(Weibull.DEFAULT.parse({}), binning=EqualProbabilityBins(count=3))
+criterion = FreemanTukeyWeibullGofStatistic(
+    Weibull.DEFAULT.parse({}), binning=EqualProbabilityBins(count=3)
+)
 statistic = criterion.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
 print(statistic)
 ```

@@ -46,7 +46,7 @@ from pysatl_criterion.statistics.goodness_of_fit.continuous.student import (
     MeintanisStudentGofStatistic,
 )
 
-criterion = MeintanisStudentGofStatistic(Student.DEFAULT.parse({'df': 5}))
+criterion = MeintanisStudentGofStatistic(Student.DEFAULT.parse({"df": 5}))
 value = criterion.execute_statistic([-3.2, -1.1, -0.3, 0.2, 0.7, 1.8, 4.1])
 ```
 

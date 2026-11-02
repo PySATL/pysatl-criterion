@@ -35,7 +35,9 @@ does not justify using fully specified-distribution tables.
 
 ```python
 from pysatl_criterion.distribution import NormalDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import ZhangCNormalityGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import (
+    ZhangCNormalityGofStatistic,
+)
 import numpy as np
 
 statistic = ZhangCNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({}))

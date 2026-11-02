@@ -43,10 +43,14 @@ Storage identity includes the serialized binning configuration.
 
 ```python
 from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
-from pysatl_criterion.statistics.goodness_of_fit.continuous.beta import ModifiedLogLikelihoodBetaGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.beta import (
+    ModifiedLogLikelihoodBetaGofStatistic,
+)
 from pysatl_criterion.statistics.goodness_of_fit.binning import EqualProbabilityBins, FixedCount
 
-statistic = ModifiedLogLikelihoodBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}), binning=EqualProbabilityBins(count=FixedCount(3)))
+statistic = ModifiedLogLikelihoodBetaGofStatistic(
+    Beta.DEFAULT.parse({"a": 2, "b": 5}), binning=EqualProbabilityBins(count=FixedCount(3))
+)
 value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
 print(value)
 ```

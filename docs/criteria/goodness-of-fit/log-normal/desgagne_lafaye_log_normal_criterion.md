@@ -75,7 +75,9 @@ symmetry. Legacy attribution qualifications carry over from normality.
 ```python
 import numpy as np
 from pysatl_criterion.distribution import LogNormalDistributionDescriptor as LogNormal
-from pysatl_criterion.statistics.goodness_of_fit.continuous.log_normal import DesgagneLafayeLogNormalGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.log_normal import (
+    DesgagneLafayeLogNormalGofStatistic,
+)
 
 parameters = LogNormal.DEFAULT.parse({})
 statistic = DesgagneLafayeLogNormalGofStatistic(parameters)

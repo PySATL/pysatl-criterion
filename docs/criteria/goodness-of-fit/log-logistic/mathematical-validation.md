@@ -174,15 +174,21 @@ import pytest
 
 name = "pysatl_criterion.statistics.goodness_of_fit.continuous"
 package = types.ModuleType(name)
-package.__path__ = [str(Path("src/pysatl_criterion/statistics/goodness_of_fit/continuous").resolve())]
+package.__path__ = [
+    str(Path("src/pysatl_criterion/statistics/goodness_of_fit/continuous").resolve())
+]
 sys.modules[name] = package
-raise SystemExit(pytest.main([
-    "tests/distributions/test_log_logistic.py",
-    "tests/distributions/test_log_logistic_correctness.py",
-    "tests/distributions/test_log_logistic_mathematical_validation.py",
-    "tests/distributions/test_distribution_evaluation.py",
-    "-q",
-]))
+raise SystemExit(
+    pytest.main(
+        [
+            "tests/distributions/test_log_logistic.py",
+            "tests/distributions/test_log_logistic_correctness.py",
+            "tests/distributions/test_log_logistic_mathematical_validation.py",
+            "tests/distributions/test_distribution_evaluation.py",
+            "-q",
+        ]
+    )
+)
 ```
 
 ## Numba optimization follow-up

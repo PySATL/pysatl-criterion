@@ -205,15 +205,21 @@ import pytest
 
 name = "pysatl_criterion.statistics.goodness_of_fit.continuous"
 package = types.ModuleType(name)
-package.__path__ = [str(Path("src/pysatl_criterion/statistics/goodness_of_fit/continuous").resolve())]
+package.__path__ = [
+    str(Path("src/pysatl_criterion/statistics/goodness_of_fit/continuous").resolve())
+]
 sys.modules[name] = package
-raise SystemExit(pytest.main([
-    "tests/statistics/test_exponentiated_weibull_mathematical_validation.py",
-    "tests/statistics/test_exponentiated_weibull_dynamic.py",
-    "tests/distributions/test_weibull_families.py",
-    "tests/statistics/test_exponentiated_weibull_numba.py",
-    "-q",
-]))
+raise SystemExit(
+    pytest.main(
+        [
+            "tests/statistics/test_exponentiated_weibull_mathematical_validation.py",
+            "tests/statistics/test_exponentiated_weibull_dynamic.py",
+            "tests/distributions/test_weibull_families.py",
+            "tests/statistics/test_exponentiated_weibull_numba.py",
+            "-q",
+        ]
+    )
+)
 ```
 
 The checks establish agreement with the stated formulas on the tested cases.

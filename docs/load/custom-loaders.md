@@ -33,7 +33,10 @@ from dataclasses import replace
 from pysatl_criterion.persistence.models.limit_distribution import LimitDistributionModel
 from pysatl_criterion.persistence.sqlalchemy.config import StorageConfig
 from pysatl_criterion.persistence.sqlalchemy.database import AlchemyDatabase
-from pysatl_criterion.persistence.sqlalchemy.storage import CriticalValueStorage, DistributionStorage
+from pysatl_criterion.persistence.sqlalchemy.storage import (
+    CriticalValueStorage,
+    DistributionStorage,
+)
 
 
 config = StorageConfig(max_workers=30)
@@ -42,10 +45,7 @@ try:
     database.init()
     distributions = DistributionStorage(database)
     critical_values = CriticalValueStorage(database)
-    initial = [
-        LimitDistributionModel(f"example_{i}", {}, 20, 2, [1.0, 2.0])
-        for i in range(30)
-    ]
+    initial = [LimitDistributionModel(f"example_{i}", {}, 20, 2, [1.0, 2.0]) for i in range(30)]
     distributions.bulk_insert(initial)
 
     def process(key):
@@ -357,8 +357,7 @@ The only abstract loader method is:
 
 ```python
 @staticmethod
-def _criterion_code(model: M) -> str:
-    ...
+def _criterion_code(model: M) -> str: ...
 ```
 
 Implement it to return the criterion code associated with your model. The

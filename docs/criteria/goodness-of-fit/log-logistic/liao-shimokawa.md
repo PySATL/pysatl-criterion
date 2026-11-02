@@ -52,9 +52,7 @@ from pysatl_criterion.statistics.goodness_of_fit.continuous.log_logistic import 
 )
 
 parameters = Distribution.DEFAULT.parse({"alpha": 1.0, "beta": 1.0})
-statistic = LiaoShimokawaLogLogisticGofStatistic(
-    parameters
-)
+statistic = LiaoShimokawaLogLogisticGofStatistic(parameters)
 value = statistic.execute_statistic([0.1, 0.2, 0.5, 0.8, 1.5, 2.0, 4.0, 8.0])
 assert value >= 0
 ```

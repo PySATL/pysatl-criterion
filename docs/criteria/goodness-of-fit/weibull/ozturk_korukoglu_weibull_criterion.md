@@ -69,9 +69,7 @@ from pysatl_criterion.statistics.goodness_of_fit.continuous.weibull import (
     OzturkKorukogluWeibullGofStatistic,
 )
 
-criterion = OzturkKorukogluWeibullGofStatistic(
-    WeibullDistributionDescriptor.DEFAULT.parse({})
-)
+criterion = OzturkKorukogluWeibullGofStatistic(WeibullDistributionDescriptor.DEFAULT.parse({}))
 value = criterion.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
 ```
 

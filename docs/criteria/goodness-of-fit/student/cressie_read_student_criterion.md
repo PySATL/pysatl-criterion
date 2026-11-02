@@ -51,7 +51,7 @@ from pysatl_criterion.statistics.goodness_of_fit.continuous.student import (
     CressieReadStudentGofStatistic,
 )
 
-parameters = Student.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1})
+parameters = Student.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1})
 statistic = CressieReadStudentGofStatistic(parameters, binning=EqualProbabilityBins(count=4))
 value = statistic.execute_statistic([-3.2, -1.1, -0.3, 0.2, 0.7, 1.8, 4.1])
 print(value)

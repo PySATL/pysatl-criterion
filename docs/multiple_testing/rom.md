@@ -46,9 +46,9 @@ import numpy as np
 from pysatl_criterion.multiple_testing import Rom, PValues
 
 procedure = Rom()
-np.testing.assert_allclose(procedure.critical_values(3), [.016875, .025, .05])
-result = procedure.test(PValues(np.array([.8, .01, .03])))
-expected = [.8, 6*.01/(np.sqrt(1+3*.01)+1), .06]
+np.testing.assert_allclose(procedure.critical_values(3), [0.016875, 0.025, 0.05])
+result = procedure.test(PValues(np.array([0.8, 0.01, 0.03])))
+expected = [0.8, 6 * 0.01 / (np.sqrt(1 + 3 * 0.01) + 1), 0.06]
 np.testing.assert_allclose(result.adjusted_p_values, expected)
 assert result.rejected.tolist() == [False, True, False]
 ```

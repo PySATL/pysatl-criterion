@@ -48,7 +48,9 @@ No claim of an exact finite-sample test of the whole family is made.
 
 ```python
 from pysatl_criterion.distribution import ParetoDistributionDescriptor as Pareto
-from pysatl_criterion.statistics.goodness_of_fit.continuous.pareto import LequesneKlParetoGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.pareto import (
+    LequesneKlParetoGofStatistic,
+)
 
 statistic = LequesneKlParetoGofStatistic(Pareto.DEFAULT.parse({}))
 value = statistic.execute_statistic([1.1, 1.4, 1.9, 2.7, 4.2, 8.0], m=2)

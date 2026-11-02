@@ -37,7 +37,9 @@ follow the [shared binning contract](../binning/index.md).
 
 ```python
 from pysatl_criterion.distribution import NormalDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import Chi2PearsonNormalityGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import (
+    Chi2PearsonNormalityGofStatistic,
+)
 import numpy as np
 
 statistic = Chi2PearsonNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({}))

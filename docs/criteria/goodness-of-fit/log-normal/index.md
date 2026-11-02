@@ -32,7 +32,8 @@ limits may legitimately be infinite. Undefined input raises `ValueError`.
 import numpy as np
 from pysatl_criterion.distribution import LogNormalDistributionDescriptor as LogNormal
 from pysatl_criterion.statistics.goodness_of_fit.continuous.log_normal import (
-    KolmogorovSmirnovLogNormalGofStatistic, ShapiroWilkLogNormalGofStatistic,
+    KolmogorovSmirnovLogNormalGofStatistic,
+    ShapiroWilkLogNormalGofStatistic,
 )
 from pysatl_criterion.utils.generator import get_hypothesis_generator
 

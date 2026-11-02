@@ -47,8 +47,8 @@ from pysatl_criterion.multiple_testing import HollandCopenhaver, PValues
 # Three pairwise equality nulls: if one is false, at most one can remain true.
 # Dependence assumptions still need separate justification for the actual tests.
 procedure = HollandCopenhaver(true_null_bounds=(3, 1, 1))
-result = procedure.test(PValues(np.array([.8, .01, .04])))
-np.testing.assert_allclose(result.adjusted_p_values, [.8, .029701, .04])
+result = procedure.test(PValues(np.array([0.8, 0.01, 0.04])))
+np.testing.assert_allclose(result.adjusted_p_values, [0.8, 0.029701, 0.04])
 assert result.rejected.tolist() == [False, True, True]
 ```
 

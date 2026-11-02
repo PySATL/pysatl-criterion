@@ -50,7 +50,9 @@ from pysatl_criterion.statistics.goodness_of_fit.continuous.hyperbolic import (
 parameters = HyperbolicDistributionDescriptor.DEFAULT.parse(
     {"alpha": 1.5, "beta": 0, "delta": 1, "mu": 0}
 )
-criterion = ModifiedLogLikelihoodHyperbolicGofStatistic(parameters, binning=EqualProbabilityBins(count=2))
+criterion = ModifiedLogLikelihoodHyperbolicGofStatistic(
+    parameters, binning=EqualProbabilityBins(count=2)
+)
 value = criterion.execute_statistic([-2.0, -1.0, -0.5, 1.0])
 assert isinstance(value, float) and value >= 0
 ```

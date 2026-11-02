@@ -38,7 +38,9 @@ Built-in Pareto Monte Carlo generation is unavailable; calibration is external.
 
 ```python
 from pysatl_criterion.distribution import ParetoDistributionDescriptor as Pareto
-from pysatl_criterion.statistics.goodness_of_fit.continuous.pareto import ModifiedLogLikelihoodParetoGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.pareto import (
+    ModifiedLogLikelihoodParetoGofStatistic,
+)
 from pysatl_criterion.statistics.goodness_of_fit.binning import ExplicitBins
 
 statistic = ModifiedLogLikelihoodParetoGofStatistic(

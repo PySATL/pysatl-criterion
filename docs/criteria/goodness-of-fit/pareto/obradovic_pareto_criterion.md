@@ -42,7 +42,9 @@ inclusive tie convention, and model rounding if present.
 
 ```python
 from pysatl_criterion.distribution import ParetoDistributionDescriptor as Pareto
-from pysatl_criterion.statistics.goodness_of_fit.continuous.pareto import ObradovicParetoGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.pareto import (
+    ObradovicParetoGofStatistic,
+)
 
 statistic = ObradovicParetoGofStatistic(Pareto.DEFAULT.parse({"scale": 2}))
 value = statistic.execute_statistic([2.2, 2.8, 3.8, 5.4, 8.4, 16])

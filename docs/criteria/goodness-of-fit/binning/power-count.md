@@ -24,7 +24,8 @@ from pysatl_criterion.statistics.goodness_of_fit.binning import PowerCount, Equa
 rule = PowerCount()
 assert rule.resolve(100) == 13
 table = EqualProbabilityBins(count=rule, min_expected=5).build(
-    [0.2, 0.8] * 10, stats.uniform(),
+    [0.2, 0.8] * 10,
+    stats.uniform(),
 )
 assert len(table.expected) == 4  # Expected-count policy reduces the requested 7.
 ```

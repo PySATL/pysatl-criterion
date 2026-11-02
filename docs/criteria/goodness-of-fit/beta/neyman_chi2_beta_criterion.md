@@ -46,7 +46,9 @@ from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
 from pysatl_criterion.statistics.goodness_of_fit.continuous.beta import NeymanChi2BetaGofStatistic
 from pysatl_criterion.statistics.goodness_of_fit.binning import EqualProbabilityBins, FixedCount
 
-statistic = NeymanChi2BetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}), binning=EqualProbabilityBins(count=FixedCount(3)))
+statistic = NeymanChi2BetaGofStatistic(
+    Beta.DEFAULT.parse({"a": 2, "b": 5}), binning=EqualProbabilityBins(count=FixedCount(3))
+)
 value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
 print(value)
 ```

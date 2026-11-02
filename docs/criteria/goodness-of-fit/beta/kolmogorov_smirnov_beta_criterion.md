@@ -39,7 +39,9 @@ statistics remain finite. The data are never clipped.
 
 ```python
 from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
-from pysatl_criterion.statistics.goodness_of_fit.continuous.beta import KolmogorovSmirnovBetaGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.beta import (
+    KolmogorovSmirnovBetaGofStatistic,
+)
 
 statistic = KolmogorovSmirnovBetaGofStatistic(Beta.DEFAULT.parse({"a": 2, "b": 5}))
 value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])

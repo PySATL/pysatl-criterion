@@ -15,7 +15,9 @@ from pysatl_criterion.statistics.goodness_of_fit.continuous.laplace import (
 )
 
 parameters = Laplace.DEFAULT.parse({"t": 0, "s": 1})
-criterion = ModifiedLogLikelihoodLaplaceGofStatistic(parameters, binning=EqualProbabilityBins(count=3))
+criterion = ModifiedLogLikelihoodLaplaceGofStatistic(
+    parameters, binning=EqualProbabilityBins(count=3)
+)
 statistic = criterion.execute_statistic([-2.0, -1.0, -0.2, 0.2, 1.0, 2.0])
 print(statistic)
 ```

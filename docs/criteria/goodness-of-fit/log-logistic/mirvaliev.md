@@ -47,7 +47,9 @@ censored observations now raise ValueError. No fitted state is retained.
 ```python
 from pysatl_criterion.distribution import LogLogisticDistributionDescriptor
 import numpy as np
-from pysatl_criterion.statistics.goodness_of_fit.continuous.log_logistic import MirvalievLogLogisticGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.log_logistic import (
+    MirvalievLogLogisticGofStatistic,
+)
 
 statistic = MirvalievLogLogisticGofStatistic(LogLogisticDistributionDescriptor.DEFAULT.parse({}))
 value = statistic.execute_statistic(np.exp(np.linspace(-2, 2, 100)))

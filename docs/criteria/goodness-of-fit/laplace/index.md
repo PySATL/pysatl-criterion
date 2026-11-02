@@ -52,8 +52,8 @@ from pysatl_criterion.statistics.goodness_of_fit.continuous.laplace import (
     KolmogorovSmirnovDPlusLaplaceGofStatistic,
 )
 
-parameters = LaplaceDistributionDescriptor.DEFAULT.parse({'t': 0, 's': 1})
-sample = [-2., -1., -.5, 0., .2, .5, 1., 2.]
+parameters = LaplaceDistributionDescriptor.DEFAULT.parse({"t": 0, "s": 1})
+sample = [-2.0, -1.0, -0.5, 0.0, 0.2, 0.5, 1.0, 2.0]
 d_plus = KolmogorovSmirnovDPlusLaplaceGofStatistic(parameters).execute_statistic(sample)
 pearson = Chi2PearsonLaplaceGofStatistic(
     parameters, binning=EqualProbabilityBins(count=4)

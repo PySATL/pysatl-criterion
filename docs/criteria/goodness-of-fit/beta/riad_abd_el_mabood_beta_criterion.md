@@ -65,7 +65,10 @@ sample = [0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57]
 criterion = RiadAbdElMaboodBetaGofStatistic(Beta.DEFAULT.parse({}), weight=2.0)
 value = criterion.execute_statistic(sample)
 result = parametric_bootstrap_beta(
-    criterion, sample, n_resamples=99, random_state=42,
+    criterion,
+    sample,
+    n_resamples=99,
+    random_state=42,
 )
 print(value, result.p_value)
 ```

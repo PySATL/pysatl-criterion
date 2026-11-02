@@ -101,8 +101,10 @@ from pysatl_criterion.hypothesis_testing.exponential_monte_carlo import monte_ca
 
 criterion = AndersonDarlingExponentialityGofStatistic(E.DEFAULT.parse({}))
 result = monte_carlo_exponential(
-    criterion, [0.12, 0.30, 0.55, 0.90, 1.40, 2.10, 3.20, 4.80],
-    n_resamples=199, random_state=20261015,
+    criterion,
+    [0.12, 0.30, 0.55, 0.90, 1.40, 2.10, 3.20, 4.80],
+    n_resamples=199,
+    random_state=20261015,
 )
 print(result.statistic, result.p_value)
 ```

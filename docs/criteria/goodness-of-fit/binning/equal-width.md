@@ -27,7 +27,8 @@ null = stats.norm()
 table = EqualWidthBins(-1, 1, count=2).build([-3, -0.5, 0.5, 3], null)
 np.testing.assert_array_equal(table.observed, [1, 1, 1, 1])
 np.testing.assert_allclose(
-    table.expected, 4 * np.diff(null.cdf([-np.inf, -1, 0, 1, np.inf])),
+    table.expected,
+    4 * np.diff(null.cdf([-np.inf, -1, 0, 1, np.inf])),
 )
 ```
 

@@ -27,7 +27,8 @@ NaN statistics are rejected; infinite statistics can occur for some kernels.
 import numpy as np
 from scipy import stats
 from pysatl_criterion.statistics.goodness_of_fit.binning import (
-    AlternativeOptimizedBins, EqualProbabilityBins,
+    AlternativeOptimizedBins,
+    EqualProbabilityBins,
 )
 
 

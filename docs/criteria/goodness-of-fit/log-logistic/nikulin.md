@@ -48,7 +48,9 @@ calibration values must be discarded. No estimates are retained.
 ```python
 from pysatl_criterion.distribution import LogLogisticDistributionDescriptor
 import numpy as np
-from pysatl_criterion.statistics.goodness_of_fit.continuous.log_logistic import NikulinLogLogisticGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.log_logistic import (
+    NikulinLogLogisticGofStatistic,
+)
 
 statistic = NikulinLogLogisticGofStatistic(LogLogisticDistributionDescriptor.DEFAULT.parse({}))
 value = statistic.execute_statistic(np.exp(np.linspace(-2, 2, 100)))

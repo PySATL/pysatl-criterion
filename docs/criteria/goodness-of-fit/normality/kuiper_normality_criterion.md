@@ -35,7 +35,9 @@ does not justify using fully specified-distribution tables.
 
 ```python
 from pysatl_criterion.distribution import NormalDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import KuiperNormalityGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import (
+    KuiperNormalityGofStatistic,
+)
 import numpy as np
 
 statistic = KuiperNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({}))

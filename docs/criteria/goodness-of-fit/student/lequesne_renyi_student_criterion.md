@@ -51,7 +51,7 @@ from pysatl_criterion.statistics.goodness_of_fit.continuous.student import (
     LequesneRenyiStudentGofStatistic,
 )
 
-known_df = LequesneRenyiStudentGofStatistic(Student.DEFAULT.parse({'df': 5}), k=3)
+known_df = LequesneRenyiStudentGofStatistic(Student.DEFAULT.parse({"df": 5}), k=3)
 unknown_df = LequesneRenyiStudentGofStatistic(Student.DEFAULT.parse({}), k=3)
 value = known_df.execute_statistic([-3.2, -1.1, -0.3, 0.2, 0.7, 1.8, 4.1])
 ```

@@ -53,9 +53,13 @@ This is related research on graph-based goodness-of-fit, not a source for this n
 ```python
 from pysatl_criterion.distribution import NormalDistributionDescriptor
 import numpy as np
-from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import GraphCliqueNumberNormalityGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import (
+    GraphCliqueNumberNormalityGofStatistic,
+)
 
-statistic = GraphCliqueNumberNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({'var': 1}))
+statistic = GraphCliqueNumberNormalityGofStatistic(
+    NormalDistributionDescriptor.DEFAULT.parse({"var": 1})
+)
 sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
 value = statistic.execute_statistic(sample)
 assert np.isfinite(value)

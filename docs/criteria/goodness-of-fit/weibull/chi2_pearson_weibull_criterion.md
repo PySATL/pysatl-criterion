@@ -22,7 +22,9 @@ from pysatl_criterion.statistics.goodness_of_fit.continuous.weibull import (
     Chi2PearsonWeibullGofStatistic,
 )
 
-criterion = Chi2PearsonWeibullGofStatistic(Weibull.DEFAULT.parse({}), binning=EqualProbabilityBins(count=3))
+criterion = Chi2PearsonWeibullGofStatistic(
+    Weibull.DEFAULT.parse({}), binning=EqualProbabilityBins(count=3)
+)
 statistic = criterion.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
 print(statistic)
 ```

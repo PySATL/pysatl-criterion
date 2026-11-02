@@ -96,7 +96,9 @@ The input is never changed and estimated parameters are not retained.
 
 ```python
 from pysatl_criterion.distribution import WeibullDistributionDescriptor as Distribution
-from pysatl_criterion.statistics.goodness_of_fit.continuous.weibull import SmithBainWeibullGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.weibull import (
+    SmithBainWeibullGofStatistic,
+)
 
 test = SmithBainWeibullGofStatistic(Distribution.DEFAULT.parse({}))
 value = test.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])

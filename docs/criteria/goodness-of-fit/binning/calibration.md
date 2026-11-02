@@ -80,11 +80,13 @@ all_variants = LimitDistributionFilter(
     criteria=[CriterionFilter(criterion.code())],
 )
 exact_variant = LimitDistributionFilter(
-    criteria=[CriterionFilter(
-        criterion.code(),
-        criterion.hypothesis().parameters(),
-        criterion.configuration(),
-    )],
+    criteria=[
+        CriterionFilter(
+            criterion.code(),
+            criterion.hypothesis().parameters(),
+            criterion.configuration(),
+        )
+    ],
 )
 legacy_only = LimitDistributionFilter(
     criteria=[CriterionFilter(criterion.code(), legacy_only=True)],

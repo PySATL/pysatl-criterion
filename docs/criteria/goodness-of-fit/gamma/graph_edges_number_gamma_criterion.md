@@ -24,7 +24,9 @@ Both tails are used; calibrate the exact graph construction. `execute_statistic`
 
 ```python
 from pysatl_criterion.distribution import GammaDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.continuous.gamma import GraphEdgesNumberGammaGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.gamma import (
+    GraphEdgesNumberGammaGofStatistic,
+)
 
 parameters = GammaDistributionDescriptor.DEFAULT.parse({"alfa": 2.5, "beta": 1.5})
 statistic = GraphEdgesNumberGammaGofStatistic(parameters)

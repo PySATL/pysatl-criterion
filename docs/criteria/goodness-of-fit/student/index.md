@@ -78,10 +78,8 @@ from pysatl_criterion.statistics.goodness_of_fit.continuous.student import (
 )
 
 sample = [-3.2, -1.1, -0.3, 0.2, 0.7, 1.8, 4.1]
-fixed = KolmogorovSmirnovStudentGofStatistic(
-    Student.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1})
-)
-composite = LequesneRenyiStudentGofStatistic(Student.DEFAULT.parse({'df': 5}), k=3)
+fixed = KolmogorovSmirnovStudentGofStatistic(Student.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1}))
+composite = LequesneRenyiStudentGofStatistic(Student.DEFAULT.parse({"df": 5}), k=3)
 print(fixed.execute_statistic(sample), composite.execute_statistic(sample))
 ```
 

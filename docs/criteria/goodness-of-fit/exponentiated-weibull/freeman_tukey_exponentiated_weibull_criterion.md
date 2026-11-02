@@ -54,7 +54,9 @@ from pysatl_criterion.statistics.goodness_of_fit.continuous.exponentiated_weibul
 from pysatl_criterion.statistics.goodness_of_fit.binning import EqualProbabilityBins
 
 parameters = Distribution.DEFAULT.parse({"exponent": 1, "shape": 2, "scale": 1})
-test = FreemanTukeyExponentiatedWeibullGofStatistic(parameters, binning=EqualProbabilityBins(count=3))
+test = FreemanTukeyExponentiatedWeibullGofStatistic(
+    parameters, binning=EqualProbabilityBins(count=3)
+)
 value = test.execute_statistic([0.1, 0.25, 0.4, 0.55, 0.7, 0.9, 1.2, 1.5, 2.0])
 print(value)
 ```

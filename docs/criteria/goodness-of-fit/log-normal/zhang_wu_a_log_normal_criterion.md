@@ -49,9 +49,11 @@ Do not substitute fitted-normality tables.
 ```python
 import numpy as np
 from pysatl_criterion.distribution import LogNormalDistributionDescriptor as LogNormal
-from pysatl_criterion.statistics.goodness_of_fit.continuous.log_normal import ZhangWuALogNormalGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.log_normal import (
+    ZhangWuALogNormalGofStatistic,
+)
 
-parameters = LogNormal.DEFAULT.parse({'mu': 0.4, 's': 0.8})
+parameters = LogNormal.DEFAULT.parse({"mu": 0.4, "s": 0.8})
 statistic = ZhangWuALogNormalGofStatistic(parameters)
 sample = np.exp([-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1])
 value = statistic.execute_statistic(sample)

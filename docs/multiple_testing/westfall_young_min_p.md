@@ -59,16 +59,18 @@ Alpha must lie strictly between zero and one.
 ```python
 import numpy as np
 from pysatl_criterion.multiple_testing import (
-    WestfallYoungMinP, ResamplingPValues, JointResamplingAssumptions,
+    WestfallYoungMinP,
+    ResamplingPValues,
+    JointResamplingAssumptions,
 )
 
 # Numerical illustration only: a real analysis must justify its resampling design.
-observed = np.array([.3, .2, .4])
-draws = np.array([[.3, .5, .6], [.6, .1, .4], [.5, .4, .3], [.4, .3, .5]])
+observed = np.array([0.3, 0.2, 0.4])
+draws = np.array([[0.3, 0.5, 0.6], [0.6, 0.1, 0.4], [0.5, 0.4, 0.3], [0.4, 0.3, 0.5]])
 assumptions = JointResamplingAssumptions(exchangeable=True, subset_pivotal=True)
 procedure = WestfallYoungMinP(assumptions, step_down=True, sampling="monte_carlo")
-result = procedure.test(ResamplingPValues(observed, draws), alpha=.5)
-np.testing.assert_allclose(result.adjusted_p_values, [.6, .4, .6])
+result = procedure.test(ResamplingPValues(observed, draws), alpha=0.5)
+np.testing.assert_allclose(result.adjusted_p_values, [0.6, 0.4, 0.6])
 assert result.rejected.tolist() == [False, True, False]
 ```
 

@@ -14,9 +14,13 @@ Invalid inputs raise `ValueError`. The sample and model are not modified.
 
 ```python
 from pysatl_criterion.distribution import LaplaceDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.continuous.laplace import CramerVonMisesLaplaceGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.laplace import (
+    CramerVonMisesLaplaceGofStatistic,
+)
 
-statistic = CramerVonMisesLaplaceGofStatistic(LaplaceDistributionDescriptor.DEFAULT.parse({'t': 0.0, 's': 1.0}))
+statistic = CramerVonMisesLaplaceGofStatistic(
+    LaplaceDistributionDescriptor.DEFAULT.parse({"t": 0.0, "s": 1.0})
+)
 value = statistic.execute_statistic([-1.0, 0.0, 0.5, 2.0])
 ```
 

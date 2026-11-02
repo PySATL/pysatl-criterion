@@ -107,7 +107,9 @@ The hypothesis-testing layer implements this procedure with reproducible RNG:
 ```python
 from pysatl_criterion.hypothesis_testing.beta_bootstrap import parametric_bootstrap_beta
 from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
-from pysatl_criterion.statistics.goodness_of_fit.continuous.beta import EbnerLiebenbergBetaGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.beta import (
+    EbnerLiebenbergBetaGofStatistic,
+)
 
 statistic = EbnerLiebenbergBetaGofStatistic(Beta.DEFAULT.parse({}))
 sample = [0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57]

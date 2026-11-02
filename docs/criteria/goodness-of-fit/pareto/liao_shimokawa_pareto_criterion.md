@@ -34,7 +34,9 @@ Built-in Pareto Monte Carlo generation is unavailable; calibration is external.
 
 ```python
 from pysatl_criterion.distribution import ParetoDistributionDescriptor as Pareto
-from pysatl_criterion.statistics.goodness_of_fit.continuous.pareto import LiaoShimokawaParetoGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.pareto import (
+    LiaoShimokawaParetoGofStatistic,
+)
 
 statistic = LiaoShimokawaParetoGofStatistic(Pareto.DEFAULT.parse({"shape": 2, "scale": 1}))
 value = statistic.execute_statistic([1.1, 1.4, 1.9, 2.7, 4.2, 8.0])

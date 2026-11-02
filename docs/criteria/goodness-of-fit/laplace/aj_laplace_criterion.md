@@ -43,7 +43,7 @@ from pysatl_criterion.statistics.goodness_of_fit.continuous.laplace import (
 )
 
 criterion = AlizadehNoughabiJarrahiferizLaplaceGofStatistic(Distribution.DEFAULT.parse({}))
-value = criterion.execute_statistic([-3.2, -1.4, -.8, -.1, .05, .5, .9, 1.7, 4.1])
+value = criterion.execute_statistic([-3.2, -1.4, -0.8, -0.1, 0.05, 0.5, 0.9, 1.7, 4.1])
 assert np.isfinite(value)
 ```
 

@@ -29,7 +29,9 @@ from pysatl_criterion.statistics.goodness_of_fit.continuous.inverse_gamma import
 )
 
 parameters = InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": 3.0, "beta": 2.0})
-statistic = ModifiedLogLikelihoodInverseGammaGofStatistic(parameters, binning=EqualProbabilityBins(4))
+statistic = ModifiedLogLikelihoodInverseGammaGofStatistic(
+    parameters, binning=EqualProbabilityBins(4)
+)
 value = statistic.execute_statistic([0.35, 0.5, 0.7, 1.0, 1.5, 3.0])
 assert not np.isnan(value)
 ```

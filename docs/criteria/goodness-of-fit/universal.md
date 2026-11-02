@@ -59,12 +59,8 @@ from pysatl_criterion.distribution.validator import PositiveNumberValidator
 
 
 class RayleighDistributionDescriptor(ContinuousDistributionDescriptor):
-    SCALE = ParameterSpec(
-        "rayleigh.scale", "scale", "σ", validator=PositiveNumberValidator()
-    )
-    DEFAULT = ParameterizationDescriptor(
-        "rayleigh.scale", DistributionType.RAYLEIGH, (SCALE,)
-    )
+    SCALE = ParameterSpec("rayleigh.scale", "scale", "σ", validator=PositiveNumberValidator())
+    DEFAULT = ParameterizationDescriptor("rayleigh.scale", DistributionType.RAYLEIGH, (SCALE,))
 
     @staticmethod
     def type() -> DistributionType:
@@ -79,9 +75,7 @@ class RayleighDistributionDescriptor(ContinuousDistributionDescriptor):
         return (cls.DEFAULT,)
 
     @classmethod
-    def cdf(
-        cls, x: NDArray[np.float64], parameters: ParameterValues
-    ) -> NDArray[np.float64]:
+    def cdf(cls, x: NDArray[np.float64], parameters: ParameterValues) -> NDArray[np.float64]:
         return stats.rayleigh.cdf(x, scale=parameters[cls.SCALE])
 ```
 
@@ -154,7 +148,9 @@ import numpy as np
 
 from pysatl_criterion.statistics.goodness_of_fit.edf import AbstractCrammerVonMisesStatistic
 from pysatl_criterion.statistics.goodness_of_fit.continuous.registry import criterion_registry
-from pysatl_criterion.statistics.goodness_of_fit.continuous.universal import UniversalGoodnessOfFitStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.universal import (
+    UniversalGoodnessOfFitStatistic,
+)
 
 
 class UniversalCramerVonMises(
@@ -178,8 +174,10 @@ class UniversalCramerVonMises(
         cdf = self.distribution().mathematical_functions()["cdf"]
         u = np.asarray(cdf(x, self._parameters), dtype=float)
         if (
-            u.shape != x.shape or not np.all(np.isfinite(u))
-            or np.any((u < 0) | (u > 1)) or np.any(np.diff(u) < 0)
+            u.shape != x.shape
+            or not np.all(np.isfinite(u))
+            or np.any((u < 0) | (u > 1))
+            or np.any(np.diff(u) < 0)
         ):
             raise FloatingPointError("Invalid CDF values")
         return float(self.do_execute_statistic(x, u))

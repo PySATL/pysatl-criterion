@@ -39,7 +39,9 @@ Rounding and ties change the continuous-null law. Built-in Pareto simulation is 
 
 ```python
 from pysatl_criterion.distribution import ParetoDistributionDescriptor as Pareto
-from pysatl_criterion.statistics.goodness_of_fit.continuous.pareto import GreenwoodParetoGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.pareto import (
+    GreenwoodParetoGofStatistic,
+)
 
 statistic = GreenwoodParetoGofStatistic(Pareto.DEFAULT.parse({}))
 value = statistic.execute_statistic([1, 2, 4, 8])

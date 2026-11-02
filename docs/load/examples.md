@@ -107,7 +107,9 @@ from pysatl_criterion.persistence.queries.limit_distribution import (
     CriterionFilter,
     LimitDistributionFilter,
 )
-from pysatl_criterion.statistics.goodness_of_fit.continuous import KolmogorovSmirnovGammaGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous import (
+    KolmogorovSmirnovGammaGofStatistic,
+)
 
 
 statistics = [

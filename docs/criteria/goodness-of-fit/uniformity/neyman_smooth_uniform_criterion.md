@@ -15,7 +15,9 @@ from pysatl_criterion.statistics.goodness_of_fit.continuous import (
 )
 
 
-test_statistic = NeymanSmoothTestUniformGofStatistic(UniformDistributionDescriptor.DEFAULT.parse({'a': 0, 'b': 1}), k=4)
+test_statistic = NeymanSmoothTestUniformGofStatistic(
+    UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1}), k=4
+)
 statistic_result = test_statistic.execute_statistic([0.12, 0.25, 0.41, 0.53, 0.77, 0.91])
 print(statistic_result)
 ```

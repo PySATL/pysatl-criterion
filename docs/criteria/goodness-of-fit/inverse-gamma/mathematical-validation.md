@@ -146,12 +146,16 @@ name = "pysatl_criterion.statistics.goodness_of_fit.continuous"
 package = types.ModuleType(name)
 package.__path__ = [str(root / "src/pysatl_criterion/statistics/goodness_of_fit/continuous")]
 sys.modules[name] = package
-raise SystemExit(pytest.main([
-    "tests/distributions/test_inverse_gamma.py",
-    "tests/distributions/test_inverse_gamma_correctness.py",
-    "tests/distributions/test_inverse_gamma_mathematical_validation.py",
-    "-q",
-]))
+raise SystemExit(
+    pytest.main(
+        [
+            "tests/distributions/test_inverse_gamma.py",
+            "tests/distributions/test_inverse_gamma_correctness.py",
+            "tests/distributions/test_inverse_gamma_mathematical_validation.py",
+            "-q",
+        ]
+    )
+)
 ```
 
 The built-in Monte Carlo resolver lacks an inverse-gamma generator; external

@@ -29,7 +29,9 @@ Large values oppose the null (right tail). `execute_statistic` returns a scalar,
 ```python
 from pysatl_criterion.distribution import GammaDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit.binning import EqualProbabilityBins
-from pysatl_criterion.statistics.goodness_of_fit.continuous.gamma import FreemanTukeyGammaGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.gamma import (
+    FreemanTukeyGammaGofStatistic,
+)
 
 parameters = GammaDistributionDescriptor.DEFAULT.parse({"alfa": 2.5, "beta": 1.5})
 statistic = FreemanTukeyGammaGofStatistic(parameters, binning=EqualProbabilityBins(count=3))

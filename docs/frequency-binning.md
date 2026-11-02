@@ -23,7 +23,8 @@ an algorithm by class and a grouping policy with `binning`:
 ```python
 from pysatl_criterion.distribution import UniformDistributionDescriptor as Uniform
 from pysatl_criterion.statistics.goodness_of_fit.binning import (
-    EqualProbabilityBins, SturgesCount,
+    EqualProbabilityBins,
+    SturgesCount,
 )
 from pysatl_criterion.statistics.goodness_of_fit.continuous.uniform import (
     CressieReadUniformGofStatistic,

@@ -38,7 +38,9 @@ Built-in Pareto Monte Carlo generation is unavailable; calibration is external.
 
 ```python
 from pysatl_criterion.distribution import ParetoDistributionDescriptor as Pareto
-from pysatl_criterion.statistics.goodness_of_fit.continuous.pareto import Chi2PearsonParetoGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.pareto import (
+    Chi2PearsonParetoGofStatistic,
+)
 from pysatl_criterion.statistics.goodness_of_fit.binning import ExplicitBins
 
 statistic = Chi2PearsonParetoGofStatistic(

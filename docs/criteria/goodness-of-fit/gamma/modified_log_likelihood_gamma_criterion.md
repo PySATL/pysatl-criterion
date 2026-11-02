@@ -29,10 +29,14 @@ Large values oppose the null (right tail). `execute_statistic` returns a scalar,
 ```python
 from pysatl_criterion.distribution import GammaDistributionDescriptor
 from pysatl_criterion.statistics.goodness_of_fit.binning import EqualProbabilityBins
-from pysatl_criterion.statistics.goodness_of_fit.continuous.gamma import ModifiedLogLikelihoodGammaGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.gamma import (
+    ModifiedLogLikelihoodGammaGofStatistic,
+)
 
 parameters = GammaDistributionDescriptor.DEFAULT.parse({"alfa": 2.5, "beta": 1.5})
-statistic = ModifiedLogLikelihoodGammaGofStatistic(parameters, binning=EqualProbabilityBins(count=3))
+statistic = ModifiedLogLikelihoodGammaGofStatistic(
+    parameters, binning=EqualProbabilityBins(count=3)
+)
 value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
 ```
 

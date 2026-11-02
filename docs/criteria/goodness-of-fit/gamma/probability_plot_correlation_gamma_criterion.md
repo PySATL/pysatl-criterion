@@ -24,7 +24,9 @@ Large values oppose the null (right tail). `execute_statistic` returns a scalar,
 
 ```python
 from pysatl_criterion.distribution import GammaDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.continuous.gamma import ProbabilityPlotCorrelationGammaGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.gamma import (
+    ProbabilityPlotCorrelationGammaGofStatistic,
+)
 
 parameters = GammaDistributionDescriptor.DEFAULT.parse({"alfa": 2.5, "beta": 1.5})
 statistic = ProbabilityPlotCorrelationGammaGofStatistic(parameters)

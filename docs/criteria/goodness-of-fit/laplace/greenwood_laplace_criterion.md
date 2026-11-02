@@ -14,9 +14,13 @@ Invalid inputs raise `ValueError`. The sample and model are not modified.
 
 ```python
 from pysatl_criterion.distribution import LaplaceDistributionDescriptor
-from pysatl_criterion.statistics.goodness_of_fit.continuous.laplace import GreenwoodLaplaceGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.continuous.laplace import (
+    GreenwoodLaplaceGofStatistic,
+)
 
-statistic = GreenwoodLaplaceGofStatistic(LaplaceDistributionDescriptor.DEFAULT.parse({'t': 0.0, 's': 1.0}))
+statistic = GreenwoodLaplaceGofStatistic(
+    LaplaceDistributionDescriptor.DEFAULT.parse({"t": 0.0, "s": 1.0})
+)
 value = statistic.execute_statistic([-1.0, 0.0, 0.5, 2.0])
 ```
 
