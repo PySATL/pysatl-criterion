@@ -15,7 +15,7 @@ from pysatl_criterion.statistics.goodness_of_fit.binning.counts import (
 
 
 def validate_sample(rvs: ArrayLike) -> NDArray[np.float64]:
-    if np.iscomplexobj(rvs) or (np.ma.isMaskedArray(rvs) and np.any(rvs.mask)):
+    if np.iscomplexobj(rvs) or (isinstance(rvs, np.ma.MaskedArray) and np.any(rvs.mask)):
         raise ValueError("Sample must be real and contain no masked observations")
     sample = np.asarray(rvs, dtype=np.float64)
     if sample.ndim != 1 or not sample.size or not np.all(np.isfinite(sample)):
