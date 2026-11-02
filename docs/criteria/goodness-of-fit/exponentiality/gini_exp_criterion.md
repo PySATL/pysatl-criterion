@@ -1,70 +1,61 @@
-# Test for exponentiality based on the Gini statistic
+# Gini exponentiality criterion
 
-## Description
-Performs the Gini test for the composite hypothesis of exponentiality, see e.g. Gail and Gastwirth (1978) and Henze and Meintanis (2005).
-The Gini test is a statistical goodness-of-fit test used to assess whether a given sample of data is consistent with an exponential distribution. This test is based on the sample Gini index, a scale-free measure constructed from the ordered spacings of the observations.
+`GiniExponentialityGofStatistic` — short code `GINI`; both tails.
 
-Composite Hypothesis of Exponentiality
-The composite hypothesis of exponentiality refers to the null hypothesis that the data comes from an exponential distribution with an unspecified rate parameter
-lambda. The Gini statistic is scale invariant because it is normalized by the sample total, so the unknown exponential scale does not have to be specified.
+[All exponential criteria](index.md) · [Mathematical verification](mathematical-validation.md)
 
-Test Statistic
-The Gini test statistic is based on Gini's mean difference and the associated Gini index. For exponential data the population Gini index is equal to one half, so deviations of the sample Gini index from this value indicate departures from exponentiality.
+## Hypothesis and formula
 
-Calculate the Test Statistic: The observations are sorted, consecutive spacings are weighted by the products of the numbers of observations below and above each spacing, and the result is normalized by the sample total.
+The model is $F(x)=1-\exp(-\lambda x)$ for $x\ge0$, with known origin zero and $\lambda>0$.
+Unknown rate only: pass `E.DEFAULT.parse({})`.
+Omitted parameters remain unknown. Where fitting is needed, $\widehat\lambda=1/\bar x$
+is recomputed for each sample; no fitted state is retained.
 
-Limitations
-The test is intended for nonnegative lifetime-type observations.
+Write $y_i=x_i/\bar x$, $u_i=1-\exp(-\lambda x_{(i)})$ with the specified or
+fitted rate, $D^+=\max_i(i/n-u_i)$ and $D^-=\max_i(u_i-(i-1)/n)$.
+For spacing statistics, $d_i=(n-i+1)(x_{(i)}-x_{(i-1)})$ and $x_{(0)}=0$.
+For frequency statistics, $O_j$ and $E_j=np_j>0$ are aligned counts.
 
-The statistic is simple to compute, but critical values or p-values should be obtained from the appropriate exact, asymptotic, or simulation-based distribution for the chosen sample size.
+$$
+\frac{\sum_{i<j}|x_i-x_j|}{(n-1)\sum_i x_i}
+$$
 
-## Usage
+Uses the n-1 convention, not the biased empirical Gini denominator n. Both tails; exact null mean 1/2 and variance 1/[12(n-1)].
+
+## Input and calibration
+
+Observations must be finite, real, nonnegative and one-dimensional. Masked
+observations are rejected. Fixed-rate generated criteria accept $n\ge1$;
+unknown-rate EDF/frequency criteria require $n\ge2$ and positive total.
+Specialized criteria may require more observations, distinct spacings or a
+nonconstant sample, as stated above and in the class contract. Ties are not
+silently jittered. Infinite mathematical boundary penalties are retained.
+
+`execute_statistic` returns a statistic, not a p-value. Use
+`monte_carlo_exponential` with the same sample size and constructor settings.
+It refits each simulated sample for a composite hypothesis. Rescaling to
+Exp(1) is justified only for a scale-invariant statistic. A continuous-null
+calibration does not model rounding, censoring or dependence.
+
+## Runnable example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import ExponentialDistributionDescriptor as E
+from pysatl_criterion.statistics.goodness_of_fit.continuous.exponent import (
     GiniExponentialityGofStatistic,
 )
 
-
-test_statistic = GiniExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
+sample = [0.12, 0.30, 0.55, 0.90, 1.40, 2.10, 3.20, 4.80]
+criterion = GiniExponentialityGofStatistic(E.DEFAULT.parse({}))
+value = criterion.execute_statistic(sample)
+print(value)
 ```
 
-## Arguments
-`rvs` - array-like sample data passed to `execute_statistic`.
+## Scientific references and verification status
 
-## Details
+[Gail and Gastwirth (1978), A scale-free goodness-of-fit test for the exponential distribution based on the Gini statistic](https://doi.org/10.1111/j.2517-6161.1978.tb01048.x).
 
-The Gini test is a test for the composite hypothesis of exponentiality. Let
-$X_{(1)} \leq \cdots \leq X_{(n)}$ denote the ordered sample. The statistic implemented here is
-
-$$ G_n = \frac{\sum_{i=1}^{n-1} i(n-i)(X_{(i+1)}-X_{(i)})}{(n-1)\sum_{i=1}^{n}X_i}. $$
-
-Here $n$ is the sample size. The numerator is a weighted sum of adjacent ordered spacings, and the denominator makes the statistic scale free.
-
-For an exponential distribution,
-
-$$ G = \frac{1}{2}. $$
-
-The implemented test uses a two-sided alternative, so values of $G_n$ that are too small or too large relative to the exponential reference distribution are evidence against exponentiality.
-
-## Author(s)
-Lev Golofastov
-
-## References
-Gail, M.H. and Gastwirth, J.L. (1978): A scale-free goodness-of-fit test for the exponential distribution based on the Gini statistic. - Journal of the Royal Statistical Society: Series B (Methodological), vol. 40, no. 3, pp. 350-357. https://doi.org/10.1111/j.2517-6161.1978.tb01048.x
-
-Henze, N. and Meintanis, S.G. (2005): Recent and classical tests for exponentiality: a partial review with comparisons. - Metrika, vol. 61, pp. 29-45.
-
-## Examples
-
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    GiniExponentialityGofStatistic,
-)
-
-
-test_statistic = GiniExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
-```
+The formula and input behavior are tested independently; that does not by
+itself certify a historical name, an asymptotic approximation or published
+critical values. Source qualifications above are part of this criterion's
+contract. See the [audit](mathematical-validation.md) for evidence and open items.

@@ -1,70 +1,61 @@
-# Test for exponentiality based on Ahsanullah characterization
+# Ahsanullah exponentiality criterion
 
-## Description
-Performs Ahsanullah test for the hypothesis of exponentiality, see e.g. Ahsanullah and Rahman (1972).
-The Ahsanullah test is a statistical hypothesis test used to assess whether a given sample of data is consistent with an exponential distribution. This test is based on a characterization of the exponential distribution through properties of order statistics and related distributional identities.
+`AhsanullahExponentialityGofStatistic` — short code `AHS`; right tail.
 
-Hypothesis of Exponentiality
-The hypothesis of exponentiality refers to the null hypothesis that the data comes from an exponential distribution. The exponential distribution is widely used in reliability theory, survival analysis, queuing theory, and other fields where waiting times or lifetimes are modeled.
+[All exponential criteria](index.md) · [Mathematical verification](mathematical-validation.md)
 
-Test Statistic
-The Ahsanullah test statistic is based on comparing two empirical probabilities formed from pairs and single observations in the sample. Under exponentiality, the compared quantities are expected to be close. Large positive values of the statistic indicate departure from the exponential model in the right-tailed direction.
+## Hypothesis and formula
 
-Calculate the Test Statistic: The test statistic counts, over all triples of observations, how often the absolute difference of two observations is smaller than a third observation and how often twice the smaller of two observations is smaller than a third observation. The normalized difference between these counts is used as the statistic.
+The model is $F(x)=1-\exp(-\lambda x)$ for $x\ge0$, with known origin zero and $\lambda>0$.
+Unknown rate only: pass `E.DEFAULT.parse({})`.
+Omitted parameters remain unknown. Where fitting is needed, $\widehat\lambda=1/\bar x$
+is recomputed for each sample; no fitted state is retained.
 
-Limitations
-The statistic uses a triple summation over the sample, so the direct computation can be expensive for large sample sizes.
+Write $y_i=x_i/\bar x$, $u_i=1-\exp(-\lambda x_{(i)})$ with the specified or
+fitted rate, $D^+=\max_i(i/n-u_i)$ and $D^-=\max_i(u_i-(i-1)/n)$.
+For spacing statistics, $d_i=(n-i+1)(x_{(i)}-x_{(i-1)})$ and $x_{(0)}=0$.
+For frequency statistics, $O_j$ and $E_j=np_j>0$ are aligned counts.
 
-The test is designed around the characterization of exponentiality and should be calibrated with appropriate critical values or simulation when exact finite-sample behavior is required.
+$$
+n^{-3}\sum_{i,j,k}\left[\mathbf1\{|x_i-x_j|<x_k\}-\mathbf1\{2\min(x_i,x_j)<x_k\}\right]
+$$
 
-## Usage
+Repeated indices are included (V-statistic convention), with strict inequalities. Right-tail directional test. The characterization requires distributional regularity; it does not prove omnibus consistency of this signed integral. Exact finite-sample agreement with published tables was not established.
+
+## Input and calibration
+
+Observations must be finite, real, nonnegative and one-dimensional. Masked
+observations are rejected. Fixed-rate generated criteria accept $n\ge1$;
+unknown-rate EDF/frequency criteria require $n\ge2$ and positive total.
+Specialized criteria may require more observations, distinct spacings or a
+nonconstant sample, as stated above and in the class contract. Ties are not
+silently jittered. Infinite mathematical boundary penalties are retained.
+
+`execute_statistic` returns a statistic, not a p-value. Use
+`monte_carlo_exponential` with the same sample size and constructor settings.
+It refits each simulated sample for a composite hypothesis. Rescaling to
+Exp(1) is justified only for a scale-invariant statistic. A continuous-null
+calibration does not model rounding, censoring or dependence.
+
+## Runnable example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import ExponentialDistributionDescriptor as E
+from pysatl_criterion.statistics.goodness_of_fit.continuous.exponent import (
     AhsanullahExponentialityGofStatistic,
 )
 
-
-test_statistic = AhsanullahExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
+sample = [0.12, 0.30, 0.55, 0.90, 1.40, 2.10, 3.20, 4.80]
+criterion = AhsanullahExponentialityGofStatistic(E.DEFAULT.parse({}))
+value = criterion.execute_statistic(sample)
+print(value)
 ```
 
-## Arguments
-`rvs` - array-like sample data passed to `execute_statistic`.
+## Scientific references and verification status
 
-## Details
+[Volkova and Nikitin (2013/2015), Exponentiality tests based on Ahsanullah’s characterization and their efficiencies](https://www.mathnet.ru/eng/znsl5652).
 
-The Ahsanullah test is a test for the hypothesis of exponentiality based on a characterization of the exponential distribution. The test statistic is
-
-$$ A_n = \frac{H_n - G_n}{n^3} $$
-
-where
-
-$$ H_n = \sum_{k=1}^{n} \sum_{i=1}^{n} \sum_{j=1}^{n} I(|X_i - X_j| < X_k) $$
-
-and
-
-$$ G_n = \sum_{k=1}^{n} \sum_{i=1}^{n} \sum_{j=1}^{n} I(2 min(X_i, X_j) < X_k). $$
-
-Here $I(\cdot)$ is the indicator function and $n$ is the sample size. The implemented statistic returns the normalized difference between these two triple counts.
-
-## Author(s)
-Lev Golofastov
-
-## References
-Ahsanullah, M. and Rahman, M. (1972): A characterization of the exponential distribution. - Journal of Applied Probability, vol. 9, no. 2, pp. 457-461.
-
-Henze, N. and Meintanis, S.G. (2005): Recent and classical tests for exponentiality: a partial review with comparisons. - Metrika, vol. 61, pp. 29-45.
-
-## Examples
-
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    AhsanullahExponentialityGofStatistic,
-)
-
-
-test_statistic = AhsanullahExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
-```
+The formula and input behavior are tested independently; that does not by
+itself certify a historical name, an asymptotic approximation or published
+critical values. Source qualifications above are part of this criterion's
+contract. See the [audit](mathematical-validation.md) for evidence and open items.

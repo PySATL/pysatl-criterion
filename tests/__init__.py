@@ -1,0 +1,1 @@
+"""PySATL criterion regression tests."""

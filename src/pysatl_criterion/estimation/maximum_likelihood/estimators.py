@@ -2,10 +2,22 @@ from __future__ import annotations
 
 import numpy as np
 from scipy.optimize import minimize_scalar
-from scipy.stats import beta, cauchy, chi2, f, gamma, rayleigh, t, weibull_min
+from scipy.stats import beta, cauchy, chi2, f, gamma, t, weibull_min
 
 from pysatl_criterion.distribution.distribution_type import DistributionType
 from pysatl_criterion.estimation.base import AbstractParameterEstimator, EstimationMethod
+
+
+def _validated_sample(data):
+    if np.iscomplexobj(data) or (np.ma.isMaskedArray(data) and np.any(data.mask)):
+        raise ValueError("Sample must contain real, unmasked observations.")
+    try:
+        sample = np.asarray(data, dtype=float)
+    except (TypeError, ValueError, OverflowError) as error:
+        raise ValueError("Sample must contain real numeric observations.") from error
+    if sample.ndim != 1 or sample.size == 0 or not np.all(np.isfinite(sample)):
+        raise ValueError("Sample must be nonempty, one-dimensional and finite.")
+    return sample
 
 
 class UniformMleEstimator(AbstractParameterEstimator):
@@ -18,7 +30,7 @@ class UniformMleEstimator(AbstractParameterEstimator):
         return EstimationMethod.MLE
 
     def estimate(self, data) -> dict[str, float]:
-        sample = np.asarray(data, dtype=float)
+        sample = _validated_sample(data)
         a = float(np.min(sample))
         b = float(np.max(sample))
         return {"a": a, "b": b}
@@ -34,7 +46,7 @@ class NormalMleEstimator(AbstractParameterEstimator):
         return EstimationMethod.MLE
 
     def estimate(self, data) -> dict[str, float]:
-        sample = np.asarray(data, dtype=float)
+        sample = _validated_sample(data)
         mean = float(np.mean(sample))
         variance = float(np.var(sample, ddof=0))
         return {"mean": mean, "var": variance}
@@ -50,7 +62,7 @@ class LogNormalMleEstimator(AbstractParameterEstimator):
         return EstimationMethod.MLE
 
     def estimate(self, data) -> dict[str, float]:
-        sample = np.asarray(data, dtype=float)
+        sample = _validated_sample(data)
         if np.any(sample <= 0):
             raise ValueError("Lognormal distribution requires strictly positive data.")
 
@@ -70,7 +82,7 @@ class ExponentialMleEstimator(AbstractParameterEstimator):
         return EstimationMethod.MLE
 
     def estimate(self, data) -> dict[str, float]:
-        sample = np.asarray(data, dtype=float)
+        sample = _validated_sample(data)
         if np.any(sample < 0):
             raise ValueError("Exponential distribution requires non-negative data.")
 
@@ -89,7 +101,7 @@ class WeibullMleEstimator(AbstractParameterEstimator):
         return EstimationMethod.MLE
 
     def estimate(self, data) -> dict[str, float]:
-        sample = np.asarray(data, dtype=float)
+        sample = _validated_sample(data)
         if np.any(sample <= 0):
             raise ValueError("Weibull distribution requires strictly positive data.")
 
@@ -107,7 +119,7 @@ class GammaMleEstimator(AbstractParameterEstimator):
         return EstimationMethod.MLE
 
     def estimate(self, data) -> dict[str, float]:
-        sample = np.asarray(data, dtype=float)
+        sample = _validated_sample(data)
         if np.any(sample <= 0):
             raise ValueError("Gamma distribution requires strictly positive data.")
 
@@ -125,7 +137,7 @@ class BetaMleEstimator(AbstractParameterEstimator):
         return EstimationMethod.MLE
 
     def estimate(self, data) -> dict[str, float]:
-        sample = np.asarray(data, dtype=float)
+        sample = _validated_sample(data)
         if np.any((sample <= 0) | (sample >= 1)):
             raise ValueError(
                 "Beta distribution requires values strictly inside the interval (0, 1)."
@@ -145,7 +157,7 @@ class CauchyMleEstimator(AbstractParameterEstimator):
         return EstimationMethod.MLE
 
     def estimate(self, data) -> dict[str, float]:
-        sample = np.asarray(data, dtype=float)
+        sample = _validated_sample(data)
         if np.all(sample == sample[0]):
             raise ValueError("Cauchy distribution requires non-degenerate data.")
 
@@ -163,11 +175,11 @@ class ChiSquaredMleEstimator(AbstractParameterEstimator):
         return EstimationMethod.MLE
 
     def estimate(self, data) -> dict[str, float]:
-        sample = np.asarray(data, dtype=float)
+        sample = _validated_sample(data)
         if np.any(sample <= 0):
             raise ValueError("Chi-squared distribution requires strictly positive data.")
 
-        df, _, _ = chi2.fit(sample, floc=0)
+        df, _, _ = chi2.fit(sample, floc=0, fscale=1)
         return {"df": float(df)}
 
 
@@ -181,7 +193,7 @@ class StudentMleEstimator(AbstractParameterEstimator):
         return EstimationMethod.MLE
 
     def estimate(self, data) -> dict[str, float]:
-        sample = np.asarray(data, dtype=float)
+        sample = _validated_sample(data)
         if np.all(sample == sample[0]):
             raise ValueError("Student distribution requires non-degenerate data.")
 
@@ -199,7 +211,7 @@ class FisherMleEstimator(AbstractParameterEstimator):
         return EstimationMethod.MLE
 
     def estimate(self, data) -> dict[str, float]:
-        sample = np.asarray(data, dtype=float)
+        sample = _validated_sample(data)
         if np.any(sample <= 0) or np.all(sample == sample[0]):
             raise ValueError("Fisher distribution requires strictly positive, non-degenerate data.")
 
@@ -217,11 +229,11 @@ class RayleighMleEstimator(AbstractParameterEstimator):
         return EstimationMethod.MLE
 
     def estimate(self, data) -> dict[str, float]:
-        sample = np.asarray(data, dtype=float)
+        sample = _validated_sample(data)
         if np.any(sample < 0):
             raise ValueError("Rayleigh distribution requires non-negative data.")
 
-        _, scale = rayleigh.fit(sample, floc=0)
+        scale = np.sqrt(np.mean(sample**2) / 2)
         return {"scale": float(scale)}
 
 
@@ -235,7 +247,7 @@ class WignerMleEstimator(AbstractParameterEstimator):
         return EstimationMethod.MLE
 
     def estimate(self, data) -> dict[str, float]:
-        sample = np.asarray(data, dtype=float)
+        sample = _validated_sample(data)
         if np.all(sample == sample[0]):
             raise ValueError("Wigner distribution requires non-degenerate data.")
 
@@ -271,7 +283,7 @@ class ParetoMleEstimator(AbstractParameterEstimator):
         return EstimationMethod.MLE
 
     def estimate(self, data) -> dict[str, float]:
-        sample = np.asarray(data, dtype=float)
+        sample = _validated_sample(data)
         if np.any(sample <= 0):
             raise ValueError("Pareto distribution requires strictly positive data.")
 
@@ -296,7 +308,7 @@ class LaplaceMleEstimator(AbstractParameterEstimator):
         return EstimationMethod.MLE
 
     def estimate(self, data) -> dict[str, float]:
-        sample = np.asarray(data, dtype=float)
+        sample = _validated_sample(data)
         mu = float(np.median(sample))
         b = float(np.mean(np.abs(sample - mu)))
         if b == 0:
@@ -315,7 +327,7 @@ class DiscreteUniformMleEstimator(AbstractParameterEstimator):
         return EstimationMethod.MLE
 
     def estimate(self, data) -> dict[str, float]:
-        sample = np.asarray(data, dtype=float)
+        sample = _validated_sample(data)
         a = float(np.min(sample))
         b = float(np.max(sample))
         return {"a": a, "b": b}
@@ -331,7 +343,7 @@ class BernoulliMleEstimator(AbstractParameterEstimator):
         return EstimationMethod.MLE
 
     def estimate(self, data) -> dict[str, float]:
-        sample = np.asarray(data, dtype=float)
+        sample = _validated_sample(data)
         if not np.all(np.isin(sample, [0, 1])):
             raise ValueError("Bernoulli distribution requires binary data.")
 
@@ -354,7 +366,7 @@ class BinomialMleEstimator(AbstractParameterEstimator):
         return EstimationMethod.MLE
 
     def estimate(self, data) -> dict[str, float]:
-        sample = np.asarray(data, dtype=float)
+        sample = _validated_sample(data)
         if np.any((sample < 0) | (sample > self.n) | (~np.equal(np.mod(sample, 1), 0))):
             raise ValueError("Binomial distribution requires integer counts in [0, n].")
 
@@ -372,7 +384,7 @@ class PoissonMleEstimator(AbstractParameterEstimator):
         return EstimationMethod.MLE
 
     def estimate(self, data) -> dict[str, float]:
-        sample = np.asarray(data, dtype=float)
+        sample = _validated_sample(data)
         if np.any(sample < 0) or not np.all(np.floor(sample) == sample):
             raise ValueError("Poisson distribution requires non-negative integer count data.")
 
@@ -390,7 +402,7 @@ class GeometricMleEstimator(AbstractParameterEstimator):
         return EstimationMethod.MLE
 
     def estimate(self, data) -> dict[str, float]:
-        sample = np.asarray(data, dtype=float)
+        sample = _validated_sample(data)
         if np.any(sample < 1) or not np.all(np.floor(sample) == sample):
             raise ValueError("Geometric distribution requires positive integer data.")
 

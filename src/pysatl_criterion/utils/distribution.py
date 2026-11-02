@@ -3,7 +3,7 @@ from collections.abc import Iterator
 from typing import Any, cast
 
 from pysatl_criterion import DistributionType
-from pysatl_criterion.distribution.distributions import DistributionDescriptor
+from pysatl_criterion.distribution import DistributionDescriptor
 
 
 def get_available_distribution_descriptor(distribution: DistributionType) -> DistributionDescriptor:

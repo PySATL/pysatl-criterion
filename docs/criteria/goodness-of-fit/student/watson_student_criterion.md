@@ -1,55 +1,57 @@
-# Watson test for Student distribution
+# Watson for a specified Student distribution
 
-## Description
-Performs Watson goodness-of-fit test for the hypothesis that the sample comes from a Student's t-distribution.
-The Watson statistic is a centered modification of the Cramer-von Mises statistic.
+[All Student criteria](index.md) · [Mathematical verification](mathematical-validation.md)
 
-Hypothesis of Student Distribution
-The null hypothesis is that the data comes from a Student's t-distribution with positive degrees of freedom `df`, location parameter `loc`, and positive scale parameter `scale`.
+Class: `WatsonStudentGofStatistic`. Code: `WATSON_STUDENT_GOODNESS_OF_FIT`.
 
-Test Statistic
-The statistic removes the squared mean deviation of the probability-transformed observations from the Cramer-von Mises statistic.
+## Hypothesis and formula
 
-## Usage
+Fix all three parameters: `df > 0`, finite `loc`, and `scale > 0`.
+Use `StudentDistributionDescriptor.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1})`.
+Omitted parameters remain unknown and are not supported by this criterion.
+Write $u_i=F_{\nu,\mu,s}(X_{(i)})$ for the CDF values of sorted observations.
+
+$$
+U^2=W^2-n(\bar u-1/2)^2,\quad W^2=\frac1{12n}+\sum_i[u_i-(i-1/2)/n]^2
+$$
+
+Centered residuals evaluate this expression without subtracting two large terms.
+
+## Input, result and calibration
+
+`execute_statistic(rvs, **kwargs)` accepts a nonempty, finite, one-dimensional
+real sample. Ties and constants are allowed. It returns one scalar without
+changing the input or retaining fitted state. Large values reject
+(`RightAlternative`). Extra execution keywords are ignored.
+
+The Student implementation evaluates log-CDF and log-survival separately.
+AD, Liao–Shimokawa and Zhang kernels consume these logarithms directly;
+other EDF kernels reconstruct the CDF. Unrepresentable standardization or
+underflow of a required tail probability raises `ValueError`.
+
+For a continuous fully specified null, the probability integral transform
+removes the null parameters from the EDF law. Calibrate the same statistic at
+the same sample size; no parameter estimation is performed. The source below
+identifies the general discrepancy, not a separate Student-specific derivation.
+
+## Example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import StudentDistributionDescriptor as Student
+from pysatl_criterion.statistics.goodness_of_fit.continuous.student import (
     WatsonStudentGofStatistic,
 )
 
-
-test_statistic = WatsonStudentGofStatistic(df=5, loc=0, scale=1)
-statistic_result = test_statistic.execute_statistic([-1.8, -0.9, -0.25, 0.0, 0.31, 0.95, 1.7])
-print(statistic_result)
+parameters = Student.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1})
+statistic = WatsonStudentGofStatistic(parameters)
+value = statistic.execute_statistic([-3.2, -1.1, -0.3, 0.2, 0.7, 1.8, 4.1])
+print(value)
 ```
 
-## Arguments
-`df` - positive degrees of freedom of the Student's t-distribution. Default value is `1`.
+## Scientific source
 
-`loc` - location parameter of the Student's t-distribution. Default value is `0`.
-
-`scale` - positive scale parameter of the Student's t-distribution. Default value is `1`.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-The implementation computes Cramer-von Mises terms from Student CDF values and subtracts the Watson centering correction
-
-$$ n\left(\bar F_0 - \frac{1}{2}\right)^2. $$
+[Watson (1961), Goodness-of-fit tests on a circle](https://doi.org/10.1093/biomet/48.1-2.109).
 
 ## Author(s)
+
 Dmitriy Rusanov, Alexey Mironov
-
-## References
-Watson, G.S. (1961): Goodness-of-fit tests on a circle. - Biometrika, vol. 48, pp. 109-114.
-
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    WatsonStudentGofStatistic,
-)
-
-
-test_statistic = WatsonStudentGofStatistic(df=5, loc=0, scale=1)
-statistic_result = test_statistic.execute_statistic([-1.8, -0.9, -0.25, 0.0, 0.31, 0.95, 1.7])
-print(statistic_result)
-```

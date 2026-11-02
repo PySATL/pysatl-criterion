@@ -8,7 +8,9 @@ from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
     MonteCarloLimitDistributionResolver,
 )
 from pysatl_criterion.hypothesis_testing.model import DecisionMethod, TestResult
-from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.goodness_of_fit.goodness_of_fit_statistic import (
+    AbstractGoodnessOfFitStatistic,
+)
 
 
 class PValueDecisionMethod(DecisionMethod):
@@ -16,7 +18,7 @@ class PValueDecisionMethod(DecisionMethod):
     Decision method that rejects a hypothesis by comparing p-value with significance level.
     """
 
-    def __init__(self, resolver: AbstractLimitDistributionResolver | None = None):
+    def __init__(self, resolver: AbstractLimitDistributionResolver | None = None) -> None:
         """
         Initialize the p-value decision method.
 
@@ -66,7 +68,7 @@ class CriticalValueDecisionMethod(DecisionMethod):
     Decision method that rejects a hypothesis using critical values and a critical area.
     """
 
-    def __init__(self, resolver: AbstractLimitDistributionResolver | None = None):
+    def __init__(self, resolver: AbstractLimitDistributionResolver | None = None) -> None:
         """
         Initialize the critical value decision method.
 
@@ -117,7 +119,7 @@ class GoodnessOfFitTest:
     Goodness-of-fit test runner for a configured statistic.
     """
 
-    def __init__(self, statistic: AbstractGoodnessOfFitStatistic):
+    def __init__(self, statistic: AbstractGoodnessOfFitStatistic) -> None:
         """
         Initialize the goodness-of-fit test.
 

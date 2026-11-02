@@ -1,40 +1,25 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
-  - repo: https://github.com/pycqa/flake8
-    rev: "7.1.1"
-    hooks:
-      - id: flake8
-        additional_dependencies: [Flake8-pyproject]
-        # stages: [push]
-
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.13.0"
+  # Use the locked project environment so hooks and CI run identical tools.
+  - repo: local
     hooks:
       - id: mypy
-        exclude: build_helpers
-        additional_dependencies:
-          - types-cachetools==5.5.0.20240820
-          - types-filelock==3.2.7
-          - types-requests==2.32.0.20241016
-          - types-tabulate==0.9.0.20240106
-          - types-python-dateutil==2.9.0.20241003
-          - SQLAlchemy==2.0.36
-        # stages: [push]
-
-  - repo: https://github.com/pycqa/isort
-    rev: "5.13.2"
-    hooks:
-      - id: isort
-        name: isort (python)
-        # stages: [push]
-
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
-    # Ruff version.
-    rev: 'v0.15.5'
-    hooks:
+        name: mypy
+        entry: poetry run mypy src/pysatl_criterion tests
+        language: system
+        types_or: [python, pyi]
+        pass_filenames: false
       - id: ruff
+        name: Ruff lint
+        entry: poetry run ruff check
+        language: system
+        types_or: [python, pyi]
       - id: ruff-format
+        name: Ruff format
+        entry: poetry run ruff format
+        language: system
+        types_or: [python, pyi]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0

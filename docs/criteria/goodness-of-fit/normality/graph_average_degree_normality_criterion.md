@@ -1,55 +1,68 @@
 # Graph average degree test for normality
 
-## Description
-Performs the Graph average degree goodness-of-fit test for the hypothesis of normality.
-The null hypothesis is that the sample comes from a normal distribution.
+**Class:** `GraphAverageDegreeNormalityGofStatistic`
 
-Hypothesis of Normality
-The hypothesis of normality refers to the null hypothesis that the data comes from a normal distribution. In the implementation, the statistic is computed from the sample passed to `execute_statistic`.
+**Code:** `AVGDEGREE_GRAPH_NORMALITY_GOODNESS_OF_FIT`
 
-Test Statistic
-The statistic is based on the average degree in a proximity graph built from the sample.
+Average vertex degree for a normal sample with known variance.
 
-## Usage
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    GraphAverageDegreeNormalityGofStatistic,
-)
+## Parameters
 
-
-test_statistic = GraphAverageDegreeNormalityGofStatistic()
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
+```text
+parameters : ParameterValues
+    Values with var fixed; omitted parameters are unknown.
 ```
 
-## Arguments
-`mean` - reference normal mean. Default value is `0`.
+## Methods
 
-`var` - reference normal variance. Default value is `1`.
+execute_statistic(rvs, **kwargs)
+    Return one scalar statistic.
+hypothesis()
+    Report fixed null parameters only.
+alternative()
+    Report the critical tail.
 
-`rvs` - array-like sample data passed to `execute_statistic`.
+## Notes
 
-## Details
-The implementation evaluates the Graph average degree statistic for the supplied observations. Large or small values should be interpreted according to the statistic alternative used by the class implementation.
+H0 is N(mu,var), with unknown mu and fixed var; hypothesis() reports var.
+Calibrate at this variance; setting the simulation mean to zero is valid.
+Both tails of the statistic define rejection. Use at least 2
+finite real observations in one dimension. Nonzero dispersion is required.
+Ties are accepted unless a scale or contrast becomes undefined.
+Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+the standard normal CDF and density, s0=std(x,ddof=0), and
+s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
+
+Connect i and j when abs(x_i-x_j) < (max(x)-min(x))/(10*m2),
+where m2=mean((x-mean(x))**2). Return the mean vertex degree.
+This local construction is translation invariant but not scale invariant.
+var selects the null law for calibration; it is not inserted in the radius.
+A primary source for this exact normality test was not located. No
+published null law or omnibus power claim is made. Extreme scales that
+make the radius or variance unrepresentable raise ValueError.
 
 ## References
-The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.normal`.
 
-## Author(s)
-Alexey Mironov
+Ebner, B., Nestmann, F., Schulte, M. (2020). Testing multivariate uniformity based on random geometric graphs. Author preprint, arXiv:1812.08638v2.
+https://arxiv.org/abs/1812.08638
+
+This is related research on graph-based goodness-of-fit, not a source for this normality statistic or its sample-dependent radius. No scientific article establishing this exact normal test has been identified. The implementation is a local graph functional requiring simulation at the specified variance.
 
 ## Examples
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import NormalDistributionDescriptor
+import numpy as np
+from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import (
     GraphAverageDegreeNormalityGofStatistic,
 )
 
-
-test_statistic = GraphAverageDegreeNormalityGofStatistic()
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
+statistic = GraphAverageDegreeNormalityGofStatistic(
+    NormalDistributionDescriptor.DEFAULT.parse({"var": 1})
 )
-print(statistic_result)
+sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+value = statistic.execute_statistic(sample)
+assert np.isfinite(value)
 ```
+
+See the [complete catalog](index.md) and [mathematical verification](mathematical-validation.md).

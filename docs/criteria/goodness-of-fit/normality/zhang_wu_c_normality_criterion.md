@@ -1,55 +1,56 @@
 # Zhang-Wu C test for normality
 
-## Description
-Performs the Zhang-Wu C goodness-of-fit test for the hypothesis of normality.
-The null hypothesis is that the sample comes from a normal distribution.
+**Class:** `ZhangWuCNormalityGofStatistic`
 
-Hypothesis of Normality
-The hypothesis of normality refers to the null hypothesis that the data comes from a normal distribution. In the implementation, the statistic is computed from the sample passed to `execute_statistic`.
+**Code:** `ZWC_NORMALITY_GOODNESS_OF_FIT`
 
-Test Statistic
-The statistic is based on log-ratio transformations of fitted normal distribution values.
+Zhang-Wu likelihood-ratio normality statistic ``Z_C``.
 
-## Usage
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    ZhangWuCNormalityGofStatistic,
-)
+## Methods
 
+execute_statistic(rvs, **kwargs)
+    Return one scalar statistic.
+hypothesis()
+    Report fixed null parameters only.
+alternative()
+    Report the critical tail.
 
-test_statistic = ZhangWuCNormalityGofStatistic()
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
-```
+## Notes
 
-## Arguments
-`mean` - reference normal mean. Default value is `0`.
+H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+Location and positive scale cancel, allowing N(0,1) null simulation.
+Every simulated sample must go through execute_statistic again.
+Large values of the statistic define rejection. Use at least 4
+finite real observations in one dimension. Nonzero dispersion is required.
+Ties are accepted unless a scale or contrast becomes undefined.
+Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+the standard normal CDF and density, s0=std(x,ddof=0), and
+s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-`var` - reference normal variance. Default value is `1`.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-The implementation evaluates the Zhang-Wu C statistic for the supplied observations. Large or small values should be interpreted according to the statistic alternative used by the class implementation.
+For z=(x-mean(x))/s1, return sum_i((log((1-Phi(z_(i)))/
+Phi(z_(i))) - log((n-i+1/4)/(i-3/4)))**2).
+Normal log-CDF/log-survival evaluations retain extreme tail information.
 
 ## References
-The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.normal`.
 
-## Author(s)
-Alexey Mironov
+[1] Zhang, J. and Wu, Y. (2005).
+   Likelihood-ratio tests for normality.
+   Computational Statistics & Data Analysis, 49(3), 709-721.
+   https://doi.org/10.1016/j.csda.2004.05.034
 
 ## Examples
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import NormalDistributionDescriptor
+import numpy as np
+from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import (
     ZhangWuCNormalityGofStatistic,
 )
 
-
-test_statistic = ZhangWuCNormalityGofStatistic()
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
+statistic = ZhangWuCNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({}))
+sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+value = statistic.execute_statistic(sample)
+assert np.isfinite(value)
 ```
+
+See the [complete catalog](index.md) and [mathematical verification](mathematical-validation.md).

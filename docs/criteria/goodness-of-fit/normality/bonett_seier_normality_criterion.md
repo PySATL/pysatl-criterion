@@ -1,55 +1,60 @@
 # Bonett-Seier test for normality
 
-## Description
-Performs the Bonett-Seier goodness-of-fit test for the hypothesis of normality.
-The null hypothesis is that the sample comes from a normal distribution.
+**Class:** `BonettSeierNormalityGofStatistic`
 
-Hypothesis of Normality
-The hypothesis of normality refers to the null hypothesis that the data comes from a normal distribution. In the implementation, the statistic is computed from the sample passed to `execute_statistic`.
+**Code:** `BS_NORMALITY_GOODNESS_OF_FIT`
 
-Test Statistic
-The statistic is based on a transformed measure comparing standard deviation and mean absolute deviation.
+Bonett-Seier statistic based on a modified Geary kurtosis measure.
 
-## Usage
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    BonettSeierNormalityGofStatistic,
-)
+## Methods
 
+execute_statistic(rvs, **kwargs)
+    Return one scalar statistic.
+hypothesis()
+    Report fixed null parameters only.
+alternative()
+    Report the critical tail.
 
-test_statistic = BonettSeierNormalityGofStatistic()
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
-```
+## Notes
 
-## Arguments
-`mean` - reference normal mean. Default value is `0`.
+H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+Location and positive scale cancel, allowing N(0,1) null simulation.
+Every simulated sample must go through execute_statistic again.
+Both tails of the statistic define rejection. Use at least 4
+finite real observations in one dimension. Nonzero dispersion is required.
+Ties are accepted unless a scale or contrast becomes undefined.
+Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+the standard normal CDF and density, s0=std(x,ddof=0), and
+s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-`var` - reference normal variance. Default value is `1`.
+The factor sqrt(n+2), the population sample variance (ddof=0), and the
+two-sided rejection rule agree with equations (5)–(6) of the [original
+article](https://sci2s.ugr.es/keel/pdf/specific/articulo/Normalidad4.pdf).
 
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-The implementation evaluates the Bonett-Seier statistic for the supplied observations. Large or small values should be interpreted according to the statistic alternative used by the class implementation.
+Let d=mean(abs(x-mean(x))) and omega=13.29*log(s0/d).
+Return sqrt(n+2)*(omega-3)/3.54, a signed kurtosis transform.
+The constants are rounded approximations; use finite-sample simulation.
 
 ## References
-The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.normal`.
 
-## Author(s)
-Alexey Mironov
+[1] Bonett, D. G. and Seier, E. (2002).
+   A test of normality with high uniform power.
+   Computational Statistics & Data Analysis, 40(3), 435-445.
+   https://doi.org/10.1016/S0167-9473(02)00074-9
 
 ## Examples
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import NormalDistributionDescriptor
+import numpy as np
+from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import (
     BonettSeierNormalityGofStatistic,
 )
 
-
-test_statistic = BonettSeierNormalityGofStatistic()
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
+statistic = BonettSeierNormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({}))
+sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+value = statistic.execute_statistic(sample)
+assert np.isfinite(value)
 ```
+
+See the [complete catalog](index.md) and [mathematical verification](mathematical-validation.md).

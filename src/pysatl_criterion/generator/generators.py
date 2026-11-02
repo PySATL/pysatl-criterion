@@ -76,27 +76,36 @@ NormalGenerator
 from typing_extensions import override
 
 from pysatl_criterion import DistributionType
-from pysatl_criterion.core.distributions.beta import generate_beta
-from pysatl_criterion.core.distributions.cauchy import generate_cauchy
-from pysatl_criterion.core.distributions.chi2 import generate_chi2
-from pysatl_criterion.core.distributions.expon import generate_expon
-from pysatl_criterion.core.distributions.gamma import generate_gamma
-from pysatl_criterion.core.distributions.gompertz import generate_gompertz
-from pysatl_criterion.core.distributions.gumbel import generate_gumbel
-from pysatl_criterion.core.distributions.invgauss import generate_invgauss
-from pysatl_criterion.core.distributions.laplace import generate_laplace
-from pysatl_criterion.core.distributions.lo_con_norm import generate_lo_con_norm
-from pysatl_criterion.core.distributions.logistic import generate_logistic
-from pysatl_criterion.core.distributions.lognormal import generate_lognorm
-from pysatl_criterion.core.distributions.mix_con_norm import generate_mix_con_norm
-from pysatl_criterion.core.distributions.norm import generate_norm
-from pysatl_criterion.core.distributions.rice import generate_rice
-from pysatl_criterion.core.distributions.scale_con_norm import generate_scale_con_norm
-from pysatl_criterion.core.distributions.student import generate_t
-from pysatl_criterion.core.distributions.truncnormal import generate_truncnorm
-from pysatl_criterion.core.distributions.tukey import generate_tukey
-from pysatl_criterion.core.distributions.uniform import generate_uniform
-from pysatl_criterion.core.distributions.weibull import generate_weibull
+from pysatl_criterion.core.distributions.continues.beta import generate_beta
+from pysatl_criterion.core.distributions.continues.cauchy import generate_cauchy
+from pysatl_criterion.core.distributions.continues.chi2 import generate_chi2
+from pysatl_criterion.core.distributions.continues.expon import generate_expon
+from pysatl_criterion.core.distributions.continues.exponentiated_weibull import (
+    generate_exponentiated_weibull,
+)
+from pysatl_criterion.core.distributions.continues.gamma import generate_gamma
+from pysatl_criterion.core.distributions.continues.gompertz import generate_gompertz
+from pysatl_criterion.core.distributions.continues.gumbel import generate_gumbel
+from pysatl_criterion.core.distributions.continues.invgauss import generate_invgauss
+from pysatl_criterion.core.distributions.continues.laplace import generate_laplace
+from pysatl_criterion.core.distributions.continues.lo_con_norm import generate_lo_con_norm
+from pysatl_criterion.core.distributions.continues.logistic import generate_logistic
+from pysatl_criterion.core.distributions.continues.lognormal import generate_lognorm
+from pysatl_criterion.core.distributions.continues.mix_con_norm import generate_mix_con_norm
+from pysatl_criterion.core.distributions.continues.norm import generate_norm
+from pysatl_criterion.core.distributions.continues.rice import generate_rice
+from pysatl_criterion.core.distributions.continues.scale_con_norm import generate_scale_con_norm
+from pysatl_criterion.core.distributions.continues.student import generate_t
+from pysatl_criterion.core.distributions.continues.truncnormal import generate_truncnorm
+from pysatl_criterion.core.distributions.continues.tukey import generate_tukey
+from pysatl_criterion.core.distributions.continues.uniform import generate_uniform
+from pysatl_criterion.core.distributions.continues.weibull import generate_weibull
+from pysatl_criterion.distribution import (
+    ExponentiatedWeibullDistributionDescriptor,
+    WeibullDistributionDescriptor,
+)
+from pysatl_criterion.distribution import StudentDistributionDescriptor as Student
+from pysatl_criterion.distribution.parameters import ParameterValues
 from pysatl_criterion.generator.model import AbstractRVSGenerator
 
 
@@ -130,7 +139,7 @@ class BetaRVSGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.a, self.b])
+        return super()._convert_to_code([self.distribution_type().value, self.a, self.b])
 
     @override
     def generate(self, size, random_state=None):
@@ -168,7 +177,7 @@ class CauchyRVSGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.t, self.s])
+        return super()._convert_to_code([self.distribution_type().value, self.t, self.s])
 
     @override
     def generate(self, size, random_state=None):
@@ -206,7 +215,7 @@ class LaplaceRVSGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.t, self.s])
+        return super()._convert_to_code([self.distribution_type().value, self.t, self.s])
 
     @override
     def generate(self, size, random_state=None):
@@ -244,7 +253,7 @@ class LogisticRVSGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.t, self.s])
+        return super()._convert_to_code([self.distribution_type().value, self.t, self.s])
 
     @override
     def generate(self, size, random_state=None):
@@ -259,16 +268,44 @@ class TRVSGenerator(AbstractRVSGenerator):
     ----------
     df : float
         Degrees of freedom.
+    loc : float, optional
+        Location parameter. Default is 0.
+    scale : float, optional
+        Positive scale parameter. Default is 1.
     """
 
-    def __init__(self, df, **kwargs):
+    def __init__(
+        self, df, *, loc=Student.LOCATION.default_value, scale=Student.SCALE.default_value, **kwargs
+    ):
         super().__init__(**kwargs)
+        Student.DEFAULT.parse({Student.DF: df, Student.LOCATION: loc, Student.SCALE: scale})
         self.df = df
+        self.loc = loc
+        self.scale = scale
 
     @override
     def parameters(self) -> dict[str, float]:
         """Return Student's t-distribution parameters."""
-        return {"df": self.df}
+        return Student.DEFAULT.parse(
+            {
+                Student.DF: self.df,
+                Student.LOCATION: self.loc,
+                Student.SCALE: self.scale,
+            }
+        ).as_dict()
+
+    @classmethod
+    def from_parameters(cls, parameters: ParameterValues):
+        """Require complete values in the supported coordinate system."""
+        if parameters.parameterization != Student.DEFAULT or frozenset(parameters) != frozenset(
+            Student.DEFAULT.parameters
+        ):
+            raise ValueError("Expected complete Student parameters in the default parameterization")
+        return cls(
+            parameters[Student.DF],
+            loc=parameters[Student.LOCATION],
+            scale=parameters[Student.SCALE],
+        )
 
     @staticmethod
     @override
@@ -279,12 +316,17 @@ class TRVSGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.df])
+        parameters = [self.distribution_type().value, self.df]
+        if self.loc != 0 or self.scale != 1:
+            parameters.extend([self.loc, self.scale])
+        return super()._convert_to_code(parameters)
 
     @override
     def generate(self, size, random_state=None):
         """Generate Student's t-distributed random sample."""
-        return generate_t(size=size, df=self.df, random_state=random_state)
+        return generate_t(
+            size=size, df=self.df, loc=self.loc, scale=self.scale, random_state=random_state
+        )
 
 
 class TukeyRVSGenerator(AbstractRVSGenerator):
@@ -314,7 +356,7 @@ class TukeyRVSGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.lam])
+        return super()._convert_to_code([self.distribution_type().value, self.lam])
 
     @override
     def generate(self, size, random_state=None):
@@ -352,7 +394,7 @@ class LognormGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.s, self.mu])
+        return super()._convert_to_code([self.distribution_type().value, self.s, self.mu])
 
     @override
     def generate(self, size, random_state=None):
@@ -390,7 +432,7 @@ class GammaGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.alfa, self.beta])
+        return super()._convert_to_code([self.distribution_type().value, self.alfa, self.beta])
 
     @override
     def generate(self, size, random_state=None):
@@ -435,7 +477,7 @@ class TruncnormGenerator(AbstractRVSGenerator):
     def code(self):
         """Return unique generator code."""
         return super()._convert_to_code(
-            [self.distribution_type(), self.mean, self.var, self.a, self.b]
+            [self.distribution_type().value, self.mean, self.var, self.a, self.b]
         )
 
     @override
@@ -478,7 +520,7 @@ class Chi2Generator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.df])
+        return super()._convert_to_code([self.distribution_type().value, self.df])
 
     @override
     def generate(self, size, random_state=None):
@@ -516,7 +558,7 @@ class GumbelGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.mu, self.beta])
+        return super()._convert_to_code([self.distribution_type().value, self.mu, self.beta])
 
     @override
     def generate(self, size, random_state=None):
@@ -525,41 +567,68 @@ class GumbelGenerator(AbstractRVSGenerator):
 
 
 class WeibullGenerator(AbstractRVSGenerator):
-    """Weibull distribution random value generator.
+    """Generate weibull observations with zero location."""
 
-    Parameters
-    ----------
-    a : float, default=1
-        Scale parameter.
-    k : float, default=5
-        Shape parameter.
-    """
-
-    def __init__(self, a=1, k=5, **kwargs):
+    def __init__(self, *, shape=5, scale=1, **kwargs):
         super().__init__(**kwargs)
-        self.a = a
-        self.k = k
+        values = WeibullDistributionDescriptor.DEFAULT.parse({"shape": shape, "scale": scale})
+        self.shape = values[WeibullDistributionDescriptor.SHAPE]
+        self.scale = values[WeibullDistributionDescriptor.SCALE]
 
     @override
     def parameters(self) -> dict[str, float]:
-        """Return Weibull distribution parameters."""
-        return {"a": self.a, "k": self.k}
+        return {"shape": self.shape, "scale": self.scale}
 
     @staticmethod
-    @override
     def distribution_type() -> DistributionType:
-        """Return Weibull distribution type."""
         return DistributionType.WEIBULL
 
     @override
     def code(self):
-        """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.a, self.k])
+        return self._convert_to_code([self.distribution_type().value, self.shape, self.scale])
 
     @override
     def generate(self, size, random_state=None):
-        """Generate Weibull-distributed random sample."""
-        return generate_weibull(size=size, a=self.a, k=self.k, random_state=random_state)
+        return generate_weibull(
+            size=size, shape=self.shape, scale=self.scale, random_state=random_state
+        )
+
+
+class ExponentiatedWeibullGenerator(AbstractRVSGenerator):
+    """Generate exponentiated weibull observations with zero location."""
+
+    def __init__(self, *, exponent=1, shape=5, scale=1, **kwargs):
+        super().__init__(**kwargs)
+        values = ExponentiatedWeibullDistributionDescriptor.DEFAULT.parse(
+            {"exponent": exponent, "shape": shape, "scale": scale}
+        )
+        self.exponent = values[ExponentiatedWeibullDistributionDescriptor.EXPONENT]
+        self.shape = values[ExponentiatedWeibullDistributionDescriptor.SHAPE]
+        self.scale = values[ExponentiatedWeibullDistributionDescriptor.SCALE]
+
+    @override
+    def parameters(self) -> dict[str, float]:
+        return {"exponent": self.exponent, "shape": self.shape, "scale": self.scale}
+
+    @staticmethod
+    def distribution_type() -> DistributionType:
+        return DistributionType.EXPONENTIATED_WEIBULL
+
+    @override
+    def code(self):
+        return self._convert_to_code(
+            [self.distribution_type().value, self.exponent, self.shape, self.scale]
+        )
+
+    @override
+    def generate(self, size, random_state=None):
+        return generate_exponentiated_weibull(
+            size=size,
+            exponent=self.exponent,
+            shape=self.shape,
+            scale=self.scale,
+            random_state=random_state,
+        )
 
 
 class LoConNormGenerator(AbstractRVSGenerator):
@@ -592,7 +661,7 @@ class LoConNormGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.p, self.a])
+        return super()._convert_to_code([self.distribution_type().value, self.p, self.a])
 
     @override
     def generate(self, size, random_state=None):
@@ -630,7 +699,7 @@ class ScConNormGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.p, self.b])
+        return super()._convert_to_code([self.distribution_type().value, self.p, self.b])
 
     @override
     def generate(self, size, random_state=None):
@@ -671,7 +740,7 @@ class MixConNormGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.p, self.a, self.b])
+        return super()._convert_to_code([self.distribution_type().value, self.p, self.a, self.b])
 
     @override
     def generate(self, size, random_state=None):
@@ -708,7 +777,7 @@ class ExponentialGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.lam])
+        return super()._convert_to_code([self.distribution_type().value, self.lam])
 
     @override
     def generate(self, size, random_state=None):
@@ -746,7 +815,7 @@ class InvGaussGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.mu, self.lam])
+        return super()._convert_to_code([self.distribution_type().value, self.mu, self.lam])
 
     @override
     def generate(self, size, random_state=None):
@@ -784,7 +853,7 @@ class RiceGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.nu, self.sigma])
+        return super()._convert_to_code([self.distribution_type().value, self.nu, self.sigma])
 
     @override
     def generate(self, size, random_state=None):
@@ -822,7 +891,7 @@ class GompertzGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.eta, self.b])
+        return super()._convert_to_code([self.distribution_type().value, self.eta, self.b])
 
     @override
     def generate(self, size, random_state=None):
@@ -860,7 +929,7 @@ class NormalGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.mean, self.var])
+        return super()._convert_to_code([self.distribution_type().value, self.mean, self.var])
 
     @override
     def generate(self, size, random_state=None):
@@ -898,7 +967,7 @@ class UniformGenerator(AbstractRVSGenerator):
     @override
     def code(self):
         """Return unique generator code."""
-        return super()._convert_to_code([self.distribution_type(), self.a, self.b])
+        return super()._convert_to_code([self.distribution_type().value, self.a, self.b])
 
     @override
     def generate(self, size, random_state=None):

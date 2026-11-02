@@ -1,75 +1,61 @@
-# Moran test for exponentiality
+# Moran log-mean contrast exponentiality criterion
 
-## Description
-Performs Moran test for the composite hypothesis of exponentiality, see e.g. Moran (1951).
-The Moran test is a statistical hypothesis test used to assess the composite hypothesis of exponentiality. This test is designed to determine whether a given sample of data is consistent with an exponential distribution by using a logarithmic ratio of the geometric mean to the arithmetic mean.
+`MoranExponentialityGofStatistic` — short code `MN`; both tails.
 
-Composite Hypothesis of Exponentiality
-The composite hypothesis of exponentiality refers to the null hypothesis that the data comes from an exponential distribution with an unspecified rate parameter
-lambda. The Moran statistic is scale invariant because it is calculated from the normalized observations $X_i/\overline{X}$.
+[All exponential criteria](index.md) · [Mathematical verification](mathematical-validation.md)
 
-Test Statistic
-The Moran test statistic is based on a logarithmic moment identity for the exponential distribution. If the data are exponential, then the expected value of $\log(X/\mu)$ is $-\gamma$, where $\gamma$ is the Euler-Mascheroni constant.
+## Hypothesis and formula
 
-Calculate the Test Statistic: The observations are divided by the sample mean, their logarithms are averaged, and the Euler-Mascheroni constant is added.
+The model is $F(x)=1-\exp(-\lambda x)$ for $x\ge0$, with known origin zero and $\lambda>0$.
+Unknown rate only: pass `E.DEFAULT.parse({})`.
+Omitted parameters remain unknown. Where fitting is needed, $\widehat\lambda=1/\bar x$
+is recomputed for each sample; no fitted state is retained.
 
-Limitations
-The test assumes strictly positive lifetime-type observations because logarithms are used.
+Write $y_i=x_i/\bar x$, $u_i=1-\exp(-\lambda x_{(i)})$ with the specified or
+fitted rate, $D^+=\max_i(i/n-u_i)$ and $D^-=\max_i(u_i-(i-1)/n)$.
+For spacing statistics, $d_i=(n-i+1)(x_{(i)}-x_{(i-1)})$ and $x_{(0)}=0$.
+For frequency statistics, $O_j$ and $E_j=np_j>0$ are aligned counts.
 
-The statistic can be sensitive to rounding, truncation, or very small observations.
+$$
+\gamma+n^{-1}\sum_i\log y_i
+$$
 
-## Usage
+Signed, unstandardized contrast, both tails. Exact null mean gamma+digamma(1)-digamma(n)+log(n); variance trigamma(1)/n-trigamma(n). Zero observations give negative infinity. Do not treat the raw statistic as standard normal.
+
+## Input and calibration
+
+Observations must be finite, real, nonnegative and one-dimensional. Masked
+observations are rejected. Fixed-rate generated criteria accept $n\ge1$;
+unknown-rate EDF/frequency criteria require $n\ge2$ and positive total.
+Specialized criteria may require more observations, distinct spacings or a
+nonconstant sample, as stated above and in the class contract. Ties are not
+silently jittered. Infinite mathematical boundary penalties are retained.
+
+`execute_statistic` returns a statistic, not a p-value. Use
+`monte_carlo_exponential` with the same sample size and constructor settings.
+It refits each simulated sample for a composite hypothesis. Rescaling to
+Exp(1) is justified only for a scale-invariant statistic. A continuous-null
+calibration does not model rounding, censoring or dependence.
+
+## Runnable example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import ExponentialDistributionDescriptor as E
+from pysatl_criterion.statistics.goodness_of_fit.continuous.exponent import (
     MoranExponentialityGofStatistic,
 )
 
-
-test_statistic = MoranExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
+sample = [0.12, 0.30, 0.55, 0.90, 1.40, 2.10, 3.20, 4.80]
+criterion = MoranExponentialityGofStatistic(E.DEFAULT.parse({}))
+value = criterion.execute_statistic(sample)
+print(value)
 ```
 
-## Arguments
-`rvs` - array-like sample data passed to `execute_statistic`.
+## Scientific references and verification status
 
-## Details
+[Mimoto and Zitikis (2008), The Atkinson index, the Moran statistic, and testing exponentiality](https://doi.org/10.14490/jjss.38.187).
 
-The Moran test is a test for the composite hypothesis of exponentiality. The test statistic implemented here is
-
-$$ MN_n = \gamma + \frac{1}{n}\sum_{i=1}^{n}\log\left(\frac{X_i}{\overline{X}}\right), $$
-
-where $n$ is the sample size, $\overline{X}$ is the sample mean, and $\gamma$ is the Euler-Mascheroni constant.
-
-Equivalently, using the geometric mean $G_n=(\prod_{i=1}^{n}X_i)^{1/n}$,
-
-$$ MN_n = \gamma + \log\left(\frac{G_n}{\overline{X}}\right). $$
-
-Under exponentiality,
-
-$$ \sqrt{n}MN_n \xrightarrow{d} N\left(0,\frac{\pi^2}{6}-1\right). $$
-
-Large values of $MN_n$ indicate larger deviations from the exponential model in the direction used by the implemented right-sided alternative.
-
-## Author(s)
-Lev Golofastov
-
-## References
-Moran, P.A.P. (1951): The random division of an interval - Part II. - Journal of the Royal Statistical Society. Series B (Methodological), vol. 13, pp. 147-150.
-
-Tchirina, A.V. (2005): Bahadur efficiency and local optimality of a test for exponentiality based on the Moran statistics. - Journal of Mathematical Sciences, vol. 127, no. 1, pp. 1812-1819.
-
-Henze, N. and Meintanis, S.G. (2005): Recent and classical tests for exponentiality: a partial review with comparisons. - Metrika, vol. 61, pp. 29-45.
-
-## Examples
-
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    MoranExponentialityGofStatistic,
-)
-
-
-test_statistic = MoranExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
-```
+The formula and input behavior are tested independently; that does not by
+itself certify a historical name, an asymptotic approximation or published
+critical values. Source qualifications above are part of this criterion's
+contract. See the [audit](mathematical-validation.md) for evidence and open items.

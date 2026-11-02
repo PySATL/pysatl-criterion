@@ -1,55 +1,57 @@
 # Bontemps-Meddahi1 test for normality
 
-## Description
-Performs the Bontemps-Meddahi1 goodness-of-fit test for the hypothesis of normality.
-The null hypothesis is that the sample comes from a normal distribution.
+**Class:** `BontempsMeddahi1NormalityGofStatistic`
 
-Hypothesis of Normality
-The hypothesis of normality refers to the null hypothesis that the data comes from a normal distribution. In the implementation, the statistic is computed from the sample passed to `execute_statistic`.
+**Code:** `BM1_NORMALITY_GOODNESS_OF_FIT`
 
-Test Statistic
-The statistic is based on Hermite-polynomial components of standardized observations up to orders three and four.
+Bontemps-Meddahi normality statistic using Hermite orders 3 and 4.
 
-## Usage
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    BontempsMeddahi1NormalityGofStatistic,
-)
+## Methods
 
+execute_statistic(rvs, **kwargs)
+    Return one scalar statistic.
+hypothesis()
+    Report fixed null parameters only.
+alternative()
+    Report the critical tail.
 
-test_statistic = BontempsMeddahi1NormalityGofStatistic()
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
-```
+## Notes
 
-## Arguments
-`mean` - reference normal mean. Default value is `0`.
+H0 is N(mu,sigma**2), with unknown real mu and sigma>0; hypothesis() reports {}.
+Location and positive scale cancel, allowing N(0,1) null simulation.
+Every simulated sample must go through execute_statistic again.
+Large values of the statistic define rejection. Use at least 4
+finite real observations in one dimension. Nonzero dispersion is required.
+Ties are accepted unless a scale or contrast becomes undefined.
+Write x_(i) for ascending observations (i=1,...,n), Phi and phi for
+the standard normal CDF and density, s0=std(x,ddof=0), and
+s1=std(x,ddof=1). Calculations do not modify the sample or retain fits.
 
-`var` - reference normal variance. Default value is `1`.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-The implementation evaluates the Bontemps-Meddahi1 statistic for the supplied observations. Large or small values should be interpreted according to the statistic alternative used by the class implementation.
+Let z=(x-mean(x))/s1 and h_j=He_j/sqrt(j!), where He_j
+are probabilists' Hermite polynomials. Return
+(sum(h_3(z))**2+sum(h_4(z))**2)/n.
+The sample-variance convention ddof=1 is part of this implementation.
 
 ## References
-The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.normal`.
 
-## Author(s)
-Alexey Mironov
+[1] Bontemps, C. and Meddahi, N. (2005).
+   Testing normality: a GMM approach.
+   Journal of Econometrics, 124(1), 149-186.
+   https://doi.org/10.1016/j.jeconom.2004.02.014
 
 ## Examples
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import NormalDistributionDescriptor
+import numpy as np
+from pysatl_criterion.statistics.goodness_of_fit.continuous.normal import (
     BontempsMeddahi1NormalityGofStatistic,
 )
 
-
-test_statistic = BontempsMeddahi1NormalityGofStatistic()
-statistic_result = test_statistic.execute_statistic(
-    [-1.21, -0.83, -0.52, -0.31, -0.08, 0.14, 0.29, 0.47, 0.68, 0.91, 1.16, 1.43]
-)
-print(statistic_result)
+statistic = BontempsMeddahi1NormalityGofStatistic(NormalDistributionDescriptor.DEFAULT.parse({}))
+sample = [-1.7, -1.2, -0.9, -0.6, -0.3, -0.1, 0.2, 0.4, 0.7, 1.0, 1.4, 2.1]
+value = statistic.execute_statistic(sample)
+assert np.isfinite(value)
 ```
+
+See the [complete catalog](index.md) and [mathematical verification](mathematical-validation.md).

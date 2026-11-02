@@ -1,48 +1,37 @@
-# Graph connected components test for gamma distribution
+# Graph connected components for Gamma
 
-## Description
-Performs graph connected components goodness-of-fit test for the hypothesis that the sample comes from a gamma distribution.
-The statistic counts connected components in a proximity graph built on gamma CDF transformed observations.
+`GraphConnectedComponentsGammaGofStatistic`
 
-Hypothesis of Gamma Distribution
-The null hypothesis is that the data comes from a gamma distribution with positive shape parameter `alpha` and positive rate parameter `beta`.
+Use fixed positive shape `alfa` and **rate** `beta` (SciPy scale is `1/beta`), with origin zero. Both parameters must be supplied; no fitting occurs. Samples must be finite, real, nonempty, one-dimensional and nonnegative. Zero is accepted as a support boundary. Ties are allowed unless they make the statistic infinite or degenerate.
+
+## Definition
+
+Vertices are the transformed observations $u_i$. Join distinct vertices exactly when $|u_i-u_j|<h$, where $h=(\max u-\min u)/10$. Let $d_i$ be the degree. Ties remain separate vertices. If h=0 the graph is edgeless: edges, maximum degree and average degree are 0; components and independence number are n; clique number is 1.
+
+$$
+\#\{\text{connected components}\}
+$$
+
+The cited paper provides related graph-based uniformity methodology, not this exact range/10 construction or its calibration. These are library-defined two-tail discrepancies. No claim of consistency against every Gamma alternative is made. The graph is invariant under positive affine changes of the transformed positions, so compressed uniform positions are a blind spot. At fixed n, average degree and edge count contain identical information.
+
+Both tails are used; calibrate the exact graph construction. `execute_statistic` returns a scalar, not a p-value. The sample is not modified.
+
+## Source
+
+[Ebner, Nestmann and Schulte, Testing multivariate uniformity based on random geometric graphs](https://arxiv.org/abs/1812.08638). Background only; the exact implementation is a library adaptation.
 
 ## Usage
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import GammaDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.continuous.gamma import (
     GraphConnectedComponentsGammaGofStatistic,
 )
 
-
-test_statistic = GraphConnectedComponentsGammaGofStatistic(alpha=2, beta=1)
-statistic_result = test_statistic.execute_statistic([0.42, 0.77, 1.05, 1.48, 1.96, 2.34, 3.12])
-print(statistic_result)
+parameters = GammaDistributionDescriptor.DEFAULT.parse({"alfa": 2.5, "beta": 1.5})
+statistic = GraphConnectedComponentsGammaGofStatistic(parameters)
+value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
 ```
 
-## Arguments
-`alpha` - positive shape parameter of the gamma distribution. Default value is `1.0`.
-
-`beta` - positive rate parameter of the gamma distribution. Default value is `1.0`.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-The sample is transformed to gamma CDF values. A proximity graph is built on the transformed values, and the statistic is the number of connected components.
-
-## Author(s)
-Sergey Golovachev, Alexey Mironov
-
-## References
-The statistic follows the graph-based implementation in `pysatl_criterion.statistics.goodness_of_fit.gamma`.
-
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    GraphConnectedComponentsGammaGofStatistic,
-)
-
-
-test_statistic = GraphConnectedComponentsGammaGofStatistic(alpha=2, beta=1)
-statistic_result = test_statistic.execute_statistic([0.42, 0.77, 1.05, 1.48, 1.96, 2.34, 3.12])
-print(statistic_result)
-```
+See the [Gamma catalog](index.md) and [mathematical verification](mathematical-validation.md)
+for calibration, numerical limits and the scope of scientific attribution.

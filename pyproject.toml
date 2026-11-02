@@ -27,39 +27,53 @@ Homepage = "https://github.com/PySATL/pysatl-criterion"
 Issues = "https://github.com/PySATL/pysatl-criterion/issues"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=2.2,<3", "poetry-dynamic-versioning>=1.8,<2"]
+build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.poetry.requires-plugins]
 poetry-dynamic-versioning = { version = ">=1.8.0,<2.0.0", extras = ["plugin"] }
 
-[tool.poetry.group.dev.dependencies]
-markdown = "3.10.3"
-mkdocs = "1.6.1"
-mkdocs-material = "9.7.7"
-mdx-truly-sane-lists = "1.3"
-pymdown-extensions = "12.1"
-jinja2 = "3.1.6"
-mike = "2.2.0"
-isort = "9.0.2"
-coveralls = "4.1.0"
-pytest = "9.1.1"
-pytest-cov = "7.1.0"
-pytest-random-order = "1.2.0"
-ruff = "0.16.10"
-pytest-mock = "3.16.0"
-pre-commit = "4.6.2"
-mypy = "2.4.0"
+[dependency-groups]
+dev = [
+    { include-group = "lint" },
+    { include-group = "test" },
+    { include-group = "docs" },
+]
+lint = [
+    "ruff==0.16.10",
+    "mypy==2.4.0",
+    "pre-commit==4.6.2",
+]
+test = [
+    "pytest==9.1.1",
+    "pytest-cov==7.1.0",
+    "pytest-random-order==1.2.0",
+    "pytest-mock==3.16.0",
+    "coveralls==4.1.0",
+    # Independent reference; never a runtime dependency.
+    "statsmodels==0.14.6",
+]
+docs = [
+    "markdown==3.10.3",
+    "mkdocs==1.6.1",
+    "mkdocs-material==9.7.7",
+    "mdx-truly-sane-lists==1.3",
+    "pymdown-extensions==12.1",
+    "jinja2==3.1.6",
+    "mike==2.2.0",
+]
 
-[tool.isort]
-line_length = 100
-profile = "black"
-# multi_line_output=3
-lines_after_imports=2
-skip_glob = ["**/.env*", "**/env/*", "**/.venv/*", "**/docs/*", "**/user_data/*"]
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+    "integration: persistence and loader integration tests",
+    "statistical: opt-in Monte Carlo validation of level and power",
+]
 
 [tool.ruff]
 line-length = 100
+target-version = "py310"
 extend-exclude = [".env", ".venv"]
 
 [tool.ruff.lint]
@@ -79,17 +93,16 @@ warn_unused_ignores = true
 module = "tests.*"
 ignore_errors = true
 
+[[tool.mypy.overrides]]
+module = "pysatl_criterion.hypothesis_testing.goodness_of_fit_test.goodness_of_fit_test"
+check_untyped_defs = true
+disallow_untyped_defs = true
+
 [tool.ruff.lint.mccabe]
 max-complexity = 12
 
 [tool.ruff.lint.isort]
 lines-after-imports = 2
-
-[tool.flake8]
-ignore = ["E121", "E123", "E126", "E24", "E203", "E704", "W503", "W504"]
-max-line-length = 100
-max-complexity = 12
-exclude = [".git", "__pycache__", ".eggs", "user_data", ".venv", ".env"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = [

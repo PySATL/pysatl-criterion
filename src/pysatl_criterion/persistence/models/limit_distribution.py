@@ -1,89 +1,49 @@
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-
-from pysatl_criterion.persistence.models.base import DataModel, DataQuery, IDataStorage
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
 
 
-@dataclass
-class BulkLoadResult:
-    """
-    Detailed statistics for the bulk load operation.
-    """
+if TYPE_CHECKING:
+    from pysatl_criterion.statistics.goodness_of_fit import AbstractGoodnessOfFitStatistic
 
-    requested_count: int
-    already_cached_count: int
-    newly_cached_count: int
-    not_found_codes: list[str] = field(default_factory=list)
+from pysatl_criterion.persistence.models.distribution_key import DistributionKey
 
 
 @dataclass
-class LimitDistributionModel(DataModel):
+class LimitDistributionModel:
     """
     Model for storing limit distribution data from Monte Carlo simulations.
     """
 
-    experiment_id: int
     criterion_code: str
-    criterion_parameters: list[float]
+    criterion_parameters: dict[str, float]
     sample_size: int
     monte_carlo_count: int
     results_statistics: list[float]
+    criterion_configuration: dict[str, Any] | None = None
 
+    @property
+    def key(self) -> DistributionKey:
+        return DistributionKey(
+            self.criterion_code,
+            dict(self.criterion_parameters),
+            self.sample_size,
+            self.criterion_configuration,
+        )
 
-@dataclass
-class LimitDistributionQuery(DataQuery):
-    """
-    Query object for retrieving specific limit distribution data.
-    """
-
-    criterion_code: str
-    criterion_parameters: list[float]
-    sample_size: int
-    monte_carlo_count: int
-
-
-@dataclass
-class CriticalValueQuery(DataQuery):
-    """
-    Query object for retrieving limit distribution data for critical value calculation.
-    """
-
-    criterion_code: str
-    sample_size: int
-    sample_size_error: int = 0
-
-
-class ILimitDistributionStorage(IDataStorage[LimitDistributionModel, LimitDistributionQuery], ABC):
-    """
-    Limit distribution storage interface.
-    """
-
-    @abstractmethod
-    def get_data_for_cv(self, query: CriticalValueQuery) -> LimitDistributionModel | None:
-        """
-        Get limit distribution data for critical value calculation.
-
-        :param query: calculation parameters.
-        :return: limit distribution data.
-        """
-
-    @abstractmethod
-    def get_bulk_data(
-        self, criterion_codes: list[str], sample_size: int, sample_size_error: int = 0
-    ) -> list[LimitDistributionModel]:
-        """
-        Fetch multiple limit distributions using a batch query.
-
-        :param criterion_codes: list of criterion codes.
-        :param sample_size: number of samples.
-        :param sample_size_error: number of samples error.
-        :return: list of limit distribution data.
-        """
-
-    @abstractmethod
-    def insert_bulk_data(self, models: list[LimitDistributionModel]) -> None:
-        """
-        Batch insert or update multiple distribution records.
-
-        :param models: list of limit distribution data.
-        """
+    @classmethod
+    def from_statistic(
+        cls,
+        statistic: "AbstractGoodnessOfFitStatistic",
+        sample_size: int,
+        results_statistics: list[float],
+    ) -> "LimitDistributionModel":
+        """Attach the statistic configuration to freshly simulated values."""
+        key = DistributionKey.from_statistic(statistic, sample_size)
+        return cls(
+            key.criterion_code,
+            key.criterion_parameters,
+            sample_size,
+            len(results_statistics),
+            list(results_statistics),
+            key.criterion_configuration,
+        )
