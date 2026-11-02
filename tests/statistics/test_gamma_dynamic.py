@@ -2,6 +2,7 @@
 
 import inspect
 import pickle
+from typing import get_origin
 
 import numpy as np
 import pytest
@@ -28,7 +29,10 @@ def test_complete_catalog_and_explicit_hypotheses():
         algorithms = {
             cls
             for cls in vars(module).values()
-            if inspect.isclass(cls) and issubclass(cls, base) and cls is not base
+            if inspect.isclass(cls)
+            and get_origin(cls) is None
+            and issubclass(cls, base)
+            and cls is not base
         }
         assert {spec.algorithm for spec in catalog.values()} == algorithms
     for name in gamma.__all__:

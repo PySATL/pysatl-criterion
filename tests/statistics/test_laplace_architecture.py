@@ -6,6 +6,7 @@ import inspect
 import pickle
 import re
 from pathlib import Path
+from typing import get_origin
 
 import numpy as np
 import pytest
@@ -140,7 +141,10 @@ def test_all_shared_algorithms_are_generated():
         algorithms = {
             cls
             for cls in vars(module).values()
-            if inspect.isclass(cls) and cls is not base and issubclass(cls, base)
+            if inspect.isclass(cls)
+            and get_origin(cls) is None
+            and cls is not base
+            and issubclass(cls, base)
         }
         assert {spec.algorithm for spec in catalog.values()} == algorithms
         for name, spec in catalog.items():

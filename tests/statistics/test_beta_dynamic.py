@@ -4,6 +4,7 @@ import ast
 import inspect
 import pickle
 from pathlib import Path
+from typing import get_origin
 
 import numpy as np
 import pytest
@@ -28,7 +29,10 @@ def test_complete_catalog_without_duplicates_or_aliases():
         algorithms = {
             cls
             for cls in vars(source).values()
-            if inspect.isclass(cls) and issubclass(cls, base) and cls is not base
+            if inspect.isclass(cls)
+            and get_origin(cls) is None
+            and issubclass(cls, base)
+            and cls is not base
         }
         assert {spec.algorithm for spec in catalog.values()} == algorithms
     tree = ast.parse(Path(beta_statistics.__file__).read_text())

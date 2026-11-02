@@ -4,6 +4,7 @@ import ast
 import inspect
 import pickle
 from pathlib import Path
+from typing import get_origin
 
 import numpy as np
 import pytest
@@ -89,7 +90,9 @@ def test_catalog_covers_all_edf_algorithms():
     algorithms = {
         cls
         for _, cls in inspect.getmembers(edf, inspect.isclass)
-        if issubclass(cls, edf.AbstractEDFStatistic) and cls is not edf.AbstractEDFStatistic
+        if get_origin(cls) is None
+        and issubclass(cls, edf.AbstractEDFStatistic)
+        and cls is not edf.AbstractEDFStatistic
     }
     assert {spec.algorithm for spec in _EDF_STATISTICS.values()} == algorithms
 

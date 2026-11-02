@@ -4,6 +4,7 @@ import ast
 import inspect
 import pickle
 from pathlib import Path
+from typing import get_origin
 
 import numpy as np
 import pytest
@@ -61,7 +62,10 @@ def test_catalog_is_complete_without_explicit_duplicates():
         algorithms = {
             c
             for c in vars(source).values()
-            if inspect.isclass(c) and issubclass(c, base) and c is not base
+            if inspect.isclass(c)
+            and get_origin(c) is None
+            and issubclass(c, base)
+            and c is not base
         }
         assert {s.algorithm for s in catalog.values()} == algorithms
     tree = ast.parse(Path(weibull_statistics.__file__).read_text())

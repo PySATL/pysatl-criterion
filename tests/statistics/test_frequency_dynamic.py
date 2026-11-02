@@ -2,6 +2,7 @@
 
 import inspect
 import pickle
+from typing import get_origin
 from unittest.mock import Mock
 
 import numpy as np
@@ -60,7 +61,8 @@ def test_all_kernels_are_registered():
     kernels = {
         cls
         for _, cls in inspect.getmembers(frequency, inspect.isclass)
-        if issubclass(cls, frequency.AbstractFrequencyStatistic)
+        if get_origin(cls) is None
+        and issubclass(cls, frequency.AbstractFrequencyStatistic)
         and cls is not frequency.AbstractFrequencyStatistic
     }
     assert {s.algorithm for s in _FREQUENCY_STATISTICS.values()} == kernels
