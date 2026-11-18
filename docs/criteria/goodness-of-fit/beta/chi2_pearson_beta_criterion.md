@@ -1,51 +1,61 @@
-# Pearson chi-squared test for beta distribution
+# Pearson chi-squared for a specified Beta distribution
 
-## Description
-Performs Pearson's chi-squared goodness-of-fit test for the hypothesis that the sample comes from a beta distribution.
-The implementation compares observed histogram bin counts with expected counts under the reference beta distribution.
+[All Beta criteria](index.md) · [Mathematical verification](mathematical-validation.md)
 
-Hypothesis of Beta Distribution
-The null hypothesis is that the data comes from a beta distribution with positive shape parameters `alpha` and `beta` on the interval $[0, 1]$.
+Class: `Chi2PearsonBetaGofStatistic`. Code: `CHI2_PEARSON_BETA_GOODNESS_OF_FIT`.
 
-## Usage
+## Hypothesis and formula
+
+Both shape parameters `a > 0` and `b > 0` are finite and fixed independently of
+the sample. Pass `Beta.DEFAULT.parse({"a": 2, "b": 5})`; omitted shapes are
+unknown and are rejected by this class. The support is fixed at $[0,1]$.
+
+For bins $j=1,\ldots,J$, write $O_j$ for the observed count and $E_j=np_j>0$
+for the expected count under the specified Beta law.
+
+$$
+X^2=\sum_j\frac{(O_j-E_j)^2}{E_j}
+$$
+
+With an empty observed cell and positive expected count, Pearson contributes $E_j$, Freeman–Tukey $4E_j$, modified log-likelihood and Neyman infinity, and Cressie–Read zero.
+
+## Input, result and calibration
+
+`execute_statistic(rvs, **kwargs)` accepts a nonempty, finite, one-dimensional
+real sample in $[0,1]$. Ties and constants are allowed; masked observations and
+complex values are rejected. It returns a scalar and leaves the sample unchanged.
+Large values reject (`RightAlternative`). Extra execution keywords are ignored.
+
+The constructor accepts `binning: BinningStrategy`; the default is
+`EqualProbabilityBins()` with `PowerCount(coefficient=2, exponent=0.4)`,
+a maximum of 1000 bins and no minimum expected-count pooling.
+CDF-space boundaries belong to the cell on their right; 1 belongs to the last cell.
+See [binning strategies](../binning/index.md). Each of the five divergences has
+its own class; `lambda_` is not a supported constructor argument.
+
+For fixed deterministic bins with positive probabilities the usual asymptotic
+null is chi-square with $J-1$ degrees of freedom, with no fitted-shape deduction.
+That statement does not justify a fixed-degree limit for a growing number of bins
+or data-dependent boundaries. Calibrate using the same binning rule and sample size.
+Storage identity includes the serialized binning configuration.
+
+## Example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    Chi2PearsonBetaGofStatistic,
+from pysatl_criterion.distribution import BetaDistributionDescriptor as Beta
+from pysatl_criterion.statistics.goodness_of_fit.continuous.beta import Chi2PearsonBetaGofStatistic
+from pysatl_criterion.statistics.goodness_of_fit.binning import EqualProbabilityBins, FixedCount
+
+statistic = Chi2PearsonBetaGofStatistic(
+    Beta.DEFAULT.parse({"a": 2, "b": 5}), binning=EqualProbabilityBins(count=FixedCount(3))
 )
-
-
-test_statistic = Chi2PearsonBetaGofStatistic(alpha=2, beta=5, lambda_=1)
-statistic_result = test_statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
-print(statistic_result)
+value = statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
+print(value)
 ```
 
-## Arguments
-`alpha` - first positive shape parameter of the beta distribution. Default value is `1`.
+## Scientific source
 
-`beta` - second positive shape parameter of the beta distribution. Default value is `1`.
+[Pearson (1900), On the criterion that a given system of deviations from the probable …](https://doi.org/10.1080/14786440009463897); [Cressie and Read (1984), Multinomial Goodness-of-Fit Tests](https://doi.org/10.1111/j.2517-6161.1984.tb01318.x).
 
-`lambda_` - power-divergence parameter passed to the common chi-squared statistic implementation. Default value is `1`.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-The implementation uses approximately $\sqrt n$ bins on $[0, 1]$.
-Expected frequencies are computed from beta CDF differences at the bin edges.
-
-## Author(s)
-Dmitry Deruzhinsky, Aleksei Tokarev, Vladimir Zakharov, Alexey Mironov
-
-## References
-Pearson, K. (1900): On the criterion that a given system of deviations from the probable in the case of a correlated system of variables is such that it can be reasonably supposed to have arisen from random sampling. - Philosophical Magazine, vol. 50, pp. 157-175.
-
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    Chi2PearsonBetaGofStatistic,
-)
-
-
-test_statistic = Chi2PearsonBetaGofStatistic(alpha=2, beta=5, lambda_=1)
-statistic_result = test_statistic.execute_statistic([0.08, 0.14, 0.22, 0.31, 0.38, 0.46, 0.57])
-print(statistic_result)
-```
+The source identifies the shared statistical functional; applying it through
+the specified Beta distribution does not constitute a new Beta-specific test.

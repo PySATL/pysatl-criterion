@@ -8,6 +8,7 @@ Each validator returns ``True`` when a value satisfies the constraint and
 """
 
 from abc import ABC, abstractmethod
+from numbers import Real
 
 from typing_extensions import override
 
@@ -85,3 +86,11 @@ class ProbabilityValidator(Validator):
         :return: ``True`` if ``0 <= value <= 1``, otherwise ``False``.
         """
         return 0 <= value <= 1
+
+
+class PositiveRealNumberValidator(PositiveNumberValidator):
+    """Require a positive real scalar, excluding booleans and arrays."""
+
+    @override
+    def validate(self, value: float) -> bool:
+        return isinstance(value, Real) and not isinstance(value, bool) and value > 0

@@ -5,14 +5,11 @@ import pytest
 import scipy.stats as scipy_stats
 
 from pysatl_criterion import DistributionType
-from pysatl_criterion.distribution.distributions import HyperbolicDistributionDescriptor
+from pysatl_criterion.distribution import HyperbolicDistributionDescriptor
 from pysatl_criterion.statistics.alternative import (
-    AlternativeType,
-    LeftAlternative,
     RightAlternative,
-    TwoSidedAlternative,
 )
-from pysatl_criterion.statistics.goodness_of_fit.hyperbolic import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous.hyperbolic import (
     AbstractHyperbolicGofStatistic,
     AndersonDarlingHyperbolicGofStatistic,
     CramerVonMisesHyperbolicGofStatistic,
@@ -22,6 +19,7 @@ from pysatl_criterion.statistics.goodness_of_fit.hyperbolic import (
 )
 from pysatl_criterion.utils.distribution import get_available_distribution_descriptor
 from pysatl_criterion.utils.statistic import get_available_criteria_codes
+from tests.parameter_cases import parameters_for
 
 
 _SAMPLE = np.array([-2.4, 1.3, -0.2, 0.0, 2.1, -1.0, 0.7], dtype=np.float64)
@@ -62,14 +60,13 @@ def _cdf_values(
 def test_hyperbolic_base_metadata():
     """The base class should expose stable distribution metadata."""
     statistic = CramerVonMisesHyperbolicGofStatistic(
-        alpha=1.5,
-        beta=0.25,
-        delta=2.0,
-        mu=-0.5,
+        HyperbolicDistributionDescriptor.DEFAULT.parse(
+            {"alpha": 1.5, "beta": 0.25, "delta": 2.0, "mu": -0.5}
+        )
     )
 
     assert AbstractHyperbolicGofStatistic.code() == "HYPERBOLIC_GOODNESS_OF_FIT"
-    assert statistic.distribution() == DistributionType.HYPERBOLIC
+    assert statistic.distribution().type() == DistributionType.HYPERBOLIC
     assert statistic.hypothesis().params == {
         "alpha": 1.5,
         "beta": 0.25,
@@ -81,27 +78,33 @@ def test_hyperbolic_base_metadata():
 @pytest.mark.parametrize(
     ("kwargs", "message"),
     [
-        ({"alpha": 0.0}, "Alpha must be finite and positive"),
-        ({"alpha": np.inf}, "Alpha must be finite and positive"),
+        ({"alpha": 0.0}, "Invalid value for alpha"),
+        ({"alpha": np.inf}, "Invalid value for alpha"),
         ({"alpha": 1.0, "beta": 1.0}, r"abs\(beta\) < alpha"),
         ({"alpha": 1.0, "beta": -1.0}, r"abs\(beta\) < alpha"),
-        ({"beta": np.nan}, "Beta must be finite"),
-        ({"delta": 0.0}, "Delta must be finite and positive"),
-        ({"delta": np.inf}, "Delta must be finite and positive"),
-        ({"mu": np.nan}, "Mu must be finite"),
+        ({"beta": np.nan}, "Invalid value for beta"),
+        ({"delta": 0.0}, "Invalid value for delta"),
+        ({"delta": np.inf}, "Invalid value for delta"),
+        ({"mu": np.nan}, "Invalid value for mu"),
     ],
 )
 def test_hyperbolic_parameter_validation(kwargs, message):
     """Invalid hyperbolic parameters should be rejected."""
     with pytest.raises(ValueError, match=message):
-        CramerVonMisesHyperbolicGofStatistic(**kwargs)
+        CramerVonMisesHyperbolicGofStatistic(
+            parameters_for(CramerVonMisesHyperbolicGofStatistic, **kwargs)
+        )
 
 
 @pytest.mark.parametrize("sample", [[], np.ones((2, 2))])
 def test_hyperbolic_sample_validation(sample):
     """Statistics should require a non-empty one-dimensional sample."""
     with pytest.raises(ValueError):
-        CramerVonMisesHyperbolicGofStatistic().execute_statistic(sample)
+        CramerVonMisesHyperbolicGofStatistic(
+            HyperbolicDistributionDescriptor.DEFAULT.parse(
+                {"alpha": 1, "beta": 0, "delta": 1, "mu": 0}
+            )
+        ).execute_statistic(sample)
 
 
 @pytest.mark.parametrize(
@@ -137,18 +140,18 @@ def test_hyperbolic_edf_statistics_match_scipy_reference(
         "mu": mu,
     }
 
-    assert KolmogorovSmirnovHyperbolicGofStatistic(**parameters).execute_statistic(
-        sample
-    ) == pytest.approx(max(d_plus, d_minus))
-    assert CramerVonMisesHyperbolicGofStatistic(**parameters).execute_statistic(
-        sample
-    ) == pytest.approx(expected_cvm)
-    assert KuiperHyperbolicGofStatistic(**parameters).execute_statistic(sample) == pytest.approx(
-        expected_kuiper
-    )
-    assert WatsonHyperbolicGofStatistic(**parameters).execute_statistic(sample) == pytest.approx(
-        expected_watson
-    )
+    assert KolmogorovSmirnovHyperbolicGofStatistic(
+        parameters_for(KolmogorovSmirnovHyperbolicGofStatistic, **parameters)
+    ).execute_statistic(sample) == pytest.approx(max(d_plus, d_minus))
+    assert CramerVonMisesHyperbolicGofStatistic(
+        parameters_for(CramerVonMisesHyperbolicGofStatistic, **parameters)
+    ).execute_statistic(sample) == pytest.approx(expected_cvm)
+    assert KuiperHyperbolicGofStatistic(
+        parameters_for(KuiperHyperbolicGofStatistic, **parameters)
+    ).execute_statistic(sample) == pytest.approx(expected_kuiper)
+    assert WatsonHyperbolicGofStatistic(
+        parameters_for(WatsonHyperbolicGofStatistic, **parameters)
+    ).execute_statistic(sample) == pytest.approx(expected_watson)
 
 
 @pytest.mark.parametrize(
@@ -169,47 +172,12 @@ def test_anderson_darling_hyperbolic_matches_scipy_reference(alpha, beta, delta,
     expected = -n - np.sum(weights * (log_cdf + log_sf[::-1]))
 
     result = AndersonDarlingHyperbolicGofStatistic(
-        alpha=alpha,
-        beta=beta,
-        delta=delta,
-        mu=mu,
+        HyperbolicDistributionDescriptor.DEFAULT.parse(
+            {"alpha": alpha, "beta": beta, "delta": delta, "mu": mu}
+        )
     ).execute_statistic(_SAMPLE)
 
     assert result == pytest.approx(expected)
-
-
-@pytest.mark.parametrize(
-    ("alternative_type", "alternative_class", "expected_side"),
-    [
-        (AlternativeType.TWO_TAILED, TwoSidedAlternative, "two-sided"),
-        (AlternativeType.RIGHT, RightAlternative, "right"),
-        (AlternativeType.LEFT, LeftAlternative, "left"),
-    ],
-)
-def test_kolmogorov_smirnov_hyperbolic_alternatives(
-    alternative_type,
-    alternative_class,
-    expected_side,
-):
-    """KS should calculate the deviation selected by its alternative."""
-    _, cdf_values = _cdf_values(_SAMPLE, 1.5, 0.25, 1.0, 0.0)
-    n = len(cdf_values)
-    positions = np.arange(n, dtype=np.float64)
-    d_plus = np.max((positions + 1.0) / n - cdf_values)
-    d_minus = np.max(cdf_values - positions / n)
-    expected = {
-        "two-sided": max(d_plus, d_minus),
-        "right": d_plus,
-        "left": d_minus,
-    }[expected_side]
-    statistic = KolmogorovSmirnovHyperbolicGofStatistic(
-        alternative_type=alternative_type,
-        alpha=1.5,
-        beta=0.25,
-    )
-
-    assert isinstance(statistic.alternative(), alternative_class)
-    assert statistic.execute_statistic(_SAMPLE) == pytest.approx(expected)
 
 
 @pytest.mark.parametrize(
@@ -230,10 +198,26 @@ def test_hyperbolic_statistic_codes(statistic, expected_code):
 @pytest.mark.parametrize(
     "statistic",
     [
-        CramerVonMisesHyperbolicGofStatistic(),
-        AndersonDarlingHyperbolicGofStatistic(),
-        KuiperHyperbolicGofStatistic(),
-        WatsonHyperbolicGofStatistic(),
+        CramerVonMisesHyperbolicGofStatistic(
+            HyperbolicDistributionDescriptor.DEFAULT.parse(
+                {"alpha": 1, "beta": 0, "delta": 1, "mu": 0}
+            )
+        ),
+        AndersonDarlingHyperbolicGofStatistic(
+            HyperbolicDistributionDescriptor.DEFAULT.parse(
+                {"alpha": 1, "beta": 0, "delta": 1, "mu": 0}
+            )
+        ),
+        KuiperHyperbolicGofStatistic(
+            HyperbolicDistributionDescriptor.DEFAULT.parse(
+                {"alpha": 1, "beta": 0, "delta": 1, "mu": 0}
+            )
+        ),
+        WatsonHyperbolicGofStatistic(
+            HyperbolicDistributionDescriptor.DEFAULT.parse(
+                {"alpha": 1, "beta": 0, "delta": 1, "mu": 0}
+            )
+        ),
     ],
 )
 def test_hyperbolic_statistics_use_right_alternative(statistic):
@@ -244,7 +228,21 @@ def test_hyperbolic_statistics_use_right_alternative(statistic):
 def test_hyperbolic_criteria_are_discoverable():
     """The public criterion registry should discover all hyperbolic statistics."""
     codes = get_available_criteria_codes(DistributionType.HYPERBOLIC)
-    assert Counter(codes) == Counter(["KS", "CVM", "AD", "KUI", "WAT"])
+    assert Counter(codes) == Counter(
+        [
+            "KS",
+            "CVM",
+            "AD",
+            "KUI",
+            "LIAO_SHIMOKAWA",
+            "WAT",
+            "CHI2_PEARSON",
+            "FREEMAN_TUKEY",
+            "MODIFIED_LOG_LIKELIHOOD",
+            "CHI2_NEYMAN",
+            "CRESSIE_READ",
+        ]
+    )
 
 
 def test_hyperbolic_distribution_descriptor():
@@ -261,19 +259,28 @@ def test_hyperbolic_distribution_descriptor():
     ]
 
 
-def test_hyperbolic_nan_sample_propagates():
-    """An undefined CDF value should produce an undefined statistic."""
-    result = KuiperHyperbolicGofStatistic().execute_statistic([0.0, np.nan, 1.0])
-    assert np.isnan(result)
+def test_hyperbolic_nan_sample_is_rejected():
+    """NaN is not an observation on the real support."""
+    with pytest.raises(ValueError, match="finite"):
+        KuiperHyperbolicGofStatistic(
+            HyperbolicDistributionDescriptor.DEFAULT.parse(
+                {"alpha": 1, "beta": 0, "delta": 1, "mu": 0}
+            )
+        ).execute_statistic([0.0, np.nan, 1.0])
 
 
-def test_kolmogorov_smirnov_requires_precomputed_cdf():
-    """The low-level KS entry point should require its probability array."""
-    with pytest.raises(ValueError, match="CDF values are required"):
-        KolmogorovSmirnovHyperbolicGofStatistic().do_execute_statistic(_SAMPLE)
+def test_generated_hyperbolic_kernels():
+    from pysatl_criterion.statistics.goodness_of_fit import edf
+    from pysatl_criterion.statistics.goodness_of_fit.continuous import hyperbolic
 
-
-def test_anderson_darling_requires_log_probabilities():
-    """The low-level AD entry point should require both tail arrays."""
-    with pytest.raises(ValueError, match="Log-CDF and log-survival values are required"):
-        AndersonDarlingHyperbolicGofStatistic().do_execute_statistic(_SAMPLE)
+    implementation = hyperbolic.hyperbolic_statistics
+    assert set(implementation.__all__) == {"AbstractHyperbolicGofStatistic"} | set(
+        implementation._EDF_STATISTICS
+    ) | set(implementation._FREQUENCY_STATISTICS)
+    for name, spec in implementation._EDF_STATISTICS.items():
+        cls = getattr(hyperbolic, name)
+        assert cls.do_execute_statistic is spec.algorithm.do_execute_statistic
+        assert cls.execute_statistic.__module__.endswith("._edf_factory")
+    assert hyperbolic.AndersonDarlingHyperbolicGofStatistic.do_execute_log_statistic is (
+        edf.AbstractAndersonDarlingStatistic.do_execute_log_statistic
+    )

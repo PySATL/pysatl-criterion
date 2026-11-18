@@ -1,60 +1,69 @@
-# Kolmogorov-Smirnov test for Weibull distribution
+# Kolmogorov–Smirnov test for the Weibull family
 
 ## Description
-Performs Kolmogorov-Smirnov goodness-of-fit test for the hypothesis that the sample comes from a Weibull distribution.
-The implementation uses the Weibull distribution utilities from `pysatl_criterion.core.distributions.weibull` where applicable.
 
-Hypothesis of Weibull Distribution
-The null hypothesis is that the data comes from a Weibull distribution with parameters `a` and `k`.
-The observations passed to `execute_statistic` should be positive for statistics that use logarithms or Weibull probability plots.
+`KolmogorovSmirnovWeibullGofStatistic` has algorithm code `KS_WEIBULL_GOODNESS_OF_FIT`.
+It is generated from the shared EDF kernel.
 
-Test Statistic
-The statistic is based on the maximum distance between the empirical distribution function and Weibull CDF values.
+The null is the ordinary Weibull family with zero location:
+
+$$
+F(x;k,\eta)=1-\exp\left[-(x/\eta)^k\right],\qquad x>0,\quad k,\eta>0.
+$$
+
+Both parameters are fitted by maximum likelihood for every sample.
 
 ## Usage
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import WeibullDistributionDescriptor as Weibull
+from pysatl_criterion.statistics.goodness_of_fit.continuous.weibull import (
     KolmogorovSmirnovWeibullGofStatistic,
 )
 
-
-test_statistic = KolmogorovSmirnovWeibullGofStatistic(a=1, k=2)
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.65, 0.88, 1.12, 1.43, 1.76, 2.05, 2.44, 2.91, 3.37]
-)
-print(statistic_result)
+criterion = KolmogorovSmirnovWeibullGofStatistic(Weibull.DEFAULT.parse({}))
+statistic = criterion.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+print(statistic)
 ```
 
 ## Arguments
-`a` - Weibull distribution parameter. Default value is `1`.
 
-`k` - Weibull distribution parameter. Default value is `1` for most statistics; `KolmogorovSmirnovWeibullGofStatistic` defaults to `5`.
+`parameters` — `Weibull.DEFAULT.parse({})`, declaring both shape and scale
+unknown. Fixed or partially fixed parameter sets are unsupported.
 
-`alternative_type` - alternative hypothesis type used by the Kolmogorov-Smirnov statistic.
-
-`mode` - calculation mode passed to the Kolmogorov-Smirnov statistic. Default value is `auto`.
-
-rvs` - array-like sample data passed to `execute_statistic`.
+`rvs` — a one-dimensional, finite, strictly positive, nonconstant sample with
+at least two observations. Ties are allowed. Invalid samples raise `ValueError`.
+The input is not modified and fitted parameters are not retained on the instance.
 
 ## Details
-The implementation evaluates the Kolmogorov-Smirnov statistic for the supplied observations. For EDF-based statistics, observations are transformed with the Weibull cumulative distribution function. For spacing, probability plot, Laplace-transform, and moment-style statistics, the implementation follows the corresponding formulas in `pysatl_criterion.statistics.goodness_of_fit.weibull`.
 
-## Author(s)
-Alexey Mironov
+For ordered observations, set $u_i=F(X_{(i)};\widehat k,\widehat\eta)$.
+The implemented statistic is
+
+$$
+D_n=\max(D_n^+,D_n^-).
+$$
+
+The implementation returns the unscaled maximum of the two directional discrepancies.
+
+Here $D_n^+=\max_i(i/n-u_i)$ and $D_n^-=\max_i(u_i-(i-1)/n)$.
+
+## Calibration
+
+Large values form the right-tail rejection region. `execute_statistic` returns
+a statistic, not a p-value. Calibrate at the same sample size by simulating
+ordinary Weibull samples and re-estimating both parameters for every replicate.
+Log-location-scale invariance permits shape = scale = 1 for this simulation.
+
+Critical values for a fully specified uniform or Weibull CDF do not apply to the
+fitted model. The built-in Monte Carlo resolver repeats the fit through
+`execute_statistic`; stored unversioned Weibull critical values are rejected.
 
 ## References
-The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.weibull`.
 
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    KolmogorovSmirnovWeibullGofStatistic,
-)
+Smirnov, N. (1948). [Table for Estimating the Goodness of Fit of Empirical Distributions](https://doi.org/10.1214/aoms/1177730256). *Annals of Mathematical Statistics*, 19(2), 279–281.
 
+The references identify the EDF discrepancy. Its application here uses estimated Weibull parameters and therefore requires the fitted-model calibration described above.
 
-test_statistic = KolmogorovSmirnovWeibullGofStatistic(a=1, k=2)
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.65, 0.88, 1.12, 1.43, 1.76, 2.05, 2.44, 2.91, 3.37]
-)
-print(statistic_result)
-```
+See the [Weibull criterion catalog](index.md) for all implementations and shared
+calibration requirements.

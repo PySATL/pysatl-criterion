@@ -1,7 +1,7 @@
 import pytest
 
 from pysatl_criterion import DistributionType
-from pysatl_criterion.distribution.distributions import (
+from pysatl_criterion.distribution import (
     BetaDistributionDescriptor,
     ExponentialDistributionDescriptor,
     GammaDistributionDescriptor,
@@ -34,8 +34,8 @@ from pysatl_criterion.utils.distribution import get_available_distribution_descr
             DistributionType.WEIBULL,
             WeibullDistributionDescriptor,
             [
-                ("λ", "a", "Scale. λ > 0", 1),
-                ("k", "k", "Shape. k > 0", 5),
+                ("λ", "scale", "Scale. λ > 0", 1),
+                ("k", "shape", "Shape. k > 0", 5),
             ],
         ),
         (
@@ -49,7 +49,11 @@ from pysatl_criterion.utils.distribution import get_available_distribution_descr
         (
             DistributionType.STUDENT,
             StudentDistributionDescriptor,
-            [("ν", "df", "Degrees of freedom. ν > 0", 2)],
+            [
+                ("ν", "df", "Degrees of freedom. ν > 0", 1),
+                ("μ", "loc", "Location", 0),
+                ("s", "scale", "Scale. s > 0", 1),
+            ],
         ),
         (
             DistributionType.GAMMA,

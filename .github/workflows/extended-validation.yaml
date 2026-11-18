@@ -1,0 +1,85 @@
+name: Statistical and database validation
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  statistical:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install poetry==2.4.1
+      - run: poetry sync --only main,test
+      - name: Validate level and power with independent simulation samples
+        env:
+          PYSATL_STATISTICAL: "1"
+          PYSATL_MULTIPLE_TESTING_MONTE_CARLO: "1"
+        run: >-
+          poetry run pytest -m statistical --random-order
+          --junitxml=${{ runner.temp }}/statistical.xml
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: statistical-results
+          path: ${{ runner.temp }}/statistical.xml
+
+  databases:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: criterion
+          POSTGRES_PASSWORD: criterion
+          POSTGRES_DB: criterion
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U criterion"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: criterion
+          MYSQL_ROOT_HOST: "%"
+          MYSQL_DATABASE: criterion
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h localhost -pcriterion"
+          --health-interval 10s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install poetry==2.4.1
+      - run: poetry sync --only main,test
+      - name: Install optional MySQL integration driver
+        run: poetry run python -m pip install 'PyMySQL[rsa]==1.1.2'
+      - name: Check real database transactions and concurrent writers
+        env:
+          CRITERION_TEST_POSTGRES_URL: postgresql+psycopg2://criterion:criterion@127.0.0.1:5432/criterion
+          CRITERION_TEST_MYSQL_URL: mysql+pymysql://root:criterion@127.0.0.1:3306/criterion
+        run: >-
+          poetry run pytest tests/persistence tests/loader --random-order
+          --junitxml=${{ runner.temp }}/databases.xml
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: database-results
+          path: ${{ runner.temp }}/databases.xml

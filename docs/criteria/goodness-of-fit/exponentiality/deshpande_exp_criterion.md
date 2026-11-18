@@ -1,71 +1,61 @@
-# Deshpande test for exponentiality
+# Deshpande exponentiality criterion
 
-## Description
-Performs Deshpande test for the composite hypothesis of exponentiality, see Deshpande (1983).
-The Deshpande test is a statistical hypothesis test used to assess the composite hypothesis of exponentiality. This test is designed to determine whether a given sample of data is consistent with an exponential distribution against aging-type alternatives such as increasing failure rate average alternatives.
+`DeshpandeExponentialityGofStatistic` — short code `DSP`; right tail.
 
-Composite Hypothesis of Exponentiality
-The composite hypothesis of exponentiality refers to the null hypothesis that the data comes from an exponential distribution with an unspecified rate parameter
-lambda. The statistic is based on pairwise comparisons and is scale invariant for positive rescaling of the data.
+[All exponential criteria](index.md) · [Mathematical verification](mathematical-validation.md)
 
-Test Statistic
-The Deshpande test statistic is a U-statistic based on pairwise comparisons of observations. It counts how often one observation is larger than a fixed multiple of another observation. The multiplier is controlled by the parameter `b`.
+## Hypothesis and formula
 
-Calculate the Test Statistic: For every ordered pair of distinct observations, the indicator of the event $X_i > bX_j$ is evaluated, and the average of these indicators is used as the statistic.
+The model is $F(x)=1-\exp(-\lambda x)$ for $x\ge0$, with known origin zero and $\lambda>0$.
+Unknown rate only: pass `E.DEFAULT.parse({})`.
+Omitted parameters remain unknown. Where fitting is needed, $\widehat\lambda=1/\bar x$
+is recomputed for each sample; no fitted state is retained.
 
-Limitations
-The value of the parameter `b` can affect the power of the test against different alternatives.
+Write $y_i=x_i/\bar x$, $u_i=1-\exp(-\lambda x_{(i)})$ with the specified or
+fitted rate, $D^+=\max_i(i/n-u_i)$ and $D^-=\max_i(u_i-(i-1)/n)$.
+For spacing statistics, $d_i=(n-i+1)(x_{(i)}-x_{(i-1)})$ and $x_{(0)}=0$.
+For frequency statistics, $O_j$ and $E_j=np_j>0$ are aligned counts.
 
-The direct implementation uses all ordered pairs of observations, so the computational cost grows quadratically with the sample size.
+$$
+\frac{1}{n(n-1)}\sum_{i\ne j}\mathbf1\{x_i>b x_j\}
+$$
 
-## Usage
+Constructor 0<b<1, default 0.44. Raw U-statistic, null expectation 1/(1+b). The API uses the right tail, consistent with the IFRA direction; it is not an omnibus two-tail test.
+
+## Input and calibration
+
+Observations must be finite, real, nonnegative and one-dimensional. Masked
+observations are rejected. Fixed-rate generated criteria accept $n\ge1$;
+unknown-rate EDF/frequency criteria require $n\ge2$ and positive total.
+Specialized criteria may require more observations, distinct spacings or a
+nonconstant sample, as stated above and in the class contract. Ties are not
+silently jittered. Infinite mathematical boundary penalties are retained.
+
+`execute_statistic` returns a statistic, not a p-value. Use
+`monte_carlo_exponential` with the same sample size and constructor settings.
+It refits each simulated sample for a composite hypothesis. Rescaling to
+Exp(1) is justified only for a scale-invariant statistic. A continuous-null
+calibration does not model rounding, censoring or dependence.
+
+## Runnable example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import ExponentialDistributionDescriptor as E
+from pysatl_criterion.statistics.goodness_of_fit.continuous.exponent import (
     DeshpandeExponentialityGofStatistic,
 )
 
-
-test_statistic = DeshpandeExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
+sample = [0.12, 0.30, 0.55, 0.90, 1.40, 2.10, 3.20, 4.80]
+criterion = DeshpandeExponentialityGofStatistic(E.DEFAULT.parse({}))
+value = criterion.execute_statistic(sample)
+print(value)
 ```
 
-## Arguments
-`rvs` - array-like sample data passed to `execute_statistic`.
+## Scientific references and verification status
 
-`b` - threshold parameter for the pairwise comparison. Default value is `0.44`.
+[Deshpande (1983), A class of tests for exponentiality against increasing failure rate average alternatives](https://doi.org/10.1093/biomet/70.2.514).
 
-## Details
-
-The Deshpande test is a test for the composite hypothesis of exponentiality. The test statistic is
-
-$$ J_n = \frac{1}{n(n-1)} \sum_{i \ne j} I(X_i > bX_j) $$
-
-where $I(\cdot)$ is the indicator function, $n$ is the sample size, and $b$ is a positive parameter of the test.
-
-Under exponentiality,
-
-$$ \sqrt{n}\left(J_n - \frac{1}{b+1}\right) $$
-
-is asymptotically normal with variance depending on $b$ (see Deshpande (1983)).
-
-## Author(s)
-Lev Golofastov
-
-## References
-Deshpande, J.V. (1983): A class of tests for exponentiality against increasing failure rate average alternatives. - Biometrika, vol. 70, pp. 514-518.
-
-Henze, N. and Meintanis, S.G. (2005): Recent and classical tests for exponentiality: a partial review with comparisons. - Metrika, vol. 61, pp. 29-45.
-
-## Examples
-
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    DeshpandeExponentialityGofStatistic,
-)
-
-
-test_statistic = DeshpandeExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
-```
+The formula and input behavior are tested independently; that does not by
+itself certify a historical name, an asymptotic approximation or published
+critical values. Source qualifications above are part of this criterion's
+contract. See the [audit](mathematical-validation.md) for evidence and open items.

@@ -1,39 +1,50 @@
+import pytest
+
 from pysatl_criterion.hypothesis_testing.limit_distribution.base import (
+    AbstractLimitDistributionResolver,
     CompositeLimitDistributionResolver,
 )
 
 
-class FakeResolver:
-    def __init__(self, result):
+class FakeResolver(AbstractLimitDistributionResolver):
+    def __init__(self, result, calls):
         self.result = result
-        self.calls = []
+        self.calls = calls
 
     def resolve(self, statistic, sample_size):
-        self.calls.append((statistic, sample_size))
+        self.calls.append((self, statistic, sample_size))
         return self.result
 
 
-def test_resolve_returns_local_results_when_available():
+@pytest.mark.parametrize(
+    ("results", "expected", "call_count"),
+    [
+        ([[1.0], [2.0], [3.0]], [1.0], 1),
+        ([None, [2.0], [3.0]], [2.0], 2),
+        ([None, None, [3.0], [4.0]], [3.0], 3),
+        ([None, None, None], None, 3),
+        ([None, [], [3.0]], [], 2),
+        ([], None, 0),
+    ],
+)
+def test_resolve_tries_resolvers_in_order_until_result(results, expected, call_count):
     statistic = object()
-    local_resolver = FakeResolver([1.0, 2.0, 3.0])
-    monte_carlo_resolver = FakeResolver([4.0, 5.0, 6.0])
-    resolver = CompositeLimitDistributionResolver(local_resolver, monte_carlo_resolver)
+    calls = []
+    resolvers = [FakeResolver(result, calls) for result in results]
+    composite = CompositeLimitDistributionResolver(resolvers)
 
-    result = resolver.resolve(statistic, sample_size=10)
-
-    assert result == [1.0, 2.0, 3.0]
-    assert local_resolver.calls == [(statistic, 10)]
-    assert monte_carlo_resolver.calls == []
+    assert composite.resolve(statistic, sample_size=10) == expected
+    assert calls == [(resolver, statistic, 10) for resolver in resolvers[:call_count]]
 
 
-def test_resolve_uses_monte_carlo_results_when_local_results_are_missing():
+def test_resolve_propagates_errors_without_trying_next_resolver(mocker):
     statistic = object()
-    local_resolver = FakeResolver(None)
-    monte_carlo_resolver = FakeResolver([4.0, 5.0, 6.0])
-    resolver = CompositeLimitDistributionResolver(local_resolver, monte_carlo_resolver)
+    first = mocker.Mock(spec=AbstractLimitDistributionResolver)
+    first.resolve.side_effect = ValueError("Invalid sample")
+    second = mocker.Mock(spec=AbstractLimitDistributionResolver)
+    composite = CompositeLimitDistributionResolver([first, second])
 
-    result = resolver.resolve(statistic, sample_size=10)
+    with pytest.raises(ValueError, match="Invalid sample"):
+        composite.resolve(statistic, sample_size=10)
 
-    assert result == [4.0, 5.0, 6.0]
-    assert local_resolver.calls == [(statistic, 10)]
-    assert monte_carlo_resolver.calls == [(statistic, 10)]
+    second.resolve.assert_not_called()

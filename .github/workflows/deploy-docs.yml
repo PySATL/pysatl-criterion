@@ -20,16 +20,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
-      - name: Install dependencies
+      - name: Install Poetry
+        run: pip install poetry==2.4.1
+
+      - name: Install documentation dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -r docs/requirements-docs.txt
+          poetry check --lock
+          poetry sync --only docs --no-root
 
       - name: Fetch gh-pages branch
         run: |
@@ -43,13 +48,13 @@ jobs:
       - name: Build and push Mike
         if: ${{ github.event_name == 'push' }}
         run: |
-          mike deploy ${{ github.ref_name }} latest --push --update-aliases
+          poetry run mike deploy ${{ github.ref_name }} latest --push --update-aliases
 
       - name: Build and push Mike - Release
         if: ${{ github.event_name == 'release' }}
         run: |
-          mike deploy ${{ github.ref_name }} stable --push --update-aliases
+          poetry run mike deploy ${{ github.ref_name }} stable --push --update-aliases
 
       - name: Show mike versions
         run: |
-          mike list
+          poetry run mike list

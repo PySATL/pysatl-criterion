@@ -1,56 +1,90 @@
-# ST2 test for Weibull distribution
+# Best–Rayner–Thas kurtosis component for Weibull fit
 
-## Description
-Performs ST2 goodness-of-fit test for the hypothesis that the sample comes from a Weibull distribution.
-The implementation uses the Weibull distribution utilities from `pysatl_criterion.core.distributions.weibull` where applicable.
+`BestRaynerThasKurtosisWeibullGofStatistic` is also available as `ST2WeibullGofStatistic`.
+The alias refers to the same class; its code remains `ST2_WEIBULL_GOODNESS_OF_FIT`.
 
-Hypothesis of Weibull Distribution
-The null hypothesis is that the data comes from a Weibull distribution with parameters `a` and `k`.
-The observations passed to `execute_statistic` should be positive for statistics that use logarithms or Weibull probability plots.
+## Definition
 
-Test Statistic
-The statistic is based on a smooth-test statistic based on kurtosis of transformed observations.
+For a zero-location Weibull sample with unknown shape $k$ and scale $\eta$,
+use $Y_i=-\log X_i$. Under the null, $Y$ is maximum Gumbel with
+location $-\log\eta$ and scale $1/k$. Define
+
+$$
+m_j=\frac1n\sum_i(Y_i-\bar Y)^j,\qquad
+ g_n=\frac{m_3}{m_2^{3/2}},\qquad b_n=\frac{m_4}{m_2^2}.
+$$
+
+All moments use divisor $n$; $b_n$ denotes Pearson kurtosis (not excess).
+The implementation returns
+
+$$
+V_4^2=\frac{n(b_n-7.55g_n+3.21)^2}{219.72}.
+$$
+
+These are the rounded coefficients used by [EWGoF 2.2.2 source](https://github.com/cran/EWGoF/blob/51ef071b72a340b31807dacfa0e8f1d4a5a5eeb1/R/WPP.test.R)
+and reproduced in [Krit (2014), §3.2.5, (3.33)–(3.36)](https://theses.hal.science/tel-01126901/document).
+The fourth component includes a correction for skewness. No maximum-likelihood
+fit is used in either component.
+
+## Names and compatibility
+
+EWGoF's executable code defines **ST1 as skewness** and **ST2 as kurtosis**.
+Its [help page](https://search.r-project.org/CRAN/refmans/EWGoF/html/WPP.test.html)
+reverses these labels. The descriptive Python names remove this ambiguity;
+the historical aliases follow the executable source.
+
+The previous local delta-method discrepancies have been replaced. In particular,
+ST1 no longer divides by the asymptotic variance of sample skewness, and ST2
+no longer uses a covariance-based regression correction. Old critical values
+must be regenerated despite the preserved short codes.
 
 ## Usage
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    ST2WeibullGofStatistic,
+from pysatl_criterion.distribution import WeibullDistributionDescriptor as Weibull
+from pysatl_criterion.statistics.goodness_of_fit.continuous.weibull import (
+    BestRaynerThasKurtosisWeibullGofStatistic,
 )
 
-
-test_statistic = ST2WeibullGofStatistic(a=1, k=2)
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.65, 0.88, 1.12, 1.43, 1.76, 2.05, 2.44, 2.91, 3.37]
-)
-print(statistic_result)
+criterion = BestRaynerThasKurtosisWeibullGofStatistic(Weibull.DEFAULT.parse({}))
+value = criterion.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
 ```
 
-## Arguments
-`a` - Weibull distribution parameter. Default value is `1`.
+Both parameters must be unknown. Input must be one-dimensional, finite,
+strictly positive and nonconstant, with at least two observations. Ties are
+accepted. Invalid input raises `ValueError`; input arrays are not modified.
 
-`k` - Weibull distribution parameter. Default value is `1` for most statistics; `KolmogorovSmirnovWeibullGofStatistic` defaults to `5`.
+## Calibration
 
-`rvs` - array-like sample data passed to `execute_statistic`.
+Large values reject. At fixed sample size, invariance under $X\mapsto aX^b$
+for $a,b>0$ permits simulation with Weibull shape = scale = 1. Every replicate
+must undergo the same negative-log transformation and moment standardization.
+At $n=2$ the statistic is constant and cannot discriminate alternatives.
+Rounded or censored observations require calibration for that observation scheme.
 
-## Details
-The implementation evaluates the ST2 statistic for the supplied observations. For EDF-based statistics, observations are transformed with the Weibull cumulative distribution function. For spacing, probability plot, Laplace-transform, and moment-style statistics, the implementation follows the corresponding formulas in `pysatl_criterion.statistics.goodness_of_fit.weibull`.
+The return value is a statistic, not a p-value. The denominators are smooth
+polynomial normalizations, not delta-method variances after estimating location
+and scale. An unqualified $\chi^2_1$ approximation is not justified for these
+rounded implementations. Use finite-sample Monte Carlo calibration.
+Unversioned stored Weibull calibrations remain blocked.
 
-## Author(s)
-Alexey Mironov
+## Scientific reference and verification scope
 
-## References
-The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.weibull`.
+Best, D. J., Rayner, J. C. W., & Thas, O. (2007).
+[Comparison of Five Tests of Fit for the Extreme Value Distribution](https://doi.org/10.1080/15598608.2007.10411826).
+*Journal of Statistical Theory and Practice*, **1**(1), 89–99.
+[Author-uploaded copy](https://www.researchgate.net/publication/266965257_Comparison_of_Five_Tests_of_Fit_for_the_Extreme_Value_Distribution).
 
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    ST2WeibullGofStatistic,
-)
+The accessible author PDF contains printed pages 89–91 and 96–97 only;
+pages 92–95 and the appendices needed for direct formula verification are missing.
+Exact implementation coefficients were checked against EWGoF and Krit, not
+against the missing pages. Agreement with every example in the original article
+has therefore not been established.
 
+See the [mathematical validation](mathematical-validation.md#st1-and-st2-follow-up-verification)
+for reproducible numerical checks and the unresolved Port Pirie discrepancy.
 
-test_statistic = ST2WeibullGofStatistic(a=1, k=2)
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.65, 0.88, 1.12, 1.43, 1.76, 2.05, 2.44, 2.91, 3.37]
-)
-print(statistic_result)
-```
+For the 65 Port Pirie observations in Table 1, passing $X=\exp(-Y)$
+gives $V_4^2=0.37580214526699485$, whereas section 4 reports 0.36.
+The regression test verifies the EWGoF formula; it does not establish agreement
+with that reported value. The discrepancy remains unresolved.

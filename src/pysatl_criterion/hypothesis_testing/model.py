@@ -2,7 +2,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import ClassVar, TypeVar
 
-from pysatl_criterion.statistics import AbstractGoodnessOfFitStatistic
+from pysatl_criterion.statistics.goodness_of_fit.goodness_of_fit_statistic import (
+    AbstractGoodnessOfFitStatistic,
+)
 
 
 CriticalValue = float | tuple[float, float]

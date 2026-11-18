@@ -34,7 +34,7 @@ from pysatl_criterion.generator.generators import (
         (CauchyRVSGenerator(t=1, s=2), DistributionType.CAUCHY, {"t": 1, "s": 2}),
         (LaplaceRVSGenerator(t=1, s=2), DistributionType.LAPLACE, {"t": 1, "s": 2}),
         (LogisticRVSGenerator(t=1, s=2), DistributionType.LOGISTIC, {"t": 1, "s": 2}),
-        (TRVSGenerator(df=5), DistributionType.STUDENT, {"df": 5}),
+        (TRVSGenerator(df=5), DistributionType.STUDENT, {"df": 5, "loc": 0, "scale": 1}),
         (TukeyRVSGenerator(lam=0.5), DistributionType.TUKEY, {"lam": 0.5}),
         (LognormGenerator(s=1.5, mu=2), DistributionType.LOG_NORMAL, {"s": 1.5, "mu": 2}),
         (GammaGenerator(alfa=2, beta=3), DistributionType.GAMMA, {"alfa": 2, "beta": 3}),
@@ -45,7 +45,7 @@ from pysatl_criterion.generator.generators import (
         ),
         (Chi2Generator(df=6), DistributionType.CHI_2, {"df": 6}),
         (GumbelGenerator(mu=1, beta=2), DistributionType.GUMBEL, {"mu": 1, "beta": 2}),
-        (WeibullGenerator(a=2, k=5), DistributionType.WEIBULL, {"a": 2, "k": 5}),
+        (WeibullGenerator(scale=2, shape=5), DistributionType.WEIBULL, {"shape": 5, "scale": 2}),
         (LoConNormGenerator(p=0.25, a=2), DistributionType.LO_CON_NORMAL, {"p": 0.25, "a": 2}),
         (ScConNormGenerator(p=0.25, b=2), DistributionType.SCALE_CON_NORMAL, {"p": 0.25, "b": 2}),
         (
@@ -64,9 +64,16 @@ from pysatl_criterion.generator.generators import (
 def test_generator_metadata(generator, distribution_type, parameters):
     assert generator.parameters() == parameters
     assert generator.distribution_type() == distribution_type
+    code_parameters = {"df": 5} if distribution_type == DistributionType.STUDENT else parameters
     assert generator.code() == "_".join(
-        str(item) for item in [distribution_type, *parameters.values()]
+        str(item) for item in [distribution_type.value, *code_parameters.values()]
     )
+    with pytest.raises(TypeError, match="Unknown generator parameters: unexpected"):
+        type(generator)(**parameters, unexpected=1)
+
+
+def test_student_generator_code_includes_location_and_scale():
+    assert TRVSGenerator(df=5, loc=2, scale=3).code() == "student_5_2_3"
 
 
 @pytest.mark.parametrize(
@@ -83,7 +90,7 @@ def test_generator_metadata(generator, distribution_type, parameters):
         TruncnormGenerator(mean=1, var=2, a=-3, b=4),
         Chi2Generator(df=6),
         GumbelGenerator(mu=1, beta=2),
-        WeibullGenerator(a=2, k=5),
+        WeibullGenerator(scale=2, shape=5),
         LoConNormGenerator(p=0.25, a=2),
         ScConNormGenerator(p=0.25, b=2),
         MixConNormGenerator(p=0.25, a=2, b=3),

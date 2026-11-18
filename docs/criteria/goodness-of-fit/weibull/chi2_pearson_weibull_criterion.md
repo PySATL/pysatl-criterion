@@ -1,56 +1,84 @@
-# Pearson chi-squared test for Weibull distribution
+# Pearson chi-squared test for the Weibull family
 
 ## Description
-Performs Pearson chi-squared goodness-of-fit test for the hypothesis that the sample comes from a Weibull distribution.
-The implementation uses the Weibull distribution utilities from `pysatl_criterion.core.distributions.weibull` where applicable.
 
-Hypothesis of Weibull Distribution
-The null hypothesis is that the data comes from a Weibull distribution with parameters `a` and `k`.
-The observations passed to `execute_statistic` should be positive for statistics that use logarithms or Weibull probability plots.
+`Chi2PearsonWeibullGofStatistic` has algorithm code `CHI2_PEARSON_WEIBULL_GOODNESS_OF_FIT`.
+It is generated from the shared frequency kernel.
 
-Test Statistic
-The statistic is based on observed histogram frequencies compared with expected Weibull probabilities.
+The null is the ordinary Weibull family with zero location:
+
+$$
+F(x;k,\eta)=1-\exp\left[-(x/\eta)^k\right],\qquad x>0,\quad k,\eta>0.
+$$
+
+Both parameters are fitted by maximum likelihood for every sample.
 
 ## Usage
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import WeibullDistributionDescriptor as Weibull
+from pysatl_criterion.statistics.goodness_of_fit.binning import EqualProbabilityBins
+from pysatl_criterion.statistics.goodness_of_fit.continuous.weibull import (
     Chi2PearsonWeibullGofStatistic,
 )
 
-
-test_statistic = Chi2PearsonWeibullGofStatistic(a=1, k=2)
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.65, 0.88, 1.12, 1.43, 1.76, 2.05, 2.44, 2.91, 3.37]
+criterion = Chi2PearsonWeibullGofStatistic(
+    Weibull.DEFAULT.parse({}), binning=EqualProbabilityBins(count=3)
 )
-print(statistic_result)
+statistic = criterion.execute_statistic([0.3, 0.6, 1.0, 1.4, 2.2])
+print(statistic)
 ```
 
 ## Arguments
-`a` - Weibull distribution parameter. Default value is `1`.
 
-`k` - Weibull distribution parameter. Default value is `1` for most statistics; `KolmogorovSmirnovWeibullGofStatistic` defaults to `5`.
+`parameters` — `Weibull.DEFAULT.parse({})`, declaring both shape and scale
+unknown. Fixed or partially fixed parameter sets are unsupported.
 
-`rvs` - array-like sample data passed to `execute_statistic`.
+`rvs` — a one-dimensional, finite, strictly positive, nonconstant sample with
+at least two observations. Ties are allowed. Invalid samples raise `ValueError`.
+The input is not modified and fitted parameters are not retained on the instance.
+
+`binning` — keyword-only `BinningStrategy`, default `EqualProbabilityBins()`.
+See [binning strategies](../binning/index.md). The chosen rule is included in
+`configuration()`; changing it changes the statistic's calibration.
 
 ## Details
-The implementation evaluates the Pearson chi-squared statistic for the supplied observations. For EDF-based statistics, observations are transformed with the Weibull cumulative distribution function. For spacing, probability plot, Laplace-transform, and moment-style statistics, the implementation follows the corresponding formulas in `pysatl_criterion.statistics.goodness_of_fit.weibull`.
 
-## Author(s)
-Alexey Mironov
+After fitting, the selected binning rule constructs observed counts $O_j$
+and strictly positive expected counts $E_j=n p_j$. For interval bins with
+boundaries $b_0,\ldots,b_m$,
+
+$$
+p_j=F(b_j;\widehat k,\widehat\eta)-F(b_{j-1};\widehat k,\widehat\eta).
+$$
+
+The rule must account for all observations. Equal-probability bins use quantiles
+of the fitted distribution, giving $E_j=n/m$ before any rule-specific merging.
+
+$$
+X^2=\sum_{j=1}^{m}\frac{(O_j-E_j)^2}{E_j}.
+$$
+
+Power divergence with $\lambda=1$. An empty observed bin contributes $E_j$.
+
+## Calibration
+
+Large values form the right-tail rejection region. `execute_statistic` returns
+a statistic, not a p-value. For `EqualProbabilityBins`, simulate ordinary Weibull
+samples at shape = scale = 1, refit both parameters, and reconstruct the bins in
+every replicate. Keep the sample size and binning settings identical.
+
+The built-in Monte Carlo resolver supports this invariant binning rule. Other
+rules, including fixed boundaries in observation units, require external
+calibration with explicit simulation parameters. A chi-squared reference with
+an automatically chosen number of degrees of freedom is not supplied or justified
+by this implementation. Stored unversioned Weibull critical values are rejected.
 
 ## References
-The statistic follows the implementation in `pysatl_criterion.statistics.goodness_of_fit.weibull`.
 
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    Chi2PearsonWeibullGofStatistic,
-)
+Pearson, K. (1900). [On the criterion that a given system of deviations from the probable in the case of a correlated system of variables is such that it can be reasonably supposed to have arisen from random sampling](https://doi.org/10.1080/14786440009463897). *Philosophical Magazine*, 50, 157–175.
 
+The reference describes the frequency discrepancy; the fitted-Weibull binning and calibration procedure above specifies its use in this library.
 
-test_statistic = Chi2PearsonWeibullGofStatistic(a=1, k=2)
-statistic_result = test_statistic.execute_statistic(
-    [0.42, 0.65, 0.88, 1.12, 1.43, 1.76, 2.05, 2.44, 2.91, 3.37]
-)
-print(statistic_result)
-```
+See the [Weibull criterion catalog](index.md) for all implementations and shared
+calibration requirements.

@@ -9,12 +9,15 @@ The null hypothesis is that the sample comes from a uniform distribution on the 
 
 ## Usage
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import UniformDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.continuous import (
     GreenwoodTestUniformGofStatistic,
 )
 
 
-test_statistic = GreenwoodTestUniformGofStatistic(a=0, b=1)
+test_statistic = GreenwoodTestUniformGofStatistic(
+    UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+)
 statistic_result = test_statistic.execute_statistic([0.12, 0.25, 0.41, 0.53, 0.77, 0.91])
 print(statistic_result)
 ```
@@ -40,13 +43,24 @@ Aleksandr Podmarev, Alexey Mironov
 Greenwood, M. (1946): The statistical study of infectious diseases. - Journal of the Royal Statistical Society, Series A, vol. 109, pp. 85-110.
 
 ## Examples
+
+### Constructing with `ParameterValues`
+
+Create `ParameterValues` with both fixed boundaries, then pass it to
+the constructor. It validates the supported parameterization and exact fixed
+parameter set. Omitted bounds are not filled in:
+a partial mapping such as `{"a": 0}` raises `ValueError` in the constructor.
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import UniformDistributionDescriptor as Uniform
+from pysatl_criterion.statistics.goodness_of_fit.continuous import (
     GreenwoodTestUniformGofStatistic,
 )
 
 
-test_statistic = GreenwoodTestUniformGofStatistic(a=0, b=1)
+parameters = Uniform.DEFAULT.parse({"a": 0, "b": 1})
+test_statistic = GreenwoodTestUniformGofStatistic(parameters)
+assert test_statistic.hypothesis().parameters() == {"a": 0, "b": 1}
 statistic_result = test_statistic.execute_statistic([0.12, 0.25, 0.41, 0.53, 0.77, 0.91])
 print(statistic_result)
 ```

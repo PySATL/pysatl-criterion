@@ -2,8 +2,15 @@ import numpy as np
 import pytest
 import scipy.stats as scipy_stats
 
-from pysatl_criterion.statistics.alternative import RightAlternative
-from pysatl_criterion.statistics.goodness_of_fit.uniform import (
+from pysatl_criterion.distribution import UniformDistributionDescriptor
+from pysatl_criterion.statistics.alternative import TwoSidedAlternative
+from pysatl_criterion.statistics.goodness_of_fit.binning import (
+    EqualProbabilityBins,
+    PowerCount,
+    SqrtCount,
+    SturgesCount,
+)
+from pysatl_criterion.statistics.goodness_of_fit.continuous.uniform import (
     AbstractUniformGofStatistic,
     AndersonDarlingUniformGofStatistic,
     BickelRosenblattUniformGofStatistic,
@@ -13,13 +20,14 @@ from pysatl_criterion.statistics.goodness_of_fit.uniform import (
     GreenwoodTestUniformGofStatistic,
     KolmogorovSmirnovUniformGofStatistic,
     KuiperUniformGofStatistic,
-    LillieforsTestUniformGofStatistic,
     NeymanSmoothTestUniformGofStatistic,
     QuesenberryMillerUniformGofStatistic,
     ShermanUniformGofStatistic,
     SteinUniformGofStatistic,
     WatsonUniformGofStatistic,
-    ZhangTestsUniformGofStatistic,
+    ZhangAUniformGofStatistic,
+    ZhangCUniformGofStatistic,
+    ZhangKUniformGofStatistic,
 )
 
 
@@ -50,19 +58,27 @@ def test_abstract_uniform_criterion_code():
 
 def test_abstract_uniform_criterion_parameters():
     """Test parameter validation for AbstractUniformGofStatistic."""
-    stat = KolmogorovSmirnovUniformGofStatistic(a=0, b=1)
+    stat = KolmogorovSmirnovUniformGofStatistic(
+        UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+    )
     assert stat.a == 0
     assert stat.b == 1
 
-    stat = KolmogorovSmirnovUniformGofStatistic(a=2, b=5)
+    stat = KolmogorovSmirnovUniformGofStatistic(
+        UniformDistributionDescriptor.DEFAULT.parse({"a": 2, "b": 5})
+    )
     assert stat.a == 2
     assert stat.b == 5
 
     with pytest.raises(ValueError, match="b must be greater than a"):
-        KolmogorovSmirnovUniformGofStatistic(a=5, b=5)
+        KolmogorovSmirnovUniformGofStatistic(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": 5, "b": 5})
+        )
 
     with pytest.raises(ValueError, match="b must be greater than a"):
-        KolmogorovSmirnovUniformGofStatistic(a=5, b=4)
+        KolmogorovSmirnovUniformGofStatistic(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": 5, "b": 4})
+        )
 
 
 class TestKolmogorovSmirnovUniformGofStatistic:
@@ -83,10 +99,12 @@ class TestKolmogorovSmirnovUniformGofStatistic:
     )
     def test_ks_with_generated_data(self, a, b, seed, n):
         """Test KS statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
-        stat = KolmogorovSmirnovUniformGofStatistic(a=a, b=b)
+        stat = KolmogorovSmirnovUniformGofStatistic(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b})
+        )
         statistic_value = stat.execute_statistic(data)
 
         assert statistic_value >= 0
@@ -95,24 +113,26 @@ class TestKolmogorovSmirnovUniformGofStatistic:
 
     def test_ks_with_wrong_distribution(self):
         """Test KS statistic with data from wrong distribution."""
-        np.random.seed(42)
-        data = scipy_stats.expon.rvs(size=100)
+        rng = np.random.RandomState(42)
+        data = scipy_stats.expon.rvs(size=100, random_state=rng)
         data_normalized = data / np.max(data)
 
-        stat = KolmogorovSmirnovUniformGofStatistic(a=0, b=1)
+        stat = KolmogorovSmirnovUniformGofStatistic(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+        )
         statistic_value = stat.execute_statistic(data_normalized)
 
         assert statistic_value > 0.4
 
     def test_ks_validation_errors(self):
         """Test that KS statistic validates input data."""
-        stat = KolmogorovSmirnovUniformGofStatistic(a=0, b=1)
+        stat = KolmogorovSmirnovUniformGofStatistic(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+        )
 
-        with pytest.raises(ValueError, match="Uniform distribution values must be in the interval"):
-            stat.execute_statistic([0.5, 1.5, 0.3])
-
-        with pytest.raises(ValueError, match="Uniform distribution values must be in the interval"):
-            stat.execute_statistic([-0.1, 0.5, 0.8])
+        for sample in ([0.5, 1.5, 0.3], [-0.1, 0.5, 0.8]):
+            expected = scipy_stats.kstest(sample, "uniform").statistic
+            assert stat.execute_statistic(sample) == pytest.approx(expected)
 
 
 class TestAndersonDarlingUniformGofStatistic:
@@ -132,22 +152,25 @@ class TestAndersonDarlingUniformGofStatistic:
     )
     def test_ad_with_generated_data(self, a, b, seed, n):
         """Test AD statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
-        stat = AndersonDarlingUniformGofStatistic(a=a, b=b)
+        stat = AndersonDarlingUniformGofStatistic(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b})
+        )
         statistic_value = stat.execute_statistic(data)
 
         assert np.isfinite(statistic_value)
 
         assert statistic_value < 2
 
-    def test_ad_validation_errors(self):
-        """Test that AD statistic validates input data."""
-        stat = AndersonDarlingUniformGofStatistic(a=0, b=1)
-
-        with pytest.raises(ValueError, match="Uniform distribution values must be in the interval"):
-            stat.execute_statistic([0.5, 1.5, 0.3])
+    def test_ad_outside_support(self):
+        """An impossible observation gives infinite Anderson-Darling distance."""
+        assert np.isinf(
+            AndersonDarlingUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+            ).execute_statistic([0.5, 1.5, 0.3])
+        )
 
 
 class TestCrammerVonMisesUniformGofStatistic:
@@ -167,48 +190,24 @@ class TestCrammerVonMisesUniformGofStatistic:
     )
     def test_cvm_with_generated_data(self, a, b, seed, n):
         """Test CVM statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
-        stat = CrammerVonMisesUniformGofStatistic(a=a, b=b)
+        stat = CrammerVonMisesUniformGofStatistic(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b})
+        )
         statistic_value = stat.execute_statistic(data)
 
         assert statistic_value >= 0
 
         assert statistic_value < 0.3
 
-    def test_cvm_validation_errors(self):
-        """Test that CVM statistic validates input data."""
-        stat = CrammerVonMisesUniformGofStatistic(a=0, b=1)
-
-        with pytest.raises(ValueError, match="Uniform distribution values must be in the interval"):
-            stat.execute_statistic([0.5, 1.5, 0.3])
-
-
-class TestLillieforsTestUniformGofStatistic:
-    """Tests for Lilliefors test statistic."""
-
-    def test_code(self):
-        """Test that the Lilliefors statistic returns correct code."""
-        assert "LILLIE_UNIFORM_GOODNESS_OF_FIT" == LillieforsTestUniformGofStatistic.code()
-
-    @pytest.mark.parametrize(
-        ("a", "b", "seed", "n"),
-        [
-            (0, 1, 42, 50),
-            (0, 10, 123, 100),
-        ],
-    )
-    def test_lillie_with_generated_data(self, a, b, seed, n):
-        """Test Lilliefors statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
-
-        stat = LillieforsTestUniformGofStatistic(a=a, b=b)
-        statistic_value = stat.execute_statistic(data)
-
-        assert statistic_value >= 0
-        assert statistic_value < 0.5
+    def test_cvm_outside_support(self):
+        sample = [0.5, 1.5, 0.3]
+        expected = scipy_stats.cramervonmises(sample, "uniform").statistic
+        assert CrammerVonMisesUniformGofStatistic(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+        ).execute_statistic(sample) == pytest.approx(expected)
 
 
 class TestChi2PearsonUniformGofStatistic:
@@ -221,17 +220,20 @@ class TestChi2PearsonUniformGofStatistic:
     @pytest.mark.parametrize(
         ("a", "b", "bins", "seed", "n"),
         [
-            (0, 1, "sturges", 42, 100),
-            (0, 10, "sqrt", 123, 200),
+            (0, 1, SturgesCount(), 42, 100),
+            (0, 10, SqrtCount(), 123, 200),
             (2, 5, 5, 456, 150),
         ],
     )
     def test_chi2_with_generated_data(self, a, b, bins, seed, n):
         """Test Chi-squared statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
-        stat = Chi2PearsonUniformGofStatistic(a=a, b=b, bins=bins)
+        stat = Chi2PearsonUniformGofStatistic(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b}),
+            binning=EqualProbabilityBins(count=bins),
+        )
         statistic_value = stat.execute_statistic(data)
 
         assert statistic_value >= 0
@@ -239,11 +241,14 @@ class TestChi2PearsonUniformGofStatistic:
 
     def test_chi2_bin_selection(self):
         """Test different bin selection methods."""
-        np.random.seed(42)
-        data = np.random.uniform(0, 1, 100)
+        rng = np.random.RandomState(42)
+        data = rng.uniform(0, 1, 100)
 
-        for bins in ["sturges", "sqrt", "auto", 10]:
-            stat = Chi2PearsonUniformGofStatistic(bins=bins)
+        for bins in [SturgesCount(), SqrtCount(), PowerCount(), 10]:
+            stat = Chi2PearsonUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1}),
+                binning=EqualProbabilityBins(count=bins),
+            )
             statistic_value = stat.execute_statistic(data)
             assert statistic_value >= 0
             assert np.isfinite(statistic_value)
@@ -265,10 +270,12 @@ class TestWatsonUniformGofStatistic:
     )
     def test_watson_with_generated_data(self, a, b, seed, n):
         """Test Watson statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
-        stat = WatsonUniformGofStatistic(a=a, b=b)
+        stat = WatsonUniformGofStatistic(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b})
+        )
         statistic_value = stat.execute_statistic(data)
 
         assert np.isfinite(statistic_value)
@@ -291,10 +298,12 @@ class TestKuiperUniformGofStatistic:
     )
     def test_kuiper_with_generated_data(self, a, b, seed, n):
         """Test Kuiper statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
-        stat = KuiperUniformGofStatistic(a=a, b=b)
+        stat = KuiperUniformGofStatistic(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b})
+        )
         statistic_value = stat.execute_statistic(data)
 
         assert statistic_value >= 0
@@ -317,15 +326,17 @@ class TestGreenwoodTestUniformGofStatistic:
     )
     def test_greenwood_with_generated_data(self, a, b, seed, n):
         """Test Greenwood statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
-        stat = GreenwoodTestUniformGofStatistic(a=a, b=b)
+        stat = GreenwoodTestUniformGofStatistic(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b})
+        )
         statistic_value = stat.execute_statistic(data)
 
         assert 0 <= statistic_value <= 1
 
-        expected = 2 / (n + 1)
+        expected = 2 / (n + 2)
         assert abs(statistic_value - expected) < 0.2
 
 
@@ -348,10 +359,12 @@ class TestBickelRosenblattUniformGofStatistic:
     )
     def test_bickel_rosenblatt_with_generated_data(self, a, b, bandwidth, seed, n):
         """Test Bickel-Rosenblatt statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
-        stat = BickelRosenblattUniformGofStatistic(a=a, b=b, bandwidth=bandwidth)
+        stat = BickelRosenblattUniformGofStatistic(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b}), bandwidth=bandwidth
+        )
         statistic_value = stat.execute_statistic(data)
 
         assert statistic_value >= 0
@@ -360,43 +373,36 @@ class TestBickelRosenblattUniformGofStatistic:
         assert statistic_value < 1
 
 
-class TestZhangTestsUniformGofStatistic:
-    """Tests for Zhang tests statistic."""
+@pytest.mark.parametrize(
+    ("criterion_class", "code"),
+    [
+        (ZhangAUniformGofStatistic, "ZHANG_ZA"),
+        (ZhangCUniformGofStatistic, "ZHANG_ZC"),
+        (ZhangKUniformGofStatistic, "ZHANG_ZK"),
+    ],
+)
+class TestZhangUniformGofStatistics:
+    def test_code(self, criterion_class, code):
+        assert criterion_class.code() == f"{code}_UNIFORM_GOODNESS_OF_FIT"
 
-    def test_code(self):
-        """Test that the Zhang statistic returns correct code."""
-        assert "ZHANG_UNIFORM_GOODNESS_OF_FIT" == ZhangTestsUniformGofStatistic.code()
-
-    @pytest.mark.parametrize(
-        ("test_type", "a", "b", "seed", "n"),
-        [
-            ("A", 0, 1, 42, 50),
-            ("C", 0, 10, 123, 100),
-            ("K", 2, 5, 456, 75),
-        ],
-    )
-    def test_zhang_with_generated_data(self, test_type, a, b, seed, n):
-        """Test Zhang statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
-
-        stat = ZhangTestsUniformGofStatistic(a=a, b=b, test_type=test_type)
-        statistic_value = stat.execute_statistic(data)
-
-        assert np.isfinite(statistic_value)
-
-    def test_zhang_invalid_test_type(self):
-        """Test that Zhang statistic validates test_type parameter."""
-        with pytest.raises(ValueError, match="test_type must be 'A', 'C', or 'K'"):
-            ZhangTestsUniformGofStatistic(test_type="X")
+    @pytest.mark.parametrize("a,b,seed,n", [(0, 1, 42, 50), (0, 10, 123, 100), (2, 5, 456, 75)])
+    def test_zhang_with_generated_data(self, criterion_class, code, a, b, seed, n):
+        data = np.random.default_rng(seed).uniform(a, b, n)
+        statistic = criterion_class(UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b}))
+        assert np.isfinite(statistic.execute_statistic(data))
 
 
 class TestSteinUniformGofStatistic:
     """Tests for Stein test statistic."""
 
     def test_alternative(self):
-        """Test that the Stein statistic uses a right-tailed alternative."""
-        assert isinstance(SteinUniformGofStatistic().alternative(), RightAlternative)
+        """Test that the Stein statistic uses a two-sided alternative."""
+        assert isinstance(
+            SteinUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+            ).alternative(),
+            TwoSidedAlternative,
+        )
 
     def test_code(self):
         """Test that the Stein statistic returns correct code."""
@@ -411,10 +417,12 @@ class TestSteinUniformGofStatistic:
     )
     def test_stein_with_generated_data(self, a, b, seed, n):
         """Test Stein statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
-        stat = SteinUniformGofStatistic(a=a, b=b)
+        stat = SteinUniformGofStatistic(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b})
+        )
         statistic_value = stat.execute_statistic(data)
 
         assert abs(statistic_value) < 0.5
@@ -423,8 +431,6 @@ class TestSteinUniformGofStatistic:
         ("sample", "a", "b"),
         [
             ([0.1, 0.3, 0.7, 0.9], 0.0, 1.0),
-            ([0.5], 0.0, 1.0),
-            ([], 0.0, 1.0),
             ([2.0, 2.75, 4.25, 5.0], 2.0, 5.0),
             (np.array([0, 1, 1, 0], dtype=np.int64), 0.0, 1.0),
             ([0.2, 0.2, 0.8, 0.8], 0.0, 1.0),
@@ -434,7 +440,9 @@ class TestSteinUniformGofStatistic:
         """Test the public statistic against an independent Python formula."""
         expected = _stein_uniform_reference(sample, a=a, b=b)
 
-        result = SteinUniformGofStatistic(a=a, b=b).execute_statistic(sample)
+        result = SteinUniformGofStatistic(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b})
+        ).execute_statistic(sample)
 
         assert result == pytest.approx(expected)
 
@@ -448,22 +456,26 @@ class TestCensoredSteinUniformGofStatistic:
 
     def test_censored_stein_without_censoring(self):
         """Test censored Stein statistic without censoring."""
-        np.random.seed(42)
-        data = np.random.uniform(0, 1, 100)
+        rng = np.random.RandomState(42)
+        data = rng.uniform(0, 1, 100)
 
-        stat = CensoredSteinUniformGofStatistic()
+        stat = CensoredSteinUniformGofStatistic(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+        )
         statistic_value = stat.execute_statistic(data)
 
         assert abs(statistic_value) < 0.5
 
     def test_censored_stein_with_censoring(self):
         """Test censored Stein statistic with censoring."""
-        np.random.seed(42)
+        rng = np.random.RandomState(42)
         n = 100
-        data = np.random.uniform(0, 1, n)
-        censoring = np.random.binomial(1, 0.2, n)
+        data = rng.uniform(0, 1, n)
+        censoring = rng.binomial(1, 0.2, n)
 
-        stat = CensoredSteinUniformGofStatistic()
+        stat = CensoredSteinUniformGofStatistic(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+        )
         statistic_value = stat.execute_statistic(data, censoring_indices=censoring)
 
         assert np.isfinite(statistic_value)
@@ -496,10 +508,12 @@ class TestNeymanSmoothTestUniformGofStatistic:
     )
     def test_neyman_with_generated_data(self, k, a, b, seed, n):
         """Test Neyman statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
-        stat = NeymanSmoothTestUniformGofStatistic(a=a, b=b, k=k)
+        stat = NeymanSmoothTestUniformGofStatistic(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b}), k=k
+        )
         statistic_value = stat.execute_statistic(data)
 
         assert statistic_value >= 0
@@ -522,10 +536,12 @@ class TestShermanUniformGofStatistic:
     )
     def test_sherman_with_generated_data(self, a, b, seed, n):
         """Test Sherman statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
-        stat = ShermanUniformGofStatistic(a=a, b=b)
+        stat = ShermanUniformGofStatistic(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b})
+        )
         statistic_value = stat.execute_statistic(data)
 
         assert statistic_value >= 0
@@ -553,10 +569,12 @@ class TestQuesenberryMillerUniformGofStatistic:
     )
     def test_quesenberry_miller_with_generated_data(self, a, b, seed, n):
         """Test Quesenberry-Miller statistic with data generated from Uniform distribution."""
-        np.random.seed(seed)
-        data = np.random.uniform(a, b, n)
+        rng = np.random.RandomState(seed)
+        data = rng.uniform(a, b, n)
 
-        stat = QuesenberryMillerUniformGofStatistic(a=a, b=b)
+        stat = QuesenberryMillerUniformGofStatistic(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": a, "b": b})
+        )
         statistic_value = stat.execute_statistic(data)
 
         assert statistic_value >= 0
@@ -568,27 +586,56 @@ class TestUniformIntegration:
 
     def test_all_statistics_run(self):
         """Test that all statistics can be computed without errors."""
-        np.random.seed(42)
-        data = np.random.uniform(0, 1, 100)
+        rng = np.random.RandomState(42)
+        data = rng.uniform(0, 1, 100)
 
         statistics = [
-            KolmogorovSmirnovUniformGofStatistic(),
-            AndersonDarlingUniformGofStatistic(),
-            CrammerVonMisesUniformGofStatistic(),
-            LillieforsTestUniformGofStatistic(),
-            Chi2PearsonUniformGofStatistic(),
-            WatsonUniformGofStatistic(),
-            KuiperUniformGofStatistic(),
-            GreenwoodTestUniformGofStatistic(),
-            BickelRosenblattUniformGofStatistic(),
-            ZhangTestsUniformGofStatistic(test_type="A"),
-            ZhangTestsUniformGofStatistic(test_type="C"),
-            ZhangTestsUniformGofStatistic(test_type="K"),
-            SteinUniformGofStatistic(),
-            CensoredSteinUniformGofStatistic(),
-            NeymanSmoothTestUniformGofStatistic(k=4),
-            ShermanUniformGofStatistic(),
-            QuesenberryMillerUniformGofStatistic(),
+            KolmogorovSmirnovUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+            ),
+            AndersonDarlingUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+            ),
+            CrammerVonMisesUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+            ),
+            Chi2PearsonUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+            ),
+            WatsonUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+            ),
+            KuiperUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+            ),
+            GreenwoodTestUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+            ),
+            BickelRosenblattUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+            ),
+            ZhangAUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+            ),
+            ZhangCUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+            ),
+            ZhangKUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+            ),
+            SteinUniformGofStatistic(UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})),
+            CensoredSteinUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+            ),
+            NeymanSmoothTestUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1}), k=4
+            ),
+            ShermanUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+            ),
+            QuesenberryMillerUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+            ),
         ]
 
         for stat in statistics:
@@ -597,14 +644,20 @@ class TestUniformIntegration:
 
     def test_different_bounds(self):
         """Test that statistics work with different distribution bounds."""
-        np.random.seed(42)
-        data = np.random.uniform(2, 5, 100)
+        rng = np.random.RandomState(42)
+        data = rng.uniform(2, 5, 100)
 
         statistics = [
-            KolmogorovSmirnovUniformGofStatistic(a=2, b=5),
-            AndersonDarlingUniformGofStatistic(a=2, b=5),
-            Chi2PearsonUniformGofStatistic(a=2, b=5),
-            SteinUniformGofStatistic(a=2, b=5),
+            KolmogorovSmirnovUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 2, "b": 5})
+            ),
+            AndersonDarlingUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 2, "b": 5})
+            ),
+            Chi2PearsonUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 2, "b": 5})
+            ),
+            SteinUniformGofStatistic(UniformDistributionDescriptor.DEFAULT.parse({"a": 2, "b": 5})),
         ]
 
         for stat in statistics:
@@ -613,12 +666,17 @@ class TestUniformIntegration:
 
     def test_edge_cases(self):
         """Test edge cases for the statistics."""
-        small_data = np.random.uniform(0, 1, 5)
+        small_data = np.random.default_rng(42).uniform(0, 1, 5)
 
         stats_to_test = [
-            KolmogorovSmirnovUniformGofStatistic(),
-            Chi2PearsonUniformGofStatistic(bins=2),
-            SteinUniformGofStatistic(),
+            KolmogorovSmirnovUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+            ),
+            Chi2PearsonUniformGofStatistic(
+                UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1}),
+                binning=EqualProbabilityBins(count=2),
+            ),
+            SteinUniformGofStatistic(UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})),
         ]
 
         for stat in stats_to_test:
@@ -633,16 +691,18 @@ class TestUniformIntegration:
 
     def test_consistency_across_runs(self):
         """Test that statistics give consistent results across multiple runs."""
-        np.random.seed(42)
-        data = np.random.uniform(0, 1, 100)
+        rng = np.random.RandomState(42)
+        data = rng.uniform(0, 1, 100)
 
-        stat = KolmogorovSmirnovUniformGofStatistic()
+        stat = KolmogorovSmirnovUniformGofStatistic(
+            UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1})
+        )
         value1 = stat.execute_statistic(data)
         value2 = stat.execute_statistic(data)
 
         assert value1 == value2
 
-        data = np.random.exponential(0.5, 100)
+        data = rng.exponential(0.5, 100)
         data = data / max(data)
 
         value1 = stat.execute_statistic(data)

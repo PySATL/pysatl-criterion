@@ -9,12 +9,15 @@ The null hypothesis is that the sample comes from a uniform distribution on the 
 
 ## Usage
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import UniformDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.continuous import (
     NeymanSmoothTestUniformGofStatistic,
 )
 
 
-test_statistic = NeymanSmoothTestUniformGofStatistic(a=0, b=1, k=4)
+test_statistic = NeymanSmoothTestUniformGofStatistic(
+    UniformDistributionDescriptor.DEFAULT.parse({"a": 0, "b": 1}), k=4
+)
 statistic_result = test_statistic.execute_statistic([0.12, 0.25, 0.41, 0.53, 0.77, 0.91])
 print(statistic_result)
 ```
@@ -42,13 +45,26 @@ Aleksandr Podmarev, Alexey Mironov
 Neyman, J. (1937): Smooth test for goodness of fit. - Skandinavisk Aktuarietidskrift, vol. 20, pp. 149-199.
 
 ## Examples
+
+### Constructing with `ParameterValues`
+
+Create `ParameterValues` with both fixed boundaries, then pass it to
+the constructor. It validates the supported parameterization and exact fixed
+parameter set. Omitted bounds are not filled in:
+a partial mapping such as `{"a": 0}` raises `ValueError` in the constructor.
+
+Algorithm options (`k` here) are passed separately, outside `ParameterValues`.
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import UniformDistributionDescriptor as Uniform
+from pysatl_criterion.statistics.goodness_of_fit.continuous import (
     NeymanSmoothTestUniformGofStatistic,
 )
 
 
-test_statistic = NeymanSmoothTestUniformGofStatistic(a=0, b=1, k=4)
+parameters = Uniform.DEFAULT.parse({"a": 0, "b": 1})
+test_statistic = NeymanSmoothTestUniformGofStatistic(parameters, k=4)
+assert test_statistic.hypothesis().parameters() == {"a": 0, "b": 1}
 statistic_result = test_statistic.execute_statistic([0.12, 0.25, 0.41, 0.53, 0.77, 0.91])
 print(statistic_result)
 ```

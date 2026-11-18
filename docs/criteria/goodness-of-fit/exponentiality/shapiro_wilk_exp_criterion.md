@@ -1,69 +1,63 @@
-# Shapiro-Wilk test for exponentiality
+# Shapiro–Wilk exponential W exponentiality criterion
 
-## Description
-Performs Shapiro-Wilk test for the composite hypothesis of exponentiality, see e.g. Shapiro and Wilk (1972).
-The Shapiro-Wilk test for exponentiality is a statistical hypothesis test used to assess the composite hypothesis of exponentiality. This test adapts the analysis-of-variance idea behind the Shapiro-Wilk normality test to the exponential distribution.
+`ShapiroWilkExponentialityGofStatistic` — short code `SW`; both tails.
 
-Composite Hypothesis of Exponentiality
-The composite hypothesis of exponentiality refers to the null hypothesis that the data comes from an exponential distribution with an unspecified rate parameter
-lambda. The Shapiro-Wilk exponentiality statistic is scale invariant because it compares the squared distance between the sample mean and the sample minimum with the sample variance around the mean.
+[All exponential criteria](index.md) · [Mathematical verification](mathematical-validation.md)
 
-Test Statistic
-The Shapiro-Wilk exponentiality test statistic is a W-type statistic for complete samples from an exponential distribution. It is based on the ratio of a squared linear estimate of the scale to the usual sum of squares about the sample mean.
+## Hypothesis and formula
 
-Calculate the Test Statistic: The observations are sorted, the sample mean is calculated, the squared difference between the sample mean and the smallest observation is multiplied by the sample size, and the result is divided by the centered sum of squares multiplied by `n - 1`.
+The model is $F(x)=1-\exp(-\lambda x)$ for $x\ge0$, with known origin zero and $\lambda>0$.
+Unknown rate only: pass `E.DEFAULT.parse({})`.
+Omitted parameters remain unknown. Where fitting is needed, $\widehat\lambda=1/\bar x$
+is recomputed for each sample; no fitted state is retained.
 
-Limitations
-The test assumes nonnegative lifetime-type observations.
+Write $y_i=x_i/\bar x$, $u_i=1-\exp(-\lambda x_{(i)})$ with the specified or
+fitted rate, $D^+=\max_i(i/n-u_i)$ and $D^-=\max_i(u_i-(i-1)/n)$.
+For spacing statistics, $d_i=(n-i+1)(x_{(i)}-x_{(i-1)})$ and $x_{(0)}=0$.
+For frequency statistics, $O_j$ and $E_j=np_j>0$ are aligned counts.
 
-The statistic requires at least two distinct observations because the denominator is based on the centered sum of squares.
+$$
+\frac{n(\bar x-x_{(1)})^2}{(n-1)\sum_i(x_i-\bar x)^2}
+$$
 
-## Usage
+n>=3 and nonconstant observations; both tails. Translation invariance means that this statistic cannot detect a positive shift of an exponential distribution, despite the zero-origin input model. This is not the normality Shapiro–Wilk statistic.
+
+## Input and calibration
+
+Observations must be finite, real, nonnegative and one-dimensional. Masked
+observations are rejected. Fixed-rate generated criteria accept $n\ge1$;
+unknown-rate EDF/frequency criteria require $n\ge2$ and positive total.
+Specialized criteria may require more observations, distinct spacings or a
+nonconstant sample, as stated above and in the class contract. Ties are not
+silently jittered. Infinite mathematical boundary penalties are retained.
+
+`execute_statistic` returns a statistic, not a p-value. Use
+`monte_carlo_exponential` with the same sample size and constructor settings.
+It refits each simulated sample for a composite hypothesis. Rescaling to
+Exp(1) is justified only for a scale-invariant statistic. A continuous-null
+calibration does not model rounding, censoring or dependence.
+
+## Runnable example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import ExponentialDistributionDescriptor as E
+from pysatl_criterion.statistics.goodness_of_fit.continuous.exponent import (
     ShapiroWilkExponentialityGofStatistic,
 )
 
-
-test_statistic = ShapiroWilkExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
+sample = [0.12, 0.30, 0.55, 0.90, 1.40, 2.10, 3.20, 4.80]
+criterion = ShapiroWilkExponentialityGofStatistic(E.DEFAULT.parse({}))
+value = criterion.execute_statistic(sample)
+print(value)
 ```
 
-## Arguments
-`rvs` - array-like sample data passed to `execute_statistic`.
+## Scientific references and verification status
 
-## Details
+[Shapiro and Wilk (1972), An analysis of variance test for the exponential distribution (complete samples)](https://doi.org/10.1080/00401706.1972.10488921).
 
-The Shapiro-Wilk test is a test for the composite hypothesis of exponentiality. Let $X_{(1)}$ denote the sample minimum. The test statistic implemented here is
+[Spinelli and Stephens (1987), Tests for exponentiality when origin and scale parameters are unknown, §3](https://www.stat.cmu.edu/technometrics/80-89/VOL-29-04/v2904471.pdf).
 
-$$ SW_n = \frac{n(\overline{X}-X_{(1)})^2}{(n-1)\sum_{i=1}^{n}(X_i-\overline{X})^2}, $$
-
-where $n$ is the sample size and $\overline{X}$ is the sample mean.
-
-The statistic is scale invariant and is bounded between its lower endpoint and 1 for nonconstant samples.
-
-The implementation uses a left-sided alternative, so small values of $SW_n$ indicate larger deviations from the exponential model in the direction used by this statistic.
-
-## Author(s)
-Lev Golofastov
-
-## References
-Shapiro, S.S. and Wilk, M.B. (1972): An analysis of variance test for the exponential distribution (complete samples). - Technometrics, vol. 14, no. 2, pp. 355-370. https://doi.org/10.1080/00401706.1972.10488921
-
-Shapiro, S.S. and Wilk, M.B. (1965): An analysis of variance test for normality (complete samples). - Biometrika, vol. 52, no. 3/4, pp. 591-611.
-
-Henze, N. and Meintanis, S.G. (2005): Recent and classical tests for exponentiality: a partial review with comparisons. - Metrika, vol. 61, pp. 29-45.
-
-## Examples
-
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    ShapiroWilkExponentialityGofStatistic,
-)
-
-
-test_statistic = ShapiroWilkExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
-```
+The formula and input behavior are tested independently; that does not by
+itself certify a historical name, an asymptotic approximation or published
+critical values. Source qualifications above are part of this criterion's
+contract. See the [audit](mathematical-validation.md) for evidence and open items.

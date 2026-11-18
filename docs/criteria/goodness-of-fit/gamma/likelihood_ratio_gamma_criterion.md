@@ -1,50 +1,39 @@
-# Likelihood-ratio test for gamma distribution
+# Likelihood ratio for Gamma
 
-## Description
-Performs likelihood-ratio goodness-of-fit test for the hypothesis that the sample comes from a gamma distribution.
-The test is a G-test variant of the binned chi-squared family.
+`LikelihoodRatioGammaGofStatistic`
 
-Hypothesis of Gamma Distribution
-The null hypothesis is that the data comes from a gamma distribution with positive shape parameter `alpha` and positive rate parameter `beta`.
+Use fixed positive shape `alfa` and **rate** `beta` (SciPy scale is `1/beta`), with origin zero. Both parameters must be supplied; no fitting occurs. Samples must be finite, real, nonempty, one-dimensional and nonnegative. Zero is accepted as a support boundary. Ties are allowed unless they make the statistic infinite or degenerate.
+
+## Definition
+
+Here $O_j$ and $E_j=np_j$ are observed and expected cell counts. With k equal-probability cells, $E_j=n/k$.
+
+$$
+G^2=2\sum_{j:O_j>0}O_j\log(O_j/E_j)
+$$
+
+Empty observed cells contribute zero. This local class retains `bins=8` by default (integer >=2), unlike the generated frequency classes. Gamma quantile bins cover the support. Storage calibration is blocked; use simulation of the configured instance.
+
+For fixed null-probability bins, use multinomial/Monte Carlo calibration with the same n and bins. The chi-square(k−1) approximation needs sufficiently large expected counts and fixed k; sparse cells or sample-dependent rules require separate calibration.
+
+Large values oppose the null (right tail). `execute_statistic` returns a scalar, not a p-value. The sample is not modified.
+
+## Source
+
+[Cressie and Read (1984)](https://doi.org/10.1111/j.2517-6161.1984.tb01318.x).
 
 ## Usage
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import GammaDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.continuous.gamma import (
     LikelihoodRatioGammaGofStatistic,
 )
 
-
-test_statistic = LikelihoodRatioGammaGofStatistic(bins=4, alpha=2, beta=1)
-statistic_result = test_statistic.execute_statistic([0.42, 0.77, 1.05, 1.48, 1.96, 2.34, 3.12])
-print(statistic_result)
+parameters = GammaDistributionDescriptor.DEFAULT.parse({"alfa": 2.5, "beta": 1.5})
+statistic = LikelihoodRatioGammaGofStatistic(parameters, bins=3)
+value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
 ```
 
-## Arguments
-`bins` - number of equiprobable gamma bins. Default value is `8`.
-
-`alpha` - positive shape parameter of the gamma distribution. Default value is `1.0`.
-
-`beta` - positive rate parameter of the gamma distribution. Default value is `1.0`.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-The implementation uses equiprobable gamma quantile bins and the power-divergence statistic with `lambda = 0`.
-
-## Author(s)
-Sergey Golovachev, Alexey Mironov
-
-## References
-Wilks, S.S. (1935): The likelihood test of independence in contingency tables. - Annals of Mathematical Statistics, vol. 6, pp. 190-196.
-
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    LikelihoodRatioGammaGofStatistic,
-)
-
-
-test_statistic = LikelihoodRatioGammaGofStatistic(bins=4, alpha=2, beta=1)
-statistic_result = test_statistic.execute_statistic([0.42, 0.77, 1.05, 1.48, 1.96, 2.34, 3.12])
-print(statistic_result)
-```
+See the [Gamma catalog](index.md) and [mathematical verification](mathematical-validation.md)
+for calibration, numerical limits and the scope of scientific attribution.

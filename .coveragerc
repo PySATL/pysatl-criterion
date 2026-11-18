@@ -1,3 +1,11 @@
 [run]
+branch = true
+source = pysatl_criterion
 omit =
     tests/*
+
+[report]
+show_missing = true
+precision = 2
+# The measured combined statement/branch baseline is 82.08%.
+fail_under = 80

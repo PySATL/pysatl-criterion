@@ -1,39 +1,61 @@
-# Test for exponentiality of Epps and Pulley
+# Epps–Pulley exponentiality criterion
 
-## Description
-Performs Epps and Pulley test for the composite hypothesis of exponentiality, see e.g. Henze and Meintanis (2005, Sec. 2.8.1).
-The Epps and Pulley test is a statistical hypothesis test used to assess the composite hypothesis of exponentiality. This test is designed to determine whether a given sample of data is consistent with an exponential distribution, which is a common assumption in various fields such as reliability engineering, survival analysis, and queuing theory.
+`EppsPulleyExponentialityGofStatistic` — short code `EP`; both tails.
 
-Composite Hypothesis of Exponentiality
-The composite hypothesis of exponentiality refers to the null hypothesis that the data comes from an exponential distribution with an unspecified rate parameter 
-λ. Unlike a simple hypothesis, where the parameter λ is known, the composite hypothesis allows λ to be any positive value, making the test more flexible and widely applicable.
+[All exponential criteria](index.md) · [Mathematical verification](mathematical-validation.md)
 
-Test Statistic
-The Epps and Pulley test statistic is based on the empirical characteristic function (ECF) of the data. The characteristic function of the exponential distribution has a specific form, and the test compares the ECF of the sample to the theoretical characteristic function of the exponential distribution. The test statistic measures the discrepancy between these two functions.
+## Hypothesis and formula
 
-Calculate the Test Statistic: The test statistic is derived from the integrated squared difference between the ECF and the theoretical characteristic function of the standard exponential distribution.
+The model is $F(x)=1-\exp(-\lambda x)$ for $x\ge0$, with known origin zero and $\lambda>0$.
+Unknown rate only: pass `E.DEFAULT.parse({})`.
+Omitted parameters remain unknown. Where fitting is needed, $\widehat\lambda=1/\bar x$
+is recomputed for each sample; no fitted state is retained.
 
-Limitations
-The test may require large sample sizes to achieve high power.
+Write $y_i=x_i/\bar x$, $u_i=1-\exp(-\lambda x_{(i)})$ with the specified or
+fitted rate, $D^+=\max_i(i/n-u_i)$ and $D^-=\max_i(u_i-(i-1)/n)$.
+For spacing statistics, $d_i=(n-i+1)(x_{(i)}-x_{(i-1)})$ and $x_{(0)}=0$.
+For frequency statistics, $O_j$ and $E_j=np_j>0$ are aligned counts.
 
-The computation of the test statistic can be more complex compared to simpler tests like the Kolmogorov-Smirnov test.
+$$
+\sqrt{48n}\left(n^{-1}\sum_i e^{-y_i}-\tfrac12\right)
+$$
 
-## Usage
+Signed contrast; both tails. This implementation uses the opposite sign to conventions based on 1/2 minus the empirical transform; a two-tail calibration is unchanged by that sign.
 
-## Arguments
+## Input and calibration
 
-## Details
+Observations must be finite, real, nonnegative and one-dimensional. Masked
+observations are rejected. Fixed-rate generated criteria accept $n\ge1$;
+unknown-rate EDF/frequency criteria require $n\ge2$ and positive total.
+Specialized criteria may require more observations, distinct spacings or a
+nonconstant sample, as stated above and in the class contract. Ties are not
+silently jittered. Infinite mathematical boundary penalties are retained.
 
-The Epps and Pulley test is a test for the composite hypothesis of exponentiality. The test statistic is
+`execute_statistic` returns a statistic, not a p-value. Use
+`monte_carlo_exponential` with the same sample size and constructor settings.
+It refits each simulated sample for a composite hypothesis. Rescaling to
+Exp(1) is justified only for a scale-invariant statistic. A continuous-null
+calibration does not model rounding, censoring or dependence.
 
-$$ EP_n = (48n)^{1/2} [ \frac{1}{n} \sum_{j=1}^{n} exp(-Y_j) -\frac{1}{2} ] $$
+## Runnable example
 
-where $Y_j=X_j/\overline{X}$. $EP_n$ is asymptotically standard normal (see, e.g., Henze and Meintanis (2005, Sec. 2.8.1).
+```python
+from pysatl_criterion.distribution import ExponentialDistributionDescriptor as E
+from pysatl_criterion.statistics.goodness_of_fit.continuous.exponent import (
+    EppsPulleyExponentialityGofStatistic,
+)
 
-## Author(s)
-Lev Golofastov
+sample = [0.12, 0.30, 0.55, 0.90, 1.40, 2.10, 3.20, 4.80]
+criterion = EppsPulleyExponentialityGofStatistic(E.DEFAULT.parse({}))
+value = criterion.execute_statistic(sample)
+print(value)
+```
 
-## References
-Henze, N. and Meintanis, S.G. (2005): Recent and classical tests for exponentiality: a partial review with comparisons. — Metrika, vol. 61, pp. 29–45.
+## Scientific references and verification status
 
-## Examples
+[Epps and Pulley (1986), A test of exponentiality vs. monotone-hazard alternatives derived from the empirical characteristic function](https://doi.org/10.1111/j.2517-6161.1986.tb01403.x).
+
+The formula and input behavior are tested independently; that does not by
+itself certify a historical name, an asymptotic approximation or published
+critical values. Source qualifications above are part of this criterion's
+contract. See the [audit](mathematical-validation.md) for evidence and open items.

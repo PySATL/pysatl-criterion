@@ -1,61 +1,37 @@
-# Kolmogorov-Smirnov test for gamma distribution
+# Kolmogorov–Smirnov for Gamma
 
-## Description
-Performs Kolmogorov-Smirnov goodness-of-fit test for the hypothesis that the sample comes from a gamma distribution.
-The statistic compares the empirical distribution function with the theoretical gamma cumulative distribution function.
+`KolmogorovSmirnovGammaGofStatistic`
 
-Hypothesis of Gamma Distribution
-The null hypothesis is that the data comes from a gamma distribution with positive shape parameter `alpha` and positive rate parameter `beta`.
+Use fixed positive shape `alfa` and **rate** `beta` (SciPy scale is `1/beta`), with origin zero. Both parameters must be supplied; no fitting occurs. Samples must be finite, real, nonempty, one-dimensional and nonnegative. Zero is accepted as a support boundary. Ties are allowed unless they make the statistic infinite or degenerate.
 
-Test Statistic
-The statistic is based on the maximum distance between the empirical distribution function and the reference gamma cumulative distribution function.
+## Definition
+
+Write $u_i=F_{\alpha,\beta}(x_{(i)})$, $i=1,\ldots,n$. Define $D^+=\max_i(i/n-u_i)$ and $D^-=\max_i(u_i-(i-1)/n)$.
+
+$$
+D=\max(D^+,D^-)
+$$
+
+The default is the two-sided CDF discrepancy. Legacy `alternative_type=RIGHT` selects D+ and `LEFT` selects D−; each statistic rejects for large values. `mode` does not change the statistic. Nondefault directions cannot use stored calibration.
+
+Large values oppose the null (right tail). `execute_statistic` returns a scalar, not a p-value. The sample is not modified.
+
+## Source
+
+[Zhang (2002), §§2–3](https://doi.org/10.1111/1467-9868.00337).
 
 ## Usage
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import GammaDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.continuous.gamma import (
     KolmogorovSmirnovGammaGofStatistic,
 )
 
-
-test_statistic = KolmogorovSmirnovGammaGofStatistic(alpha=2, beta=1)
-statistic_result = test_statistic.execute_statistic([0.42, 0.77, 1.05, 1.48, 1.96, 2.34, 3.12])
-print(statistic_result)
+parameters = GammaDistributionDescriptor.DEFAULT.parse({"alfa": 2.5, "beta": 1.5})
+statistic = KolmogorovSmirnovGammaGofStatistic(parameters)
+value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
 ```
 
-## Arguments
-`alpha` - positive shape parameter of the gamma distribution. Default value is `1.0`.
-
-`beta` - positive rate parameter of the gamma distribution. Default value is `1.0`.
-
-`alternative_type` - alternative hypothesis type used by the Kolmogorov-Smirnov statistic.
-
-`mode` - calculation mode passed to the Kolmogorov-Smirnov statistic. Default value is `auto`.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-The implementation evaluates the gamma cumulative distribution function using `scale=1 / beta`:
-
-$$ F_0(x) = F_{\Gamma(\alpha, 1 / \beta)}(x). $$
-
-The transformed ordered observations are passed to the common Kolmogorov-Smirnov statistic implementation.
-
-## Author(s)
-Sergey Golovachev, Alexey Mironov
-
-## References
-Kolmogorov, A.N. (1933): Sulla determinazione empirica di una legge di distribuzione. - Giornale dell'Istituto Italiano degli Attuari, vol. 4, pp. 83-91.
-
-Smirnov, N.V. (1948): Table for estimating the goodness of fit of empirical distributions. - Annals of Mathematical Statistics, vol. 19, pp. 279-281.
-
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    KolmogorovSmirnovGammaGofStatistic,
-)
-
-
-test_statistic = KolmogorovSmirnovGammaGofStatistic(alpha=2, beta=1)
-statistic_result = test_statistic.execute_statistic([0.42, 0.77, 1.05, 1.48, 1.96, 2.34, 3.12])
-print(statistic_result)
-```
+See the [Gamma catalog](index.md) and [mathematical verification](mathematical-validation.md)
+for calibration, numerical limits and the scope of scientific attribution.

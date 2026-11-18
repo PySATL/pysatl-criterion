@@ -1,6 +1,6 @@
 # Contributing
 
-## Contribute to pysatl-experiment
+## Contribute to pysatl-criterion
 
 Feel like our lib is missing a feature? We welcome your pull requests! 
 
@@ -12,6 +12,17 @@ Few pointers for contributions:
 
 ## Before sending the PR
 
+Use Python 3.10–3.12 and Poetry 2.4.1. Install the locked development environment:
+
+```bash
+poetry check --lock
+poetry sync --with dev
+```
+
+Ruff handles linting, import sorting, and formatting. Hooks run the same locked tools as CI.
+Keep `poetry.lock` in version control and update it when dependencies change. Use
+`poetry add --group lint`, `--group test`, or `--group docs` to add development tools.
+
 ### 1. Run unit tests
 
 All unit tests must pass. If a unit test is broken, change your code to 
@@ -20,19 +31,19 @@ make it pass. It means you have introduced a regression.
 #### Test the whole project
 
 ```bash
-pytest
+poetry run pytest --random-order
 ```
 
 #### Test only one file
 
 ```bash
-pytest tests/test_<file_name>.py
+poetry run pytest tests/test_<file_name>.py
 ```
 
 #### Test only one method from one file
 
 ```bash
-pytest tests/test_<file_name>.py::test_<method_name>
+poetry run pytest tests/test_<file_name>.py::test_<method_name>
 ```
 
 ### 2. Test if your code is PEP8 compliant
@@ -40,14 +51,15 @@ pytest tests/test_<file_name>.py::test_<method_name>
 #### Run Ruff
 
 ```bash
-ruff check .
+poetry run ruff check .
 ```
 
 We receive a lot of code that fails the `ruff` checks.
 To help with that, we encourage you to install the git pre-commit 
 hook that will warn you when you try to commit code that fails these checks.
 
-you can manually run pre-commit with `pre-commit run -a`.
+Install hooks with `poetry run pre-commit install`, and run them manually with
+`poetry run pre-commit run --all-files`.
 
 ##### Additional styles applied
 
@@ -61,7 +73,7 @@ you can manually run pre-commit with `pre-commit run -a`.
 #### Run mypy
 
 ``` bash
-mypy pysatl_criterion
+poetry run mypy src/pysatl_criterion tests
 ```
 
 ### 4. Ensure formatting is correct
@@ -69,8 +81,20 @@ mypy pysatl_criterion
 #### Run ruff
 
 ``` bash
-ruff format .
+poetry run ruff format .
 ```
+
+To check formatting without changing files, use `poetry run ruff format --check .`.
+
+### 5. Check branch coverage
+
+```bash
+poetry run pytest --random-order --cov=pysatl_criterion --cov-report=term-missing
+```
+
+The coverage threshold lives in `.coveragerc`. CI measures coverage during its Python 3.12
+test run; each Python version runs the suite once. Type-checking strictness is increased
+module by module, starting with the goodness-of-fit test runner.
 
 ## (Core)-Committer Guide
 

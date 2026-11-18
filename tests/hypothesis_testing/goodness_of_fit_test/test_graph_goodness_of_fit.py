@@ -1,6 +1,6 @@
 import pytest
 
-from pysatl_criterion.statistics.goodness_of_fit.graph_goodness_of_fit import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous.graph_goodness_of_fit import (
     AbstractGraphTestStatistic,
 )
 

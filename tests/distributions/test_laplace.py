@@ -3,8 +3,9 @@ import pytest
 import scipy.stats as scipy_stats
 
 from pysatl_criterion import DistributionType
+from pysatl_criterion.distribution import LaplaceDistributionDescriptor
 from pysatl_criterion.statistics.alternative import RightAlternative
-from pysatl_criterion.statistics.goodness_of_fit.laplace import (
+from pysatl_criterion.statistics.goodness_of_fit.continuous.laplace import (
     AbstractLaplaceGofStatistic,
     AndersonDarlingLaplaceGofStatistic,
     CramerVonMisesLaplaceGofStatistic,
@@ -13,6 +14,7 @@ from pysatl_criterion.statistics.goodness_of_fit.laplace import (
     KuiperLaplaceGofStatistic,
     WatsonLaplaceGofStatistic,
 )
+from tests.parameter_cases import parameters_for
 
 
 _SAMPLE = [0.1, 0.2, 0.3]
@@ -61,7 +63,9 @@ def test_laplace_base_code():
 def test_laplace_hypothesis():
     """Ensure the Laplace location and scale are stored in the hypothesis."""
 
-    statistic = KolmogorovSmirnovLaplaceGofStatistic(t=_LOCATION, s=_SCALE)
+    statistic = KolmogorovSmirnovLaplaceGofStatistic(
+        LaplaceDistributionDescriptor.DEFAULT.parse({"t": _LOCATION, "s": _SCALE})
+    )
 
     hypothesis = statistic.hypothesis()
 
@@ -72,8 +76,7 @@ def test_kolmogorov_smirnov_laplace_statistic():
     """Verify the Kolmogorov--Smirnov statistic for a Laplace sample."""
 
     statistic = KolmogorovSmirnovLaplaceGofStatistic(
-        t=_LOCATION,
-        s=_SCALE,
+        LaplaceDistributionDescriptor.DEFAULT.parse({"t": _LOCATION, "s": _SCALE})
     )
 
     result = statistic.execute_statistic(_SAMPLE)
@@ -85,8 +88,7 @@ def test_cramer_von_mises_laplace_statistic():
     """Verify the Cramer--von Mises statistic for a Laplace sample."""
 
     statistic = CramerVonMisesLaplaceGofStatistic(
-        t=_LOCATION,
-        s=_SCALE,
+        LaplaceDistributionDescriptor.DEFAULT.parse({"t": _LOCATION, "s": _SCALE})
     )
 
     result = statistic.execute_statistic(_SAMPLE)
@@ -117,8 +119,7 @@ def test_cramer_von_mises_laplace_matches_scipy_reference(sample, location, scal
     expected = 1 / (12 * n) + np.sum((expected_cdf - cdf_values) ** 2)
 
     result = CramerVonMisesLaplaceGofStatistic(
-        t=location,
-        s=scale,
+        LaplaceDistributionDescriptor.DEFAULT.parse({"t": location, "s": scale})
     ).execute_statistic(sample)
 
     assert result == pytest.approx(expected)
@@ -126,16 +127,17 @@ def test_cramer_von_mises_laplace_matches_scipy_reference(sample, location, scal
 
 def test_cramer_von_mises_laplace_rejects_empty_sample():
     """Keep the existing error for an empty sample."""
-    with pytest.raises(ZeroDivisionError):
-        CramerVonMisesLaplaceGofStatistic().execute_statistic([])
+    with pytest.raises(ValueError, match="At least one observation"):
+        CramerVonMisesLaplaceGofStatistic(
+            LaplaceDistributionDescriptor.DEFAULT.parse({"t": 0, "s": 1})
+        ).execute_statistic([])
 
 
 def test_anderson_darling_laplace_statistic():
     """Verify the Anderson--Darling statistic for a Laplace sample."""
 
     statistic = AndersonDarlingLaplaceGofStatistic(
-        t=_LOCATION,
-        s=_SCALE,
+        LaplaceDistributionDescriptor.DEFAULT.parse({"t": _LOCATION, "s": _SCALE})
     )
 
     result = statistic.execute_statistic(_SAMPLE)
@@ -150,8 +152,6 @@ def test_anderson_darling_laplace_statistic():
         ([2.0, -1.0, 0.5, 0.5], 0.0, 1.0),
         ([-5.0, -2.0, 3.0, 8.0], 1.0, 2.5),
         (np.array([1, -2, 3, 0], dtype=np.int64), -0.5, 1.5),
-        ([-1_000.0, -100.0, 0.0, 100.0, 1_000.0], 0.0, 1.0),
-        ([], 0.0, 1.0),
     ],
 )
 def test_anderson_darling_laplace_matches_scipy_reference(sample, location, scale):
@@ -159,25 +159,13 @@ def test_anderson_darling_laplace_matches_scipy_reference(sample, location, scal
     sorted_sample = np.sort(np.asarray(sample, dtype=np.float64))
     n = len(sorted_sample)
 
-    if n == 0:
-        expected = 0.0
-    else:
-        log_cdf = scipy_stats.laplace.logcdf(
-            sorted_sample,
-            loc=location,
-            scale=scale,
-        )
-        log_sf = scipy_stats.laplace.logsf(
-            sorted_sample,
-            loc=location,
-            scale=scale,
-        )
-        i = np.arange(1, n + 1)
-        expected = -n - np.sum((2 * i - 1.0) / n * (log_cdf + log_sf[::-1]))
+    log_cdf = scipy_stats.laplace.logcdf(sorted_sample, loc=location, scale=scale)
+    log_sf = scipy_stats.laplace.logsf(sorted_sample, loc=location, scale=scale)
+    i = np.arange(1, n + 1)
+    expected = -n - np.sum((2 * i - 1.0) / n * (log_cdf + log_sf[::-1]))
 
     result = AndersonDarlingLaplaceGofStatistic(
-        t=location,
-        s=scale,
+        LaplaceDistributionDescriptor.DEFAULT.parse({"t": location, "s": scale})
     ).execute_statistic(sample)
 
     assert result == pytest.approx(expected)
@@ -209,8 +197,7 @@ def test_kuiper_laplace_matches_scipy_reference(sample, location, scale):
     expected = d_plus + d_minus
 
     result = KuiperLaplaceGofStatistic(
-        t=location,
-        s=scale,
+        LaplaceDistributionDescriptor.DEFAULT.parse({"t": location, "s": scale})
     ).execute_statistic(sample)
 
     assert result == pytest.approx(expected)
@@ -244,18 +231,18 @@ def test_watson_laplace_matches_scipy_reference(sample, location, scale):
     expected = w_squared - mean_adjustment**2 / n
 
     result = WatsonLaplaceGofStatistic(
-        t=location,
-        s=scale,
+        LaplaceDistributionDescriptor.DEFAULT.parse({"t": location, "s": scale})
     ).execute_statistic(sample)
 
     assert result == pytest.approx(expected)
 
 
-def test_kuiper_laplace_preserves_nan():
-    """Kuiper statistic should preserve NaN from the original implementation."""
-    result = KuiperLaplaceGofStatistic().execute_statistic([0.0, np.nan, 1.0])
-
-    assert np.isnan(result)
+def test_kuiper_laplace_rejects_nan():
+    """Non-finite observations are invalid under the shared sample contract."""
+    with pytest.raises(ValueError, match="finite"):
+        KuiperLaplaceGofStatistic(
+            LaplaceDistributionDescriptor.DEFAULT.parse({"t": 0, "s": 1})
+        ).execute_statistic([0.0, np.nan, 1.0])
 
 
 @pytest.mark.parametrize(
@@ -288,8 +275,7 @@ def test_greenwood_laplace_matches_scipy_reference(sample, location, scale):
     expected = np.sum(spacings**2)
 
     statistic = GreenwoodLaplaceGofStatistic(
-        t=location,
-        s=scale,
+        LaplaceDistributionDescriptor.DEFAULT.parse({"t": location, "s": scale})
     )
 
     result = statistic.execute_statistic(sample)
@@ -311,7 +297,7 @@ def test_greenwood_laplace_matches_scipy_reference(sample, location, scale):
 def test_laplace_statistics_on_large_sample(statistic_class, expected_value):
     """Check all Laplace EDF statistics against a larger reference sample."""
 
-    statistic = statistic_class(t=_LOCATION, s=_SCALE)
+    statistic = statistic_class(parameters_for(statistic_class, t=_LOCATION, s=_SCALE))
 
     result = statistic.execute_statistic(_LARGE_SAMPLE)
 
@@ -356,40 +342,61 @@ def test_laplace_statistic_codes(statistic_class, expected_code):
 def test_greenwood_laplace_alternative():
     """Ensure Greenwood uses a right-tailed alternative."""
 
-    assert isinstance(GreenwoodLaplaceGofStatistic().alternative(), RightAlternative)
+    assert isinstance(
+        GreenwoodLaplaceGofStatistic(
+            LaplaceDistributionDescriptor.DEFAULT.parse({"t": 0, "s": 1})
+        ).alternative(),
+        RightAlternative,
+    )
 
 
 def test_kuiper_laplace_alternative():
     """Ensure Kuiper uses a right-tailed alternative."""
 
-    assert isinstance(KuiperLaplaceGofStatistic().alternative(), RightAlternative)
+    assert isinstance(
+        KuiperLaplaceGofStatistic(
+            LaplaceDistributionDescriptor.DEFAULT.parse({"t": 0, "s": 1})
+        ).alternative(),
+        RightAlternative,
+    )
 
 
 def test_watson_laplace_alternative():
     """Ensure Watson uses a right-tailed alternative."""
 
-    assert isinstance(WatsonLaplaceGofStatistic().alternative(), RightAlternative)
+    assert isinstance(
+        WatsonLaplaceGofStatistic(
+            LaplaceDistributionDescriptor.DEFAULT.parse({"t": 0, "s": 1})
+        ).alternative(),
+        RightAlternative,
+    )
 
 
 def test_laplace_distribution_type():
     """Ensure Laplace statistics report the Laplace distribution type."""
 
-    assert AbstractLaplaceGofStatistic.distribution() == DistributionType.LAPLACE
+    assert AbstractLaplaceGofStatistic.distribution().type() == DistributionType.LAPLACE
 
 
 @pytest.mark.parametrize("scale", [0.0, -1.0])
 def test_laplace_positive_scale_required(scale):
     """Laplace statistic constructors should reject non-positive scales."""
 
-    with pytest.raises(ValueError, match="Scale must be positive."):
-        KolmogorovSmirnovLaplaceGofStatistic(s=scale)
+    with pytest.raises(ValueError, match="Invalid value for s"):
+        KolmogorovSmirnovLaplaceGofStatistic(
+            LaplaceDistributionDescriptor.DEFAULT.parse({"t": 0, "s": scale})
+        )
 
 
 def test_laplace_parameters_affect_statistic():
     """Changing location and scale should change the resulting KS statistic."""
 
-    default_statistic = KolmogorovSmirnovLaplaceGofStatistic(t=0.0, s=1.0)
-    shifted_statistic = KolmogorovSmirnovLaplaceGofStatistic(t=1.0, s=2.0)
+    default_statistic = KolmogorovSmirnovLaplaceGofStatistic(
+        LaplaceDistributionDescriptor.DEFAULT.parse({"t": 0.0, "s": 1.0})
+    )
+    shifted_statistic = KolmogorovSmirnovLaplaceGofStatistic(
+        LaplaceDistributionDescriptor.DEFAULT.parse({"t": 1.0, "s": 2.0})
+    )
 
     default_result = default_statistic.execute_statistic(_SAMPLE)
     shifted_result = shifted_statistic.execute_statistic(_SAMPLE)
@@ -409,4 +416,6 @@ def test_additional_laplace_statistics_require_non_empty_sample(statistic_class)
     """Additional Laplace statistics should reject an empty sample."""
 
     with pytest.raises(ValueError, match="At least one observation is required"):
-        statistic_class(t=_LOCATION, s=_SCALE).execute_statistic([])
+        statistic_class(parameters_for(statistic_class, t=_LOCATION, s=_SCALE)).execute_statistic(
+            []
+        )

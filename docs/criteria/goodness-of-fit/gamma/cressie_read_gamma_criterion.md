@@ -1,52 +1,42 @@
-# Cressie-Read test for gamma distribution
+# Cressie–Read for Gamma
 
-## Description
-Performs Cressie-Read power-divergence goodness-of-fit test for the hypothesis that the sample comes from a gamma distribution.
-The statistic generalizes Pearson chi-squared and likelihood-ratio statistics.
+`CressieReadGammaGofStatistic`
 
-Hypothesis of Gamma Distribution
-The null hypothesis is that the data comes from a gamma distribution with positive shape parameter `alpha` and positive rate parameter `beta`.
+Use fixed positive shape `alfa` and **rate** `beta` (SciPy scale is `1/beta`), with origin zero. Both parameters must be supplied; no fitting occurs. Samples must be finite, real, nonempty, one-dimensional and nonnegative. Zero is accepted as a support boundary. Ties are allowed unless they make the statistic infinite or degenerate.
+
+## Definition
+
+Here $O_j$ and $E_j=np_j$ are observed and expected cell counts. With k equal-probability cells, $E_j=n/k$.
+
+$$
+T=\frac95\sum_j O_j[(O_j/E_j)^{2/3}-1]
+$$
+
+The power is fixed at 2/3; there is no `power` constructor argument. Empty observed cells contribute zero.
+
+The constructor accepts `binning`, a `BinningStrategy`. The default is `EqualProbabilityBins()` with `PowerCount()`: k is ceil(2*n**0.4), bounded to 2…1000. To fix k, use `EqualProbabilityBins(count=k)`. Counts use the intervals of the transformed CDF; the last interval includes 1. Other strategies use their own null probabilities. Binning configuration is included in storage keys.
+
+For fixed null-probability bins, use multinomial/Monte Carlo calibration with the same n and bins. The chi-square(k−1) approximation needs sufficiently large expected counts and fixed k; sparse cells or sample-dependent rules require separate calibration.
+
+Large values oppose the null (right tail). `execute_statistic` returns a scalar, not a p-value. The sample is not modified.
+
+## Source
+
+[Cressie and Read (1984)](https://doi.org/10.1111/j.2517-6161.1984.tb01318.x).
 
 ## Usage
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import GammaDistributionDescriptor
+from pysatl_criterion.statistics.goodness_of_fit.binning import EqualProbabilityBins
+from pysatl_criterion.statistics.goodness_of_fit.continuous.gamma import (
     CressieReadGammaGofStatistic,
 )
 
-
-test_statistic = CressieReadGammaGofStatistic(power=2 / 3, bins=4, alpha=2, beta=1)
-statistic_result = test_statistic.execute_statistic([0.42, 0.77, 1.05, 1.48, 1.96, 2.34, 3.12])
-print(statistic_result)
+parameters = GammaDistributionDescriptor.DEFAULT.parse({"alfa": 2.5, "beta": 1.5})
+statistic = CressieReadGammaGofStatistic(parameters, binning=EqualProbabilityBins(count=3))
+value = statistic.execute_statistic([0.2, 0.7, 1.3, 2.1, 3.4])
 ```
 
-## Arguments
-`power` - Cressie-Read power-divergence parameter. Default value is `2 / 3`.
-
-`bins` - number of equiprobable gamma bins. Default value is `8`.
-
-`alpha` - positive shape parameter of the gamma distribution. Default value is `1.0`.
-
-`beta` - positive rate parameter of the gamma distribution. Default value is `1.0`.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-The implementation uses equiprobable gamma quantile bins and passes observed and expected counts to the common chi-squared statistic implementation with the selected power-divergence parameter.
-
-## Author(s)
-Sergey Golovachev, Alexey Mironov
-
-## References
-Cressie, N. and Read, T.R.C. (1984): Multinomial goodness-of-fit tests. - Journal of the Royal Statistical Society, Series B, vol. 46, pp. 440-464.
-
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    CressieReadGammaGofStatistic,
-)
-
-
-test_statistic = CressieReadGammaGofStatistic(power=2 / 3, bins=4, alpha=2, beta=1)
-statistic_result = test_statistic.execute_statistic([0.42, 0.77, 1.05, 1.48, 1.96, 2.34, 3.12])
-print(statistic_result)
-```
+See the [Gamma catalog](index.md) and [mathematical verification](mathematical-validation.md)
+for calibration, numerical limits and the scope of scientific attribution.

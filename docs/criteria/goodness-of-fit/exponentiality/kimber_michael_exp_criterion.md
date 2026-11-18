@@ -1,74 +1,61 @@
-# Kimber-Michael test for exponentiality
+# Kimber–Michael exponentiality criterion
 
-## Description
-Performs Kimber-Michael test for the composite hypothesis of exponentiality, see e.g. Michael (1983) and Kimber (1985).
-The Kimber-Michael test is a statistical hypothesis test used to assess the composite hypothesis of exponentiality. This test is based on the stabilized probability plot and is designed to determine whether a given sample of data is consistent with an exponential distribution.
+`KimberMichaelExponentialityGofStatistic` — short code `KM`; right tail.
 
-Composite Hypothesis of Exponentiality
-The composite hypothesis of exponentiality refers to the null hypothesis that the data comes from an exponential distribution with an unspecified rate parameter
-lambda. The Kimber-Michael statistic removes the unknown exponential scale by evaluating the exponential distribution at observations normalized by the sample mean.
+[All exponential criteria](index.md) · [Mathematical verification](mathematical-validation.md)
 
-Test Statistic
-The Kimber-Michael test statistic is based on an arcsine square-root transformation of probabilities. This transformation stabilizes the variance of probability plot points, and the statistic measures the maximum absolute distance between transformed empirical plotting positions and transformed fitted exponential probabilities.
+## Hypothesis and formula
 
-Calculate the Test Statistic: The observations are sorted, divided by the sample mean, transformed through the fitted exponential distribution function, mapped to the stabilized probability scale, and compared with the stabilized plotting positions.
+The model is $F(x)=1-\exp(-\lambda x)$ for $x\ge0$, with known origin zero and $\lambda>0$.
+Unknown rate only: pass `E.DEFAULT.parse({})`.
+Omitted parameters remain unknown. Where fitting is needed, $\widehat\lambda=1/\bar x$
+is recomputed for each sample; no fitted state is retained.
 
-Limitations
-The test assumes nonnegative lifetime-type observations.
+Write $y_i=x_i/\bar x$, $u_i=1-\exp(-\lambda x_{(i)})$ with the specified or
+fitted rate, $D^+=\max_i(i/n-u_i)$ and $D^-=\max_i(u_i-(i-1)/n)$.
+For spacing statistics, $d_i=(n-i+1)(x_{(i)}-x_{(i-1)})$ and $x_{(0)}=0$.
+For frequency statistics, $O_j$ and $E_j=np_j>0$ are aligned counts.
 
-The statistic is a supremum-type distance, so it is most sensitive to the largest stabilized probability plot discrepancy.
+$$
+\max_i\left|A(u_i)-A((i-1/2)/n)\right|,\quad A(u)=2\arcsin(\sqrt u)/\pi
+$$
 
-## Usage
+The 2/pi multiplier and midpoint plotting positions are part of the convention; rate is re-estimated for each sample. Published critical values require matching fitting and normalization.
+
+## Input and calibration
+
+Observations must be finite, real, nonnegative and one-dimensional. Masked
+observations are rejected. Fixed-rate generated criteria accept $n\ge1$;
+unknown-rate EDF/frequency criteria require $n\ge2$ and positive total.
+Specialized criteria may require more observations, distinct spacings or a
+nonconstant sample, as stated above and in the class contract. Ties are not
+silently jittered. Infinite mathematical boundary penalties are retained.
+
+`execute_statistic` returns a statistic, not a p-value. Use
+`monte_carlo_exponential` with the same sample size and constructor settings.
+It refits each simulated sample for a composite hypothesis. Rescaling to
+Exp(1) is justified only for a scale-invariant statistic. A continuous-null
+calibration does not model rounding, censoring or dependence.
+
+## Runnable example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import ExponentialDistributionDescriptor as E
+from pysatl_criterion.statistics.goodness_of_fit.continuous.exponent import (
     KimberMichaelExponentialityGofStatistic,
 )
 
-
-test_statistic = KimberMichaelExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
+sample = [0.12, 0.30, 0.55, 0.90, 1.40, 2.10, 3.20, 4.80]
+criterion = KimberMichaelExponentialityGofStatistic(E.DEFAULT.parse({}))
+value = criterion.execute_statistic(sample)
+print(value)
 ```
 
-## Arguments
-`rvs` - array-like sample data passed to `execute_statistic`.
+## Scientific references and verification status
 
-## Details
+[Kimber (1985), Tests for the exponential, Weibull and Gumbel distributions based on the stabilized probability plot](https://doi.org/10.1093/biomet/72.3.661).
 
-The Kimber-Michael test is a test for the composite hypothesis of exponentiality. Let
-$X_{(1)} \leq \cdots \leq X_{(n)}$ denote the ordered sample. The test statistic implemented here is
-
-$$ KM_n = \max_{1 \leq i \leq n} \left| \frac{2}{\pi}\arcsin\sqrt{\frac{i-1/2}{n}} - \frac{2}{\pi}\arcsin\sqrt{1-exp(-X_{(i)}/\overline{X})} \right|. $$
-
-Here $n$ is the sample size and $\overline{X}$ is the sample mean.
-
-The function
-
-$$ p \mapsto \frac{2}{\pi}\arcsin\sqrt{p} $$
-
-is the stabilized probability scale introduced by Michael (1983). Kimber (1985) applied this idea to tests for the exponential, Weibull, and Gumbel distributions.
-
-The implementation uses a left-sided alternative, so unusually small values of $KM_n$ are treated as evidence in the direction used by this statistic.
-
-## Author(s)
-Lev Golofastov
-
-## References
-Michael, J.R. (1983): The stabilized probability plot. - Biometrika, vol. 70, no. 1, pp. 11-17. https://doi.org/10.1093/biomet/70.1.11
-
-Kimber, A.C. (1985): Tests for the exponential, Weibull and Gumbel distributions based on the stabilized probability plot. - Biometrika, vol. 72, no. 3, pp. 661-663. https://doi.org/10.1093/biomet/72.3.661
-
-Henze, N. and Meintanis, S.G. (2005): Recent and classical tests for exponentiality: a partial review with comparisons. - Metrika, vol. 61, pp. 29-45.
-
-## Examples
-
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    KimberMichaelExponentialityGofStatistic,
-)
-
-
-test_statistic = KimberMichaelExponentialityGofStatistic()
-statistic_result = test_statistic.execute_statistic([1, 2, 3, 4, 5, 6, 7])
-print(statistic_result)
-```
+The formula and input behavior are tested independently; that does not by
+itself certify a historical name, an asymptotic approximation or published
+critical values. Source qualifications above are part of this criterion's
+contract. See the [audit](mathematical-validation.md) for evidence and open items.

@@ -1,61 +1,57 @@
-# Kolmogorov-Smirnov test for Student distribution
+# Kolmogorov–Smirnov for a specified Student distribution
 
-## Description
-Performs Kolmogorov-Smirnov goodness-of-fit test for the hypothesis that the sample comes from a Student's t-distribution.
-The statistic compares the empirical distribution function with the theoretical Student cumulative distribution function.
+[All Student criteria](index.md) · [Mathematical verification](mathematical-validation.md)
 
-Hypothesis of Student Distribution
-The null hypothesis is that the data comes from a Student's t-distribution with positive degrees of freedom `df`, location parameter `loc`, and positive scale parameter `scale`.
+Class: `KolmogorovSmirnovStudentGofStatistic`. Code: `KS_STUDENT_GOODNESS_OF_FIT`.
 
-Test Statistic
-The statistic is based on the maximum distance between the empirical distribution function and the reference Student cumulative distribution function.
+## Hypothesis and formula
 
-## Usage
+Fix all three parameters: `df > 0`, finite `loc`, and `scale > 0`.
+Use `StudentDistributionDescriptor.DEFAULT.parse({'df': 5, 'loc': 0, 'scale': 1})`.
+Omitted parameters remain unknown and are not supported by this criterion.
+Write $u_i=F_{\nu,\mu,s}(X_{(i)})$ for the CDF values of sorted observations.
+
+$$
+D=\max(D^+,D^-),\quad D^+=\max_i(i/n-u_i),\quad D^-=\max_i(u_i-(i-1)/n)
+$$
+
+No squaring or square-root sample-size scaling is applied. Use the separate D+ and D− classes for one-sided EDF deviations; there is no `alternative_type` argument.
+
+## Input, result and calibration
+
+`execute_statistic(rvs, **kwargs)` accepts a nonempty, finite, one-dimensional
+real sample. Ties and constants are allowed. It returns one scalar without
+changing the input or retaining fitted state. Large values reject
+(`RightAlternative`). Extra execution keywords are ignored.
+
+The Student implementation evaluates log-CDF and log-survival separately.
+AD, Liao–Shimokawa and Zhang kernels consume these logarithms directly;
+other EDF kernels reconstruct the CDF. Unrepresentable standardization or
+underflow of a required tail probability raises `ValueError`.
+
+For a continuous fully specified null, the probability integral transform
+removes the null parameters from the EDF law. Calibrate the same statistic at
+the same sample size; no parameter estimation is performed. The source below
+identifies the general discrepancy, not a separate Student-specific derivation.
+
+## Example
+
 ```python
-from pysatl_criterion.statistics.goodness_of_fit import (
+from pysatl_criterion.distribution import StudentDistributionDescriptor as Student
+from pysatl_criterion.statistics.goodness_of_fit.continuous.student import (
     KolmogorovSmirnovStudentGofStatistic,
 )
 
-
-test_statistic = KolmogorovSmirnovStudentGofStatistic(df=5, loc=0, scale=1)
-statistic_result = test_statistic.execute_statistic([-1.8, -0.9, -0.25, 0.0, 0.31, 0.95, 1.7])
-print(statistic_result)
+parameters = Student.DEFAULT.parse({"df": 5, "loc": 0, "scale": 1})
+statistic = KolmogorovSmirnovStudentGofStatistic(parameters)
+value = statistic.execute_statistic([-3.2, -1.1, -0.3, 0.2, 0.7, 1.8, 4.1])
+print(value)
 ```
 
-## Arguments
-`df` - positive degrees of freedom of the Student's t-distribution. Default value is `1`.
+## Scientific source
 
-`loc` - location parameter of the Student's t-distribution. Default value is `0`.
-
-`scale` - positive scale parameter of the Student's t-distribution. Default value is `1`.
-
-`alternative_type` - alternative hypothesis type used by the Kolmogorov-Smirnov statistic.
-
-`rvs` - array-like sample data passed to `execute_statistic`.
-
-## Details
-The implementation standardizes the ordered observations as
-
-$$ Z_i = \frac{X_{(i)} - loc}{scale} $$
-
-and evaluates the Student CDF with `df` degrees of freedom.
+[Zhang (2002), Powerful goodness-of-fit tests based on the likelihood ratio](https://doi.org/10.1111/1467-9868.00337), §2.1.
 
 ## Author(s)
+
 Dmitriy Rusanov, Alexey Mironov
-
-## References
-Kolmogorov, A.N. (1933): Sulla determinazione empirica di una legge di distribuzione. - Giornale dell'Istituto Italiano degli Attuari, vol. 4, pp. 83-91.
-
-Smirnov, N.V. (1948): Table for estimating the goodness of fit of empirical distributions. - Annals of Mathematical Statistics, vol. 19, pp. 279-281.
-
-## Examples
-```python
-from pysatl_criterion.statistics.goodness_of_fit import (
-    KolmogorovSmirnovStudentGofStatistic,
-)
-
-
-test_statistic = KolmogorovSmirnovStudentGofStatistic(df=5, loc=0, scale=1)
-statistic_result = test_statistic.execute_statistic([-1.8, -0.9, -0.25, 0.0, 0.31, 0.95, 1.7])
-print(statistic_result)
-```
