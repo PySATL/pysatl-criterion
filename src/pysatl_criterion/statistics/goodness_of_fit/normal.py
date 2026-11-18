@@ -88,7 +88,7 @@ class KolmogorovSmirnovNormalityGofStatistic(AbstractNormalityGofStatistic, KSSt
     @override
     def execute_statistic(self, rvs, **kwargs):
         rvs = np.sort(rvs)
-        cdf_vals = scipy_stats.norm.cdf(rvs)
+        cdf_vals = scipy_stats.norm.cdf(rvs, loc=self.mean, scale=math.sqrt(self.var))
         return KSStatistic.do_execute_statistic(self, rvs, cdf_vals)
 
 
