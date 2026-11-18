@@ -49,7 +49,7 @@ from pysatl_criterion.statistics.goodness_of_fit.normal import (
 
 
 @pytest.mark.parametrize(
-    ("data", "result"),
+    ("data", "mean", "var", "result"),
     [
         # Normal with mean = 0, variance = 1
         (
@@ -65,29 +65,41 @@ from pysatl_criterion.statistics.goodness_of_fit.normal import (
                 0.90892169,
                 -0.29045373,
             ],
+            0,
+            1,
             0.18573457378941832,
         ),
         # Normal with mean = 11, variance = 1
         (
             [
-                -0.46869863,
-                -0.22452687,
-                -1.7674444,
-                -0.727139,
-                1.09089112,
-                -0.01319041,
-                0.38578004,
-                1.47354665,
-                0.95253258,
-                -1.17323879,
+                10.53130137,
+                10.77547313,
+                9.2325556,
+                10.272861,
+                12.09089112,
+                10.98680959,
+                11.38578004,
+                12.47354665,
+                11.95253258,
+                9.82676121,
             ],
+            11,
+            1,
             0.12958652448618313,
         ),
     ],
 )
-def test_ks_normality_criterion(data, result):
-    statistic = KolmogorovSmirnovNormalityGofStatistic().execute_statistic(data)
+def test_ks_normality_criterion(data, mean, var, result):
+    statistic = KolmogorovSmirnovNormalityGofStatistic(mean=mean, var=var).execute_statistic(data)
     assert result == pytest.approx(statistic, 0.00001)
+
+
+@pytest.mark.parametrize(("mean", "var"), [(5, 1), (0, 4), (5, 4)])
+def test_ks_normality_criterion_depends_on_parameters(mean, var):
+    data = [0.5, 1.2, 2.3, 3.1, 4.8, 5.0, 5.7, 6.4, 7.9, 9.2]
+    default = KolmogorovSmirnovNormalityGofStatistic().execute_statistic(data)
+    custom = KolmogorovSmirnovNormalityGofStatistic(mean=mean, var=var).execute_statistic(data)
+    assert custom != pytest.approx(default)
 
 
 def test_ks_normality_criterion_code():
