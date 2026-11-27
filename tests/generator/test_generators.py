@@ -1,7 +1,14 @@
 import numpy as np
 import pytest
+from scipy import stats
 
 from pysatl_criterion import DistributionType
+from pysatl_criterion.distribution import (
+    HyperbolicDistributionDescriptor,
+    InverseGammaDistributionDescriptor,
+    LogLogisticDistributionDescriptor,
+    ParetoDistributionDescriptor,
+)
 from pysatl_criterion.generator.generators import (
     BetaRVSGenerator,
     CauchyRVSGenerator,
@@ -10,13 +17,17 @@ from pysatl_criterion.generator.generators import (
     GammaGenerator,
     GompertzGenerator,
     GumbelGenerator,
+    HyperbolicGenerator,
+    InverseGammaGenerator,
     InvGaussGenerator,
     LaplaceRVSGenerator,
     LoConNormGenerator,
     LogisticRVSGenerator,
+    LogLogisticGenerator,
     LognormGenerator,
     MixConNormGenerator,
     NormalGenerator,
+    ParetoGenerator,
     RiceGenerator,
     ScConNormGenerator,
     TruncnormGenerator,
@@ -59,6 +70,22 @@ from pysatl_criterion.generator.generators import (
         (GompertzGenerator(eta=2, b=3), DistributionType.GOMPERTZ, {"eta": 2, "b": 3}),
         (NormalGenerator(mean=2, var=3), DistributionType.NORMAL, {"mean": 2, "var": 3}),
         (UniformGenerator(a=2, b=3), DistributionType.UNIFORM, {"a": 2, "b": 3}),
+        (
+            LogLogisticGenerator(alpha=2, beta=3),
+            DistributionType.LOG_LOGISTIC,
+            {"alpha": 2, "beta": 3},
+        ),
+        (
+            InverseGammaGenerator(alpha=2, beta=3),
+            DistributionType.INVERSE_GAMMA,
+            {"alpha": 2, "beta": 3},
+        ),
+        (ParetoGenerator(shape=2, scale=3), DistributionType.PARETO, {"shape": 2, "scale": 3}),
+        (
+            HyperbolicGenerator(alpha=3, beta=1, delta=2, mu=-1),
+            DistributionType.HYPERBOLIC,
+            {"alpha": 3, "beta": 1, "delta": 2, "mu": -1},
+        ),
     ],
 )
 def test_generator_metadata(generator, distribution_type, parameters):
@@ -100,6 +127,10 @@ def test_student_generator_code_includes_location_and_scale():
         GompertzGenerator(eta=2, b=3),
         NormalGenerator(mean=2, var=3),
         UniformGenerator(a=2, b=3),
+        LogLogisticGenerator(alpha=2, beta=3),
+        InverseGammaGenerator(alpha=2, beta=3),
+        ParetoGenerator(shape=2, scale=3),
+        HyperbolicGenerator(alpha=3, beta=1, delta=2, mu=-1),
     ],
 )
 def test_generator_uses_caller_owned_random_state(generator):
@@ -107,3 +138,48 @@ def test_generator_uses_caller_owned_random_state(generator):
     second = generator.generate(20, random_state=np.random.default_rng(123))
 
     assert np.array_equal(first, second)
+
+
+@pytest.mark.parametrize(
+    ("generator", "descriptor", "params"),
+    [
+        (
+            LogLogisticGenerator(alpha=2.0, beta=3.0),
+            LogLogisticDistributionDescriptor,
+            {"alpha": 2.0, "beta": 3.0},
+        ),
+        (
+            InverseGammaGenerator(alpha=2.5, beta=1.5),
+            InverseGammaDistributionDescriptor,
+            {"alpha": 2.5, "beta": 1.5},
+        ),
+        (
+            ParetoGenerator(shape=2.5, scale=1.5),
+            ParetoDistributionDescriptor,
+            {"shape": 2.5, "scale": 1.5},
+        ),
+        (
+            HyperbolicGenerator(alpha=3.0, beta=1.0, delta=2.0, mu=-0.5),
+            HyperbolicDistributionDescriptor,
+            {"alpha": 3.0, "beta": 1.0, "delta": 2.0, "mu": -0.5},
+        ),
+    ],
+)
+def test_new_generators_match_descriptor_cdf(generator, descriptor, params):
+    sample = generator.generate(5000, random_state=np.random.default_rng(42))
+    bound = descriptor.bind(descriptor.DEFAULT.parse(params))
+    ks_result = stats.kstest(sample, bound.cdf)
+    assert ks_result.pvalue > 0.01
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"alpha": 1.0, "beta": 1.0},
+        {"alpha": 1.0, "beta": -1.5},
+        {"alpha": 2.0, "beta": 0.0, "delta": 0.0},
+    ],
+)
+def test_hyperbolic_generator_rejects_invalid_parameters(kwargs):
+    with pytest.raises(ValueError):
+        HyperbolicGenerator(**kwargs)

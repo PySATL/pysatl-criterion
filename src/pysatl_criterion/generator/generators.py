@@ -86,13 +86,17 @@ from pysatl_criterion.core.distributions.continues.exponentiated_weibull import 
 from pysatl_criterion.core.distributions.continues.gamma import generate_gamma
 from pysatl_criterion.core.distributions.continues.gompertz import generate_gompertz
 from pysatl_criterion.core.distributions.continues.gumbel import generate_gumbel
+from pysatl_criterion.core.distributions.continues.hyperbolic import generate_hyperbolic
+from pysatl_criterion.core.distributions.continues.inverse_gamma import generate_inverse_gamma
 from pysatl_criterion.core.distributions.continues.invgauss import generate_invgauss
 from pysatl_criterion.core.distributions.continues.laplace import generate_laplace
 from pysatl_criterion.core.distributions.continues.lo_con_norm import generate_lo_con_norm
+from pysatl_criterion.core.distributions.continues.log_logistic import generate_log_logistic
 from pysatl_criterion.core.distributions.continues.logistic import generate_logistic
 from pysatl_criterion.core.distributions.continues.lognormal import generate_lognorm
 from pysatl_criterion.core.distributions.continues.mix_con_norm import generate_mix_con_norm
 from pysatl_criterion.core.distributions.continues.norm import generate_norm
+from pysatl_criterion.core.distributions.continues.pareto import generate_pareto
 from pysatl_criterion.core.distributions.continues.rice import generate_rice
 from pysatl_criterion.core.distributions.continues.scale_con_norm import generate_scale_con_norm
 from pysatl_criterion.core.distributions.continues.student import generate_t
@@ -102,6 +106,10 @@ from pysatl_criterion.core.distributions.continues.uniform import generate_unifo
 from pysatl_criterion.core.distributions.continues.weibull import generate_weibull
 from pysatl_criterion.distribution import (
     ExponentiatedWeibullDistributionDescriptor,
+    HyperbolicDistributionDescriptor,
+    InverseGammaDistributionDescriptor,
+    LogLogisticDistributionDescriptor,
+    ParetoDistributionDescriptor,
     WeibullDistributionDescriptor,
 )
 from pysatl_criterion.distribution import StudentDistributionDescriptor as Student
@@ -973,3 +981,132 @@ class UniformGenerator(AbstractRVSGenerator):
     def generate(self, size, random_state=None):
         """Generate uniform distributed random sample."""
         return generate_uniform(size=size, a=self.a, b=self.b, random_state=random_state)
+
+
+class LogLogisticGenerator(AbstractRVSGenerator):
+    """Log-logistic distribution generator with zero location."""
+
+    def __init__(self, *, alpha=1.0, beta=1.0, **kwargs):
+        super().__init__(**kwargs)
+        values = LogLogisticDistributionDescriptor.DEFAULT.parse({"alpha": alpha, "beta": beta})
+        self.alpha = values[LogLogisticDistributionDescriptor.SCALE]
+        self.beta = values[LogLogisticDistributionDescriptor.SHAPE]
+
+    @override
+    def parameters(self) -> dict[str, float]:
+        return {"alpha": self.alpha, "beta": self.beta}
+
+    @staticmethod
+    @override
+    def distribution_type() -> DistributionType:
+        return DistributionType.LOG_LOGISTIC
+
+    @override
+    def code(self):
+        return self._convert_to_code([self.distribution_type().value, self.alpha, self.beta])
+
+    @override
+    def generate(self, size, random_state=None):
+        return generate_log_logistic(
+            size=size, alpha=self.alpha, beta=self.beta, random_state=random_state
+        )
+
+
+class InverseGammaGenerator(AbstractRVSGenerator):
+    """Inverse gamma distribution generator with zero location."""
+
+    def __init__(self, *, alpha=1.0, beta=1.0, **kwargs):
+        super().__init__(**kwargs)
+        values = InverseGammaDistributionDescriptor.DEFAULT.parse({"alpha": alpha, "beta": beta})
+        self.alpha = values[InverseGammaDistributionDescriptor.SHAPE]
+        self.beta = values[InverseGammaDistributionDescriptor.SCALE]
+
+    @override
+    def parameters(self) -> dict[str, float]:
+        return {"alpha": self.alpha, "beta": self.beta}
+
+    @staticmethod
+    @override
+    def distribution_type() -> DistributionType:
+        return DistributionType.INVERSE_GAMMA
+
+    @override
+    def code(self):
+        return self._convert_to_code([self.distribution_type().value, self.alpha, self.beta])
+
+    @override
+    def generate(self, size, random_state=None):
+        return generate_inverse_gamma(
+            size=size, alpha=self.alpha, beta=self.beta, random_state=random_state
+        )
+
+
+class ParetoGenerator(AbstractRVSGenerator):
+    """Pareto distribution generator."""
+
+    def __init__(self, *, shape=1.0, scale=1.0, **kwargs):
+        super().__init__(**kwargs)
+        values = ParetoDistributionDescriptor.DEFAULT.parse({"shape": shape, "scale": scale})
+        self.shape = values[ParetoDistributionDescriptor.SHAPE]
+        self.scale = values[ParetoDistributionDescriptor.SCALE]
+
+    @override
+    def parameters(self) -> dict[str, float]:
+        return {"shape": self.shape, "scale": self.scale}
+
+    @staticmethod
+    @override
+    def distribution_type() -> DistributionType:
+        return DistributionType.PARETO
+
+    @override
+    def code(self):
+        return self._convert_to_code([self.distribution_type().value, self.shape, self.scale])
+
+    @override
+    def generate(self, size, random_state=None):
+        return generate_pareto(
+            size=size, shape=self.shape, scale=self.scale, random_state=random_state
+        )
+
+
+class HyperbolicGenerator(AbstractRVSGenerator):
+    """Hyperbolic distribution generator."""
+
+    def __init__(self, *, alpha=1.0, beta=0.0, delta=1.0, mu=0.0, **kwargs):
+        super().__init__(**kwargs)
+        values = HyperbolicDistributionDescriptor.DEFAULT.parse(
+            {"alpha": alpha, "beta": beta, "delta": delta, "mu": mu}
+        )
+        self.alpha = values[HyperbolicDistributionDescriptor.SHAPE]
+        self.beta = values[HyperbolicDistributionDescriptor.SKEWNESS]
+        self.delta = values[HyperbolicDistributionDescriptor.SCALE]
+        self.mu = values[HyperbolicDistributionDescriptor.LOCATION]
+        if abs(self.beta) >= self.alpha:
+            raise ValueError("Hyperbolic requires abs(beta) < alpha")
+
+    @override
+    def parameters(self) -> dict[str, float]:
+        return {"alpha": self.alpha, "beta": self.beta, "delta": self.delta, "mu": self.mu}
+
+    @staticmethod
+    @override
+    def distribution_type() -> DistributionType:
+        return DistributionType.HYPERBOLIC
+
+    @override
+    def code(self):
+        return self._convert_to_code(
+            [self.distribution_type().value, self.alpha, self.beta, self.delta, self.mu]
+        )
+
+    @override
+    def generate(self, size, random_state=None):
+        return generate_hyperbolic(
+            size=size,
+            alpha=self.alpha,
+            beta=self.beta,
+            delta=self.delta,
+            mu=self.mu,
+            random_state=random_state,
+        )
