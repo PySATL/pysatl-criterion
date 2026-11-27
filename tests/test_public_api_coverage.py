@@ -164,6 +164,10 @@ def test_every_generator_can_generate_a_sample():
         generators.GompertzGenerator(eta=2, b=3),
         generators.NormalGenerator(mean=0, var=1),
         generators.UniformGenerator(a=0, b=1),
+        generators.LogLogisticGenerator(alpha=1, beta=2),
+        generators.InverseGammaGenerator(alpha=2, beta=1),
+        generators.ParetoGenerator(shape=2, scale=1),
+        generators.HyperbolicGenerator(alpha=2, beta=0.5, delta=1, mu=0),
     ]
 
     for generator in instances:
